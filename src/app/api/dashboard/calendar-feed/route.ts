@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      select: { name: true },
+      select: { name: true, timezone: true },
     })
 
     const whereFilter: any = {
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       orderBy: { startTime: 'asc' },
     })
 
-    const ics = generateICalFeed(business?.name || 'Barber Shop', appointments)
+    const ics = generateICalFeed(business?.name || 'Barber Shop', appointments, business?.timezone || 'UTC')
 
     return new NextResponse(ics, {
       status: 200,

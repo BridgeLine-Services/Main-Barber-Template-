@@ -35,7 +35,8 @@ export function generateICalFeed(
     customer: { firstName: string; lastName: string }
     barber: { name: string } | null
     service: { name: string; duration: number } | null
-  }>
+  }>,
+  businessTimezone = 'UTC'
 ): string {
   const now = toICalDate(new Date())
   const calName = escapeICal(businessName)
@@ -48,7 +49,7 @@ export function generateICalFeed(
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${calName} Appointments`,
-    'X-WR-TIMEZONE:America/Los_Angeles',
+    `X-WR-TIMEZONE:${escapeICal(businessTimezone)}`,
   ]
 
   for (const apt of appointments) {
@@ -102,7 +103,7 @@ export function generateSingleICalEvent(appointment: {
   customer: { firstName: string; lastName: string }
   barber: { name: string } | null
   service: { name: string; duration: number } | null
-  business: { name: string; address?: string | null; city?: string | null }
+  business: { name: string; address?: string | null; city?: string | null; timezone?: string | null }
 }): string {
   const dtStart = toICalDate(appointment.startTime)
   const dtEnd = toICalDate(appointment.endTime)

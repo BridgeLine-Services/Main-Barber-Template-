@@ -254,6 +254,7 @@ export default async function ConfirmationPage({
               businessName={appointment.business?.name}
               businessAddress={appointment.business?.address || undefined}
               businessPhone={appointment.business?.phone || undefined}
+              businessTimezone={appointment.business?.timezone || 'UTC'}
             />
           </div>
         )}
