@@ -67,7 +67,7 @@ export default async function AccessibilityStatementPage() {
             </div>
           </div>
           <p className="text-lg leading-relaxed mt-4">
-            <strong style={{ color: business.accentColor }}>{businessName}</strong> is committed to guaranteeing digital accessibility for all users, including people with disabilities. We continually enhance user experience for everyone and apply relevant accessibility standards.
+            <strong style={{ color: business.accentColor }}>{businessName}</strong> is committed to improving digital accessibility for all users, including people with disabilities. We continually enhance the user experience and review the booking flow for accessibility improvements; this statement does not guarantee compliance with a particular legal standard.
           </p>
         </div>
 

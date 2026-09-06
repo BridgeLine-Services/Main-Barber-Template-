@@ -7,6 +7,7 @@ import crypto from 'crypto'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { normalizeEmail } from '@/lib/validation'
 import { isDevelopmentMode } from '@/lib/app-config'
+import { getAbsoluteUrl } from '@/lib/app-url'
 
 const forgotSchema = z.object({
   email: z.string().email('Valid email required').transform(normalizeEmail),
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
           secure: parseInt(process.env.SMTP_PORT || '587') === 465,
           auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
         })
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+        const baseUrl = getAbsoluteUrl('/')
         await transporter.sendMail({
           from: process.env.SMTP_FROM,
           to: user.email,
@@ -152,7 +153,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (error: any) {
     if (error.code === 'P1001' || error.message?.includes('connect')) {
-      return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 })
+      return NextResponse.json({
+        success: false,
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'Password reset is temporarily unavailable. Please try again later.',
+      }, { status: 503 })
     }
     console.error('Forgot password error:', error)
     // Generic response even on internal errors — no system detail exposed
