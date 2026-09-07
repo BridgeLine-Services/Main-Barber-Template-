@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     prisma.barber.findFirst({ where: { id: barberId, businessId } }),
     prisma.service.findFirst({ where: { id: serviceId, businessId } }),
     prisma.appointment.findFirst({
-      where: { businessId, barberId, status: { in: ['PENDING', 'CONFIRMED'] }, startTime: { lt: slotEnd }, endTime: { gt: slotStart } },
+      where: { businessId, barberId, status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] }, startTime: { lt: slotEnd }, endTime: { gt: slotStart } },
       select: { id: true },
     }),
   ])

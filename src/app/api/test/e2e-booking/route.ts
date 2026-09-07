@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
 
       // ─── Step 5: Verify appointment appears in queries ───────────────────
       const dashboardAppts = await prisma.appointment.findMany({
-        where: { businessId, barberId: barber.id, status: { in: ['PENDING', 'CONFIRMED'] } },
+        where: { businessId, barberId: barber.id, status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } },
         include: { customer: true },
       })
 

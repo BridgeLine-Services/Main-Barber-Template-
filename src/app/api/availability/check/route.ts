@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
       where: {
         businessId,
         barberId: { in: barberIds },
-        status: { in: ['PENDING', 'CONFIRMED'] },
+        status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
         startTime: { gte: monthStartUTC, lt: monthEndUTC },
       },
       select: { barberId: true, startTime: true, endTime: true },

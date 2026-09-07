@@ -24,8 +24,8 @@ export async function getRetentionDashboardMetrics(businessId: string): Promise<
     getRebookingTasks(businessId),
     prisma.appointment.count({ where: { businessId, status: 'CANCELLED', updatedAt: { gte: startToday } } }),
     prisma.appointment.count({ where: { businessId, status: 'NO_SHOW', updatedAt: { gte: startToday } } }),
-    prisma.appointment.count({ where: { businessId, startTime: { gte: startToday, lt: startTomorrow }, status: { in: ['PENDING', 'CONFIRMED'] } } }),
-    prisma.appointment.count({ where: { businessId, startTime: { gte: startTomorrow, lt: startDayAfter }, status: { in: ['PENDING', 'CONFIRMED'] } } }),
+    prisma.appointment.count({ where: { businessId, startTime: { gte: startToday, lt: startTomorrow }, status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } } }),
+    prisma.appointment.count({ where: { businessId, startTime: { gte: startTomorrow, lt: startDayAfter }, status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } } }),
   ])
 
   return {
