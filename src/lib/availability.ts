@@ -74,8 +74,9 @@ export async function getAvailableSlots(params: {
   const dayOfWeek = dayOfWeekFromYMD(timezone, year, month, day)
 
   // Parallel: service info, barber schedule, appointments, blocked times, closures, overrides
-  const [service, schedule, appointments, blockedTimes, closures, override] = await Promise.all([
+  const [service, barberService, schedule, appointments, blockedTimes, closures, override] = await Promise.all([
     prisma.service.findFirst({ where: { id: serviceId, businessId, isActive: true } }),
+    prisma.barberService.findUnique({ where: { barberId_serviceId: { barberId, serviceId } } }),
     prisma.schedule.findUnique({ where: { barberId_dayOfWeek: { barberId, dayOfWeek } } }),
     prisma.appointment.findMany({
       where: {
@@ -117,6 +118,8 @@ export async function getAvailableSlots(params: {
   ])
 
   if (!service || !service.isActive) return []
+  if (barberService && !barberService.isActive) return []
+  if (!barberService && (await prisma.barberService.count({ where: { barberId, serviceId } })) > 0) return []
 
   // ─── Availability Override takes priority over recurring schedule ─────────
   // If an override exists for this date, it completely replaces the recurring schedule.
@@ -158,7 +161,7 @@ export async function getAvailableSlots(params: {
     }
   }
 
-  const duration = service.duration // minutes
+  const duration = barberService?.durationOverride ?? service.duration // minutes
 
   // Parse working hours and convert to UTC using business timezone
   const dayStart = localTimeToUTCFromYMD(workingStart, year, month, day, timezone)
@@ -368,8 +371,13 @@ export async function validateSlot(params: {
   })
   if (!service) return { valid: false, error: 'Service not found or inactive' }
 
+  const barberService = await prisma.barberService.findUnique({
+    where: { barberId_serviceId: { barberId, serviceId } },
+  })
+  if (barberService && !barberService.isActive) return { valid: false, error: 'SERVICE_NOT_OFFERED' }
+
   // 3. Compute end time
-  const endTime = addMinutes(startTime, service.duration)
+  const endTime = addMinutes(startTime, barberService?.durationOverride ?? service.duration)
 
   // 4. Check for conflicting appointments (double-booking protection)
   const conflicting = await prisma.appointment.findFirst({
@@ -405,7 +413,7 @@ export async function validateSlot(params: {
     if (!override.isAvailable) return { valid: false, error: 'BARBER_OFF' }
     if (!override.startTime || !override.endTime) return { valid: false, error: 'BARBER_OFF' }
     // Convert override times to UTC for comparison
-    const y = startTime.getFullYear(), m = startTime.getMonth() + 1, d = startTime.getDate()
+    const y = year, m = month, d = day
     const overrideStart = localTimeToUTCFromYMD(override.startTime, y, m, d, timezone)
     const overrideEnd = localTimeToUTCFromYMD(override.endTime, y, m, d, timezone)
     if (startTime < overrideStart || endTime > overrideEnd) {
@@ -415,7 +423,7 @@ export async function validateSlot(params: {
     // No override — use recurring weekly schedule
     if (!schedule || schedule.isOff) return { valid: false, error: 'BARBER_OFF' }
     // Convert schedule times to UTC for comparison
-    const y = startTime.getFullYear(), m = startTime.getMonth() + 1, d = startTime.getDate()
+    const y = year, m = month, d = day
     const scheduleStart = localTimeToUTCFromYMD(schedule.startTime, y, m, d, timezone)
     const scheduleEnd = localTimeToUTCFromYMD(schedule.endTime, y, m, d, timezone)
     if (startTime < scheduleStart || endTime > scheduleEnd) {
@@ -475,8 +483,13 @@ export async function createAppointmentSafely(params: {
       })
       if (!service) throw new Error('Service not found or inactive')
 
+      const barberService = await tx.barberService.findUnique({
+        where: { barberId_serviceId: { barberId, serviceId } },
+      })
+      if (barberService && !barberService.isActive) throw new Error('SERVICE_NOT_OFFERED')
+
       // 3. Compute end time
-      const endTime = addMinutes(startTime, service.duration)
+      const endTime = addMinutes(startTime, barberService?.durationOverride ?? service.duration)
 
       // 4. RE-CHECK availability inside the transaction (double-booking guard)
       const conflicting = await tx.appointment.findFirst({
@@ -514,6 +527,9 @@ export async function createAppointmentSafely(params: {
         if (startTime < oStart || endTime > oEnd) throw new Error('OUTSIDE_HOURS')
       } else {
         if (!schedule || schedule.isOff) throw new Error('BARBER_OFF')
+        const scheduleStart = localTimeToUTCFromYMD(schedule.startTime, year, month, day, tz)
+        const scheduleEnd = localTimeToUTCFromYMD(schedule.endTime, year, month, day, tz)
+        if (startTime < scheduleStart || endTime > scheduleEnd) throw new Error('OUTSIDE_HOURS')
       }
 
       // 5. Check blocked times

@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '../src/lib/prisma'
+import { validateSlot } from '../src/lib/availability'
 
 let passed = 0
 let failed = 0
@@ -184,7 +185,16 @@ async function testBookingFlow(ids: any) {
   assert(!!appointment.id, 'Appointment created successfully')
   assert(appointment.businessId === business.id, 'Appointment has correct businessId')
 
-  // Test 4: Conflict detection — find existing appointment at same time
+  // Test 4: The production validator rejects times outside the barber schedule.
+  const outsideHours = await validateSlot({
+    businessId: business.id,
+    barberId: barber1.id,
+    serviceId: service.id,
+    startTime: new Date(new Date(tomorrow).getTime() - 2 * 60 * 60 * 1000),
+  })
+  assert(outsideHours.valid === false && outsideHours.error === 'OUTSIDE_HOURS', 'Booking validator rejects appointments outside scheduled hours')
+
+  // Test 5: Conflict detection — find existing appointment at same time
   const conflictingAppt = await prisma.appointment.findFirst({
     where: {
       barberId: barber1.id,
