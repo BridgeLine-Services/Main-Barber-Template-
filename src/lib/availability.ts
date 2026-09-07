@@ -81,7 +81,7 @@ export async function getAvailableSlots(params: {
       where: {
         businessId,
         barberId,
-        status: { in: ['PENDING', 'CONFIRMED'] },
+        status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
         startTime: {
           gte: dayStartUTC,
           lt: dayEndUTC,
@@ -376,7 +376,7 @@ export async function validateSlot(params: {
     where: {
       businessId,
       barberId,
-      status: { in: ['PENDING', 'CONFIRMED'] },
+      status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
       startTime: { lt: endTime },
       endTime: { gt: startTime },
       ...(excludeAppointmentId ? { NOT: { id: excludeAppointmentId } } : {}),
@@ -463,21 +463,27 @@ export async function createAppointmentSafely(params: {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Fetch the service to get duration
+      // 1. Verify the barber belongs to this business (tenant isolation)
+      const barber = await tx.barber.findFirst({
+        where: { id: barberId, businessId, isActive: true },
+      })
+      if (!barber) throw new Error('Barber not found or inactive')
+
+      // 2. Fetch the service to get duration
       const service = await tx.service.findFirst({
         where: { id: serviceId, businessId, isActive: true },
       })
       if (!service) throw new Error('Service not found or inactive')
 
-      // 2. Compute end time
+      // 3. Compute end time
       const endTime = addMinutes(startTime, service.duration)
 
-      // 3. RE-CHECK availability inside the transaction (double-booking guard)
+      // 4. RE-CHECK availability inside the transaction (double-booking guard)
       const conflicting = await tx.appointment.findFirst({
         where: {
           businessId,
           barberId,
-          status: { in: ['PENDING', 'CONFIRMED'] },
+          status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
           startTime: { lt: endTime },
           endTime: { gt: startTime },
         },

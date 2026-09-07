@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       smsConsent: true,
       appointments: {
         some: { businessId, barberId, serviceId, status: 'COMPLETED' },
-        none: { businessId, startTime: { gte: new Date() }, status: { in: ['PENDING', 'CONFIRMED'] } },
+        none: { businessId, startTime: { gte: new Date() }, status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } },
       },
     },
     select: {

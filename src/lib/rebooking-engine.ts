@@ -69,7 +69,7 @@ export async function getRebookingTasks(businessId: string): Promise<RebookingTa
       where: {
         customerId: customer.id,
         businessId,
-        status: { in: ['PENDING', 'CONFIRMED'] },
+        status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
         startTime: { gte: now },
       },
     })

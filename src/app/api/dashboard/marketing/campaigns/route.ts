@@ -28,6 +28,11 @@ export async function POST(req: NextRequest) {
   const userId = (session.user as any)?.id
   const userRole = (session.user as any)?.role
 
+  // Marketing operations (preview AND creation) require OWNER role
+  if (userRole !== 'OWNER') {
+    return NextResponse.json({ error: 'Only owners can manage marketing campaigns' }, { status: 403 })
+  }
+
   const body = await req.json()
   const { name, subject, body: campaignBody, audience, audienceConfig, preview } = body
 
@@ -37,10 +42,6 @@ export async function POST(req: NextRequest) {
     // Preview the audience size without creating the campaign
     const targets = await resolveCampaignAudience(businessId, audience, audienceConfig)
     return NextResponse.json({ recipientCount: targets.length, sample: targets.slice(0, 5) })
-  }
-
-  if (userRole !== 'OWNER') {
-    return NextResponse.json({ error: 'Only owners can create campaigns' }, { status: 403 })
   }
 
   if (!name || !subject || !campaignBody) {
