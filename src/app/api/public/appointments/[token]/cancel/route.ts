@@ -84,19 +84,27 @@ export async function POST(
       )
     }
 
-    // Cancel the appointment
-    const updated = await prisma.appointment.update({
-      where: { id: appointment.id },
+    // Atomically cancel only if the appointment is still active. This prevents
+    // concurrent cancellation requests from both reporting success.
+    const updated = await prisma.appointment.updateMany({
+      where: {
+        id: appointment.id,
+        status: { notIn: ['CANCELLED', 'COMPLETED', 'NO_SHOW'] },
+      },
       data: {
         status: 'CANCELLED',
         cancellationReason: parseResult.data.reason || 'Cancelled by customer',
       },
     })
 
+    if (updated.count !== 1) {
+      return NextResponse.json({ error: 'Appointment is no longer cancellable' }, { status: 409 })
+    }
+
     return NextResponse.json({
       success: true,
-      status: updated.status,
-      confirmationNumber: updated.confirmationNumber,
+      status: 'CANCELLED',
+      confirmationNumber: appointment.confirmationNumber,
     })
   } catch (error: any) {
     console.error('Error cancelling appointment by token:', error)
