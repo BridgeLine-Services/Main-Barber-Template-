@@ -45,14 +45,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unsupported file type. Use JPEG, PNG, WebP, AVIF, or SVG.' }, { status: 400 })
   }
 
+  // Map MIME types to safe extensions (do NOT use user-supplied extension)
+  const mimeToExt: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/avif': 'avif',
+    'image/svg+xml': 'svg',
+  }
+
+  const ext = mimeToExt[file.type] || 'jpg'
+
   // Validate file size (10MB max)
   const MAX_SIZE = 10 * 1024 * 1024
   if (file.size > MAX_SIZE) {
     return NextResponse.json({ error: 'File too large. Maximum 10MB.' }, { status: 400 })
   }
 
-  // Generate a safe filename
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  // Generate a safe filename using server-derived extension
   const timestamp = Date.now()
   const randomStr = Math.random().toString(36).substring(2, 8)
   const filename = `${type.toLowerCase()}-${timestamp}-${randomStr}.${ext}`

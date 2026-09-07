@@ -9,7 +9,6 @@ import { z } from 'zod'
 
 // Validation schemas
 const createReviewSchema = z.object({
-  businessId: z.string().min(1),
   authorName: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(2000).optional(),
@@ -25,7 +24,7 @@ const updateReviewSchema = z.object({
   comment: z.string().max(2000).optional(),
 })
 
-// POST — customer submits a review OR owner adds a review
+// POST — customer submits a review (unauthenticated but server-side tenant-resolved)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -39,10 +38,15 @@ export async function POST(req: NextRequest) {
 
     const data = parseResult.data
 
+    // Resolve the business server-side from hostname/tenant config
+    // Do NOT accept businessId from the request
+    const { resolveBusinessId } = await import('@/lib/tenant')
+    const businessId = await resolveBusinessId()
+
     // If barberId is provided, verify it belongs to this business
     if (data.barberId) {
       const barber = await prisma.barber.findFirst({
-        where: { id: data.barberId, businessId: data.businessId },
+        where: { id: data.barberId, businessId },
       })
       if (!barber) {
         return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const review = await prisma.review.create({
       data: {
-        businessId: data.businessId,
+        businessId,
         barberId: data.barberId || null,
         authorName: data.authorName.trim(),
         rating: data.rating,
