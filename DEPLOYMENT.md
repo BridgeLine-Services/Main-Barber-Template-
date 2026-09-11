@@ -61,29 +61,21 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 2. Vercel will run `npm install` and `prisma generate && next build`
 3. Wait for the build to complete
 
-## Step 4: Initialize the Database
+## Step 4: Apply the Production Database
 
-After the first deployment, apply the reviewed migrations. Do not seed demo data into a customer production database; the owner creates the account and shop through `/login` and the existing onboarding wizard.
+Run reviewed migrations from a trusted deployment environment:
 
-### Option A: Local seeding (recommended for first setup)
 ```bash
-# Clone and install locally
-git clone https://github.com/BridgeLine-Services/Barber.git
-cd Barber
-npm install
-
-# Use your production DATABASE_URL
-npx prisma db push  # reads DATABASE_URL from your configured environment
-npm run db:seed    # reads DATABASE_URL from your configured environment
+npx prisma migrate deploy
 ```
 
-### Option B: Vercel Postgres CLI
-```bash
-npm i -g vercel
-vercel env pull .env.local   # Pull env vars locally
-npx prisma db push             # Push schema to Vercel Postgres
-npm run db:seed                # Seed demo data
-```
+This updates the client database without creating demo records. The command
+must run with the production `DATABASE_URL` supplied through the provider's
+secret environment, never committed to the repository. Success means the
+migration command completes without an error.
+
+Do not use `prisma db push` or `npm run db:seed` for a customer production
+database. Those commands are for local development only.
 
 ## Step 5: Set Up a Custom Domain (Optional)
 
@@ -107,14 +99,21 @@ npm run db:seed                # Seed demo data
 
 ## Post-Deployment Checklist
 
-- [ ] Database schema pushed (`prisma db push`)
-- [ ] Seed data loaded (`npm run db:seed`)
-- [ ] Login works at `/login` with demo credentials
+- [ ] Reviewed migrations applied (`npx prisma migrate deploy`)
+- [ ] Owner account created at `/login`
+- [ ] Existing onboarding completed
+- [ ] **Dashboard → Launch Console** reports the next action is clear
 - [ ] Customer booking flow works end-to-end
 - [ ] `NEXTAUTH_URL` matches production domain
 - [ ] Email notifications sent on booking
 - [ ] SEO structured data validated (Google Rich Results Test)
 - [ ] SSL/HTTPS active (automatic on Vercel)
+
+## Local demo workflow
+
+For local evaluation only, set `APP_MODE=demo`, run the seed script, and use
+the demo dataset. Demo credentials and seeded appointments must never be used
+in a customer deployment.
 
 ---
 

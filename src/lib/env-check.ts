@@ -66,15 +66,20 @@ const FEATURE_REQUIREMENTS: Record<FeatureName, string[]> = {
   reminders: ['CRON_SECRET'],
 }
 
-function isEnabled(variable: string): boolean {
+export function isFeatureEnabled(variable: string): boolean {
   return process.env[variable]?.trim().toLowerCase() === 'true'
 }
+
+export function isEmailEnabled(): boolean { return isFeatureEnabled('EMAIL_ENABLED') }
+export function isSmsEnabled(): boolean { return isFeatureEnabled('SMS_ENABLED') }
+export function isGoogleEnabled(): boolean { return isFeatureEnabled('GOOGLE_ENABLED') }
+export function isRemindersEnabled(): boolean { return isFeatureEnabled('REMINDERS_ENABLED') }
 
 export function getFeatureConfig(feature: FeatureName): FeatureConfig {
   const flag = feature === 'email' ? 'EMAIL_ENABLED'
     : feature === 'sms' ? 'SMS_ENABLED'
       : feature === 'google' ? 'GOOGLE_ENABLED' : 'REMINDERS_ENABLED'
-  const enabled = isEnabled(flag)
+  const enabled = isFeatureEnabled(flag)
   const missing = enabled ? FEATURE_REQUIREMENTS[feature].filter((name) => !process.env[name]?.trim()) : []
   return { enabled, configured: missing.length === 0, missing }
 }

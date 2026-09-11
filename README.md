@@ -114,7 +114,8 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-generated-secret-key"
 
-# Email is optional; the booking system works without these variables.
+# Email is disabled unless EMAIL_ENABLED is true; credentials stay local only.
+EMAIL_ENABLED="false"
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
 SMTP_USER="your-email@gmail.com"
@@ -195,7 +196,7 @@ Controls whether new owner accounts can be created on this deployment. The API e
 
 ### First owner setup & onboarding
 
-1. Set `OWNER_REGISTRATION_MODE=onboarding` (default) and create your owner account at `/login` → *Create one*, **or** seed an owner with `npm run db:seed` (see above).
+1. Set `OWNER_REGISTRATION_MODE=onboarding` (default) and create your owner account at `/login` -> *Create one*. Seeding an owner is a local development option only, never the production client path.
 2. After sign-in, the owner is routed into the onboarding wizard: **Business Basics → Branding → Services → Team (barbers + weekly schedules) → Booking Settings → Review**.
 3. Progress is persisted in the database — the owner can leave and resume exactly where they stopped.
 4. The **Review & Complete** step lists every server-side requirement and links back to the step that fixes it. Setup can only be completed when the business has: a name, a valid slug, a timezone, **≥ 1 active service**, **≥ 1 active barber**, and a weekly schedule for every active barber.
@@ -406,18 +407,14 @@ Client configuration belongs in the `Business` record and related settings model
 
 Use this workflow for every clone so client data and configuration never carry over between deployments:
 
-1. Clone this repository into a new client project.
-2. Create a new PostgreSQL database for the client; never reuse another client's database.
-3. Configure required environment variables (`DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, and `NEXT_PUBLIC_APP_URL`).
+1. Follow the authoritative production workflow in `DEPLOYMENT.md`.
+2. Create a fresh PostgreSQL database for the client; never reuse another client's database.
+3. Configure core variables in the hosting provider's environment settings, keeping secrets there.
 4. Apply reviewed Prisma migrations with `npx prisma migrate deploy`.
-5. Configure the business name, contact information, location, timezone, and payment-in-person setting through onboarding.
-6. Configure branding, including logo, colors, fonts, and controlled theme settings.
-7. Configure services, prices, durations, and barber assignments.
-8. Configure barbers, schedules, breaks, blocked time, and availability.
-9. Configure booking, cancellation, late, no-show, privacy, terms, and payment policies.
-10. Review notification settings; leave email and SMS disabled unless the client deliberately supplies provider credentials.
-11. Configure the client domain, canonical URL, and SEO information.
-12. Deploy and complete the launch checklist below.
+5. Create the owner account at `/login` and complete the existing onboarding wizard.
+6. Configure branding, services, barbers, schedules, policies, and optional integrations.
+7. Open **Dashboard → Launch Console** and follow its single prioritized next action.
+8. Verify the client domain and complete the final human launch review.
 
 ### New Client Launch Checklist
 

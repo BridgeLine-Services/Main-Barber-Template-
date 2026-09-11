@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { processDueNotifications } from '@/lib/notification-worker'
+import { isRemindersEnabled } from '@/lib/env-check'
 
 /**
  * GET /api/cron/reminders
@@ -21,6 +22,7 @@ import { processDueNotifications } from '@/lib/notification-worker'
  */
 
 export async function GET(req: NextRequest) {
+  if (!isRemindersEnabled()) return NextResponse.json({ error: 'Reminders are disabled' }, { status: 404 })
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
   if (req.headers.get('authorization') !== `Bearer ${cronSecret}`) {

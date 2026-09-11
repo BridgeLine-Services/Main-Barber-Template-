@@ -41,6 +41,10 @@ assert(has(snapshot(), 'email', 'WARN'), 'disabled email does not block readines
 assert(has(snapshot({ features: { ...snapshot().features, email: { enabled: true, configured: false, missing: ['SMTP_HOST'] } } }), 'email', 'FAIL'), 'enabled email without credentials blocks readiness')
 assert(has(snapshot(), 'sms', 'WARN'), 'disabled SMS does not block readiness')
 assert(has(snapshot({ features: { ...snapshot().features, sms: { enabled: true, configured: false, missing: ['TWILIO_AUTH_TOKEN'] } } }), 'sms', 'FAIL'), 'enabled SMS without credentials blocks readiness')
+assert(has(snapshot(), 'google', 'WARN'), 'disabled Google does not block readiness')
+assert(has(snapshot({ features: { ...snapshot().features, google: { enabled: true, configured: false, missing: ['GOOGLE_CLIENT_ID'] } } }), 'google', 'FAIL'), 'enabled Google without credentials blocks readiness')
+assert(has(snapshot(), 'reminders', 'WARN'), 'disabled reminders do not block readiness')
+assert(has(snapshot({ features: { ...snapshot().features, reminders: { enabled: true, configured: false, missing: ['CRON_SECRET'] } } }), 'reminders', 'FAIL'), 'enabled reminders without credentials block readiness')
 assert(has(snapshot({ app: { ...snapshot().app, production: false } }), 'Production mode', 'FAIL'), 'demo mode cannot be production-ready')
 assert(!JSON.stringify(checks(snapshot())).match(/SECRET|TOKEN|PASSWORD|SMTP_PASS/i), 'readiness results contain no secret values')
 

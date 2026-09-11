@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { prisma } from '@/lib/prisma'
+import { isGoogleEnabled } from '@/lib/env-check'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -354,6 +355,7 @@ export async function importGoogleReviews(
  * Check if Google Business Profile is configured (OAuth credentials present)
  */
 export function isGBPConfigured(): boolean {
+  if (!isGoogleEnabled()) return false
   return !!(
     process.env.GOOGLE_CLIENT_ID &&
     process.env.GOOGLE_CLIENT_SECRET
