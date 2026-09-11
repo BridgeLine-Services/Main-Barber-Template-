@@ -6,6 +6,38 @@ Designed with a high-end, dark & gold premium aesthetic, this application provid
 
 ---
 
+## Barber Website Factory
+
+This repository is a reusable website factory. A new shop is created by
+deploying the template, connecting its database, creating the owner account,
+and completing the existing onboarding wizard. Client information belongs in
+the shop's database configuration (business details, branding, services,
+barbers, schedules, and booking settings), not in application source code.
+
+After onboarding, owners can open **Dashboard → Factory Status** to check
+whether the shop is ready to launch. The report checks database and
+authentication setup, client configuration, branding, services, team
+schedules, booking settings, and optional integrations. A disabled integration
+is acceptable; an enabled integration with missing credentials blocks readiness.
+The report never returns secret values.
+
+Core deployment variables are `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`,
+`NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_APP_NAME`. Store database credentials,
+authentication secrets, SMTP passwords, Twilio tokens, and OAuth secrets only
+in the hosting provider's secret environment-variable store. Never paste them
+into source code or client configuration exports.
+
+Optional integrations are controlled with `EMAIL_ENABLED`, `SMS_ENABLED`,
+`GOOGLE_ENABLED`, and `REMINDERS_ENABLED`. Leave a flag set to `false` when the
+feature is not being used; its credentials are then not required. Set a flag to
+`true` only after adding the corresponding provider credentials.
+
+The readiness report is a launch aid, not a replacement for human approval.
+An operator must still approve production credentials, domain ownership,
+database access, provider accounts, and the final booking test.
+
+---
+
 ## 🚀 Key Features
 
 ### 🌐 Customer Website
