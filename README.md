@@ -8,6 +8,12 @@ Designed with a high-end, dark & gold premium aesthetic, this application provid
 
 ## Barber Website Factory
 
+This repository is governed by the [Main Barber Template Architecture
+Constitution](docs/ARCHITECTURE_CONSTITUTION.md). It is the mandatory
+architecture contract: new shop deployments use database onboarding and
+deployment environment configuration, never application-source edits. Run
+`npm run architecture:check` before submitting changes.
+
 This repository is a reusable website factory. A new shop is created by
 deploying the template, connecting its database, creating the owner account,
 and completing the existing onboarding wizard. Client information belongs in

@@ -1,5 +1,11 @@
 # Production Deployment
 
+The [Architecture Constitution](docs/ARCHITECTURE_CONSTITUTION.md) is the
+governing contract for this workflow. Shop identity, branding, services,
+barbers, schedules, policies, and booking settings are configured through the
+database/onboarding layer; deployment secrets remain in the provider's
+environment-variable store.
+
 `DEPLOYMENT.md` is the authoritative production deployment guide. It covers
 the current client workflow:
 

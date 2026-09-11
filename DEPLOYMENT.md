@@ -1,5 +1,11 @@
 # 🚀 Deploying to Vercel
 
+This deployment follows the canonical lifecycle in
+[docs/ARCHITECTURE_CONSTITUTION.md](docs/ARCHITECTURE_CONSTITUTION.md):
+copy the template, deploy, create the database, configure environment
+variables, create the owner, complete onboarding, test, and then attach the
+domain. Do not edit application source to configure a shop.
+
 This guide walks you through deploying the Barber Booking System to Vercel.
 
 ---
