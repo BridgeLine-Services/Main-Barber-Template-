@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "architecture:check": "node scripts/check-template-architecture.mjs",
+    "test:architecture": "tsx tests/architecture.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -21,7 +23,7 @@
     "test:reliability": "npx tsx tests/reliability.test.ts",
     "test:factory-readiness": "npx tsx tests/factory-readiness.test.ts",
     "test:factory-launch": "npx tsx tests/factory-launch.test.ts",
-    "test:all": "npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:factory-readiness && npm run test:factory-launch"
+    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:factory-readiness && npm run test:factory-launch"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
