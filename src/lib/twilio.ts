@@ -5,6 +5,8 @@
 // environment variables to be set.
 // ============================================================================
 
+import { isSmsEnabled } from '@/lib/env-check'
+
 export interface SmsResult {
   success: boolean
   messageId?: string
@@ -15,7 +17,7 @@ export interface SmsResult {
  * Check if Twilio is configured (all required env vars present)
  */
 export function isTwilioConfigured(): boolean {
-  if (process.env.SMS_ENABLED?.toLowerCase() === 'false') return false
+  if (!isSmsEnabled()) return false
   return !!(
     process.env.TWILIO_ACCOUNT_SID &&
     process.env.TWILIO_AUTH_TOKEN &&

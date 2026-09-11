@@ -3,6 +3,7 @@ import { formatFullDate, formatTime } from '@/lib/utils'
 import nodemailer from 'nodemailer'
 import { sendSms, isTwilioConfigured, buildReminderMessage, buildConfirmationMessage } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
+import { isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
 
 // ============================================================================
 // Notification System
@@ -15,14 +16,14 @@ import { getSmtpFromAddress } from '@/lib/app-config'
 let transporter: nodemailer.Transporter | null = null
 
 export function isEmailConfigured(): boolean {
-  if (process.env.EMAIL_ENABLED?.toLowerCase() === 'false') return false
+  if (!isEmailEnabled()) return false
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_FROM)
 }
 
 export function notificationStatus() {
   return {
     email: isEmailConfigured(),
-    sms: process.env.SMS_ENABLED?.toLowerCase() === 'false' ? false : isTwilioConfigured(),
+    sms: isSmsEnabled() && isTwilioConfigured(),
   }
 }
 
