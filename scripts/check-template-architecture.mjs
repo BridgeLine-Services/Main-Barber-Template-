@@ -53,7 +53,14 @@ for (const file of files) {
   const relative = path.relative(root, file)
   const text = fs.readFileSync(file, 'utf8')
   for (const rule of rules) {
-    const match = text.match(rule.pattern)
+    // The seed's explicitly named demo credential is a local fixture, not a
+    // deployment secret. Keep the credential rule strict for every other
+    // source value while honoring the constitution's documented demo-default
+    // exception.
+    const textToCheck = rule.name === 'hard-coded credential or token'
+      ? text.split('\n').filter((line) => !/^\s*const DEMO_PASSWORD\s*=\s*['"][^'"]+['"]\s*$/.test(line)).join('\n')
+      : text
+    const match = textToCheck.match(rule.pattern)
     if (match) findings.push(`${relative}: ${rule.name} (${match[0].slice(0, 100)})`)
   }
 }
