@@ -72,8 +72,6 @@ export async function POST(req: NextRequest) {
 
     // Idempotency: if the client sends the same request twice (double-click),
     // the second one is rejected. Use a hash of the booking data.
-    const idempotencyKey = body.idempotencyKey || `${body.barberId}-${body.serviceId}-${body.date}-${body.time}-${body.customer?.email || ''}`
-
     // Validate request body with Zod
     const parseResult = createBookingSchema.safeParse(body)
     if (!parseResult.success) {
@@ -88,6 +86,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { barberId: reqBarberId, serviceId, date, time, customer } = parseResult.data
+    const idempotencyKey = parseResult.data.idempotencyKey ||
+      `${reqBarberId || 'any'}-${serviceId}-${date}-${time}-${customer.email}`
 
     const businessId = await resolveBusinessId()
     const businessPolicies = await prisma.business.findUnique({

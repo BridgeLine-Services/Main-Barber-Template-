@@ -31,6 +31,15 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // The OAuth state is bound to the authenticated tenant. This prevents a
+  // callback for one shop from being used to configure another shop.
+  const sessionBusinessId = (session.user as any).businessId
+  if (!state || !sessionBusinessId || state !== sessionBusinessId) {
+    return NextResponse.redirect(
+      new URL('/dashboard/settings?gbp_error=invalid_state', req.url)
+    )
+  }
+
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const redirectUri = `${new URL(req.url).origin}/api/dashboard/google-business/callback`
@@ -58,7 +67,8 @@ export async function GET(req: NextRequest) {
     const tokens = await tokenResponse.json()
 
     if (!tokenResponse.ok) {
-      console.error('GBP token exchange error:', tokens)
+      // Never log the provider response: it can contain token-shaped values.
+      console.error('GBP token exchange failed:', tokenResponse.status)
       return NextResponse.redirect(
         new URL(`/dashboard/settings?gbp_error=${encodeURIComponent(tokens.error || 'token_exchange_failed')}`, req.url)
       )
@@ -68,8 +78,6 @@ export async function GET(req: NextRequest) {
     // For now, we return them to the dashboard where the user can set them
     // in their environment variables.
     const accessToken = tokens.access_token
-    const refreshToken = tokens.refresh_token
-
     // List GBP accounts to find the right one
     const accountsResponse = await fetch(
       'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
@@ -86,11 +94,13 @@ export async function GET(req: NextRequest) {
       type: a.type,
     }))
 
-    // Redirect to settings with token info (encoded for the frontend to display)
+    // Never place OAuth tokens in a redirect URL. URLs are copied to browser
+    // history, analytics, proxy logs, and referrer headers. Persist these
+    // credentials in a secrets manager/database integration before enabling
+    // this flow; until then, report the account discovery result only.
     const params = new URLSearchParams({
-      gbp_connected: 'true',
-      gbp_access_token: accessToken,
-      ...(refreshToken ? { gbp_refresh_token: refreshToken } : {}),
+      gbp_connected: 'false',
+      gbp_error: 'token_storage_not_configured',
       gbp_accounts: JSON.stringify(accountNames),
     })
 

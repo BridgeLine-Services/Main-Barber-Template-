@@ -56,6 +56,17 @@ const appMode = (process.env.APP_MODE || 'production').trim().toLowerCase()
 const isDemoMode = appMode === 'demo'
 
 async function main() {
+  // This script deletes tenant data before recreating fixtures. Never allow a
+  // deployment hook (or a copied production DATABASE_URL) to run it silently.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run the destructive seed in NODE_ENV=production. Use prisma migrate deploy and onboarding instead.')
+  }
+  if (process.env.SEED_ALLOW_DESTRUCTIVE !== 'true') {
+    throw new Error(
+      'Seed is destructive and disabled by default. For an intentional local/demo reset, set SEED_ALLOW_DESTRUCTIVE=true.'
+    )
+  }
+
   const businessName = process.env.SEED_BUSINESS_NAME || 'Your Barber Shop'
   const businessEmail = process.env.SEED_BUSINESS_EMAIL || `info@${(businessName || 'yourbarbershop').toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
   const businessPhone = process.env.SEED_BUSINESS_PHONE || '(555) 555-0100'

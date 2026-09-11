@@ -39,10 +39,33 @@ export async function requireAuth(): Promise<AuthResult | AuthError> {
       response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     }
   }
+
+  // JWT claims are a session cache and may outlive a membership/role change.
+  // Resolve the user from the database for every protected API request so a
+  // deleted user or moved tenant cannot keep using an old token.
+  const sessionUser = session.user as any
+  const dbUser = await prisma.user.findUnique({
+    where: sessionUser.id ? { id: sessionUser.id } : { email: sessionUser.email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      businessId: true,
+      barberId: true,
+    },
+  })
+  if (!dbUser) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    }
+  }
+
   return {
     success: true,
     session,
-    user: session.user as any,
+    user: dbUser as AuthResult['user'],
   }
 }
 

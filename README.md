@@ -134,8 +134,12 @@ npx prisma db push
 
 ### 5. Seed the database with demo data
 ```bash
-npm run db:seed
+SEED_ALLOW_DESTRUCTIVE=true APP_MODE=demo npm run db:seed
 ```
+
+The seed script deletes existing tenant data and is refused in
+`NODE_ENV=production`. `SEED_ALLOW_DESTRUCTIVE=true` is an explicit local
+reset acknowledgement; never set it for a customer production database.
 
 ### 6. Start the development server
 ```bash
@@ -152,9 +156,9 @@ The seed script behavior depends on `APP_MODE`:
 ### Production Mode (default — `APP_MODE` unset or `production`)
 
 ```bash
-npm run db:seed
+SEED_ALLOW_DESTRUCTIVE=true npm run db:seed
 # or with real shop details:
-SEED_BUSINESS_NAME="Mike's Cuts" SEED_OWNER_EMAIL="mike@mikescuts.com" npm run db:seed
+SEED_ALLOW_DESTRUCTIVE=true SEED_BUSINESS_NAME="Mike's Cuts" SEED_OWNER_EMAIL="mike@mikescuts.com" npm run db:seed
 ```
 
 - Creates only the real setup data: business, **owner account**, starter services & barbers.
@@ -167,7 +171,7 @@ SEED_BUSINESS_NAME="Mike's Cuts" SEED_OWNER_EMAIL="mike@mikescuts.com" npm run d
 ### Demo Mode (`APP_MODE=demo`)
 
 ```bash
-APP_MODE=demo npm run db:seed
+SEED_ALLOW_DESTRUCTIVE=true APP_MODE=demo npm run db:seed
 ```
 
 - Adds the full demo dataset: sample customers, appointments, reviews, and barber login accounts — all clearly labeled as **DEMO DATA**.

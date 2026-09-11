@@ -8,6 +8,7 @@ import { z } from 'zod'
 // ─── Booking ───────────────────────────────────────────────────────────────
 
 export const createBookingSchema = z.object({
+  idempotencyKey: z.string().trim().min(8).max(128).optional(),
   barberId: z.string().min(1).optional(), // can be "any"
   serviceId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
