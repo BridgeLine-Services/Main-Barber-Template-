@@ -110,6 +110,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
     {
       label: 'system',
       items: [
+        { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
         { name: 'Staff', href: '/dashboard/staff', icon: UserCog },
         { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
         { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },

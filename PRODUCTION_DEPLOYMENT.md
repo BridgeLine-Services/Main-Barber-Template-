@@ -15,7 +15,7 @@
 ### S30: Database Connection Verification
 - Build made resilient: `prisma db push` won't fail the build if DB isn't connected yet
 - Setup wizard checks DB status and guides user
-- NEXTAUTH_SECRET fallback added
+- Production readiness requires an explicit `NEXTAUTH_SECRET`; no production fallback secret is used
 
 ### S31: E2E Test Infrastructure
 - `/api/test/e2e-booking` endpoint: full booking lifecycle test (owner-only)

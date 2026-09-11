@@ -18,7 +18,8 @@
     "test:booking": "npx tsx tests/booking.test.ts",
     "test:permissions": "npx tsx tests/role-permissions.test.ts",
     "test:reliability": "npx tsx tests/reliability.test.ts",
-    "test:all": "npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability"
+    "test:factory-readiness": "npx tsx tests/factory-readiness.test.ts",
+    "test:all": "npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:factory-readiness"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",

@@ -8,7 +8,7 @@ This guide walks you through deploying the Barber Booking System to Vercel.
 
 1. A [Vercel account](https://vercel.com/signup)
 2. A [PostgreSQL database](https://vercel.com/docs/storage/vercel-postgres) (Vercel Postgres, Neon, Supabase, Railway, or any external PostgreSQL instance)
-3. An SMTP email provider for notifications (Gmail with App Password, Resend, Postmark, etc.)
+3. An SMTP email provider only if email notifications or password recovery will be enabled
 
 ---
 
@@ -27,6 +27,12 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 | `DATABASE_URL` | `postgresql://...` | Your PostgreSQL connection string |
 | `NEXTAUTH_URL` | `https://your-domain.vercel.app` | Your Vercel deployment URL (no trailing slash) |
 | `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` | Used to sign JWT tokens |
+| `NEXT_PUBLIC_APP_URL` | `https://your-domain.vercel.app` | Canonical public URL |
+| `NEXT_PUBLIC_APP_NAME` | `Your Barbershop` | Public application name |
+| `EMAIL_ENABLED` | `false` | Set `true` only with all `SMTP_*` values below |
+| `SMS_ENABLED` | `false` | Set `true` only with all `TWILIO_*` values below |
+| `GOOGLE_ENABLED` | `false` | Set `true` only with Google credentials |
+| `REMINDERS_ENABLED` | `false` | Set `true` only with `CRON_SECRET` |
 | `SMTP_HOST` | `smtp.gmail.com` | Your SMTP host |
 | `SMTP_PORT` | `587` | SMTP port |
 | `SMTP_USER` | `your-email@gmail.com` | SMTP username |
@@ -46,7 +52,8 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 2. With `OWNER_REGISTRATION_MODE=onboarding`, the first owner creates their account at `/login` (no seed required) and is routed into the onboarding wizard: Business Basics → Branding → Services → Team → Booking Settings → Review.
 3. Setup can only be completed when the shop has a name, slug, timezone, at least one active service, one active barber, and weekly schedules — enforced server-side on the Review step.
 4. After completing setup, the owner lands in `/dashboard`; services, barbers, branding, and settings remain fully editable.
-5. Password recovery is self-service at `/forgot-password` (tokens expire in 1 hour, single-use, stored hashed). It requires the `SMTP_*` variables above — in production the server never pretends an email was sent when SMTP is missing.
+5. Password recovery is self-service at `/forgot-password` (tokens expire in 1 hour, single-use, stored hashed). It requires the `SMTP_*` variables above when email is enabled.
+6. Open **Dashboard → Factory Status** and resolve every required failure before launch. Disabled optional integrations are acceptable; enabled integrations with missing credentials are not.
 
 ## Step 3: Deploy
 
@@ -56,7 +63,7 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 
 ## Step 4: Initialize the Database
 
-After the first deployment, run the seed script to populate demo data.
+After the first deployment, apply the reviewed migrations. Do not seed demo data into a customer production database; the owner creates the account and shop through `/login` and the existing onboarding wizard.
 
 ### Option A: Local seeding (recommended for first setup)
 ```bash
