@@ -21,8 +21,8 @@ workflows.
 
 ### Zero source-code modification rule
 
-Creating a new barbershop deployment MUST require **zero modifications to
-application source code for shop configuration**. If a deployment requires
+Creating a new barbershop deployment MUST require **zero modifications to application source code for shop
+configuration**. If a deployment requires
 editing source to set its identity, branding, catalog, team, hours, policies,
 booking rules, domain, or credentials, that is an architectural defect and
 must be redesigned as reusable capability plus external configuration.
