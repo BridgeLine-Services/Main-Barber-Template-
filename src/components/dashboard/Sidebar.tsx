@@ -207,7 +207,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
               <Scissors className="w-5 h-5" />
             </div>
             <div className="overflow-hidden">
-              <h1 className="text-sm font-bold text-zinc-100 truncate font-serif">{businessName}</h1>
+              <h1 className="text-sm font-semibold tracking-tight text-zinc-100 truncate">{businessName}</h1>
               <p className="text-xs text-amber-500/90 font-medium">
                 {isOwner ? 'Owner Dashboard' : 'Barber Portal'}
               </p>
@@ -254,10 +254,10 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
                           href={item.href}
                           onClick={closeMobile}
                           className={cn(
-                            'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative',
+                            'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative border',
                             isActive
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
+                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/20 shadow-sm shadow-amber-500/5'
+                              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border-transparent'
                           )}
                         >
                           <Icon
@@ -267,7 +267,12 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
                             )}
                           />
                           <span className="flex-1">{item.name}</span>
-                          {isActive && <ChevronRight className="w-3.5 h-3.5 text-amber-400" />}
+                          {isActive && (
+                            <>
+                              <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-amber-400" />
+                              <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                            </>
+                          )}
                         </Link>
                       )
                     })}

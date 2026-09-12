@@ -45,7 +45,7 @@ export default function CancelButton({
       variant="outline"
       onClick={handleCancel}
       disabled={isCancelling}
-      className="border-red-800 text-red-400 hover:bg-red-950 w-full sm:w-auto"
+      className="border-destructive/30 text-destructive hover:bg-destructive/10 w-full sm:w-auto"
     >
       <Trash2 className="mr-2 h-4 w-4" />
       {isCancelling ? 'Cancelling...' : 'Cancel Appointment'}

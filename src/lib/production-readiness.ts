@@ -77,7 +77,7 @@ export function evaluateFactoryReadiness(snapshot: FactorySnapshot): FactoryRead
   const checks: FactoryReadinessCheck[] = []
   const databaseReady = snapshot.databaseAvailable && snapshot.app.databaseConfigured
   addFactoryCheck(checks, 'Application', 'Database available', databaseReady, databaseReady ? 'Database connection is available.' : 'DATABASE_URL is missing or the database connection failed.')
-  addFactoryCheck(checks, 'Application', 'Authentication configured', snapshot.app.authConfigured, snapshot.app.authConfigured ? 'NextAuth secret is configured.' : 'NEXTAUTH_SECRET is missing.')
+  addFactoryCheck(checks, 'Application', 'Authentication configured', snapshot.app.authConfigured, snapshot.app.authConfigured ? 'NextAuth signing key is configured.' : 'NEXTAUTH env value is missing.')
   addFactoryCheck(checks, 'Application', 'Production mode', snapshot.app.production, snapshot.app.production ? 'APP_MODE is production-safe.' : 'APP_MODE=demo cannot launch.')
   addFactoryCheck(checks, 'Application', 'Public URL configured', snapshot.app.appUrlConfigured, snapshot.app.appUrlConfigured ? 'Canonical application URL is configured.' : 'NEXT_PUBLIC_APP_URL is missing.')
 
@@ -229,17 +229,17 @@ export async function verifyProductionReadiness(): Promise<ReadinessReport> {
     check: 'GBP Connection',
     status: gbpConnected ? 'PASS' : 'WARN',
     detail: gbpConnected
-      ? 'GBP connected with access token and location ID'
+      ? 'GBP connected with credentials and location ID'
       : 'GBP not connected — complete OAuth flow to enable sync',
   })
 
   // ─── Security ────────────────────────────────────────────────────
   checks.push({
     category: 'Security',
-    check: 'NextAuth Secret',
+    check: 'NextAuth Signing',
     status: process.env.NEXTAUTH_SECRET ? 'PASS' : 'FAIL',
     detail: process.env.NEXTAUTH_SECRET
-      ? 'Session encryption secret configured'
+      ? 'Session encryption key configured'
       : 'CRITICAL: NEXTAUTH_SECRET not set — sessions are insecure',
   })
 

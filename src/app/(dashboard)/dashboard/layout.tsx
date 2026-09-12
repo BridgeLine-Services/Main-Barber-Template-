@@ -57,7 +57,7 @@ export default async function DashboardLayout({
         {/* Desktop Header */}
         <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-30">
           <div>
-            <h1 className="text-lg font-bold text-zinc-100">{businessName}</h1>
+            <h1 className="text-lg font-semibold tracking-tight text-zinc-100">{businessName}</h1>
             <p className="text-xs text-zinc-400">Shop Management Portal</p>
           </div>
 

@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Reveal } from '@/components/motion/reveal'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
   CONFIRMED: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  COMPLETED: 'text-foreground/70 bg-zinc-700/40 border-zinc-600',
+  COMPLETED: 'text-muted-foreground bg-secondary border-border',
   CANCELLED: 'text-red-400 bg-red-500/10 border-red-500/20',
   NO_SHOW: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
   RESCHEDULED: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
@@ -101,7 +102,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/30 text-accent flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground font-serif">My Appointments</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">My Appointments</h1>
           <p className="text-sm text-muted-foreground mt-1">Look up your appointments and loyalty status at {businessName}</p>
         </div>
 
@@ -160,17 +161,18 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <button onClick={handleLogout} className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-accent transition-colors"><ArrowLeft className="w-4 h-4" /> New Lookup</button>
-        <button onClick={handleLogout} className="text-xs text-muted-foreground hover:text-red-400">Log out</button>
+        <button onClick={handleLogout} className="text-xs text-muted-foreground hover:text-destructive">Log out</button>
       </div>
 
       {/* Customer Header */}
+      <Reveal>
       <div className="bg-card/40 border border-border rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-accent font-bold text-lg">
             {data.customer.firstName[0]}{data.customer.lastName[0]}
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">{data.customer.firstName} {data.customer.lastName}</h1>
+            <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">{data.customer.firstName} {data.customer.lastName}</h1>
             <p className="text-xs text-muted-foreground">{data.customer.email} · {data.customer.phone}</p>
           </div>
         </div>
@@ -186,8 +188,10 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           </div>
         )}
       </div>
+      </Reveal>
 
       {/* Upcoming Appointments */}
+      <Reveal delay={0.08}>
       <div>
         <h2 className="text-sm font-semibold text-foreground/70 mb-3 uppercase tracking-wide flex items-center gap-2">
           <Calendar className="w-4 h-4 text-accent" /> Upcoming ({data.upcoming.length})
@@ -202,8 +206,10 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           </div>
         )}
       </div>
+      </Reveal>
 
       {/* Past Appointments */}
+      <Reveal delay={0.14}>
       <div>
         <h2 className="text-sm font-semibold text-foreground/70 mb-3 uppercase tracking-wide flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" /> History ({data.past.length})
@@ -218,6 +224,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           </div>
         )}
       </div>
+      </Reveal>
     </div>
   )
 }
@@ -257,7 +264,7 @@ function AppointmentCard({ appt }: { appt: PortalAppointment }) {
         {canCancel && (
           <a
             href={`/appointment/${appt.confirmationNumber}?token=${appt.customerAccessToken}`}
-            className="text-xs text-red-400 hover:text-red-300 hover:underline"
+            className="text-xs text-destructive hover:text-destructive/80 hover:underline"
           >
             Cancel
           </a>

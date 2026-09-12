@@ -2,7 +2,7 @@
 
 A modern, full-stack, multi-tenant barber shop web application built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **Prisma ORM with PostgreSQL**.
 
-Designed with a high-end, dark & gold premium aesthetic, this application provides a seamless online booking experience for clients, comprehensive management tools for shop owners and barbers, and zero online payment overhead (**pay in person at the shop**).
+Designed as a white-label barbershop platform — each shop deploys with its own database-driven brand (colors, fonts, imagery) while sharing one hardened booking, CRM, and multi-tenant engine — this application provides a seamless online booking experience for clients, comprehensive management tools for shop owners and barbers, and zero online payment overhead (**pay in person at the shop**).
 
 ---
 
@@ -47,7 +47,8 @@ database access, provider accounts, and the final booking test.
 ## 🚀 Key Features
 
 ### 🌐 Customer Website
-- **Sleek Dark Theme**: Premium aesthetic styled with Tailwind CSS, Lucide icons, and shadcn UI components.
+- **Premium, Cinematic Presentation**: Scroll-reveal motion, cinematic imagery grade, and display-serif headings — built on Tailwind CSS, Lucide icons, and shadcn/ui.
+- **Per-Shop Theming (White-Label)**: Every customer-facing surface renders from database-driven theme tokens (`Business.primaryColor`, `accentColor`, `secondaryColor`, `fontFamily`, `themeMode`) — no hardcoded colors in the codebase. The owner rebrands the entire site from the dashboard without a developer.
 - **Dynamic Shop Profile**: Shop hours, barber roster, service pricing, custom branding, and client reviews.
 - **SEO & Structured Data**: Built-in Schema.org JSON-LD microdata (`BarberShop`, `Service`, `FAQPage`, `BreadcrumbList`) for optimal search engine ranking.
 - **Legal & Compliance**: Complete Privacy Policy, Terms of Service, Booking Policy, and WCAG 2.1 AA Accessibility Statement pages.
@@ -81,8 +82,43 @@ database access, provider accounts, and the final booking test.
 - **Database & ORM**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/)
 - **Authentication**: [NextAuth.js](https://next-auth.js.org/) (Credentials Provider with `bcryptjs`)
 - **Email**: [Nodemailer](https://nodemailer.com/) (Transactional SMTP)
-- **Date Utility**: [date-fns](https://date-fns.org/)
+- **Date Utility**: [date-fns](https://date-fns.org/) / [Luxon](https://moment.github.io/luxon/) (timezone-safe scheduling)
+- **Animation**: [Framer Motion](https://www.framer.com/motion/) (reduced-motion aware)
 - **Seed & Runner**: [tsx](https://github.com/privatenumber/tsx)
+
+---
+
+## 🎨 Design System & White-Labeling
+
+The customer-facing visual layer is fully data-driven. Shop owners restyle the
+entire site from **Dashboard → Branding**; nothing visual is hardcoded.
+
+### Theme token engine
+- `src/lib/theme.ts` (`generateThemeCSS`) converts the `Business` branding record
+  into CSS custom properties injected under the `.brand-theme` scope
+  (`ThemeStyle` component). The customer layout applies that scope, so every
+  customer surface inherits the shop's palette and typography.
+- **Rule: customer-facing components must use semantic tokens only** —
+  `bg-background`, `text-foreground`, `bg-card`, `border-border`,
+  `text-muted-foreground`, `text-accent`, `bg-primary`, `bg-secondary`, etc.
+  Never write brand colors like `amber-500`/`zinc-900` in `(customer)` routes
+  or customer components; use the tokens so a rebrand flows through the site.
+- The dashboard intentionally keeps the global dark theme (management tool,
+  not white-label surface) — its chrome is styled for consistency, not themed
+  per business.
+
+### Motion system
+- `src/components/motion/reveal.tsx` provides `Reveal`, `Stagger`, `StaggerItem`,
+  and `HeroReveal` — scroll-triggered entrance animations with a shared easing
+  curve.
+- All motion respects `prefers-reduced-motion` automatically via
+  `MotionProvider` (`useReducedMotion`); there are no mandatory animations.
+
+### Data-driven content
+- Homepage hero copy, hero image, CTAs, section titles, and section visibility
+  come from the `WebsiteContent` model (owner-editable in the dashboard), with
+  sensible business-data fallbacks. The visual layer consumes existing models —
+  no hardcoded marketing copy in components.
 
 ---
 

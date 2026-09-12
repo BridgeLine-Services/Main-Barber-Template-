@@ -56,15 +56,15 @@ export default async function ConfirmationPage({
 
   if (!appointment) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Appointment Not Found</h1>
-          <p className="text-gray-400 mb-6">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground mb-4">Appointment Not Found</h1>
+          <p className="text-muted-foreground mb-6">
             We couldn't find an appointment with confirmation number{' '}
-            <span className="font-mono text-amber-500">{params.confirmationNumber}</span>.
+            <span className="font-mono text-accent">{params.confirmationNumber}</span>.
           </p>
           <Link href="/">
-            <Button className="bg-amber-500 text-black hover:bg-amber-400">
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
             </Button>
           </Link>
@@ -78,39 +78,39 @@ export default async function ConfirmationPage({
   // If no token, show limited info and prompt for lookup
   if (!hasToken) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
         <div className="text-center max-w-md space-y-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent border border-accent/20 mx-auto">
             <Calendar className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold">Appointment Found</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Appointment Found</h1>
+          <p className="text-muted-foreground text-sm">
             We found your appointment. For security, please use the link from your confirmation email to view full details and manage your appointment.
           </p>
-          <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-4 text-left space-y-2">
+          <div className="rounded-lg bg-card border border-border p-4 text-left space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Confirmation</span>
-              <span className="font-mono text-amber-500">{appointment.confirmationNumber}</span>
+              <span className="text-muted-foreground">Confirmation</span>
+              <span className="font-mono text-accent">{appointment.confirmationNumber}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Service</span>
+              <span className="text-muted-foreground">Service</span>
               <span className="font-semibold">{appointment.service?.name}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Barber</span>
+              <span className="text-muted-foreground">Barber</span>
               <span className="font-semibold">{appointment.barber?.name}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Date</span>
+              <span className="text-muted-foreground">Date</span>
               <span className="font-semibold">{formatFullDate(appointment.startTime)}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Time</span>
+              <span className="text-muted-foreground">Time</span>
               <span className="font-semibold">{formatTime(appointment.startTime)}</span>
             </div>
           </div>
           <Link href="/">
-            <Button variant="outline" className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10 hover:border-amber-500/50">
+            <Button variant="outline" className="border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent/50">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
             </Button>
           </Link>
@@ -120,7 +120,7 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="py-12">
       <div className="max-w-2xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Success header */}
         <div className="text-center mb-8">
@@ -133,10 +133,10 @@ export default async function ConfirmationPage({
               <CheckCircle className="h-8 w-8 text-green-400" />
             </div>
           )}
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             {isCancelled ? 'Appointment Cancelled' : 'Appointment Confirmed!'}
           </h1>
-          <p className="mt-2 text-gray-400">
+          <p className="mt-2 text-muted-foreground">
             {isCancelled
               ? 'Your appointment has been cancelled.'
               : 'Your appointment has been successfully booked.'}
@@ -145,67 +145,67 @@ export default async function ConfirmationPage({
 
         {/* Confirmation number */}
         <div className="mb-6 text-center">
-          <p className="text-sm text-gray-500 mb-1">Confirmation Number</p>
-          <p className="font-mono text-2xl font-bold text-amber-500 tracking-wider">
+          <p className="text-sm text-muted-foreground mb-1">Confirmation Number</p>
+          <p className="font-mono text-2xl font-bold text-accent tracking-wider">
             {appointment.confirmationNumber}
           </p>
         </div>
 
         {/* Details card — MINIMIZED data (no phone, email, notes shown publicly) */}
-        <Card className="bg-zinc-900 border-zinc-800 mb-6">
+        <Card className="bg-card border-border mb-6">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Scissors className="h-5 w-5 text-amber-500" />
+              <Scissors className="h-5 w-5 text-accent" />
               Appointment Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Service */}
-            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <Scissors className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-400">Service</span>
+                <Scissors className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Service</span>
               </div>
               <div className="text-right">
                 <p className="font-semibold">{appointment.service.name}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {formatDuration(appointment.service.duration)} · {formatPrice(appointment.service.price)}
                 </p>
               </div>
             </div>
 
             {/* Barber */}
-            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-400">Barber</span>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Barber</span>
               </div>
               <p className="font-semibold">{appointment.barber.name}</p>
             </div>
 
             {/* Date */}
-            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-400">Date</span>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Date</span>
               </div>
               <p className="font-semibold">{formatFullDate(appointment.startTime)}</p>
             </div>
 
             {/* Time */}
-            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-400">Time</span>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Time</span>
               </div>
               <p className="font-semibold">{formatTime(appointment.startTime)}</p>
             </div>
 
             {/* Location */}
             {appointment.business?.address && (
-              <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-start justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-400">Location</span>
+                  <span className="text-sm text-muted-foreground">Location</span>
                 </div>
                 <p className="max-w-[min(65%,18rem)] text-right font-semibold text-sm">
                   {appointment.business.address}
@@ -215,7 +215,7 @@ export default async function ConfirmationPage({
 
             {/* Status */}
             <div className="flex items-start justify-between">
-              <span className="text-sm text-gray-400">Status</span>
+              <span className="text-sm text-muted-foreground">Status</span>
               <Badge className={`${STATUS_COLORS[appointment.status] || ''} border`}>
                 {STATUS_LABELS[appointment.status] || appointment.status}
               </Badge>
@@ -224,19 +224,19 @@ export default async function ConfirmationPage({
         </Card>
 
         {/* Payment notice */}
-        <div className="mb-6 rounded-lg bg-amber-950/30 border border-amber-900/50 p-4 text-center">
-          <p className="text-sm font-semibold text-amber-500">Payment</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="mb-6 rounded-lg bg-accent/5 border border-accent/20 p-4 text-center">
+          <p className="text-sm font-semibold text-accent">Payment</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Pay in person at the barbershop at the time of your appointment.
           </p>
-          <p className="text-xs text-gray-600 mt-2">{PAYMENT_DISCLAIMER}</p>
+          <p className="text-xs text-muted-foreground mt-2">{PAYMENT_DISCLAIMER}</p>
         </div>
 
         {/* Shop contact for convenience */}
         {appointment.business && (
-          <div className="mb-6 text-center text-sm text-gray-500">
+          <div className="mb-6 text-center text-sm text-muted-foreground">
             Need to make changes? Call{' '}
-            <a href={`tel:${appointment.business.phone?.replace(/\D/g, '')}`} className="text-amber-500 hover:underline">
+            <a href={`tel:${appointment.business.phone?.replace(/\D/g, '')}`} className="text-accent hover:underline">
               {appointment.business.phone}
             </a>
           </div>
@@ -245,7 +245,7 @@ export default async function ConfirmationPage({
         {/* Add to Calendar */}
         {!isCancelled && (
           <div className="mb-6">
-            <p className="text-center text-sm text-gray-500 mb-3">Add to your calendar:</p>
+            <p className="text-center text-sm text-muted-foreground mb-3">Add to your calendar:</p>
             <AddToCalendar
               serviceName={appointment.service.name}
               barberName={appointment.barber.name}
@@ -277,7 +277,7 @@ export default async function ConfirmationPage({
 
         {/* Back to home */}
         <div className="mt-8 text-center">
-          <Link href="/" className="text-sm text-gray-500 hover:text-amber-500 transition-colors">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-accent transition-colors">
             ← Back to Home
           </Link>
         </div>

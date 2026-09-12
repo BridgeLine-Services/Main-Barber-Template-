@@ -28,9 +28,12 @@ const report = buildFactoryLaunchReport([
   check('database', 'PASS'),
   check('email', 'DISABLED', 'Integrations'),
   check('domain', 'MANUAL', 'Domain'),
+  // Mirrors the static 'migrations' check composed by verifyFactoryLaunch —
+  // runtime migration status is intentionally never auto-detected.
+  check('migrations', 'MANUAL', 'Database'),
 ])
 assert(report.overall === 'MANUAL_REVIEW', 'manual review is distinct from ready')
-assert(report.counts.passed === 1 && report.counts.manual === 1 && report.counts.warnings === 0, 'launch counts distinguish pass, manual, and warnings')
+assert(report.counts.passed === 1 && report.counts.manual === 2 && report.counts.warnings === 0, 'launch counts distinguish pass, manual, and warnings')
 assert(report.checks.every((item) => !item.detail.includes('postgresql://')), 'launch metadata does not expose connection strings')
 assert(report.checks.some((item) => item.key === 'migrations' && item.status === 'MANUAL'), 'migration status stays manual when runtime detection is unavailable')
 assert(evaluateDomainReadiness().some((item) => item.key === 'domain-ownership' && item.status === 'MANUAL'), 'domain ownership remains a human verification step')
