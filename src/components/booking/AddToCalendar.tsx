@@ -85,14 +85,14 @@ export function AddToCalendar(props: AddToCalendarProps) {
       <Button
         onClick={handleICS}
         variant="outline"
-        className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10 hover:border-amber-500/50"
+        className="border-accent/30 text-amber-100 hover:bg-accent/10 hover:border-accent/50"
       >
         <CalendarPlus className="w-4 h-4 mr-2" /> Add to Apple Calendar
       </Button>
       <Button
         onClick={handleGoogle}
         variant="outline"
-        className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10 hover:border-amber-500/50"
+        className="border-accent/30 text-amber-100 hover:bg-accent/10 hover:border-accent/50"
       >
         <Globe className="w-4 h-4 mr-2" /> Add to Google Calendar
       </Button>

@@ -22,15 +22,15 @@ export default async function PrivacyPolicyPage() {
     return (
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-8">
         <div className="space-y-3">
-          <Badge variant="outline" className="border-amber-500/40 text-amber-400">Legal & Compliance</Badge>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-poppins">Privacy Policy</h1>
-          <p className="text-xs text-zinc-500">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</p>
+          <Badge variant="outline" className="border-accent/40 text-accent">Legal & Compliance</Badge>
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Privacy Policy</h1>
+          <p className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</p>
         </div>
-        <Card className="bg-zinc-900 border-zinc-800 p-8 text-zinc-300 space-y-6 text-sm leading-relaxed">
+        <Card className="bg-card border-border p-8 text-foreground/70 space-y-6 text-sm leading-relaxed">
           <div className="whitespace-pre-wrap">{customPolicy}</div>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800 p-6 text-zinc-300 space-y-3 text-sm leading-relaxed">
-          <h2 className="text-lg font-bold text-white font-poppins">Necessary cookies</h2>
+        <Card className="bg-card border-border p-6 text-foreground/70 space-y-3 text-sm leading-relaxed">
+          <h2 className="text-lg font-semibold text-foreground">Necessary cookies</h2>
           <p>
             This website may use strictly necessary cookies to keep staff sessions secure and support booking or portal functionality. These cookies are not used for advertising or analytics and cannot be disabled through this website without affecting core features.
           </p>
@@ -42,23 +42,23 @@ export default async function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-8">
       <div className="space-y-3">
-        <Badge variant="outline" className="border-amber-500/40 text-amber-400">
+        <Badge variant="outline" className="border-accent/40 text-accent">
           Legal & Compliance
         </Badge>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-poppins">Privacy Policy</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Privacy Policy</h1>
       </div>
 
-      <Card className="bg-zinc-900 border-zinc-800 p-8 text-zinc-300 space-y-4 text-sm leading-relaxed">
-        <h2 className="text-lg font-bold text-white font-poppins">Policy not available</h2>
+      <Card className="bg-card border-border p-8 text-foreground/70 space-y-4 text-sm leading-relaxed">
+        <h2 className="text-lg font-semibold text-foreground">Policy not available</h2>
         <p>
           This business has not published a privacy policy yet. Please contact the shop directly if you have questions about how your information is handled.
         </p>
-        <p className="text-zinc-500">
+        <p className="text-muted-foreground">
           Business owners should review and customize this policy for their location and services before publishing it.
         </p>
       </Card>
-      <Card className="bg-zinc-900 border-zinc-800 p-6 text-zinc-300 space-y-3 text-sm leading-relaxed">
-        <h2 className="text-lg font-bold text-white font-poppins">Necessary cookies</h2>
+      <Card className="bg-card border-border p-6 text-foreground/70 space-y-3 text-sm leading-relaxed">
+        <h2 className="text-lg font-semibold text-foreground">Necessary cookies</h2>
         <p>
           This website may use strictly necessary cookies to keep staff sessions secure and support booking or portal functionality. These cookies are not used for advertising or analytics.
         </p>

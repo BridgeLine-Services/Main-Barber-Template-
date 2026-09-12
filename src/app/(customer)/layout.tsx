@@ -7,6 +7,7 @@ import { Footer } from '@/components/customer/Footer'
 import { MobileBottomNav } from '@/components/customer/MobileBottomNav'
 import { SEO } from '@/components/customer/SEO'
 import { ThemeStyle } from '@/components/customer/ThemeStyle'
+import { MotionProvider } from '@/components/motion/MotionProvider'
 
 export default async function CustomerLayout({
   children,
@@ -41,18 +42,20 @@ export default async function CustomerLayout({
   const isDark = (business.themeMode || 'dark') === 'dark'
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-900'} flex flex-col font-sans pb-16 md:pb-0`}
-         style={{ ['--accent' as any]: business.accentColor }}>
-      <ThemeStyle business={business} />
-      <SEO business={business} seo={seo} />
-      <Navbar
-        businessName={business.name}
-        logo={business.logo}
-        phone={business.phone}
-      />
-      <main className="flex-1">{children}</main>
-      <Footer business={business} />
-      <MobileBottomNav />
-    </div>
+    <MotionProvider>
+      <div className={`brand-theme min-h-screen ${isDark ? 'bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-900'} flex flex-col pb-16 md:pb-0`}
+           style={{ ['--accent' as any]: business.accentColor }}>
+        <ThemeStyle business={business} />
+        <SEO business={business} seo={seo} />
+        <Navbar
+          businessName={business.name}
+          logo={business.logo}
+          phone={business.phone}
+        />
+        <main className="flex-1">{children}</main>
+        <Footer business={business} />
+        <MobileBottomNav />
+      </div>
+    </MotionProvider>
   )
 }

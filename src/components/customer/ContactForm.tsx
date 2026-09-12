@@ -74,7 +74,7 @@ export function ContactForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="name" className="text-zinc-200 text-xs font-semibold uppercase tracking-wider">
+        <Label htmlFor="name" className="text-foreground/80 text-xs font-semibold uppercase tracking-wider">
           Your Name
         </Label>
         <Input
@@ -84,12 +84,12 @@ export function ContactForm() {
           placeholder="e.g. Marcus Vance"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:ring-amber-500"
+          className="bg-background border-border text-foreground placeholder:text-muted-foreground/70 focus:border-accent focus:ring-accent"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-zinc-200 text-xs font-semibold uppercase tracking-wider">
+        <Label htmlFor="email" className="text-foreground/80 text-xs font-semibold uppercase tracking-wider">
           Email Address
         </Label>
         <Input
@@ -99,12 +99,12 @@ export function ContactForm() {
           placeholder="marcus@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:ring-amber-500"
+          className="bg-background border-border text-foreground placeholder:text-muted-foreground/70 focus:border-accent focus:ring-accent"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="message" className="text-zinc-200 text-xs font-semibold uppercase tracking-wider">
+        <Label htmlFor="message" className="text-foreground/80 text-xs font-semibold uppercase tracking-wider">
           Message
         </Label>
         <Textarea
@@ -114,14 +114,14 @@ export function ContactForm() {
           placeholder="How can we help you?"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:ring-amber-500"
+          className="bg-background border-border text-foreground placeholder:text-muted-foreground/70 focus:border-accent focus:ring-accent"
         />
       </div>
 
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition"
+        className="w-full bg-accent hover:brightness-110 text-accent-foreground font-bold transition"
       >
         {loading ? (
           <>

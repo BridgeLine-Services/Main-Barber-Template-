@@ -89,44 +89,31 @@ ${scope} {
 `
   }
 
+  // Non-scoped mode — the public website. All variables are emitted under a
+  // single `.brand-theme` class which the customer layout puts on its root
+  // wrapper. Everything inside inherits the business's full palette through
+  // CSS variable cascade, regardless of the global `dark` class on <html>.
+  // (The dashboard keeps the globals.css defaults; the customer site is
+  // themed end-to-end by the business record itself.)
   return `
-:root {
+.brand-theme {
   --accent: ${accentHsl};
   --accent-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
   --primary: ${primaryHsl};
   --primary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
   --secondary: ${secondaryHsl};
   --secondary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
+  --background: ${isDark ? primaryHsl : '0 0% 100%'};
+  --foreground: ${isDark ? '0 0% 98%' : '240 10% 3.9%'};
+  --card: ${isDark ? secondaryHsl : '0 0% 100%'};
+  --card-foreground: ${isDark ? '0 0% 98%' : '240 10% 3.9%'};
+  --muted: ${isDark ? secondaryHsl : '240 4.8% 95.9%'};
+  --muted-foreground: ${isDark ? '0 0% 63.9%' : '240 3.8% 46.1%'};
+  --border: ${isDark ? '0 0% 14.9%' : '240 5.9% 90%'};
+  --input: ${isDark ? '0 0% 14.9%' : '240 5.9% 90%'};
+  --ring: ${accentHsl};
   --font-family: ${fontFamily};
-}
-
-${isDark ? `
-.dark {
-  --background: ${primaryHsl};
-  --foreground: 0 0% 98%;
-  --card: ${secondaryHsl};
-  --card-foreground: 0 0% 98%;
-  --muted: ${secondaryHsl};
-  --muted-foreground: 0 0% 63.9%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: ${accentHsl};
-}
-` : `
-.light {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: ${accentHsl};
-}
-`}
-
-body {
+  --font-display: ${mapDisplayFont(theme.fontFamily)};
   font-family: var(--font-family);
 }
 `
@@ -180,4 +167,18 @@ export function mapFontFamily(font: string): string {
     lato: 'var(--font-lato), var(--font-inter), system-ui, sans-serif',
   }
   return fonts[font.toLowerCase()] || fonts.inter
+}
+
+/**
+ * Maps the business font choice to the DISPLAY (headings) stack.
+ * When the owner has picked a brand font, headings use it so the brand voice
+ * stays consistent. When unset, headings fall back to an elegant editorial
+ * serif (Playfair Display) — the showroom default — while body text stays
+ * in the clean Inter sans.
+ */
+export function mapDisplayFont(fontFamily?: string | null): string {
+  if (fontFamily && (FONT_FAMILY_VALUES as readonly string[]).includes(fontFamily.toLowerCase())) {
+    return mapFontFamily(fontFamily)
+  }
+  return "var(--font-playfair), Georgia, 'Times New Roman', serif"
 }

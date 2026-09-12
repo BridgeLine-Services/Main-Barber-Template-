@@ -92,22 +92,22 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
   return (
     <div className="space-y-4 max-w-xl mx-auto">
       <div className="mb-6 text-center md:text-left">
-        <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">Select a Date</h2>
-        <p className="text-sm text-zinc-400 mt-1">
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">Select a Date</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Dates with available slots are highlighted. Choose a day to see times.
         </p>
       </div>
 
-      <Card className="p-5 bg-zinc-900/90 border-zinc-800 shadow-xl">
+      <Card className="p-5 bg-card/80 border-border shadow-xl shadow-black/10">
         {/* Month Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-amber-500" />
-            <h3 className="text-lg font-semibold text-zinc-100">
+            <CalendarIcon className="w-5 h-5 text-accent" />
+            <h3 className="text-lg font-semibold text-foreground">
               {format(currentMonth, 'MMMM yyyy')}
             </h3>
             {checking && (
-              <span className="w-3 h-3 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin ml-1" />
+              <span className="w-3 h-3 rounded-full border-2 border-accent/30 border-t-amber-500 animate-spin ml-1" />
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -117,7 +117,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
               size="icon"
               disabled={isPrevDisabled}
               onClick={handlePrevMonth}
-              className="h-8 w-8 border-zinc-800 bg-zinc-950 text-zinc-300 hover:text-white hover:bg-zinc-800 disabled:opacity-30"
+              className="h-8 w-8 border-border bg-background text-foreground/70 hover:text-white hover:bg-secondary disabled:opacity-30"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -127,7 +127,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
               size="icon"
               disabled={isNextDisabled}
               onClick={handleNextMonth}
-              className="h-8 w-8 border-zinc-800 bg-zinc-950 text-zinc-300 hover:text-white hover:bg-zinc-800 disabled:opacity-30"
+              className="h-8 w-8 border-border bg-background text-foreground/70 hover:text-white hover:bg-secondary disabled:opacity-30"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -137,7 +137,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
         {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-1 text-center mb-2">
           {WEEKDAYS.map((day) => (
-            <div key={day} className="text-xs font-semibold text-zinc-500 py-1 uppercase">
+            <div key={day} className="text-xs font-semibold text-muted-foreground py-1 uppercase">
               {day}
             </div>
           ))}
@@ -166,23 +166,23 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
                 className={cn(
                   'h-11 rounded-lg text-sm font-medium transition-all flex flex-col items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-amber-500/50',
                   !isCurrentMonthDay && 'opacity-20 pointer-events-none',
-                  isDisabled && isCurrentMonthDay && 'text-zinc-600 bg-zinc-950/40 cursor-not-allowed',
+                  isDisabled && isCurrentMonthDay && 'text-muted-foreground/70 bg-background/40 cursor-not-allowed',
                   !isDisabled &&
                     !isSelected &&
                     hasAvailability &&
-                    'text-zinc-100 bg-zinc-950/80 hover:bg-amber-500/20 hover:text-amber-300 border border-amber-500/30',
+                    'text-foreground bg-background/80 hover:bg-accent/20 hover:text-accent border border-accent/30',
                   !isDisabled &&
                     !isSelected &&
                     !hasAvailability &&
                     isFullyBooked &&
-                    'text-zinc-500 bg-zinc-950/40 border border-zinc-800/40 line-through opacity-50',
+                    'text-muted-foreground bg-background/40 border border-border/40 line-through opacity-50',
                   !isDisabled &&
                     !isSelected &&
                     !hasAvailability &&
                     !isFullyBooked &&
-                    'text-zinc-200 bg-zinc-950/80 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40 border border-zinc-800/80',
+                    'text-foreground/80 bg-background/80 hover:bg-accent/20 hover:text-accent hover:border-accent/40 border border-border/80',
                   isSelected &&
-                    'bg-amber-500 text-zinc-950 font-bold border-amber-400 shadow-md shadow-amber-500/20 scale-105'
+                    'bg-accent text-accent-foreground font-bold border-amber-400 shadow-md shadow-amber-500/20 scale-105'
                 )}
               >
                 <span>{format(day, 'd')}</span>
@@ -192,7 +192,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
                 )}
                 {/* Today indicator */}
                 {isToday && !isSelected && !hasAvailability && (
-                  <span className="w-1 h-1 rounded-full bg-amber-400 absolute bottom-1" />
+                  <span className="w-1 h-1 rounded-full bg-accent absolute bottom-1" />
                 )}
               </button>
             )
@@ -200,7 +200,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
         </div>
 
         {/* Legend */}
-        <div className="mt-5 pt-4 border-t border-zinc-800 flex items-center justify-center gap-4 text-xs text-zinc-500">
+        <div className="mt-5 pt-4 border-t border-border flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>Available</span>
@@ -210,16 +210,16 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
             <span>Limited or full</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="w-2 h-2 rounded-full bg-accent" />
             <span>Today</span>
           </div>
         </div>
 
         {selectedDate && (
-          <div className="mt-3 pt-3 border-t border-zinc-800 text-center">
-            <p className="text-xs text-zinc-400">
+          <div className="mt-3 pt-3 border-t border-border text-center">
+            <p className="text-xs text-muted-foreground">
               Selected date:{' '}
-              <strong className="text-amber-400">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</strong>
+              <strong className="text-accent">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</strong>
             </p>
           </div>
         )}

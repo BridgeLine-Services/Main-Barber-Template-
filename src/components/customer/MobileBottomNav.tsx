@@ -15,7 +15,7 @@ export function MobileBottomNav() {
   ]
 
   return (
-    <nav className="sticky-bottom-nav border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-md px-2 py-2 text-zinc-400">
+    <nav className="sticky-bottom-nav border-t border-border bg-background/95 backdrop-blur-md px-2 py-2 text-muted-foreground">
       <div className="flex w-full items-center justify-around">
         {items.map((item) => {
           const Icon = item.icon
@@ -26,7 +26,7 @@ export function MobileBottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-amber-500 px-4 py-1.5 text-zinc-950 font-semibold shadow-md shadow-amber-500/20 active:scale-95 transition"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-accent px-4 py-1.5 text-accent-foreground font-semibold shadow-md shadow-amber-500/20 active:scale-95 transition"
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
@@ -39,7 +39,7 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center gap-1 py-1 px-3 transition-colors ${
-                isActive ? 'text-amber-400 font-medium' : 'text-zinc-400 hover:text-zinc-200'
+                isActive ? 'text-accent font-medium' : 'text-muted-foreground hover:text-foreground/80'
               }`}
             >
               <Icon className="h-5 w-5" />

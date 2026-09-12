@@ -12,6 +12,7 @@ import { TimeStep } from '@/components/booking/TimeStep'
 import { CustomerInfoStep } from '@/components/booking/CustomerInfoStep'
 import { ReviewStep } from '@/components/booking/ReviewStep'
 import { ArrowLeft, ArrowRight, Scissors, AlertCircle } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 
 interface Service {
   id: string
@@ -243,10 +244,10 @@ function BookingFlow() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Scissors className="h-12 w-12 mx-auto mb-4 animate-pulse text-amber-500" />
-          <p className="text-gray-400">Loading booking system...</p>
+          <Scissors className="mx-auto mb-4 h-12 w-12 animate-pulse text-accent" />
+          <p className="text-muted-foreground">Loading booking system...</p>
         </div>
       </div>
     )
@@ -254,17 +255,17 @@ function BookingFlow() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
-        <div className="text-center max-w-md space-y-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto">
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="max-w-md space-y-4 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10 text-accent">
             <AlertCircle className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-bold text-white">Booking System Unavailable</h2>
-          <p className="text-zinc-400 text-sm">
+          <h2 className="font-display text-xl font-semibold text-foreground">Booking System Unavailable</h2>
+          <p className="text-sm text-muted-foreground">
             We are experiencing a temporary issue with our booking system. Please try again later or call us to schedule your appointment.
           </p>
           <a href="/contact">
-            <Button className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold">
+            <Button className="bg-accent text-accent-foreground hover:brightness-110 font-semibold">
               Contact Us
             </Button>
           </a>
@@ -274,21 +275,30 @@ function BookingFlow() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">Book an Appointment</h1>
-          <p className="mt-2 text-gray-400">Pay in person — no online payment required.</p>
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Book an Appointment</h1>
+          <p className="mt-2 text-muted-foreground">Pay in person — no online payment required.</p>
         </div>
 
         {/* Progress */}
         <BookingProgress currentStep={step} totalSteps={6} />
 
-        {/* Step content */}
+        {/* Step content — animated transitions between steps.
+            All step logic, preselection, and state handling is unchanged. */}
         <div className="mt-8">
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="border-border/70 bg-card shadow-xl shadow-black/20">
             <CardContent className="p-6 sm:p-8">
+              <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.28, ease: [0.21, 0.47, 0.32, 0.98] }}
+              >
               {step === 1 && (
                 <ServiceStep
                   services={services}
@@ -349,6 +359,8 @@ function BookingFlow() {
                   error={bookingError}
                 />
               )}
+              </motion.div>
+              </AnimatePresence>
             </CardContent>
           </Card>
         </div>
@@ -359,7 +371,7 @@ function BookingFlow() {
             <Button
               variant="outline"
               onClick={() => setStep(step - 1)}
-              className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10 hover:border-amber-500/50"
+              className="border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent/50"
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
@@ -370,7 +382,7 @@ function BookingFlow() {
           {step < 5 && canProceed() && step !== 1 && step !== 2 && (
             <Button
               onClick={() => setStep(step + 1)}
-              className="bg-amber-500 text-black hover:bg-amber-400"
+              className="bg-accent text-accent-foreground hover:brightness-110"
             >
               Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -382,7 +394,7 @@ function BookingFlow() {
             <Button
               variant="outline"
               onClick={() => { setStep(4); setBookingError('') }}
-              className="border-red-800 text-red-400 hover:bg-red-950"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
             >
               Select a different time
             </Button>
@@ -397,10 +409,10 @@ export default function BookPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+        <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
-            <Scissors className="h-12 w-12 mx-auto mb-4 animate-pulse text-amber-500" />
-            <p className="text-gray-400">Loading booking system...</p>
+            <Scissors className="mx-auto mb-4 h-12 w-12 animate-pulse text-accent" />
+            <p className="text-muted-foreground">Loading booking system...</p>
           </div>
         </div>
       }

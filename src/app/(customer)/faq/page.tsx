@@ -94,13 +94,13 @@ export default async function FAQPage() {
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
       {/* Header */}
       <div className="text-center space-y-4">
-        <Badge variant="outline" className="border-amber-500/40 text-amber-400 px-3 py-1">
+        <Badge variant="outline" className="border-accent/40 text-accent px-3 py-1">
           Help Center
         </Badge>
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight font-poppins">
+        <h1 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">
           Frequently Asked Questions
         </h1>
-        <p className="text-zinc-400 text-base leading-relaxed max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-base leading-relaxed max-w-2xl mx-auto">
           Have a question about booking, payments, or shop policies? Find quick answers below.
         </p>
       </div>
@@ -109,7 +109,7 @@ export default async function FAQPage() {
       <div className="space-y-10">
         {categories.map((cat, idx) => (
           <div key={idx} className="space-y-4">
-            <h2 className="text-xl font-bold text-amber-400 font-poppins flex items-center gap-2 border-b border-zinc-800 pb-2">
+            <h2 className="text-xl font-bold text-accent  flex items-center gap-2 border-b border-border pb-2">
               <HelpCircle className="h-5 w-5" />
               {cat.category}
             </h2>
@@ -118,15 +118,15 @@ export default async function FAQPage() {
               {cat.questions.map((item, qIdx) => (
                 <details
                   key={qIdx}
-                  className="group rounded-xl bg-zinc-900 border border-zinc-800 p-5 [&_summary::-webkit-details-marker]:hidden"
+                  className="group rounded-xl bg-card border border-border p-5 [&_summary::-webkit-details-marker]:hidden"
                 >
-                  <summary className="flex cursor-pointer items-center justify-between text-base font-semibold text-white group-open:text-amber-400 transition">
+                  <summary className="flex cursor-pointer items-center justify-between text-base font-semibold text-foreground group-open:text-accent transition">
                     <span>{item.q}</span>
-                    <span className="ml-2 shrink-0 text-amber-400 font-bold text-xl group-open:rotate-45 transition-transform">
+                    <span className="ml-2 shrink-0 text-accent font-bold text-xl group-open:rotate-45 transition-transform">
                       +
                     </span>
                   </summary>
-                  <p className="mt-3 text-sm text-zinc-300 leading-relaxed pl-1 border-l-2 border-amber-500/40">
+                  <p className="mt-3 text-sm text-foreground/70 leading-relaxed pl-1 border-l-2 border-accent/40">
                     {item.a}
                   </p>
                 </details>
@@ -137,16 +137,16 @@ export default async function FAQPage() {
       </div>
 
       {/* Need More Help Banner */}
-      <Card className="bg-zinc-900 border-zinc-800 p-8 text-center space-y-4">
-        <h3 className="text-xl font-bold text-white font-poppins">Still Have Questions?</h3>
-        <p className="text-zinc-400 text-sm max-w-lg mx-auto">
+      <Card className="bg-card border-border p-8 text-center space-y-4">
+        <h3 className="text-xl font-bold text-foreground ">Still Have Questions?</h3>
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
           If you couldn't find the answer you were looking for, feel free to give us a call or send us a message directly.
         </p>
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button asChild className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold">
+          <Button asChild className="bg-accent hover:brightness-110 text-accent-foreground font-bold">
             <Link href="/contact">Contact Us</Link>
           </Button>
-          <Button asChild variant="outline" className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10 hover:border-amber-500/50">
+          <Button asChild variant="outline" className="border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent/50">
             <Link href="/book">Book Appointment</Link>
           </Button>
         </div>

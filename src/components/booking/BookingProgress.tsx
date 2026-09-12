@@ -19,15 +19,15 @@ export function BookingProgress({ currentStep, totalSteps, onStepClick }: Bookin
         <div className="flex items-center justify-between text-xs font-medium text-muted-foreground mb-2">
           <span>
             Step {currentStep} of {BOOKING_FLOW_STEPS.length}:{' '}
-            <strong className="text-amber-400">
+            <strong className="text-accent">
               {BOOKING_FLOW_STEPS[currentStep - 1]?.label}
             </strong>
           </span>
           <span>{Math.round((currentStep / BOOKING_FLOW_STEPS.length) * 100)}%</span>
         </div>
-        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-amber-500 transition-all duration-300 ease-in-out"
+            className="h-full bg-accent transition-all duration-300 ease-in-out"
             style={{ width: `${(currentStep / BOOKING_FLOW_STEPS.length) * 100}%` }}
           />
         </div>
@@ -55,7 +55,7 @@ export function BookingProgress({ currentStep, totalSteps, onStepClick }: Bookin
                     <div
                       className={cn(
                         'absolute top-4 left-[calc(50%+16px)] right-[calc(-50%+16px)] h-[2px] transition-colors',
-                        currentStep > step.id ? 'bg-amber-500' : 'bg-zinc-800'
+                        currentStep > step.id ? 'bg-accent' : 'bg-border'
                       )}
                       aria-hidden="true"
                     />
@@ -74,12 +74,12 @@ export function BookingProgress({ currentStep, totalSteps, onStepClick }: Bookin
                     <div
                       className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs border-2 transition-all',
-                        isCompleted && 'bg-amber-500 border-amber-500 text-zinc-950',
+                        isCompleted && 'bg-accent border-accent text-accent-foreground',
                         isCurrent &&
-                          'bg-zinc-950 border-amber-400 text-amber-400 ring-4 ring-amber-500/20 shadow-md shadow-amber-500/10',
+                          'bg-background border-accent text-accent ring-4 ring-accent/20 shadow-md shadow-accent/10',
                         !isCompleted &&
                           !isCurrent &&
-                          'bg-zinc-900 border-zinc-800 text-zinc-500'
+                          'bg-card border-border text-muted-foreground'
                       )}
                     >
                       {isCompleted ? (
@@ -91,9 +91,9 @@ export function BookingProgress({ currentStep, totalSteps, onStepClick }: Bookin
                     <span
                       className={cn(
                         'mt-2 text-xs font-medium transition-colors text-center',
-                        isCurrent && 'text-amber-400 font-semibold',
-                        isCompleted && 'text-zinc-300',
-                        !isCompleted && !isCurrent && 'text-zinc-600'
+                        isCurrent && 'text-accent font-semibold',
+                        isCompleted && 'text-foreground/70',
+                        !isCompleted && !isCurrent && 'text-muted-foreground'
                       )}
                     >
                       {step.label}

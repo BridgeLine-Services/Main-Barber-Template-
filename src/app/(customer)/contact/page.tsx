@@ -39,43 +39,43 @@ export default async function ContactPage() {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <Badge variant="outline" className="border-amber-500/40 text-amber-400 px-3 py-1">
+        <Badge variant="outline" className="border-accent/40 text-accent px-3 py-1">
           Get In Touch
         </Badge>
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight font-poppins">
+        <h1 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">
           Contact {shopName}
         </h1>
-        <p className="text-zinc-400 text-base leading-relaxed">
+        <p className="text-muted-foreground text-base leading-relaxed">
           Have questions about our services, walk-in availability, or custom group bookings? We are here to help.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Shop Info Card */}
-        <Card className="bg-zinc-900 border-zinc-800 p-8 space-y-8">
+        <Card className="bg-card border-border p-8 space-y-8">
           <div>
-            <h2 className="text-2xl font-bold text-white font-poppins mb-6">Location & Information</h2>
+            <h2 className="text-2xl font-bold text-foreground  mb-6">Location & Information</h2>
             <div className="space-y-6">
               {fullAddress && (
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/30 shrink-0">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">Address</h3>
-                    <p className="text-sm text-zinc-400 mt-0.5">{fullAddress}</p>
+                    <h3 className="text-sm font-semibold text-foreground">Address</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">{fullAddress}</p>
                   </div>
                 </div>
               )}
 
               {phone && (
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/30 shrink-0">
                     <Phone className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">Phone</h3>
-                    <a href={`tel:${phone.replace(/\D/g, '')}`} className="text-sm text-amber-400 hover:underline mt-0.5 inline-block">
+                    <h3 className="text-sm font-semibold text-foreground">Phone</h3>
+                    <a href={`tel:${phone.replace(/\D/g, '')}`} className="text-sm text-accent hover:underline mt-0.5 inline-block">
                       {phone}
                     </a>
                   </div>
@@ -84,12 +84,12 @@ export default async function ContactPage() {
 
               {email && (
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/30 shrink-0">
                     <Mail className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">Email</h3>
-                    <a href={`mailto:${email}`} className="text-sm text-amber-400 hover:underline mt-0.5 inline-block">
+                    <h3 className="text-sm font-semibold text-foreground">Email</h3>
+                    <a href={`mailto:${email}`} className="text-sm text-accent hover:underline mt-0.5 inline-block">
                       {email}
                     </a>
                   </div>
@@ -97,17 +97,17 @@ export default async function ContactPage() {
               )}
 
               {hoursList.length > 0 && (
-                <div className="flex items-start gap-4 pt-2 border-t border-zinc-800">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+                <div className="flex items-start gap-4 pt-2 border-t border-border">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/30 shrink-0">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div className="w-full">
-                    <h3 className="text-sm font-semibold text-white mb-3">Hours of Operation</h3>
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Hours of Operation</h3>
                     <div className="space-y-1.5 text-xs">
                       {hoursList.map((item, idx) => (
-                        <div key={idx} className="flex justify-between py-1 border-b border-zinc-800/60">
-                          <span className="text-zinc-400 font-medium">{item.day}</span>
-                          <span className="text-amber-400 font-semibold">{item.hours}</span>
+                        <div key={idx} className="flex justify-between py-1 border-b border-border/60">
+                          <span className="text-muted-foreground font-medium">{item.day}</span>
+                          <span className="text-accent font-semibold">{item.hours}</span>
                         </div>
                       ))}
                     </div>
@@ -119,10 +119,10 @@ export default async function ContactPage() {
         </Card>
 
         {/* Contact Form Card */}
-        <Card className="bg-zinc-900 border-zinc-800 p-8 space-y-6">
+        <Card className="bg-card border-border p-8 space-y-6">
           <div>
-            <h2 className="text-2xl font-bold text-white font-poppins">Send Us a Message</h2>
-            <p className="text-xs text-zinc-400 mt-1">
+            <h2 className="text-2xl font-bold text-foreground ">Send Us a Message</h2>
+            <p className="text-xs text-muted-foreground mt-1">
               Fill out the form below and our team will get back to you within 24 hours.
             </p>
           </div>
@@ -132,17 +132,17 @@ export default async function ContactPage() {
 
       {/* Google Maps Embed */}
       {fullAddress && (
-        <Card className="bg-zinc-900 border-zinc-800 overflow-hidden p-0 relative">
-          <div className="p-6 border-b border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+        <Card className="bg-card border-border overflow-hidden p-0 relative">
+          <div className="p-6 border-b border-border flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-amber-400" />
-              <span className="text-white font-semibold text-sm">{fullAddress}</span>
+              <MapPin className="h-5 w-5 text-accent" />
+              <span className="text-foreground font-semibold text-sm">{fullAddress}</span>
             </div>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shopName} ${fullAddress}`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-bold text-amber-400 hover:underline"
+              className="text-xs font-bold text-accent hover:underline"
             >
               Open in Google Maps &rarr;
             </a>

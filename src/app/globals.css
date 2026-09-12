@@ -87,3 +87,67 @@
     display: flex;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHOWROOM LAYER — premium visual system for the customer-facing site.
+   All colors resolve through the business theme tokens (--accent, --card,
+   --background …) so every shop's brand drives the design. The dashboard
+   is untouched: it keeps using the plain shadcn variables above.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Display font for editorial headings (set per business by generateThemeCSS,
+   default: Playfair Display). */
+.font-display {
+  font-family: var(--font-display, var(--font-poppins), Georgia, serif);
+}
+
+/* Uppercase micro-label above section headings. */
+.eyebrow {
+  @apply inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em];
+  color: hsl(var(--accent));
+}
+
+/* Hairline + diamond ornament used as a restrained brand divider. */
+.ornament {
+  @apply flex items-center justify-center gap-3 select-none;
+  color: hsl(var(--accent));
+}
+.ornament::before,
+.ornament::after {
+  content: '';
+  @apply h-px w-10 sm:w-14;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--accent) / 0.55)
+  );
+}
+.ornament::after {
+  background: linear-gradient(
+    to left,
+    transparent,
+    hsl(var(--accent) / 0.55)
+  );
+}
+
+/* Frosted-glass surface for cards that float over imagery (hero, overlays). */
+.glass {
+  background: hsl(var(--card) / 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid hsl(var(--border) / 0.8);
+}
+
+/* Cinematic image treatment — subtle warm grade so any shop photo feels
+   intentional. Applied sparingly (hero, featured images only). */
+.img-cinematic {
+  filter: saturate(0.92) contrast(1.06) brightness(0.96);
+}
+
+/* Focus visibility for keyboard users across the showroom. */
+.brand-theme a:focus-visible,
+.brand-theme button:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+  border-radius: 2px;
+}

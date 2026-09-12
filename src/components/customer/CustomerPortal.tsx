@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
   CONFIRMED: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  COMPLETED: 'text-zinc-300 bg-zinc-700/40 border-zinc-600',
+  COMPLETED: 'text-foreground/70 bg-zinc-700/40 border-zinc-600',
   CANCELLED: 'text-red-400 bg-red-500/10 border-red-500/20',
   NO_SHOW: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
   RESCHEDULED: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
@@ -98,22 +98,22 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
     return (
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/30 text-accent flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-zinc-100 font-serif">My Appointments</h1>
-          <p className="text-sm text-zinc-400 mt-1">Look up your appointments and loyalty status at {businessName}</p>
+          <h1 className="text-2xl font-bold text-foreground font-serif">My Appointments</h1>
+          <p className="text-sm text-muted-foreground mt-1">Look up your appointments and loyalty status at {businessName}</p>
         </div>
 
-        <form onSubmit={codeRequested ? handleVerify : handleLookup} className="space-y-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+        <form onSubmit={codeRequested ? handleVerify : handleLookup} className="space-y-4 bg-card/40 border border-border rounded-xl p-6">
           {codeRequested ? (
             <div>
-              <p className="mb-3 text-sm text-zinc-400">Check your email or phone for your verification code.</p>
-              <label className="block text-sm text-zinc-400 mb-1.5">Verification code</label>
-              <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50" />
+              <p className="mb-3 text-sm text-muted-foreground">Check your email or phone for your verification code.</p>
+              <label className="block text-sm text-muted-foreground mb-1.5">Verification code</label>
+              <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-foreground/80 text-sm focus:outline-none focus:border-accent/50" />
             </div>
           ) : <><div>
-            <label className="block text-sm text-zinc-400 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-sm text-muted-foreground mb-1.5 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> Email
             </label>
             <input
@@ -121,12 +121,12 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+              className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-foreground/80 text-sm focus:outline-none focus:border-accent/50"
             />
           </div>
-          <div className="text-center text-xs text-zinc-600">— or —</div>
+          <div className="text-center text-xs text-muted-foreground/70">— or —</div>
           <div>
-            <label className="block text-sm text-zinc-400 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-sm text-muted-foreground mb-1.5 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5" /> Phone
             </label>
             <input
@@ -134,7 +134,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="(555) 555-0100"
-              className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+              className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-foreground/80 text-sm focus:outline-none focus:border-accent/50"
             />
           </div></>}
 
@@ -145,7 +145,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           <button
             type="submit"
             disabled={loading || (!email && !phone)}
-            className="w-full px-4 py-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            className="w-full px-4 py-2.5 rounded-lg bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
           >
             <Search className="w-4 h-4" />
             {loading ? 'Please wait...' : codeRequested ? 'Verify Code' : 'Send Verification Code'}
@@ -159,29 +159,29 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <button onClick={handleLogout} className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-amber-400 transition-colors"><ArrowLeft className="w-4 h-4" /> New Lookup</button>
-        <button onClick={handleLogout} className="text-xs text-zinc-500 hover:text-red-400">Log out</button>
+        <button onClick={handleLogout} className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-accent transition-colors"><ArrowLeft className="w-4 h-4" /> New Lookup</button>
+        <button onClick={handleLogout} className="text-xs text-muted-foreground hover:text-red-400">Log out</button>
       </div>
 
       {/* Customer Header */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+      <div className="bg-card/40 border border-border rounded-xl p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-lg">
+          <div className="w-12 h-12 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-accent font-bold text-lg">
             {data.customer.firstName[0]}{data.customer.lastName[0]}
           </div>
           <div>
-            <h1 className="text-lg font-bold text-zinc-100">{data.customer.firstName} {data.customer.lastName}</h1>
-            <p className="text-xs text-zinc-500">{data.customer.email} · {data.customer.phone}</p>
+            <h1 className="text-lg font-bold text-foreground">{data.customer.firstName} {data.customer.lastName}</h1>
+            <p className="text-xs text-muted-foreground">{data.customer.email} · {data.customer.phone}</p>
           </div>
         </div>
 
         {/* Loyalty */}
         {data.loyalty && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15">
-            <Gift className="w-5 h-5 text-amber-500" />
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/5 border border-accent/15">
+            <Gift className="w-5 h-5 text-accent" />
             <div>
-              <p className="text-sm font-medium text-amber-400">{data.loyalty.programName}</p>
-              <p className="text-xs text-zinc-400">{data.loyalty.visits} visits completed</p>
+              <p className="text-sm font-medium text-accent">{data.loyalty.programName}</p>
+              <p className="text-xs text-muted-foreground">{data.loyalty.visits} visits completed</p>
             </div>
           </div>
         )}
@@ -189,12 +189,12 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
 
       {/* Upcoming Appointments */}
       <div>
-        <h2 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-amber-500" /> Upcoming ({data.upcoming.length})
+        <h2 className="text-sm font-semibold text-foreground/70 mb-3 uppercase tracking-wide flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-accent" /> Upcoming ({data.upcoming.length})
         </h2>
         {data.upcoming.length === 0 ? (
-          <p className="text-zinc-500 text-sm py-4 text-center bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
-            No upcoming appointments. <a href="/book" className="text-amber-400 hover:underline">Book one →</a>
+          <p className="text-muted-foreground text-sm py-4 text-center bg-card/30 border border-border/50 rounded-lg">
+            No upcoming appointments. <a href="/book" className="text-accent hover:underline">Book one →</a>
           </p>
         ) : (
           <div className="space-y-3">
@@ -205,11 +205,11 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
 
       {/* Past Appointments */}
       <div>
-        <h2 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide flex items-center gap-2">
-          <Clock className="w-4 h-4 text-zinc-500" /> History ({data.past.length})
+        <h2 className="text-sm font-semibold text-foreground/70 mb-3 uppercase tracking-wide flex items-center gap-2">
+          <Clock className="w-4 h-4 text-muted-foreground" /> History ({data.past.length})
         </h2>
         {data.past.length === 0 ? (
-          <p className="text-zinc-500 text-sm py-4 text-center bg-zinc-900/30 border border-zinc-800/50 rounded-lg">
+          <p className="text-muted-foreground text-sm py-4 text-center bg-card/30 border border-border/50 rounded-lg">
             No past appointments yet.
           </p>
         ) : (
@@ -229,14 +229,14 @@ function AppointmentCard({ appt }: { appt: PortalAppointment }) {
   const canCancel = appt.status === 'PENDING' || appt.status === 'CONFIRMED'
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex items-start justify-between gap-3">
+    <div className="bg-card/40 border border-border rounded-xl p-4 flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
-          <Scissors className="w-5 h-5 text-zinc-500" />
+        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+          <Scissors className="w-5 h-5 text-muted-foreground" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-zinc-200 truncate">{appt.service?.name || 'Service'}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-sm font-medium text-foreground/80 truncate">{appt.service?.name || 'Service'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at{' '}
             {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </p>
@@ -245,7 +245,7 @@ function AppointmentCard({ appt }: { appt: PortalAppointment }) {
               {STATUS_LABELS[appt.status] || appt.status}
             </span>
             {appt.barber && (
-              <span className="text-xs text-zinc-500 flex items-center gap-1">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <User className="w-3 h-3" /> {appt.barber.name}
               </span>
             )}
@@ -253,7 +253,7 @@ function AppointmentCard({ appt }: { appt: PortalAppointment }) {
         </div>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        {appt.service && <span className="text-sm font-semibold text-amber-400">${appt.service.price.toFixed(0)}</span>}
+        {appt.service && <span className="text-sm font-semibold text-accent">${appt.service.price.toFixed(0)}</span>}
         {canCancel && (
           <a
             href={`/appointment/${appt.confirmationNumber}?token=${appt.customerAccessToken}`}
