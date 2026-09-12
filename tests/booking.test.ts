@@ -167,6 +167,11 @@ async function testBookingFlow(ids: any) {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   tomorrow.setHours(10, 0, 0, 0)
+  // Barber 1 works Mon-Fri: roll forward to a scheduled weekday so the
+  // validator tests are deterministic no matter which day the suite runs.
+  while (tomorrow.getDay() === 0 || tomorrow.getDay() === 6) {
+    tomorrow.setDate(tomorrow.getDate() + 1)
+  }
 
   const appointment = await prisma.appointment.create({
     data: {
