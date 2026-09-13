@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft, CalendarPlus } from 'lucide-react'
+import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft, CalendarPlus, Sparkles, Pencil, Save, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/motion/reveal'
 
@@ -33,6 +33,12 @@ interface PortalAppointment {
   service: { name: string; price: number; duration: number } | null
 }
 
+interface DisplayPreference {
+  key: string
+  label: string
+  value: string
+}
+
 interface PortalData {
   customer: {
     firstName: string
@@ -43,6 +49,13 @@ interface PortalData {
   }
   upcoming: PortalAppointment[]
   past: PortalAppointment[]
+  profile: {
+    preferences: DisplayPreference[]
+    preferredBarber: { barberId: string; barberName: string; completedVisits: number } | null
+    serviceHistory: { appointmentId: string; serviceName: string; barberName: string; date: string; status: string }[]
+    completedCount: number
+    upcomingCount: number
+  } | null
   loyalty: { programName: string; type: string; visits: number } | null
   usual: {
     serviceId: string
@@ -64,6 +77,45 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
   const [data, setData] = useState<PortalData | null>(null)
   const [code, setCode] = useState('')
   const [codeRequested, setCodeRequested] = useState(false)
+  const [editingPrefs, setEditingPrefs] = useState(false)
+  const [prefDraft, setPrefDraft] = useState<{ key: string; value: string }[]>([])
+  const [savingPrefs, setSavingPrefs] = useState(false)
+  const [prefError, setPrefError] = useState<string | null>(null)
+
+  const startEditingPrefs = () => {
+    const prefs = data?.profile?.preferences || []
+    setPrefDraft(prefs.map((p) => ({ key: p.key, value: p.value })))
+    setEditingPrefs(true)
+    setPrefError(null)
+  }
+
+  const savePreferences = async () => {
+    const cleaned: Record<string, string> = {}
+    for (const row of prefDraft) {
+      const key = row.key.trim()
+      if (!key || !row.value.trim()) continue
+      cleaned[key] = row.value.trim()
+    }
+    setSavingPrefs(true)
+    setPrefError(null)
+    try {
+      const res = await fetch('/api/public/portal/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferences: cleaned }),
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setPrefError(result.error || 'Could not save preferences.')
+      } else if (data) {
+        setData({ ...data, profile: data.profile ? { ...data.profile, preferences: result.preferences } : data.profile })
+        setEditingPrefs(false)
+      }
+    } catch {
+      setPrefError('Network error. Please try again.')
+    }
+    setSavingPrefs(false)
+  }
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -227,6 +279,93 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           </div>
         </div>
         </Reveal>
+      )}
+
+      {/* My Preferences (customer-visible only — staff notes are private) */}
+      {data.profile && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" /> My Preferences
+            </h2>
+            {!editingPrefs ? (
+              <button onClick={startEditingPrefs} className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEditingPrefs(false)} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+                <button
+                  onClick={savePreferences}
+                  disabled={savingPrefs}
+                  className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold disabled:opacity-50"
+                >
+                  {savingPrefs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                </button>
+              </div>
+            )}
+          </div>
+
+          {editingPrefs ? (
+            <div className="space-y-2">
+              {prefDraft.map((row, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    value={row.key}
+                    onChange={(e) => setPrefDraft(prev => prev.map((r, idx) => idx === i ? { ...r, key: e.target.value } : r))}
+                    placeholder="e.g. Guard length"
+                    className="w-1/3 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                  />
+                  <input
+                    value={row.value}
+                    onChange={(e) => setPrefDraft(prev => prev.map((r, idx) => idx === i ? { ...r, value: e.target.value } : r))}
+                    placeholder="e.g. #2 on the sides"
+                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                  />
+                  <button
+                    onClick={() => setPrefDraft(prev => prev.filter((_, idx) => idx !== i))}
+                    className="text-zinc-600 hover:text-red-400 text-sm px-1"
+                    aria-label="Remove"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setPrefDraft(prev => [...prev, { key: '', value: '' }])}
+                className="text-xs text-amber-400/80 hover:text-amber-300"
+              >
+                + Add preference
+              </button>
+              {prefError && <p className="text-xs text-red-400">{prefError}</p>}
+              <p className="text-[11px] text-zinc-600">
+                Help your barber remember your usual cut — style, guard length, beard, side preference, anything.
+              </p>
+            </div>
+          ) : (data.profile.preferences.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {data.profile.preferences.map(p => (
+                <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-zinc-950/60 border border-zinc-800 rounded-full px-3 py-1.5">
+                  <span className="text-zinc-500">{p.label}</span>
+                  <span className="text-zinc-200 font-medium">{p.value}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-zinc-500 text-sm">
+              No saved preferences yet. Add your usual style, guard length, or side preference so your barber knows your cut.
+            </p>
+          ))}
+
+          {data.profile.preferredBarber && (
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-800/60 text-sm">
+              <User className="w-4 h-4 text-amber-500" />
+              <span className="text-zinc-400">Preferred barber:</span>
+              <span className="text-zinc-100 font-medium">{data.profile.preferredBarber.barberName}</span>
+              <span className="text-xs text-zinc-600">({data.profile.preferredBarber.completedVisits} completed visits)</span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Upcoming Appointments */}

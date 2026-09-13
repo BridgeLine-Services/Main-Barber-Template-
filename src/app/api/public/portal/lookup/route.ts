@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { hashValue, normalizeContact, PORTAL_SESSION_COOKIE } from '@/lib/portal-security'
+import { toCustomerVisibleProfile } from '@/lib/customer-history'
 
 export const dynamic = 'force-dynamic'
 const UNAUTHORIZED = 'Please verify your email or phone before accessing your appointments.'
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     const sessionToken = req.cookies.get(PORTAL_SESSION_COOKIE)?.value
     const session = sessionToken ? await prisma.portalSession.findFirst({ where: { businessId: business.id, tokenHash: hashValue(sessionToken), revokedAt: null, expiresAt: { gt: new Date() } } }) : null
     if (!session) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
-    const customer = await prisma.customer.findFirst({ where: { id: session.customerId, businessId: business.id } })
+    const customer = await prisma.customer.findFirst({ where: { id: session.customerId, businessId: business.id, archivedAt: null } })
     if (!customer) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
     const contactMatches = contact.channel === 'EMAIL'
       ? customer.email.toLowerCase() === contact.value
@@ -73,6 +74,40 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ customer: { firstName: customer.firstName, lastName: customer.lastName, email: customer.email, phone: customer.phone, smsConsent: customer.smsConsent }, upcoming, past, loyalty: rewardProgram ? { programName: rewardProgram.name, type: rewardProgram.type, visits: completedCount } : null, usual, rebooking })
+    const profile = toCustomerVisibleProfile({
+      customer: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        smsConsent: customer.smsConsent,
+        preferences: customer.preferences,
+      },
+      appointments: appointments.map((a: any) => ({
+        id: a.id,
+        status: a.status,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        service: a.service ? { id: a.service.id, name: a.service.name, price: a.service.price } : null,
+        barber: a.barber ? { id: a.barber.id, name: a.barber.name } : null,
+      })),
+    })
+
+    return NextResponse.json({
+      customer: { firstName: customer.firstName, lastName: customer.lastName, email: customer.email, phone: customer.phone, smsConsent: customer.smsConsent },
+      upcoming,
+      past,
+      profile: {
+        // Customer-visible slice only: staff notes/tags are structurally excluded.
+        preferences: profile.preferences,
+        preferredBarber: profile.preferredBarber,
+        serviceHistory: profile.serviceHistory,
+        completedCount: profile.completedCount,
+        upcomingCount: profile.upcomingCount,
+      },
+      loyalty: rewardProgram ? { programName: rewardProgram.name, type: rewardProgram.type, visits: completedCount } : null,
+      usual,
+      rebooking,
+    })
   } catch { return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 }) }
 }

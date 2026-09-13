@@ -26,6 +26,7 @@ interface RebookSuggestion {
   lastVisit: string | null
   averageIntervalDays: number | null
   availableSlots: { time: string; available: boolean }[]
+  preferences: { key: string; label: string; value: string }[] | null
 }
 
 export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogProps) {
@@ -116,6 +117,21 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-md">
+        {(suggestion?.preferences?.length ?? 0) > 0 && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-400" /> Saved preferences — for your reference only
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestion.preferences.map((p) => (
+                <span key={p.key} className="text-[11px] text-zinc-300 bg-zinc-950/60 border border-zinc-800 rounded-full px-2.5 py-1">
+                  <span className="text-zinc-500">{p.label}:</span> {p.value}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
             <Sparkles className="w-5 h-5" />

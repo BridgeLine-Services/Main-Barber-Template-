@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { validateSlot, createAppointmentSafely } from '@/lib/availability'
 import { getRebookingSuggestion } from '@/lib/customer-intelligence'
+import { formatPreferencesForDisplay } from '@/lib/customer-history'
 
 // POST /api/dashboard/customers/[id]/rebook
 // Creates a rebooking appointment using customer intelligence:
@@ -145,7 +146,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const customer = await prisma.customer.findFirst({
     where: { id: params.id, businessId },
-    select: { id: true },
+    select: { id: true, preferences: true },
   })
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
 
@@ -186,6 +187,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     previewDate = new Date(`${dateOverride}T12:00:00.000Z`)
   }
 
+  // Surface saved preferences so staff can honor them during rebooking.
+  // Informational only — the customer's selected service is never changed
+  // based on notes or preferences.
+  const preferences = formatPreferencesForDisplay(customer.preferences)
+
   // Also fetch available slots for the preview barber/service/date
   let availableSlots: { time: string; available: boolean }[] = []
   if (previewBarber && previewService && previewDate) {
@@ -204,5 +210,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     service: previewService,
     suggestedDate: previewDate,
     availableSlots,
+    preferences,
   })
 }

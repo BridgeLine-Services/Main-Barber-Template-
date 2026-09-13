@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getCustomerIntelligence } from '@/lib/customer-intelligence'
+import { formatPreferencesForDisplay, computePreferredBarber } from '@/lib/customer-history'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
 import { formatFullDate, formatTime, formatPrice } from '@/lib/utils'
 import {
@@ -160,6 +161,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
           <div className="space-y-3 bg-zinc-900/60 border border-zinc-800/60 p-4 rounded-xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Customer Notes
+              <span className="ml-1 text-[9px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded-full px-1.5 py-0.5">STAFF ONLY</span>
             </span>
             <p className="text-xs text-zinc-300 italic">
               {customer.notes ? customer.notes : 'No custom notes provided for this customer.'}
@@ -334,6 +336,78 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Haircut History & Preferences */}
+      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold font-serif text-zinc-100 flex items-center gap-2">
+            <Scissors className="w-5 h-5 text-amber-500" />
+            <span>Haircut History &amp; Preferences</span>
+          </h2>
+          {customer.archivedAt && (
+            <span className="text-[10px] font-medium text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-full px-2 py-0.5">
+              ARCHIVED CUSTOMER
+            </span>
+          )}
+        </div>
+
+        {/* Preferred barber (derived from completed history) */}
+        {(() => {
+          const preferred = computePreferredBarber(appointments)
+          return (
+            <div className="flex items-center gap-3 text-sm bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+              <User className="w-4 h-4 text-amber-500 shrink-0" />
+              <span className="text-zinc-400 text-xs uppercase tracking-wide">Preferred Barber</span>
+              <span className="text-zinc-100 font-medium">
+                {preferred ? preferred.barberName : 'N/A'}
+              </span>
+              {preferred && (
+                <span className="text-[10px] text-zinc-500">
+                  {preferred.completedVisits} completed visit{preferred.completedVisits === 1 ? '' : 's'}
+                </span>
+              )}
+              <span className="ml-auto text-[10px] text-zinc-600">derived from completed visits</span>
+            </div>
+          )
+        })()}
+
+        {/* Saved preferences (flexible JSON field on the Customer model) */}
+        <div>
+          <div className="flex items-center gap-2 mb-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">Saved Preferences</span>
+            <span className="text-[9px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded-full px-1.5 py-0.5">CUSTOMER VISIBLE</span>
+          </div>
+          {(() => {
+            const prefs = formatPreferencesForDisplay(customer.preferences)
+            return prefs.length === 0 ? (
+              <p className="text-xs text-zinc-500 italic">
+                No saved preferences. Customers can add their own from the customer portal, or staff can record them here.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {prefs.map(p => (
+                  <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-zinc-900/60 border border-zinc-800 rounded-full px-3 py-1.5">
+                    <span className="text-zinc-500">{p.label}</span>
+                    <span className="text-zinc-200 font-medium">{p.value}</span>
+                  </span>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* Rebooking interval (if configured) */}
+        {intelligence.averageIntervalDays && (
+          <div className="flex items-center gap-3 text-sm bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+            <Clock className="w-4 h-4 text-blue-400 shrink-0" />
+            <span className="text-zinc-400 text-xs uppercase tracking-wide">Typical Rebooking Interval</span>
+            <span className="text-zinc-100 font-medium">{intelligence.averageIntervalDays} days</span>
+            {predictedDateStr && (
+              <span className="ml-auto text-[10px] text-zinc-600">predicted next visit ~ {predictedDateStr}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Appointment History Table */}
