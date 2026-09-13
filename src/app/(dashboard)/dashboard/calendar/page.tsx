@@ -21,6 +21,17 @@ import { formatFullDate } from '@/lib/utils'
 export default function CalendarPage() {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
+
+  // Support landing on a specific date via ?date=YYYY-MM-DD (used by the
+  // Daily Operations dashboard's Book/View schedule actions).
+  useEffect(() => {
+    const dateParam = new URLSearchParams(window.location.search).get('date')
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const [y, m, d] = dateParam.split('-').map(Number)
+      const parsed = new Date(y, m - 1, d, 12, 0, 0)
+      if (!Number.isNaN(parsed.getTime())) setCurrentDate(parsed)
+    }
+  }, [])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 

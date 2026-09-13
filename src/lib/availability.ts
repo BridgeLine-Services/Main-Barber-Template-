@@ -25,7 +25,7 @@ import {
 // Cache business timezone lookups within a request
 const tzCache = new Map<string, string>()
 
-async function getBusinessTimezone(businessId: string): Promise<string> {
+export async function getBusinessTimezone(businessId: string): Promise<string> {
   if (tzCache.has(businessId)) return tzCache.get(businessId)!
   const business = await prisma.business.findUnique({
     where: { id: businessId },

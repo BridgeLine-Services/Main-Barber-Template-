@@ -40,6 +40,7 @@ import {
   Store,
   Search,
   Smartphone,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -86,6 +87,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Barber Mode', href: '/barber-mode', icon: Smartphone },
+        { name: 'Daily Ops', href: '/dashboard/operations', icon: Activity },
         { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
         { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDays },
         { name: 'Customers', href: '/dashboard/customers', icon: Users },
