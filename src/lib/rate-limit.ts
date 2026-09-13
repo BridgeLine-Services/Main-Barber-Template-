@@ -41,6 +41,7 @@ export const RATE_LIMITS = {
   LOOKUP: { windowMs: 60_000, maxRequests: 5 },
   // Contact form: 3 per minute per IP
   CONTACT: { windowMs: 60_000, maxRequests: 3 },
+  QUEUE: { windowMs: 60_000, maxRequests: 5 },
   // Cancel/reschedule by token: 10 per minute per IP
   CUSTOMER_ACTION: { windowMs: 60_000, maxRequests: 10 },
   // Auth: 5 per minute per IP

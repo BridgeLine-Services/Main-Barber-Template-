@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentBusinessId } from '@/lib/business'
+import { startOfDayUTC } from '@/lib/timezone'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -18,6 +19,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const businessId = await getCurrentBusinessId()
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { timezone: true },
+    })
+    const todayStart = startOfDayUTC(business?.timezone || 'America/Los_Angeles')
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
     const { searchParams } = req.nextUrl
     const status = searchParams.get('status')
 
@@ -34,7 +41,17 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'asc' },
     })
 
-    return NextResponse.json({ entries })
+    // Walk-in queue entries: preferredTimeRange 'walk-in' + today's business day.
+    // Computed server-side so the dashboard UI stays timezone-correct.
+    const withQueueMeta = entries.map((entry) => ({
+      ...entry,
+      isWalkInToday:
+        entry.preferredTimeRange === 'walk-in' &&
+        entry.preferredDate.getTime() >= todayStart.getTime() &&
+        entry.preferredDate.getTime() < todayEnd.getTime(),
+    }))
+
+    return NextResponse.json({ entries: withQueueMeta })
   } catch (error: any) {
     if (error.message?.includes('No business found') || error.code === 'P1001') {
       return NextResponse.json({ error: 'Database not available' }, { status: 503 })

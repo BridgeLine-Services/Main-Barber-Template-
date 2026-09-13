@@ -26,6 +26,9 @@ export async function GET() {
       // Public booking-flow config — used by the wizard to show/hide the
       // "First available" option. Defaults to enabled for legacy rows.
       firstAvailableEnabled: business.firstAvailableBookingEnabled !== false,
+      // Walk-in queue availability — drives the customer-facing queue page
+      // and the "Join the walk-in queue" entry points.
+      walkInsWelcome: business.walkInsWelcome !== false,
     },
   })
 }

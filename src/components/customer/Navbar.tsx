@@ -10,17 +10,19 @@ interface NavbarProps {
   businessName?: string
   logo?: string | null
   phone?: string | null
+  /** Walk-in queue page is only linked when the business welcomes walk-ins */
+  walkInsWelcome?: boolean
 }
 
-const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/services', label: 'Services' },
-  { href: '/barbers', label: 'Barbers' },
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
-]
-
-export function Navbar({ businessName = 'Barber Shop', logo, phone }: NavbarProps) {
+export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome }: NavbarProps) {
+  const navLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/services', label: 'Services' },
+    { href: '/barbers', label: 'Barbers' },
+    ...(walkInsWelcome ? [{ href: '/queue', label: 'Walk-In Queue' }] : []),
+    { href: '/about', label: 'About' },
+    { href: '/contact', label: 'Contact' },
+  ]
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
@@ -60,7 +62,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone }: NavbarProp
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Main">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const isActive = pathname === link.href
             return (
               <Link
@@ -139,7 +141,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone }: NavbarProp
             className="overflow-hidden border-b border-border bg-background/95 backdrop-blur-md md:hidden"
           >
             <div className="space-y-1 px-4 pb-6 pt-2">
-              {NAV_LINKS.map((link) => {
+              {navLinks.map((link) => {
                 const isActive = pathname === link.href
                 return (
                   <Link

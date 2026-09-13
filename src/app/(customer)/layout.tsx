@@ -51,6 +51,7 @@ export default async function CustomerLayout({
           businessName={business.name}
           logo={business.logo}
           phone={business.phone}
+          walkInsWelcome={business.walkInsWelcome !== false}
         />
         <main className="flex-1">{children}</main>
         <Footer business={business} />

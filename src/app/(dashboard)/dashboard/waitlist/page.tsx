@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Loader2, Phone, Mail, Clock, CheckCircle, XCircle, Bell } from 'lucide-react'
+import { Users, Loader2, Phone, Mail, Clock, CheckCircle, XCircle, Bell, Zap, UserX, Trash2 } from 'lucide-react'
+import { computeQueuePositions } from '@/lib/queue'
 
 interface WaitlistEntry {
+  isWalkInToday?: boolean
   id: string
   firstName: string
   lastName: string
@@ -69,6 +71,10 @@ export default function WaitlistPage() {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  }
+
   const filtered = filter
     ? entries.filter(e => e.status === filter)
     : entries
@@ -109,6 +115,94 @@ export default function WaitlistPage() {
         ))}
       </div>
 
+      {/* Today's Walk-In Queue — arrival order with operational actions */}
+      {(() => {
+        const walkIns = entries.filter(e => e.isWalkInToday)
+        if (walkIns.length === 0) return null
+        const positions = computeQueuePositions(walkIns)
+        return (
+          <section aria-label="Today's walk-in queue">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <h2 className="text-lg font-semibold text-zinc-100">Today&apos;s Walk-In Queue</h2>
+              <span className="text-xs text-zinc-500">
+                {walkIns.filter(e => e.status === 'WAITING').length} waiting
+              </span>
+            </div>
+            <div className="space-y-2">
+              {walkIns
+                .filter(e => e.status === 'WAITING' || e.status === 'NOTIFIED')
+                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                .map((entry) => (
+                  <Card key={entry.id} className="bg-zinc-900 border-amber-500/20">
+                    <CardContent className="p-3 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 text-sm font-bold">
+                          {positions.get(entry.id) ?? '–'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-zinc-100 truncate">
+                            {entry.firstName} {entry.lastName}
+                            {entry.status === 'NOTIFIED' && (
+                              <span className="ml-2 text-xs text-amber-400">called</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-zinc-400 truncate">
+                            {entry.service?.name} · {formatTime(entry.createdAt)}
+                            {entry.barber && ` · wants ${entry.barber.name}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        {entry.status === 'WAITING' && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateStatus(entry.id, 'NOTIFIED')}
+                            className="bg-amber-500 text-black hover:bg-amber-400 text-xs"
+                            aria-label={`Call ${entry.firstName} (next in queue)`}
+                          >
+                            <Bell className="w-3.5 h-3.5 mr-1" /> Call Next
+                          </Button>
+                        )}
+                        {entry.status === 'NOTIFIED' && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateStatus(entry.id, 'BOOKED')}
+                            className="bg-emerald-500 text-black hover:bg-emerald-400 text-xs"
+                            aria-label={`Mark ${entry.firstName} as served`}
+                          >
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Served
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus(entry.id, 'EXPIRED')}
+                          className="border-zinc-700 text-zinc-400 hover:text-orange-300 hover:border-orange-700 text-xs"
+                          aria-label={`Mark ${entry.firstName} as no-show`}
+                          title="No-show"
+                        >
+                          <UserX className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus(entry.id, 'CANCELLED')}
+                          className="border-zinc-700 text-zinc-400 hover:bg-red-950/30 hover:text-red-300 hover:border-red-700 text-xs"
+                          aria-label={`Remove ${entry.firstName} from queue`}
+                          title="Remove from queue"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </section>
+        )
+      })()}
+
       {/* Waitlist entries */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
@@ -148,7 +242,7 @@ export default function WaitlistPage() {
                         {formatDate(entry.preferredDate)}
                       </span>
                       {entry.preferredTimeRange && (
-                        <span>· {entry.preferredTimeRange}</span>
+                        <span>· {entry.preferredTimeRange === 'walk-in' ? 'Walk-in' : entry.preferredTimeRange}</span>
                       )}
                     </div>
 
