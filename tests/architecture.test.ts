@@ -43,6 +43,27 @@ assert.deepEqual(
   `Hard-coded timezone fallbacks found (use resolveBusinessTimezone): ${offenders.join(', ')}`
 )
 
+// Constitution §4: fixture data synthesized by in-app e2e helpers (routes
+// under src/app/api/test/** that create real database records) must never
+// embed a real-looking client domain — use RFC 2606 reserved TLDs
+// (.invalid/.example/.test/.localhost). Generic UI placeholder copy
+// elsewhere is allowed by §4 and intentionally not scanned here.
+const EMAIL_LITERALS = /['"`][^'"`\s]*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}['"`]/g
+const RESERVED_TLD = /\.(invalid|example|test|localhost)\/?$/
+const emailOffenders = []
+for (const file of walk(path.join(root, 'src', 'app', 'api', 'test'))) {
+  const content = fs.readFileSync(file, 'utf8')
+  for (const literal of content.match(EMAIL_LITERALS) || []) {
+    const domain = literal.slice(1, -1).split('@').pop()
+    if (!RESERVED_TLD.test(domain)) emailOffenders.push(`${path.relative(root, file)}: ${literal}`)
+  }
+}
+assert.deepEqual(
+  emailOffenders,
+  [],
+  `Non-reserved email domains in source fixtures (use RFC 2606 reserved TLDs): ${emailOffenders.join('; ')}`
+)
+
 execFileSync(process.execPath, [path.join(root, 'scripts', 'check-template-architecture.mjs')], {
   cwd: root,
   stdio: 'pipe',

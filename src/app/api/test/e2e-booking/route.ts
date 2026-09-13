@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
       // ─── Step 2: Build timezone-aware start time ────────────────────────
       const startTime = await buildStartTime(dateStr, slot2.time, businessId)
 
-      testCustomerEmail = `e2e-test-${Date.now()}@thebarberco.com`
+      testCustomerEmail = `e2e-test-${Date.now()}@e2e.test.invalid`
 
       // ─── Step 3: Create appointment ───────────────────────────────────────
       const result = await createAppointmentSafely({
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     // Build timezone-aware start time
     const startTime = await buildStartTime(dateStr, availableSlot.time, businessId)
 
-    testCustomerEmail = `e2e-test-${Date.now()}@thebarberco.com`
+    testCustomerEmail = `e2e-test-${Date.now()}@e2e.test.invalid`
 
     // ─── Create appointment ───────────────────────────────────────────────
     const result = await createAppointmentSafely({
