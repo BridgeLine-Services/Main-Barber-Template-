@@ -17,6 +17,24 @@ export interface CampaignTarget {
 }
 
 /**
+ * Minimal customer shape needed for pure audience matching. Dates may be
+ * Date objects or ISO strings; appointments are pre-sorted newest-first.
+ */
+export interface AudienceCustomer {
+  id: string
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  appointments: Array<{
+    status: string
+    startTime: Date | string
+    barber?: { id: string; name: string } | null
+    service?: { id: string; name: string } | null
+  }>
+}
+
+/**
  * Resolve a campaign audience to a list of targeted customers.
  */
 export async function resolveCampaignAudience(
@@ -28,7 +46,18 @@ export async function resolveCampaignAudience(
   }
 ): Promise<CampaignTarget[]> {
   const now = new Date()
-  const targets: CampaignTarget[] = []
+
+  // Resolve display names once per campaign — not once per customer.
+  let barberName: string | undefined
+  let serviceName: string | undefined
+  if (audience === 'NOT_VISITED_BARBER' && audienceConfig?.barberId) {
+    const barber = await prisma.barber.findUnique({ where: { id: audienceConfig.barberId }, select: { name: true } })
+    barberName = barber?.name
+  }
+  if (audience === 'USED_SERVICE' && audienceConfig?.serviceId) {
+    const service = await prisma.service.findUnique({ where: { id: audienceConfig.serviceId }, select: { name: true } })
+    serviceName = service?.name
+  }
 
   // Base query: all customers for this business
   const customers = await prisma.customer.findMany({
@@ -49,90 +78,14 @@ export async function resolveCampaignAudience(
     },
   })
 
+  const targets: CampaignTarget[] = []
   for (const customer of customers) {
-    const appts = customer.appointments
-    const completedAppts = appts.filter(a => a.status === 'COMPLETED')
-    const lastAppt = completedAppts[0]
-    const lastApptDate = lastAppt ? new Date(lastAppt.startTime) : null
-    const daysSinceLast = lastApptDate
-      ? Math.floor((now.getTime() - lastApptDate.getTime()) / (1000 * 60 * 60 * 24))
-      : null
-
-    let matches = false
-    let reason = ''
-
-    switch (audience) {
-      case 'INACTIVE_30':
-        matches = daysSinceLast !== null && daysSinceLast >= 30
-        reason = `Inactive for ${daysSinceLast} days`
-        break
-
-      case 'INACTIVE_45':
-        matches = daysSinceLast !== null && daysSinceLast >= 45
-        reason = `Inactive for ${daysSinceLast} days`
-        break
-
-      case 'INACTIVE_60':
-        matches = daysSinceLast !== null && daysSinceLast >= 60
-        reason = `Inactive for ${daysSinceLast} days`
-        break
-
-      case 'INACTIVE_90':
-        matches = daysSinceLast !== null && daysSinceLast >= 90
-        reason = `Inactive for ${daysSinceLast} days`
-        break
-
-      case 'NOT_REBOOKED':
-        // Has completed appointments but no pending/confirmed future ones
-        matches = completedAppts.length > 0 && !appts.some(a =>
-          ['PENDING', 'CONFIRMED'].includes(a.status) && new Date(a.startTime) > now
-        )
-        reason = 'Has not rebooked after last visit'
-        break
-
-      case 'CANCELLED':
-        matches = appts.some(a => a.status === 'CANCELLED')
-        reason = 'Has cancelled an appointment'
-        break
-
-      case 'NO_SHOWED':
-        matches = appts.some(a => a.status === 'NO_SHOW')
-        reason = 'Has no-showed an appointment'
-        break
-
-      case 'BIRTHDAY_MONTH':
-        // Would need birthday field on customer — check if we have it
-        // For now, skip if no birthday field exists
-        matches = false
-        reason = 'Birthday this month'
-        break
-
-      case 'NOT_VISITED_BARBER': {
-        const barberId = audienceConfig?.barberId
-        if (barberId) {
-          matches = completedAppts.length > 0 && !completedAppts.some(a => a.barber?.id === barberId)
-          const barber = await prisma.barber.findUnique({ where: { id: barberId }, select: { name: true } })
-          reason = `Hasn't visited ${barber?.name || 'this barber'}`
-        }
-        break
-      }
-
-      case 'USED_SERVICE': {
-        const serviceId = audienceConfig?.serviceId
-        if (serviceId) {
-          matches = completedAppts.some(a => a.service?.id === serviceId)
-          const service = await prisma.service.findUnique({ where: { id: serviceId }, select: { name: true } })
-          reason = `Has used ${service?.name || 'this service'}`
-        }
-        break
-      }
-
-      case 'ALL_CUSTOMERS':
-        matches = true
-        reason = 'All customers'
-        break
-    }
-
+    const { matches, reason } = matchAudienceCustomer(
+      customer as unknown as AudienceCustomer,
+      audience,
+      now,
+      { ...audienceConfig, barberName, serviceName }
+    )
     if (matches) {
       targets.push({
         customerId: customer.id,
@@ -146,6 +99,95 @@ export async function resolveCampaignAudience(
   }
 
   return targets
+}
+
+/**
+ * Pure audience-matching predicate for one customer.
+ *
+ * Exported for testing — no database access. The caller pre-resolves
+ * barber/service display names (once per campaign, not per customer) so
+ * this stays synchronous.
+ */
+export function matchAudienceCustomer(
+  customer: AudienceCustomer,
+  audience: string,
+  now: Date,
+  audienceConfig?: {
+    barberId?: string
+    serviceId?: string
+    barberName?: string
+    serviceName?: string
+  }
+): { matches: boolean; reason: string } {
+  const appts = customer.appointments ?? []
+  const completedAppts = appts.filter(a => a.status === 'COMPLETED')
+  const lastAppt = completedAppts[0]
+  const lastApptDate = lastAppt ? new Date(lastAppt.startTime) : null
+  const daysSinceLast = lastApptDate
+    ? Math.floor((now.getTime() - lastApptDate.getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
+  switch (audience) {
+    case 'INACTIVE_30':
+    case 'INACTIVE_45':
+    case 'INACTIVE_60':
+    case 'INACTIVE_90': {
+      const threshold = Number(audience.slice('INACTIVE_'.length))
+      const matches = daysSinceLast !== null && daysSinceLast >= threshold
+      return { matches, reason: matches ? `Inactive for ${daysSinceLast} days` : '' }
+    }
+
+    case 'NOT_REBOOKED': {
+      // Has completed appointments but no pending/confirmed future ones
+      const matches =
+        completedAppts.length > 0 &&
+        !appts.some(
+          a => ['PENDING', 'CONFIRMED'].includes(a.status) && new Date(a.startTime) > now
+        )
+      return { matches, reason: matches ? 'Has not rebooked after last visit' : '' }
+    }
+
+    case 'CANCELLED': {
+      const matches = appts.some(a => a.status === 'CANCELLED')
+      return { matches, reason: matches ? 'Has cancelled an appointment' : '' }
+    }
+
+    case 'NO_SHOWED': {
+      const matches = appts.some(a => a.status === 'NO_SHOW')
+      return { matches, reason: matches ? 'Has no-showed an appointment' : '' }
+    }
+
+    case 'BIRTHDAY_MONTH':
+      // Would need a birthday field on Customer — not currently in the schema.
+      return { matches: false, reason: '' }
+
+    case 'NOT_VISITED_BARBER': {
+      const barberId = audienceConfig?.barberId
+      if (!barberId) return { matches: false, reason: '' }
+      const matches =
+        completedAppts.length > 0 && !completedAppts.some(a => a.barber?.id === barberId)
+      return {
+        matches,
+        reason: matches ? `Hasn't visited ${audienceConfig?.barberName || 'this barber'}` : '',
+      }
+    }
+
+    case 'USED_SERVICE': {
+      const serviceId = audienceConfig?.serviceId
+      if (!serviceId) return { matches: false, reason: '' }
+      const matches = completedAppts.some(a => a.service?.id === serviceId)
+      return {
+        matches,
+        reason: matches ? `Has used ${audienceConfig?.serviceName || 'this service'}` : '',
+      }
+    }
+
+    case 'ALL_CUSTOMERS':
+      return { matches: true, reason: 'All customers' }
+
+    default:
+      return { matches: false, reason: '' }
+  }
 }
 
 /**
