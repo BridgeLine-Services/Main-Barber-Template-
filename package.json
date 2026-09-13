@@ -31,7 +31,8 @@
     "test:customer-history": "npx tsx tests/customer-history.test.ts",
     "test:daily-operations": "npx tsx tests/daily-operations.test.ts",
     "test:marketing": "npx tsx tests/marketing.test.ts",
-    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue"
+    "test:calendar-export": "npx tsx tests/calendar-export.test.ts",
+    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:calendar-export && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",

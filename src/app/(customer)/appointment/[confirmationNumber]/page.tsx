@@ -246,16 +246,7 @@ export default async function ConfirmationPage({
         {!isCancelled && (
           <div className="mb-6">
             <p className="text-center text-sm text-muted-foreground mb-3">Add to your calendar:</p>
-            <AddToCalendar
-              serviceName={appointment.service.name}
-              barberName={appointment.barber.name}
-              startTime={appointment.startTime.toISOString()}
-              endTime={appointment.endTime.toISOString()}
-              businessName={appointment.business?.name}
-              businessAddress={appointment.business?.address || undefined}
-              businessPhone={appointment.business?.phone || undefined}
-              businessTimezone={appointment.business?.timezone || 'UTC'}
-            />
+            <AddToCalendar token={searchParams.token!} />
           </div>
         )}
 
