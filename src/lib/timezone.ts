@@ -13,6 +13,26 @@
 import { DateTime } from 'luxon'
 
 /**
+ * Fallback IANA timezone used when no Business record is resolvable (e.g.
+ * database not yet onboarded). Mirrors the Prisma `Business.timezone`
+ * schema default so the schema remains the single source of truth; each
+ * deployment overrides it through onboarding/admin configuration. This is
+ * a generic application default (Constitution §6), never client
+ * configuration — no route may hard-code its own timezone fallback.
+ */
+export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
+
+/**
+ * Resolve a business's IANA timezone with the schema-aligned application
+ * default. Every consumer must use this instead of a local literal.
+ */
+export function resolveBusinessTimezone(
+  business?: { timezone?: string | null } | null
+): string {
+  return business?.timezone || DEFAULT_BUSINESS_TIMEZONE
+}
+
+/**
  * Convert a UTC Date to a local DateTime in the business timezone
  */
 export function toLocalDate(utcDate: Date | string, timezone: string): DateTime {

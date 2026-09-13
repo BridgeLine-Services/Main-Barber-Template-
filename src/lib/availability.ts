@@ -8,6 +8,7 @@ import {
   formatInTimezone,
   dateOnlyUTCFromYMD,
   toLocalDate,
+  resolveBusinessTimezone,
 } from '@/lib/timezone'
 
 // ============================================================================
@@ -31,7 +32,7 @@ export async function getBusinessTimezone(businessId: string): Promise<string> {
     where: { id: businessId },
     select: { timezone: true },
   })
-  const tz = business?.timezone || 'America/New_York'
+  const tz = resolveBusinessTimezone(business)
   tzCache.set(businessId, tz)
   return tz
 }

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveBusinessId } from '@/lib/tenant'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { prisma } from '@/lib/prisma'
-import { dayBoundsFromYMD, dayOfWeekFromYMD } from '@/lib/timezone'
+import { dayBoundsFromYMD, dayOfWeekFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 
 /**
  * GET /api/availability/check?serviceId=X&barberId=Y&month=YYYY-MM
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       where: { id: businessId },
       select: { timezone: true },
     })
-    const timezone = business?.timezone || 'America/New_York'
+    const timezone = resolveBusinessTimezone(business)
 
     // Get all barbers to check (or specific barber)
     let barberIds: string[] = []

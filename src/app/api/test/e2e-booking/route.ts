@@ -19,7 +19,7 @@ import { authOptions } from '@/lib/auth'
 import { getCurrentBusinessId } from '@/lib/business'
 import { createAppointmentSafely, getAvailableSlots } from '@/lib/availability'
 import { format } from 'date-fns'
-import { localTimeToUTCFromYMD } from '@/lib/timezone'
+import { localTimeToUTCFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 
 // Parse a time string (AM/PM or 24h) into 24h HH:mm
 function parseTimeTo24h(timeStr: string): string {
@@ -39,7 +39,7 @@ async function buildStartTime(dateStr: string, timeStr: string, businessId: stri
   const [yr, mo, dy] = dateStr.split('-').map(Number)
   const time24h = parseTimeTo24h(timeStr)
   const business = await prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } })
-  const tz = business?.timezone || 'America/New_York'
+  const tz = resolveBusinessTimezone(business)
   return localTimeToUTCFromYMD(time24h, yr, mo, dy, tz)
 }
 

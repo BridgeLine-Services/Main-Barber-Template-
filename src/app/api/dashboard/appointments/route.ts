@@ -7,7 +7,7 @@ import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { createAppointmentSafely } from '@/lib/availability'
 import { createManualAppointmentSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { localTimeToUTCFromYMD } from '@/lib/timezone'
+import { localTimeToUTCFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 
 export async function GET(req: NextRequest) {
   // Require authentication
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     // Interpret the entered date/time in the business timezone before storing UTC.
     const [year, month, day] = date.split('-').map(Number)
     const timezoneBusiness = await prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } })
-    const timezone = timezoneBusiness?.timezone || 'America/New_York'
+    const timezone = resolveBusinessTimezone(timezoneBusiness)
     const startTime = localTimeToUTCFromYMD(time, year, month, day, timezone)
 
     if (isNaN(startTime.getTime())) {

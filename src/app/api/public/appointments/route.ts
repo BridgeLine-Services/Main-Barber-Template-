@@ -7,7 +7,7 @@ import { createAppointmentSafely, getAvailableSlots } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { createBookingSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { localTimeToUTCFromYMD, dayOfWeekFromYMD } from '@/lib/timezone'
+import { localTimeToUTCFromYMD, dayOfWeekFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 
 // Cache business timezone lookups within a request
 async function getBusinessTimezone(businessId: string): Promise<string> {
@@ -15,7 +15,7 @@ async function getBusinessTimezone(businessId: string): Promise<string> {
     where: { id: businessId },
     select: { timezone: true },
   })
-  return business?.timezone || 'America/New_York'
+  return resolveBusinessTimezone(business)
 }
 
 /**

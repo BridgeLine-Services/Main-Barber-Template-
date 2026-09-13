@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentBusinessId } from '@/lib/business'
-import { startOfDayUTC } from '@/lib/timezone'
+import { startOfDayUTC, resolveBusinessTimezone } from '@/lib/timezone'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       where: { id: businessId },
       select: { timezone: true },
     })
-    const todayStart = startOfDayUTC(business?.timezone || 'America/Los_Angeles')
+    const todayStart = startOfDayUTC(resolveBusinessTimezone(business))
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
     const { searchParams } = req.nextUrl
     const status = searchParams.get('status')

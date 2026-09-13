@@ -15,6 +15,7 @@ import {
   Search, FileText, Image as ImageIcon, Check, HelpCircle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
+import { resolveBusinessTimezone } from '@/lib/timezone'
 
 const TIMEZONES = [
   'America/Los_Angeles',
@@ -226,7 +227,7 @@ export default function SettingsPage() {
                 <div>
                   <Label className="text-zinc-400">Timezone</Label>
                   <select
-                    value={business.timezone || 'America/Los_Angeles'}
+                    value={resolveBusinessTimezone(business)}
                     onChange={e => setBusiness({ ...business, timezone: e.target.value })}
                     className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white text-sm"
                   >
