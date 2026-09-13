@@ -21,6 +21,12 @@ interface MediaAsset {
   sortOrder: number
   isPublished: boolean
   barberId?: string | null
+  serviceId?: string | null
+}
+
+interface ServiceOption {
+  id: string
+  name: string
 }
 
 const MEDIA_TYPES = [
@@ -38,6 +44,7 @@ const MEDIA_TYPES = [
 export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gallery', description = 'Upload and manage images for your shop.' }: { initialType?: string; title?: string; description?: string }) {
   const { toast } = useToast()
   const [media, setMedia] = useState<MediaAsset[]>([])
+  const [services, setServices] = useState<ServiceOption[]>([])
   const [loading, setLoading] = useState(true)
   const [activeType, setActiveType] = useState(initialType)
   const [uploading, setUploading] = useState(false)
@@ -50,6 +57,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       const res = await fetch(`/api/dashboard/media?type=${type}`)
       const data = await res.json()
       setMedia(data.media || [])
+      setServices(data.services || [])
     } catch {
       toast({ title: 'Failed to load media', variant: 'destructive' })
     } finally {
@@ -94,6 +102,11 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
         if (createData.media) {
           setMedia([...media, createData.media])
           toast({ title: 'Image uploaded successfully' })
+          // Portfolio work benefits from immediate service linking —
+          // open the editor so the owner/barber can associate a service.
+          if (activeType === 'BARBER_PORTFOLIO' || activeType === 'SERVICE_PHOTO') {
+            setEditing(createData.media)
+          }
         }
       } else {
         toast({ title: 'Upload failed', description: data.error, variant: 'destructive' })
@@ -132,6 +145,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
           caption: asset.caption,
           sortOrder: asset.sortOrder,
           isPublished: asset.isPublished,
+          serviceId: asset.serviceId || null,
         }),
       })
       const data = await res.json()
@@ -252,8 +266,13 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                   </span>
                 )}
               </div>
-              <div className="p-3">
+              <div className="p-3 space-y-1">
                 <p className="text-xs text-zinc-400 truncate">{asset.altText || 'No description'}</p>
+                {asset.serviceId && services.some(svc => svc.id === asset.serviceId) && (
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90 truncate">
+                    {services.find(svc => svc.id === asset.serviceId)?.name}
+                  </p>
+                )}
               </div>
             </Card>
           ))}
@@ -293,6 +312,25 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                   placeholder="Optional caption"
                 />
               </div>
+              {(editing.type === 'BARBER_PORTFOLIO' || editing.type === 'SERVICE_PHOTO') && (
+                <div>
+                  <Label className="text-zinc-400">Linked Service (optional)</Label>
+                  <select
+                    value={editing.serviceId || ''}
+                    onChange={e => setEditing({ ...editing, serviceId: e.target.value || null })}
+                    className="w-full mt-1 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200"
+                    aria-label="Linked service"
+                  >
+                    <option value="">Not linked to a service</option>
+                    {services.map(svc => (
+                      <option key={svc.id} value={svc.id}>{svc.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Links this work to a service — customers can filter portfolio by service.
+                  </p>
+                </div>
+              )}
               <div>
                 <Label className="text-zinc-400">Sort Order</Label>
                 <Input

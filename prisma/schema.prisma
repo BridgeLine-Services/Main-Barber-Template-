@@ -16,15 +16,15 @@ datasource db {
 // ─── Business (Tenant) ──────────────────────────────────────────────────────
 
 model Business {
-  id                     String   @id @default(cuid())
+  id                     String  @id @default(cuid())
   name                   String
-  slug                   String   @unique // URL slug for the shop
+  slug                   String  @unique // URL slug for the shop
   logo                   String?
-  primaryColor           String   @default("#1a1a1a") // dark / black theme default
-  accentColor            String   @default("#d4af37") // gold accent default
-  secondaryColor         String?  @default("#2a2a2a") // secondary surface color
+  primaryColor           String  @default("#1a1a1a") // dark / black theme default
+  accentColor            String  @default("#d4af37") // gold accent default
+  secondaryColor         String? @default("#2a2a2a") // secondary surface color
   fontFamily             String? // "poppins", "inter", "montserrat", etc.
-  themeMode              String   @default("dark") // "dark" or "light"
+  themeMode              String  @default("dark") // "dark" or "light"
   phone                  String?
   email                  String?
   address                String?
@@ -33,7 +33,7 @@ model Business {
   zipCode                String?
   latitude               Float?
   longitude              Float?
-  timezone               String   @default("America/Los_Angeles") // IANA timezone
+  timezone               String  @default("America/Los_Angeles") // IANA timezone
   instagram              String?
   facebook               String?
   tiktok                 String?
@@ -41,53 +41,53 @@ model Business {
   xTwitter               String?
   googleBusinessProfile  String?
   hours                  Json? // { monday: { open: "09:00", close: "18:00", isOff: false }, ... }
-  aboutText              String?  @db.Text
+  aboutText              String? @db.Text
   teamSectionLabel       String? // e.g. 'Our Team', 'The Artists' — badge above heading on /barbers
-  teamSectionTitle       String?  @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
-  teamSectionDescription String?  @db.Text // paragraph below heading on /barbers page
-  bookingPolicy          String?  @db.Text
-  cancellationPolicy     String?  @db.Text
-  latePolicy             String?  @db.Text
-  noShowPolicyText       String?  @db.Text
-  paymentPolicy          String?  @db.Text
-  privacyPolicy          String?  @db.Text
-  termsPolicy            String?  @db.Text
+  teamSectionTitle       String? @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
+  teamSectionDescription String? @db.Text // paragraph below heading on /barbers page
+  bookingPolicy          String? @db.Text
+  cancellationPolicy     String? @db.Text
+  latePolicy             String? @db.Text
+  noShowPolicyText       String? @db.Text
+  paymentPolicy          String? @db.Text
+  privacyPolicy          String? @db.Text
+  termsPolicy            String? @db.Text
 
   // ─── Onboarding (persistent white-label setup status) ────────────────────
-  onboardingCompleted    Boolean   @default(false)
-  onboardingStep         String    @default("business") // current/last wizard step: business | branding | services | schedule | done
-  onboardingCompletedAt  DateTime?
+  onboardingCompleted   Boolean   @default(false)
+  onboardingStep        String    @default("business") // current/last wizard step: business | branding | services | schedule | done
+  onboardingCompletedAt DateTime?
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  users                 User[]
-  barbers               Barber[]
-  services              Service[]
-  customers             Customer[]
-  appointments          Appointment[]
-  blockedTimes          BlockedTime[]
-  reviews               Review[]
-  auditLogs             AuditLog[]
-  notificationLogs      NotificationLog[]
-  waitlistEntries       WaitlistEntry[]
-  closures              BusinessClosure[]
-  rewardPrograms        BusinessRewardProgram[]
-  customerTags          CustomerTagAssignment[]
-  cancellationRecords   CancellationRecord[]
-  noShowPolicies        NoShowPolicy[]
-  retentionSettings     RetentionSettings?
-  inventoryItems        InventoryItem[]
-  marketingCampaigns    MarketingCampaign[]
-  mediaAssets           MediaAsset[]
-  seo                   BusinessSEO?
-  availabilityOverrides AvailabilityOverride[]
-  faqs                  Faq[]
-  websiteContent        WebsiteContent?
-  bookingQuestions      BookingQuestion[]
-  rescheduleHistory     RescheduleHistory[]
+  users                        User[]
+  barbers                      Barber[]
+  services                     Service[]
+  customers                    Customer[]
+  appointments                 Appointment[]
+  blockedTimes                 BlockedTime[]
+  reviews                      Review[]
+  auditLogs                    AuditLog[]
+  notificationLogs             NotificationLog[]
+  waitlistEntries              WaitlistEntry[]
+  closures                     BusinessClosure[]
+  rewardPrograms               BusinessRewardProgram[]
+  customerTags                 CustomerTagAssignment[]
+  cancellationRecords          CancellationRecord[]
+  noShowPolicies               NoShowPolicy[]
+  retentionSettings            RetentionSettings?
+  inventoryItems               InventoryItem[]
+  marketingCampaigns           MarketingCampaign[]
+  mediaAssets                  MediaAsset[]
+  seo                          BusinessSEO?
+  availabilityOverrides        AvailabilityOverride[]
+  faqs                         Faq[]
+  websiteContent               WebsiteContent?
+  bookingQuestions             BookingQuestion[]
+  rescheduleHistory            RescheduleHistory[]
   portalVerificationChallenges PortalVerificationChallenge[]
-  portalSessions         PortalSession[]
+  portalSessions               PortalSession[]
 
   walkInsWelcome                   Boolean @default(true)
   firstAvailableBookingEnabled     Boolean @default(true) // allow "First available" option in the booking flow
@@ -112,21 +112,21 @@ model User {
   email        String    @unique
   passwordHash String
   name         String
-  role         UserRole @default(BARBER)
+  role         UserRole  @default(BARBER)
   businessId   String?
   business     Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   barberId     String? // links to Barber profile when role = BARBER
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  auditLogs            AuditLog[]
-  passwordResetToken   String?
-  passwordResetExpires DateTime?
+  auditLogs                  AuditLog[]
+  passwordResetToken         String?
+  passwordResetExpires       DateTime?
   // Forces a password change on next login (set by the seed script for
   // generated/demo credentials; cleared by /change-password)
-  mustChangePassword   Boolean   @default(false)
+  mustChangePassword         Boolean    @default(false)
   // Last time the password was set/changed (set on register/reset/change)
-  passwordChangedAt    DateTime?
+  passwordChangedAt          DateTime?
   // Expiry for seed/admin-assigned temporary passwords (cleared on change)
   temporaryPasswordExpiresAt DateTime?
 
@@ -232,6 +232,7 @@ model Service {
   barbers         BarberService[]
   appointments    Appointment[]
   waitlistEntries WaitlistEntry[]
+  mediaAssets     MediaAsset[] // portfolio / example work linked to this service
 
   @@index([businessId])
 }
@@ -279,6 +280,8 @@ model MediaAsset {
   business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   barberId    String? // null = shop asset, set for barber-specific assets
   barber      Barber?   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  serviceId   String? // null = not service-specific; set for service-linked portfolio work
+  service     Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   type        MediaType
   url         String // CDN / storage URL
   storageKey  String? // provider-specific key for deletion/management
@@ -291,6 +294,7 @@ model MediaAsset {
 
   @@index([businessId, type])
   @@index([barberId, type])
+  @@index([serviceId])
 }
 
 // ─── Business SEO (owner-editable SEO settings) ───────────────────────────
@@ -362,7 +366,7 @@ model Customer {
   tagAssignments      CustomerTagAssignment[]
   cancellationRecords CancellationRecord[]
   notificationHistory NotificationLog[]       @relation("CustomerNotificationLogs")
-  portalSessions     PortalSession[]
+  portalSessions      PortalSession[]
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -924,30 +928,30 @@ model RescheduleHistory {
 }
 
 model PortalVerificationChallenge {
-  id           String   @id @default(cuid())
-  businessId   String
-  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  contactHash  String
-  channel      String
-  codeHash     String
-  expiresAt    DateTime
-  attempts     Int      @default(0)
-  consumedAt   DateTime?
-  createdAt    DateTime @default(now())
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contactHash String
+  channel     String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([businessId, contactHash, createdAt])
 }
 
 model PortalSession {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tokenHash  String   @unique
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
   expiresAt  DateTime
   revokedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([businessId, customerId, expiresAt])
 }

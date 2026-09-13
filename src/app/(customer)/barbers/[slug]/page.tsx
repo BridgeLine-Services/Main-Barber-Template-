@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
+import PortfolioGallery from '@/components/customer/PortfolioGallery'
 
 interface PageProps {
   params: { slug: string }
@@ -60,6 +61,7 @@ export default async function BarberProfilePage({ params }: PageProps) {
       mediaAssets: {
         where: { type: 'BARBER_PORTFOLIO', isPublished: true },
         orderBy: { sortOrder: 'asc' },
+        include: { service: { select: { id: true, name: true, isActive: true } } },
       },
     },
   })
@@ -192,19 +194,25 @@ export default async function BarberProfilePage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Portfolio photos */}
-      {barber.mediaAssets.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Portfolio</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {barber.mediaAssets.map((asset: any) => (
-              <div key={asset.id} className="aspect-square rounded-lg overflow-hidden border">
-                <img src={asset.url} alt={asset.altText || barber.name} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Portfolio — service-linked work with optional category filter.
+          Assets tied to a deactivated service are hidden server-side. */}
+      {(() => {
+        const portfolioAssets = barber.mediaAssets
+          .filter((a: any) => !a.service || a.service.isActive)
+          .map((a: any) => ({
+            id: a.id,
+            url: a.url,
+            altText: a.altText,
+            caption: a.caption,
+            service: a.service ? { id: a.service.id, name: a.service.name } : null,
+          }))
+        return portfolioAssets.length > 0 ? (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">View Work</h2>
+            <PortfolioGallery assets={portfolioAssets} altFallback={barber.name} />
+          </section>
+        ) : null
+      })()}
 
       {/* Recent Reviews */}
       {barber.reviews.length > 0 && (

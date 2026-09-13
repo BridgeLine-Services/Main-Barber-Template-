@@ -10,7 +10,7 @@ import { resolveBusiness } from '@/lib/tenant'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Clock, CreditCard, Scissors } from 'lucide-react'
+import { Clock, CreditCard, Images, Scissors } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata({
@@ -40,6 +40,27 @@ export default async function ServicesPage() {
     where: { businessId: business.id, isActive: true },
     orderBy: { order: 'asc' },
   })
+
+  // Service-linked portfolio work (barber portfolio + service photos that
+  // the business has published and linked to a service) — used for the
+  // "See examples of this service" connection.
+  const portfolioCounts = await prisma.mediaAsset.groupBy({
+    by: ['serviceId'],
+    where: {
+      businessId: business.id,
+      isPublished: true,
+      serviceId: { not: null },
+      type: { in: ['BARBER_PORTFOLIO', 'SERVICE_PHOTO'] },
+      // only count work by active barbers for honest examples
+      OR: [{ barberId: null }, { barber: { isActive: true } }],
+    },
+    _count: { id: true },
+  }).catch(() => [])
+  const examplesByService = new Map(
+    portfolioCounts
+      .filter((row) => row.serviceId)
+      .map((row) => [row.serviceId as string, row._count.id])
+  )
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
@@ -86,13 +107,25 @@ export default async function ServicesPage() {
               {service.description || 'Professional barbering service tailored to your style preferences.'}
             </CardContent>
 
-            <CardFooter className="pt-4 border-t border-border/60">
+            <CardFooter className="pt-4 border-t border-border/60 flex flex-col gap-2">
               <Button
                 asChild
                 className="w-full bg-accent hover:brightness-110 text-accent-foreground font-bold transition shadow-sm"
               >
                 <Link href={`/book?serviceId=${service.id}`}>Book This Service</Link>
               </Button>
+              {(examplesByService.get(service.id) ?? 0) > 0 && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full border-accent/40 text-accent hover:bg-accent/10 hover:text-accent transition"
+                >
+                  <Link href={`/gallery?service=${service.id}`} aria-label={`See examples of ${service.name}`}>
+                    <Images className="h-4 w-4" aria-hidden="true" />
+                    See examples of this service
+                  </Link>
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}

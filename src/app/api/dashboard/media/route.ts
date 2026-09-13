@@ -13,6 +13,7 @@ const createMediaSchema = z.object({
   url: z.string().url(),
   type: z.nativeEnum(MediaType),
   barberId: z.string().optional().nullable(),
+  serviceId: z.string().optional().nullable(),
   altText: z.string().max(300).optional().nullable(),
   caption: z.string().max(500).optional().nullable(),
   sortOrder: z.number().int().default(0),
@@ -21,6 +22,7 @@ const createMediaSchema = z.object({
 
 const updateMediaSchema = z.object({
   id: z.string().min(1),
+  serviceId: z.string().optional().nullable(),
   altText: z.string().max(300).optional().nullable(),
   caption: z.string().max(500).optional().nullable(),
   sortOrder: z.number().int().optional(),
@@ -42,9 +44,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const type = searchParams.get('type') as MediaType | null
   const urlBarberId = searchParams.get('barberId')
+  const serviceId = searchParams.get('serviceId')
 
   const where: any = { businessId }
   if (type) where.type = type
+  if (serviceId) where.serviceId = serviceId
   if (role === 'BARBER') {
     where.barberId = sessionBarberId
   } else if (urlBarberId) {
@@ -56,7 +60,54 @@ export async function GET(req: NextRequest) {
     orderBy: { sortOrder: 'asc' },
   })
 
-  return NextResponse.json({ media })
+  // Service options for linking portfolio work:
+  // OWNER — all active business services; BARBER — only services they offer.
+  const services =
+    role === 'BARBER' && sessionBarberId
+      ? (
+          await prisma.barberService.findMany({
+            where: { barberId: sessionBarberId, isActive: true, service: { isActive: true } },
+            select: { service: { select: { id: true, name: true } } },
+            orderBy: { sortOrder: 'asc' },
+          })
+        ).map((bs) => bs.service)
+      : await prisma.service.findMany({
+          where: { businessId, isActive: true },
+          select: { id: true, name: true },
+          orderBy: { order: 'asc' },
+        })
+
+  return NextResponse.json({ media, services })
+}
+
+/**
+ * Validate that serviceId belongs to this business (and, for BARBER role,
+ * that the barber offers the service). Returns an error string or null.
+ * Smallest possible schema change for service-linked portfolio work:
+ * MediaAsset.serviceId is optional and validated against the tenant.
+ */
+async function validateServiceLink(
+  serviceId: string | null | undefined,
+  businessId: string,
+  role: string,
+  barberId: string | null | undefined
+): Promise<string | null> {
+  if (!serviceId) return null
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, businessId },
+    select: { id: true, isActive: true },
+  })
+  if (!service) return 'Service not found'
+  if (role === 'BARBER') {
+    const link = barberId
+      ? await prisma.barberService.findFirst({
+          where: { serviceId, barberId, isActive: true },
+          select: { barberId: true },
+        })
+      : null
+    if (!link) return 'You can only link services you offer'
+  }
+  return null
 }
 
 /**
@@ -103,6 +154,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Service-linked portfolio: validate tenant + (barber) own-service rule
+  const serviceError = await validateServiceLink(data.serviceId, businessId, role, role === 'BARBER' ? sessionBarberId : data.barberId)
+  if (serviceError) {
+    return NextResponse.json({ error: serviceError }, { status: 403 })
+  }
+
   // If type is LOGO or HERO, unpublish previous assets of that type (only one active)
   if (data.type === MediaType.LOGO || data.type === MediaType.HERO || data.type === MediaType.FAVICON || data.type === MediaType.OG_IMAGE) {
     await prisma.mediaAsset.updateMany({
@@ -115,6 +172,7 @@ export async function POST(req: NextRequest) {
     data: {
       businessId,
       barberId: data.barberId || null,
+      serviceId: data.serviceId || null,
       type: data.type,
       url: data.url,
       altText: data.altText || null,
@@ -167,6 +225,19 @@ export async function PATCH(req: NextRequest) {
   if (!media) return NextResponse.json({ error: 'Media not found' }, { status: 404 })
   if (media.businessId !== businessId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Service-linked portfolio: validate tenant + (barber) own-service rule
+  if (updateData.serviceId !== undefined) {
+    const serviceError = await validateServiceLink(
+      updateData.serviceId,
+      businessId,
+      role,
+      role === 'BARBER' ? sessionBarberId : media.barberId
+    )
+    if (serviceError) {
+      return NextResponse.json({ error: serviceError }, { status: 403 })
+    }
   }
 
   // BARBER can only manage their own portfolio assets. Profile photos are
