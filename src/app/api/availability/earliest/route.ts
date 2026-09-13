@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveBusinessId } from '@/lib/tenant'
+import { prisma } from '@/lib/prisma'
 import { getEarliestAvailableSlot } from '@/lib/availability'
 import { format } from 'date-fns'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
@@ -37,6 +38,17 @@ export async function GET(req: NextRequest) {
     }
 
     const businessId = await resolveBusinessId()
+
+    // Owner toggle: when "First available" is disabled for this business,
+    // fail closed — never return earliest-slot suggestions, even if called
+    // directly (the customer UI also hides the option).
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { firstAvailableBookingEnabled: true },
+    })
+    if (business && business.firstAvailableBookingEnabled === false) {
+      return NextResponse.json({ earliest: null })
+    }
 
     // Search the next 30 days starting from today
     const today = new Date()

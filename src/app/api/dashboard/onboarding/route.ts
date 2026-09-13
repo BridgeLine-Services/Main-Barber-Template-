@@ -108,6 +108,7 @@ const businessSubset = {
   onboardingCompletedAt: true,
   // Booking Settings step (all stored on the Business record)
   walkInsWelcome: true,
+  firstAvailableBookingEnabled: true,
   paymentInPerson: true,
   customerRescheduleEnabled: true,
   customerRescheduleMinNoticeHours: true,
@@ -358,6 +359,7 @@ export async function PATCH(req: NextRequest) {
       where: { id: dbUser.businessId },
       data: {
         ...(d.walkInsWelcome !== undefined && { walkInsWelcome: d.walkInsWelcome }),
+        ...(d.firstAvailableBookingEnabled !== undefined && { firstAvailableBookingEnabled: d.firstAvailableBookingEnabled }),
         ...(d.customerRescheduleEnabled !== undefined && { customerRescheduleEnabled: d.customerRescheduleEnabled }),
         ...(d.customerRescheduleMinNoticeHours !== undefined && { customerRescheduleMinNoticeHours: d.customerRescheduleMinNoticeHours }),
         ...(d.customerRescheduleWindowDays !== undefined && { customerRescheduleWindowDays: d.customerRescheduleWindowDays }),

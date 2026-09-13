@@ -90,6 +90,7 @@ model Business {
   portalSessions         PortalSession[]
 
   walkInsWelcome                   Boolean @default(true)
+  firstAvailableBookingEnabled     Boolean @default(true) // allow "First available" option in the booking flow
   parkingAvailable                 Boolean @default(false)
   paymentInPerson                  Boolean @default(true)
   customerRescheduleEnabled        Boolean @default(true)

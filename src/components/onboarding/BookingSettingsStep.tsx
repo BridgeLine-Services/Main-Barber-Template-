@@ -17,6 +17,7 @@ import { ArrowLeft, Banknote, Check, Loader2, Lock } from 'lucide-react'
 
 export interface BookingSettingsForm {
   walkInsWelcome: boolean
+  firstAvailableBookingEnabled: boolean
   customerRescheduleEnabled: boolean
   customerRescheduleMinNoticeHours: string
   customerRescheduleWindowDays: string // '' = no limit
@@ -119,6 +120,21 @@ export function BookingSettingsStep({
                 type="checkbox"
                 checked={form.walkInsWelcome}
                 onChange={(e) => setForm({ ...form, walkInsWelcome: e.target.checked })}
+                className="h-5 w-5 rounded border-zinc-700"
+              />
+            </label>
+
+            <label className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/40 px-4 py-3">
+              <span>
+                <span className="block text-sm font-medium text-zinc-200">&ldquo;First available&rdquo; booking</span>
+                <span className="mt-0.5 block text-xs text-zinc-500">
+                  Let customers book the earliest open slot with any eligible barber, or keep barber-first booking only
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={form.firstAvailableBookingEnabled}
+                onChange={(e) => setForm({ ...form, firstAvailableBookingEnabled: e.target.checked })}
                 className="h-5 w-5 rounded border-zinc-700"
               />
             </label>

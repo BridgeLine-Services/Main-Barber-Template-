@@ -51,6 +51,7 @@ interface OnboardingBusiness {
   onboardingStep: string
   // Booking Settings step (persisted on the Business record)
   walkInsWelcome: boolean
+  firstAvailableBookingEnabled: boolean
   paymentInPerson: boolean
   customerRescheduleEnabled: boolean
   customerRescheduleMinNoticeHours: number
@@ -96,6 +97,7 @@ function basicsFromBusiness(b: OnboardingBusiness): BasicsForm {
 function bookingSettingsFromBusiness(b: OnboardingBusiness): BookingSettingsForm {
   return {
     walkInsWelcome: b.walkInsWelcome ?? true,
+    firstAvailableBookingEnabled: b.firstAvailableBookingEnabled ?? true,
     customerRescheduleEnabled: b.customerRescheduleEnabled ?? true,
     customerRescheduleMinNoticeHours: String(b.customerRescheduleMinNoticeHours ?? 24),
     customerRescheduleWindowDays:
@@ -341,6 +343,7 @@ export function OnboardingWizard() {
     try {
       const body: Record<string, unknown> = {
         walkInsWelcome: settings.walkInsWelcome,
+        firstAvailableBookingEnabled: settings.firstAvailableBookingEnabled,
         customerRescheduleEnabled: settings.customerRescheduleEnabled,
         customerRescheduleMinNoticeHours: Number(settings.customerRescheduleMinNoticeHours),
         customerRescheduleWindowDays:
@@ -525,7 +528,7 @@ export function OnboardingWizard() {
         {step === 'booking' && business && (
           <>
             <BookingSettingsStep
-              key={business.id + String(business.walkInsWelcome) + String(business.customerRescheduleEnabled)}
+              key={business.id + String(business.walkInsWelcome) + String(business.firstAvailableBookingEnabled) + String(business.customerRescheduleEnabled)}
               initial={bookingSettingsFromBusiness(business)}
               businessName={business.name}
               submitting={submitting}

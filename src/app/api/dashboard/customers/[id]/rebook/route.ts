@@ -149,22 +149,60 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
 
+  // Optional query overrides (?barberId=&serviceId=&date=YYYY-MM-DD) let the
+  // caller scope the preview to a specific barber/service/date — e.g. a
+  // barber offering to rebook a customer into their own chair. The overrides
+  // only change which slots are previewed; creation still goes through the
+  // canonical booking engine.
+  const url = new URL(req.url)
+  const barberOverride = url.searchParams.get('barberId')
+  const serviceOverride = url.searchParams.get('serviceId')
+  const dateOverride = url.searchParams.get('date') // "YYYY-MM-DD"
+
+  // Validate overrides belong to this business (tenant isolation)
+  let overrideBarber: { id: string; name: string } | null = null
+  let overrideService: { id: string; name: string; duration: number; price: number } | null = null
+  if (barberOverride) {
+    overrideBarber = await prisma.barber.findFirst({
+      where: { id: barberOverride, businessId, isActive: true },
+      select: { id: true, name: true },
+    })
+    if (!overrideBarber) return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
+  }
+  if (serviceOverride) {
+    overrideService = await prisma.service.findFirst({
+      where: { id: serviceOverride, businessId, isActive: true },
+      select: { id: true, name: true, duration: true, price: true },
+    })
+    if (!overrideService) return NextResponse.json({ error: 'Service not found' }, { status: 404 })
+  }
+
   const suggestion = await getRebookingSuggestion(params.id, businessId)
 
-  // Also fetch available slots for the suggested date
+  const previewBarber = overrideBarber ?? suggestion.barber
+  const previewService = overrideService ?? suggestion.service
+  let previewDate: Date | null = suggestion.suggestedDate
+  if (dateOverride && /^\d{4}-\d{2}-\d{2}$/.test(dateOverride)) {
+    previewDate = new Date(`${dateOverride}T12:00:00.000Z`)
+  }
+
+  // Also fetch available slots for the preview barber/service/date
   let availableSlots: { time: string; available: boolean }[] = []
-  if (suggestion.barber && suggestion.service && suggestion.suggestedDate) {
+  if (previewBarber && previewService && previewDate) {
     const { getAvailableSlots } = await import('@/lib/availability')
     availableSlots = await getAvailableSlots({
       businessId,
-      barberId: suggestion.barber.id,
-      serviceId: suggestion.service.id,
-      date: suggestion.suggestedDate,
+      barberId: previewBarber.id,
+      serviceId: previewService.id,
+      date: previewDate,
     })
   }
 
   return NextResponse.json({
     ...suggestion,
+    barber: previewBarber,
+    service: previewService,
+    suggestedDate: previewDate,
     availableSlots,
   })
 }

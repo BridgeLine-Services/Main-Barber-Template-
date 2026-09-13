@@ -22,5 +22,10 @@ export async function GET() {
   return NextResponse.json({
     policies: hasPolicies ? policies : {},
     version: hasPolicies ? business.updatedAt.toISOString() : null,
+    booking: {
+      // Public booking-flow config — used by the wizard to show/hide the
+      // "First available" option. Defaults to enabled for legacy rows.
+      firstAvailableEnabled: business.firstAvailableBookingEnabled !== false,
+    },
   })
 }

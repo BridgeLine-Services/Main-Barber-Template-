@@ -63,6 +63,9 @@ function BookingFlow() {
   // Track the resolved barber name for the review step when 'any' or 'first-available' resolves to a specific barber
   const [resolvedBarberName, setResolvedBarberName] = useState<string>('')
   const [policies, setPolicies] = useState<{ booking?: string | null; cancellation?: string | null; late?: string | null; noShow?: string | null }>({})
+  // Owner-configurable: when false, the "First available" option is hidden
+  // (defaults to true for businesses that haven't set it).
+  const [firstAvailableEnabled, setFirstAvailableEnabled] = useState(true)
   const [policyVersion, setPolicyVersion] = useState<string | null>(null)
   const [policyAccepted, setPolicyAccepted] = useState(false)
 
@@ -120,10 +123,18 @@ function BookingFlow() {
       fetch('/api/public/policies').then(r => r.json()).catch(() => ({ policies: {}, version: null })),
     ]).then(([s, b, policyData]) => {
       // APIs return { services: [...] }, { barbers: [...] }, and optional policies.
-      setServices(s.services || [])
-      setBarbers(b.barbers || [])
+      const loadedServices = s.services || []
+      const loadedBarbers = b.barbers || []
+      setServices(loadedServices)
+      setBarbers(loadedBarbers)
       setPolicies(policyData.policies || {})
+      if (policyData.booking?.firstAvailableEnabled === false) setFirstAvailableEnabled(false)
       setPolicyVersion(policyData.version || null)
+      // Deep-link preselects (e.g. "Book your usual") are only kept when the
+      // service/barber still exists and is offered — otherwise fall back to
+      // the normal flow instead of preselecting a dead id.
+      setSelectedServiceId(prev => loadedServices.some(svc => svc.id === prev) ? prev : '')
+      setSelectedBarberId(prev => loadedBarbers.some(bb => bb.id === prev) ? prev : '')
       setLoading(false)
     }).catch(() => {
       setLoadError(true)
@@ -312,8 +323,9 @@ function BookingFlow() {
                   barbers={barbers}
                   selectedId={selectedBarberId}
                   onSelect={(id) => { setSelectedBarberId(id); setStep(3) }}
-                  onSelectFirstAvailable={handleFirstAvailable}
+                  onSelectFirstAvailable={firstAvailableEnabled ? handleFirstAvailable : undefined}
                   serviceId={selectedServiceId}
+                  serviceName={services.find(svc => svc.id === selectedServiceId)?.name ?? null}
                 />
               )}
 

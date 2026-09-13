@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getInitials, cn } from '@/lib/utils'
-import { Sparkles, Check, User, Zap, Clock, Loader2 } from 'lucide-react'
+import { Sparkles, Check, User, Zap, Clock, Loader2, Award } from 'lucide-react'
+import { rankBarbersForService } from '@/lib/specialty-match'
 import { format, parseISO } from 'date-fns'
 
 export interface BarberItem {
@@ -30,15 +31,19 @@ interface BarberStepProps {
   onSelect: (barberId: string) => void
   onSelectFirstAvailable?: (slot: EarliestSlot) => void
   serviceId?: string | null
+  /** Name of the selected service — used for specialty-match ranking. */
+  serviceName?: string | null
 }
 
-export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailable, serviceId }: BarberStepProps) {
+export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailable, serviceId, serviceName }: BarberStepProps) {
   const [earliestSlot, setEarliestSlot] = useState<EarliestSlot | null>(null)
   const [loadingEarliest, setLoadingEarliest] = useState(false)
 
-  // Fetch earliest available slot across all barbers (searches next 30 days)
+  // Fetch earliest available slot across all barbers (searches next 30 days).
+  // Skipped entirely when the "First available" option is disabled for this
+  // business (the wizard passes no onSelectFirstAvailable handler).
   useEffect(() => {
-    if (!serviceId) return
+    if (!serviceId || !onSelectFirstAvailable) return
 
     setLoadingEarliest(true)
     fetch(`/api/availability/earliest?serviceId=${encodeURIComponent(serviceId)}`)
@@ -57,7 +62,7 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
       })
       .catch(() => setEarliestSlot(null))
       .finally(() => setLoadingEarliest(false))
-  }, [serviceId])
+  }, [serviceId, onSelectFirstAvailable])
 
   // Filter barbers client-side based on whether they offer the selected service
   const filteredBarbers = barbers.filter((barber) => {
@@ -90,7 +95,9 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* First Available — earliest slot across all barbers */}
+        {/* First Available — earliest slot across all barbers.
+            Rendered only when the owner allows it (handler passed). */}
+        {onSelectFirstAvailable && (
         <Card
           role="button"
           tabIndex={0}
@@ -143,6 +150,7 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
             </div>
           </div>
         </Card>
+        )}
 
         {/* Any Available Barber option */}
         <Card
@@ -181,8 +189,10 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
           </div>
         </Card>
 
-        {/* Individual barbers */}
-        {filteredBarbers.map((barber) => {
+        {/* Individual barbers — specialty matches ranked first (data-driven
+            from the barber's own specialty text vs. the chosen service name;
+            no-match barbers keep the existing `order asc` display order). */}
+        {rankBarbersForService(filteredBarbers, serviceName).map(({ barber, match }) => {
           const isSelected = selectedId === barber.id
 
           return (
@@ -220,6 +230,11 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
                   <p className="text-xs text-accent/90 font-medium mt-0.5 truncate">
                     {barber.specialty}
                   </p>
+                )}
+                {match.overlap > 0 && (
+                  <span className="inline-flex items-center gap-1 mt-1.5 rounded bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
+                    <Award className="w-3 h-3" /> Specialty match
+                  </span>
                 )}
                 {barber.bio && (
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-tight">

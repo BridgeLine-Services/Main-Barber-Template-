@@ -196,6 +196,7 @@ export const updateBusinessSchema = z.object({
   privacyPolicy: z.string().max(10000).optional(),
   termsPolicy: z.string().max(10000).optional(),
   walkInsWelcome: z.boolean().optional(),
+  firstAvailableBookingEnabled: z.boolean().optional(),
   parkingAvailable: z.boolean().optional(),
   paymentInPerson: z.boolean().optional(),
   customerRescheduleEnabled: z.boolean().optional(),
@@ -324,6 +325,7 @@ const policySchema = z
 
 export const bookingSettingsSchema = z.object({
   walkInsWelcome: z.boolean().optional(),
+  firstAvailableBookingEnabled: z.boolean().optional(),
   customerRescheduleEnabled: z.boolean().optional(),
   customerRescheduleMinNoticeHours: z.number().int().min(0).max(720).optional(),
   customerRescheduleWindowDays: z.number().int().min(1).max(3650).nullable().optional(),

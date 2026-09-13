@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft } from 'lucide-react'
+import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft, CalendarPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/motion/reveal'
 
@@ -44,6 +44,16 @@ interface PortalData {
   upcoming: PortalAppointment[]
   past: PortalAppointment[]
   loyalty: { programName: string; type: string; visits: number } | null
+  usual: {
+    serviceId: string
+    serviceName: string
+    barberId: string
+    barberName: string
+    lastDate: string
+    serviceActive: boolean
+    barberActive: boolean
+  } | null
+  rebooking: { dueDate: string; dueSoon: boolean; intervalDays: number } | null
 }
 
 export function CustomerPortal({ businessId, businessName }: { businessId: string; businessName: string }) {
@@ -189,6 +199,35 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
         )}
       </div>
       </Reveal>
+
+      {/* Book Again — one-tap repeat booking from the customer's own history */}
+      {data.usual && data.usual.serviceActive && data.usual.barberActive && (
+        <Reveal delay={0.04}>
+        <div className="bg-gradient-to-br from-accent/10 via-card/40 to-card/40 border border-accent/25 rounded-xl p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                <CalendarPlus className="w-3.5 h-3.5" /> Book your usual
+              </p>
+              <p className="mt-1.5 text-sm font-medium text-foreground">
+                {data.usual.serviceName} <span className="text-muted-foreground">with {data.usual.barberName}</span>
+              </p>
+              {data.rebooking && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {data.rebooking.dueSoon ? 'Your usual visit is due soon — grab a time before your barber fills up.' : `Based on your last visit${data.rebooking.intervalDays ? `, every ~${data.rebooking.intervalDays} days` : ''}.`}
+                </p>
+              )}
+            </div>
+            <a
+              href={`/book?serviceId=${encodeURIComponent(data.usual.serviceId)}&barberId=${encodeURIComponent(data.usual.barberId)}`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 min-h-12 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-colors"
+            >
+              <CalendarPlus className="w-4 h-4" /> Choose a time
+            </a>
+          </div>
+        </div>
+        </Reveal>
+      )}
 
       {/* Upcoming Appointments */}
       <Reveal delay={0.08}>

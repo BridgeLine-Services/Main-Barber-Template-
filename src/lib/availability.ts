@@ -263,6 +263,19 @@ export async function getAvailableSlots(params: {
 /**
  * Find the earliest available slot across all active barbers offering a given service on a date.
  */
+/**
+ * Convert a slot label like "2:30 PM" to minutes-since-midnight for
+ * chronological comparison. Unparseable labels sort last.
+ */
+export function slotTimeToMinutes(time: string): number {
+  const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time.trim())
+  if (!match) return Number.MAX_SAFE_INTEGER
+  let hours = parseInt(match[1], 10) % 12
+  const minutes = parseInt(match[2], 10)
+  if (match[3].toUpperCase() === 'PM') hours += 12
+  return hours * 60 + minutes
+}
+
 export async function getEarliestAvailableSlot(params: {
   businessId: string
   serviceId: string
@@ -328,8 +341,14 @@ export async function getEarliestAvailableSlot(params: {
     }
   }
 
-  const mergedSlots = Array.from(slotMap.values())
+  const mergedSlots = Array.from(slotMap.values()).sort(
+    (a, b) => slotTimeToMinutes(a.time) - slotTimeToMinutes(b.time)
+  )
 
+  // Deterministic tie-break: when several barbers share the earliest time,
+  // keep the lowest `order` barber — the merge above iterates barbers in
+  // order-ascending sequence and only overwrites when a slot was NOT yet
+  // available, so the first claimant (lowest order) is preserved.
   const earliestSlot = mergedSlots.find((s) => s.available)
   const earliest =
     earliestSlot && earliestSlot.barberId && earliestSlot.barberName

@@ -40,6 +40,7 @@ interface ReviewData {
     themeMode: string
     fontFamily: string | null
     walkInsWelcome: boolean
+    firstAvailableBookingEnabled: boolean
     paymentInPerson: boolean
     customerRescheduleEnabled: boolean
     customerRescheduleMinNoticeHours: number
@@ -307,6 +308,7 @@ export function ReviewStep({ completing, serverError, onEditStep, onComplete, on
           <ReviewSection title="Booking Settings" step="booking" onEdit={onEditStep}>
             <div className="space-y-1.5">
               <SummaryRow label="Walk-ins" value={b.walkInsWelcome ? 'Welcome' : 'By appointment only'} />
+              <SummaryRow label="First available" value={b.firstAvailableBookingEnabled === false ? 'Off (barber-first booking)' : 'On'} />
               <SummaryRow
                 label="Customer reschedule/cancel"
                 value={
