@@ -26,14 +26,36 @@ export default async function CancellationIntelligencePage() {
         customer: {
           select: { id: true, firstName: true, lastName: true, phone: true, email: true },
         },
+        appointment: {
+          select: {
+            id: true,
+            status: true,
+            startTime: true,
+            endTime: true,
+            service: { select: { id: true, name: true } },
+            barber: { select: { id: true, name: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
     })
 
+    const now = new Date()
     records = rawRecords.map(r => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
+      appointment: r.appointment
+        ? {
+            id: r.appointment.id,
+            status: r.appointment.status,
+            serviceName: r.appointment.service?.name || '',
+            barberName: r.appointment.barber?.name || '',
+            startTime: r.appointment.startTime.toISOString(),
+            endTime: r.appointment.endTime.toISOString(),
+            fillable: r.appointment.status === 'CANCELLED' && r.appointment.startTime > now,
+          }
+        : null,
     }))
 
     stats = {

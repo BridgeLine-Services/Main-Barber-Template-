@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, TrendingDown, Users, CalendarX, Search } from 'lucide-react'
+import { AlertTriangle, TrendingDown, Users, CalendarX, Search, BellRing } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FillOpeningDialog } from './FillOpeningDialog'
 
 interface CancellationRecord {
   id: string
@@ -16,6 +17,23 @@ interface CancellationRecord {
     phone: string
     email: string
   }
+  appointment: {
+    id: string
+    status: string
+    serviceName: string
+    barberName: string
+    startTime: string
+    endTime: string
+    fillable: boolean
+  } | null
+}
+
+interface FillOpening {
+  appointmentId: string
+  serviceName: string
+  barberName: string
+  startTimeLabel: string
+  endTimeLabel: string
 }
 
 interface Stats {
@@ -50,6 +68,7 @@ export function CancellationIntelligenceClient({
   const [records] = useState(initialRecords)
   const [stats] = useState(initialStats)
   const [search, setSearch] = useState('')
+  const [fillOpening, setFillOpening] = useState<FillOpening | null>(null)
   const [reasonFilter, setReasonFilter] = useState<string | null>(null)
 
   const filtered = records.filter(r => {
@@ -160,6 +179,7 @@ export function CancellationIntelligenceClient({
                   <th className="text-left py-3 px-4 font-medium">Reason</th>
                   <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Note</th>
                   <th className="text-right py-3 px-4 font-medium">Date</th>
+                  <th className="text-right py-3 px-4 font-medium">Fill</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,12 +203,44 @@ export function CancellationIntelligenceClient({
                     <td className="py-3 px-4 text-right text-zinc-500 text-xs">
                       {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
+                    <td className="py-3 px-4 text-right">
+                      {r.appointment?.fillable ? (
+                        <button
+                          onClick={() => {
+                            const start = new Date(r.appointment!.startTime)
+                            const end = new Date(r.appointment!.endTime)
+                            setFillOpening({
+                              appointmentId: r.appointment!.id,
+                              serviceName: r.appointment!.serviceName,
+                              barberName: r.appointment!.barberName,
+                              startTimeLabel: start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                              endTimeLabel: end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                            })
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-1.5 transition-colors"
+                        >
+                          <BellRing className="w-3.5 h-3.5" />
+                          Fill Opening
+                        </button>
+                      ) : (
+                        <span className="text-xs text-zinc-600">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {/* Cancellation-fill dialog */}
+      {fillOpening && (
+        <FillOpeningDialog
+          opening={fillOpening}
+          open={fillOpening !== null}
+          onOpenChange={(next) => { if (!next) setFillOpening(null) }}
+        />
       )}
     </div>
   )
