@@ -156,7 +156,7 @@ function readinessChecks(readiness: Awaited<ReturnType<typeof verifyFactoryReadi
     category: check.category,
     label: check.check,
     status: check.kind === 'optional_disabled' ? 'DISABLED' : check.status === 'FAIL' ? 'BLOCKED' : check.status === 'WARN' ? 'WARNING' : 'PASS',
-    required: check.kind !== 'optional_disabled',
+    required: check.kind !== 'optional_disabled' && check.kind !== 'optional_warning',
     secret: false,
     detail: check.detail,
     remediation: check.status === 'PASS' ? 'No action required.' : check.detail,

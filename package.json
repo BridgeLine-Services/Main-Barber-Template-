@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "architecture:check": "node scripts/check-template-architecture.mjs",
     "test:architecture": "tsx tests/architecture.test.ts",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
