@@ -17,6 +17,7 @@
     "db:setup": "prisma migrate deploy && prisma generate",
     "db:verify": "node scripts/verify-database.js",
     "db:doctor": "node scripts/db-doctor.js",
+    "db:provision": "tsx scripts/provision-business.ts",
     "setup": "node scripts/setup.js",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
