@@ -1,0 +1,35 @@
+name: Template CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - v0/**
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate template
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/barber
+      NEXTAUTH_SECRET: ci-only-secret-for-build-validation
+      NEXTAUTH_URL: http://localhost:3000
+      APP_MODE: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run architecture:check
+      - run: npm run test:architecture
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - run: npm run build

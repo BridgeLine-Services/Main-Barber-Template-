@@ -30,7 +30,7 @@ export interface ReadinessReport {
 }
 
 export type FactoryCheckStatus = 'PASS' | 'FAIL' | 'WARN'
-export type FactoryCheckKind = 'pass' | 'required_failure' | 'optional_disabled' | 'optional_misconfigured'
+export type FactoryCheckKind = 'pass' | 'required_failure' | 'optional_disabled' | 'optional_misconfigured' | 'optional_warning'
 
 export interface FactoryReadinessCheck {
   category: string
@@ -54,7 +54,10 @@ export interface FactorySnapshot {
     onboardingCompleted: boolean
     customerRescheduleMinNoticeHours: number
     customerRescheduleWindowDays: number | null
+    logo: string | null
   } | null
+  media: { hero: number; ogImage: number; favicon: number }
+  seo: { siteTitle: string | null; siteDescription: string | null; ogImage: string | null } | null
   services: Array<{ isActive: boolean; price: number; duration: number }>
   barbers: Array<{ isActive: boolean; schedules: Array<{ isOff: boolean; startTime: string; endTime: string }> }>
   app: { production: boolean; databaseConfigured: boolean; authConfigured: boolean; appUrlConfigured: boolean }
@@ -69,7 +72,7 @@ function addFactoryCheck(
   detail: string,
   kind: FactoryCheckKind = passed ? 'pass' : 'required_failure'
 ) {
-  checks.push({ category, check, status: kind === 'optional_disabled' ? 'WARN' : passed ? 'PASS' : 'FAIL', kind, detail })
+  checks.push({ category, check, status: kind === 'optional_disabled' || kind === 'optional_warning' ? 'WARN' : passed ? 'PASS' : 'FAIL', kind, detail })
 }
 
 /** Pure evaluator used by the API and unit tests. It never reads env or secrets. */
@@ -88,6 +91,11 @@ export function evaluateFactoryReadiness(snapshot: FactorySnapshot): FactoryRead
 
   const brandingValid = !!business && isValidHexColor(business.primaryColor) && isValidHexColor(business.accentColor) && (!business.secondaryColor || isValidHexColor(business.secondaryColor))
   addFactoryCheck(checks, 'Branding', 'Branding configuration', brandingValid, 'Primary and accent colors must be valid hex colors.')
+  addFactoryCheck(checks, 'Branding', 'Logo configured', !!business?.logo, 'Add a logo through the dashboard before launch.')
+  addFactoryCheck(checks, 'Branding', 'Hero image configured', snapshot.media.hero > 0, 'Add a published HERO media asset or intentionally approve a text-only hero.')
+  addFactoryCheck(checks, 'Branding', 'Favicon configured', snapshot.media.favicon > 0, 'Add a published FAVICON media asset.', 'optional_warning')
+  addFactoryCheck(checks, 'SEO', 'SEO metadata', !!snapshot.seo?.siteTitle && !!snapshot.seo.siteDescription, 'Add a site title and meta description in SEO settings.')
+  addFactoryCheck(checks, 'SEO', 'Social image configured', !!snapshot.seo?.ogImage || snapshot.media.ogImage > 0, 'Add an OG image for social sharing.', 'optional_warning')
 
   const activeServices = snapshot.services.filter((service) => service.isActive)
   addFactoryCheck(checks, 'Services', 'Active services', activeServices.length > 0, 'At least one active service is required.')
@@ -123,6 +131,8 @@ function featureSnapshot() {
 export async function verifyFactoryReadiness(businessId: string): Promise<{ overall: 'READY' | 'NOT_READY'; checks: FactoryReadinessCheck[]; passed: number; failed: number; warnings: number }> {
   let databaseAvailable = true
   let business: FactorySnapshot['business'] = null
+  let media: FactorySnapshot['media'] = { hero: 0, ogImage: 0, favicon: 0 }
+  let seo: FactorySnapshot['seo'] = null
   let services: FactorySnapshot['services'] = []
   let barbers: FactorySnapshot['barbers'] = []
   try {
@@ -130,8 +140,10 @@ export async function verifyFactoryReadiness(businessId: string): Promise<{ over
       where: { id: businessId },
       select: {
         name: true, slug: true, timezone: true, phone: true, email: true,
-        primaryColor: true, accentColor: true, secondaryColor: true,
+        primaryColor: true, accentColor: true, secondaryColor: true, logo: true,
         onboardingCompleted: true, customerRescheduleMinNoticeHours: true,
+        seo: { select: { siteTitle: true, siteDescription: true, ogImage: true } },
+        mediaAssets: { where: { isPublished: true }, select: { type: true } },
         customerRescheduleWindowDays: true,
         services: { select: { isActive: true, price: true, duration: true } },
         barbers: { where: { isActive: true }, select: { isActive: true, schedules: { select: { isOff: true, startTime: true, endTime: true } } } },
@@ -141,6 +153,12 @@ export async function verifyFactoryReadiness(businessId: string): Promise<{ over
       business = result
       services = result.services
       barbers = result.barbers
+      seo = result.seo
+      media = {
+        hero: result.mediaAssets.filter((asset) => asset.type === 'HERO').length,
+        ogImage: result.mediaAssets.filter((asset) => asset.type === 'OG_IMAGE').length,
+        favicon: result.mediaAssets.filter((asset) => asset.type === 'FAVICON').length,
+      }
     }
   } catch (error) {
     databaseAvailable = false
@@ -150,6 +168,8 @@ export async function verifyFactoryReadiness(businessId: string): Promise<{ over
   const checks = evaluateFactoryReadiness({
     databaseAvailable,
     business,
+    media,
+    seo,
     services,
     barbers,
     app: {

@@ -21,6 +21,12 @@ This template uses one isolated deployment and database per barber shop.
 
 These commands never run `prisma migrate reset`, delete records, or seed a placeholder business. Re-running setup is safe; completed migrations are skipped by Prisma and onboarding remains the source of truth for client configuration.
 
+## QA and launch
+
+- `npm run test:smoke` — checks the deployed homepage, booking route, login route, and health endpoint. Set `SMOKE_BASE_URL` to the client deployment URL. It is read-only; booking creation and cancellation remain a deliberate manual acceptance step.
+- Run the dashboard Factory Launch check before connecting the client domain. Required failures block launch; optional integrations and media warnings remain visible for operator review.
+- See `DELIVERY-WORKFLOW.md` for the complete clone-to-launch and support-safe update process.
+
 ## If setup fails
 
 Check the message first and run `npm run db:doctor`. Common causes are a missing `DATABASE_URL`, an unreachable database, or a migration mismatch. Do not reset the database or manually delete migration records. Preserve the database and investigate the reported migration or environment problem.
