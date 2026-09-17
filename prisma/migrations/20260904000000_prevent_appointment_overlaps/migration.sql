@@ -7,6 +7,6 @@ ADD CONSTRAINT "Appointment_no_active_overlap"
 EXCLUDE USING GIST (
   "businessId" WITH =,
   "barberId" WITH =,
-  tstzrange("startTime", "endTime", '[)') WITH &&
+  tsrange("startTime", "endTime", '[)') WITH &&
 )
 WHERE ("status" IN ('PENDING', 'CONFIRMED'));
