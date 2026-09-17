@@ -45,9 +45,16 @@ export async function generatePageMetadata({
   }).catch(() => null)
 
   // Prefer a configured business canonical URL, then fall back to the deployment URL.
+  let canonical: string | undefined
   const configuredCanonical = seo?.canonicalUrl?.trim()
   const canonicalBase = configuredCanonical || getAppUrlString()
-  const canonical = new URL(path || '/', canonicalBase.endsWith('/') ? canonicalBase : `${canonicalBase}/`).toString()
+  try {
+    const baseUrl = new URL(canonicalBase)
+    canonical = new URL(path || '/', baseUrl).toString()
+  } catch {
+    // A malformed optional SEO URL must never make static generation fail.
+    canonical = undefined
+  }
 
   // Use the site-level description as a fallback, then the page-level one
   const metaDescription =

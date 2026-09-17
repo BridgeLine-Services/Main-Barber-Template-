@@ -1,8 +1,10 @@
 const LOCAL_APP_URL = 'http://localhost:3000'
 
 function normalizeUrl(value: string): string {
-  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`
-  return withProtocol.replace(/\/+$/, '')
+  const trimmed = value.trim()
+  if (!trimmed) return LOCAL_APP_URL
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  return withProtocol.replace(/\/+$/, '') || LOCAL_APP_URL
 }
 
 export function getAppUrl(): URL {
