@@ -11,8 +11,8 @@
 //     stopped (via GET /api/dashboard/onboarding).
 //   • Services and barbers are persisted the moment they're added, so a
 //     return visit resumes with all data intact.
-//   • Before the business is created (welcome/basics steps), the basics
-//     form is saved as a localStorage draft so nothing is lost on refresh.
+//   • Once business basics are submitted, every step is persisted in the client
+//     database so the owner can safely pause and return later.
 //
 // Completion requirements (enforced server-side on the final step):
 //   • at least one ACTIVE service
@@ -31,7 +31,7 @@ import { ServicesStep } from './ServicesStep'
 import { TeamStep } from './TeamStep'
 import { BookingSettingsStep, type BookingSettingsForm } from './BookingSettingsStep'
 import { ReviewStep } from './ReviewStep'
-import { WIZARD_STEPS, ONBOARDING_DRAFT_KEY } from '@/lib/onboarding-constants'
+import { WIZARD_STEPS } from '@/lib/onboarding-constants'
 import { Check, Loader2, AlertCircle, PartyPopper } from 'lucide-react'
 
 interface OnboardingBusiness {
@@ -127,27 +127,6 @@ function resumeStep(onboardingStep: string): Step {
   }
 }
 
-/** Load the pre-creation basics draft (leave & return support). */
-function loadDraft(): Partial<BasicsForm> | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-function saveDraft(draft: Partial<BasicsForm> | null) {
-  if (typeof window === 'undefined') return
-  try {
-    if (draft) window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft))
-    else window.localStorage.removeItem(ONBOARDING_DRAFT_KEY)
-  } catch {
-    // storage unavailable — non-fatal, wizard still works without drafts
-  }
-}
-
 export function OnboardingWizard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -191,11 +170,6 @@ export function OnboardingWizard() {
             setStep('done')
           }
         } else {
-          // Fresh start — restore any unsaved basics draft.
-          const draft = loadDraft()
-          if (draft && Object.values(draft).some((v) => v)) {
-            setBasicsInitial((prev) => ({ ...prev, ...draft }))
-          }
         }
       } catch (err: any) {
         if (!cancelled) setLoadError(err.message || 'Something went wrong loading your setup.')
@@ -207,14 +181,6 @@ export function OnboardingWizard() {
       cancelled = true
     }
   }, [])
-
-  // ─── Basics draft persistence (pre-creation) ────────────────────────────
-  const persistDraft = useCallback(
-    (draft: Partial<BasicsForm> | null) => {
-      if (!business) saveDraft(draft)
-    },
-    [business]
-  )
 
   // Shared PATCH helper — returns the parsed JSON, or throws with the error.
   const patchOnboarding = useCallback(
@@ -249,7 +215,6 @@ export function OnboardingWizard() {
         // Update the existing business record (own business only, enforced server-side)
         const json = await patchOnboarding({ ...data, step: 'branding' })
         setBusiness(json.business)
-        saveDraft(null)
         setStep('branding')
       } else {
         // Create the business
@@ -268,7 +233,6 @@ export function OnboardingWizard() {
           return
         }
         setBusiness(json.business)
-        saveDraft(null)
         setStep('branding')
       }
     } catch (err: any) {
@@ -461,8 +425,7 @@ export function OnboardingWizard() {
             serverError={serverError}
             slugServerError={slugServerError}
             onSubmit={(data) => {
-              persistDraft(data) // survives refresh before the record exists
-              return handleBasicsSubmit(data)
+            return handleBasicsSubmit(data)
             }}
             onBack={() => setStep(business ? 'branding' : 'welcome')}
           />

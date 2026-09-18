@@ -31,9 +31,6 @@ export const WIZARD_STEPS = [
 
 export type WizardStepKey = (typeof WIZARD_STEPS)[number]['key']
 
-/** localStorage draft key for the basics form (leave & return later support). */
-export const ONBOARDING_DRAFT_KEY = 'onboarding-basics-draft'
-
 // ─── Slug rules ────────────────────────────────────────────────────────────
 
 /**
