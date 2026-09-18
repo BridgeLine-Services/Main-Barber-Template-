@@ -8,8 +8,8 @@ This repository is a master template for independent barber-shop websites. Each 
 2. Create the Vercel project and connect its PostgreSQL/Neon database.
 3. Add only the variables used by the application: `DATABASE_URL`, `NEXTAUTH_SECRET`, and `NEXTAUTH_URL`. Add SMTP, Twilio, Google, or cron variables only when that client uses those integrations.
 4. Deploy the project, then run `npm run db:setup` if migrations were not already applied by deployment.
-5. Create the owner account and complete `/dashboard/onboarding`, or use the reviewed non-destructive `npm run db:provision` operator command.
-6. Configure business details, hours, timezone, booking policies, services, barbers, schedules, branding, homepage content, SEO, and client photography through the dashboard/database.
+5. Create the owner account and open `/dashboard/setup`. Fresh owners are guided through `/dashboard/onboarding`; the setup checklist remains the single place to resume configuration.
+6. Configure business details, hours, timezone, booking policies, services, barbers, schedules, branding, homepage content, SEO, and client photography through the dashboard/database. Progress is stored in the client database; no source edits or browser-local drafts are required.
 7. Run `npm run db:verify`, `npm run db:doctor`, and `npm run test:smoke` with `SMOKE_BASE_URL` set to the deployed URL.
 8. Manually complete the booking handoff: choose a real service/barber/time, create a test booking, verify confirmation, and verify cancellation from the customer portal.
 9. Run the launch/readiness check and connect the client domain only after all required checks pass.

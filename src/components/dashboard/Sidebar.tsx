@@ -41,6 +41,7 @@ import {
   Search,
   Smartphone,
   Activity,
+  Rocket,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -86,6 +87,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       label: 'overview',
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Setup Checklist', href: '/dashboard/setup', icon: Rocket },
         { name: 'Barber Mode', href: '/barber-mode', icon: Smartphone },
         { name: 'Daily Ops', href: '/dashboard/operations', icon: Activity },
         { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
