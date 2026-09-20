@@ -24,11 +24,14 @@ export default async function DashboardLayout({
     redirect(access.redirectTo)
   }
 
-  const user = session!.user as any
-  const dbUser = await prisma.user.findUnique({
-    where: user.id ? { id: user.id } : { email: user.email },
-    select: { businessId: true, role: true },
-  })
+  const user = session!.user as { id?: string; email?: string; name?: string; businessName?: string; role?: string }
+  const identityWhere = user.id ? { id: user.id } : user.email ? { email: user.email } : null
+  const dbUser = identityWhere
+    ? await prisma.user.findUnique({
+        where: identityWhere,
+        select: { businessId: true, role: true },
+      })
+    : null
   const businessId = dbUser?.businessId ?? null
   const userRole = dbUser?.role || user.role || 'BARBER'
 
