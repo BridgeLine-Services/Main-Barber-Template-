@@ -25,8 +25,12 @@ export default async function DashboardLayout({
   }
 
   const user = session!.user as any
-  const businessId = user.businessId
-  const userRole = user.role || 'BARBER'
+  const dbUser = await prisma.user.findUnique({
+    where: user.id ? { id: user.id } : { email: user.email },
+    select: { businessId: true, role: true },
+  })
+  const businessId = dbUser?.businessId ?? null
+  const userRole = dbUser?.role || user.role || 'BARBER'
 
   let business = null
   try {

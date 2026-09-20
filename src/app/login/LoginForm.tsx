@@ -63,7 +63,6 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
         })
         if (result?.ok) {
           router.push('/dashboard')
-          router.refresh()
         } else {
           // Registration worked but auto-login failed — switch to login mode
           setMode('login')
@@ -87,7 +86,6 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           setLoading(false)
         } else if (result?.ok) {
           router.push('/dashboard')
-          router.refresh()
         } else {
           setError('An unexpected error occurred. Please try again.')
           setLoading(false)
