@@ -92,30 +92,35 @@ export async function checkDashboardAccess(
     return { allowed: false, redirectTo: '/login', reason: 'unauthenticated' }
   }
 
-  const user = session.user as { id?: string; email?: string; role?: string; businessId?: string | null }
+  const user = session.user as { id?: string; email?: string }
 
-  // Priority 2 — forced password change (checked fresh from DB, always current)
-  let mustChangePassword = false
+  // Resolve mutable authorization state from the database. The JWT is a
+  // session cache and cannot be the source of truth after onboarding links the
+  // first Business during the same authenticated session.
+  let dbUser: { role: string; businessId: string | null; mustChangePassword: boolean } | null = null
   try {
-    const dbUser = await prisma.user.findUnique({
+    dbUser = await prisma.user.findUnique({
       where: user.id ? { id: user.id } : user.email ? { email: user.email } : undefined,
-      select: { mustChangePassword: true },
+      select: { role: true, businessId: true, mustChangePassword: true },
     })
-    mustChangePassword = dbUser?.mustChangePassword ?? false
   } catch (error) {
     // If the DB is unreachable, fail safe: block dashboard access.
     console.error('[onboarding] Failed to load user for access gate:', error)
     return { allowed: false, redirectTo: '/login', reason: 'unauthenticated' }
   }
 
-  if (mustChangePassword && !pathname.startsWith('/change-password')) {
+  if (!dbUser) {
+    return { allowed: false, redirectTo: '/login', reason: 'unauthenticated' }
+  }
+
+  if (dbUser.mustChangePassword && !pathname.startsWith('/change-password')) {
     return { allowed: false, redirectTo: '/change-password', reason: 'password' }
   }
 
   // Priority 3 — onboarding incomplete (owners only; barbers belong to a
   // business by definition, so onboarding only gates owners)
-  const businessId = user.businessId || null
-  const role = (user.role || 'BARBER').toUpperCase()
+  const businessId = dbUser.businessId
+  const role = dbUser.role.toUpperCase()
 
   if (role === 'OWNER') {
     if (!businessId) {
