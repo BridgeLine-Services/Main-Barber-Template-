@@ -11,7 +11,7 @@ import process from 'node:process'
 const root = process.cwd()
 const roots = ['src', 'prisma', 'scripts']
 const extensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.sql'])
-const ignored = new Set(['node_modules', '.next', 'docs', 'tests'])
+const ignored = new Set(['node_modules', '.next', 'docs', 'tests', '.git'])
 const files = []
 
 function walk(dir) {
@@ -26,6 +26,23 @@ function walk(dir) {
 for (const directory of roots) walk(path.join(root, directory))
 
 const findings = []
+
+// Never allow real environment files into the master repository. The example
+// file is intentionally checked separately by architecture tests and may only
+// contain empty values or documentation-safe placeholders.
+function findEnvironmentFiles(dir) {
+  if (!fs.existsSync(dir)) return
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (ignored.has(entry.name) || entry.name === '.env.example') continue
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) findEnvironmentFiles(full)
+    else if (/^\.env(?:\.|$)/.test(entry.name)) {
+      findings.push(`${path.relative(root, full)}: environment file must not be committed`)
+    }
+  }
+}
+findEnvironmentFiles(root)
+
 const rules = [
   {
     name: 'database connection string',
@@ -51,7 +68,16 @@ const rules = [
     name: 'hard-coded client/deployment domain',
     pattern: /https?:\/\/(?:[a-z0-9-]+\.)?(?:[a-z0-9-]+[-_])?(?:barber|barbershop|shop)[a-z0-9-]*\.(?:vercel\.app|netlify\.app|pages\.dev|com|org|net)(?:\/|['"`\s])/i,
   },
+  {
+    name: 'literal client contact email',
+    pattern: /['"`](?:[a-z0-9._%+-]+)@(?!(?:example|test|invalid|localhost|barbershop\.com|yourshop\.com|yourbarbershop\.com|shop\.com|email\.com)\b)[a-z0-9.-]+\.[a-z]{2,}['"`]/i,
+  },
+  {
+    name: 'literal production database or secret environment value',
+    pattern: /(?:DATABASE_URL|NEXTAUTH_SECRET|API_KEY|AUTH_TOKEN|PRIVATE_KEY)\s*=\s*(?!process\.env\.)[^\s#]+/i,
+  },
 ]
+
 
 for (const file of files) {
   const relative = path.relative(root, file)

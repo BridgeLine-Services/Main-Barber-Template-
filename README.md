@@ -167,21 +167,17 @@ SMTP_FROM="noreply@yourbarbershop.com"
 
 `NEXT_PUBLIC_APP_URL` is the single public URL used for metadata, canonical links, Open Graph, sitemap, and robots. It may remain unset during local development (the app falls back to `http://localhost:3000`), but set it to the client's HTTPS domain before deployment.
 
-For a cloned single-business deployment, set `SINGLE_BUSINESS_ID` to the configured `Business.id`. Public routes try hostname/slug resolution first, then use this explicit business selector, so a custom domain does not need to match the shop slug. Leave it unset when using hostname/slug resolution only.
+`SINGLE_BUSINESS_ID` is optional. It must reference an already-existing `Business.id` and is only a public tenant selector/fallback. It does not create a Business, Owner, User, relationship, database, migrations, services, barbers, schedules, or client configuration, and it never replaces onboarding or provisioning. Leave it unset for normal self-onboarding; use it only when a pre-provisioned deployment already has the Business record.
 
-### 4. Push Prisma database schema
+### 4. Initialize the database
+
+For local development, `npx prisma db push` is acceptable. For every client production database, use migrations:
+
 ```bash
-npx prisma db push
+npx prisma migrate deploy
 ```
 
-### 5. Seed the database with demo data
-```bash
-SEED_ALLOW_DESTRUCTIVE=true APP_MODE=demo npm run db:seed
-```
-
-The seed script deletes existing tenant data and is refused in
-`NODE_ENV=production`. `SEED_ALLOW_DESTRUCTIVE=true` is an explicit local
-reset acknowledgement; never set it for a customer production database.
+Production must not depend on demo seed data. Configure a migrated database through onboarding or reviewed provisioning. Demo seeds are local/demo-only and must never run against a client production database.
 
 ### 6. Start the development server
 ```bash
@@ -197,18 +193,7 @@ The seed script behavior depends on `APP_MODE`:
 
 ### Production Mode (default — `APP_MODE` unset or `production`)
 
-```bash
-SEED_ALLOW_DESTRUCTIVE=true npm run db:seed
-# or with real shop details:
-SEED_ALLOW_DESTRUCTIVE=true SEED_BUSINESS_NAME="Mike's Cuts" SEED_OWNER_EMAIL="mike@mikescuts.com" npm run db:seed
-```
-
-- Creates only the real setup data: business, **owner account**, starter services & barbers.
-- The owner password is **auto-generated and printed once** — or set via `SEED_OWNER_PASSWORD`.
-- **Well-known weak passwords (e.g. `password123`) are rejected**, even when explicitly provided.
-- **No demo accounts, no sample customers/appointments/reviews.**
-- No barber login accounts are created — add real staff in Dashboard > Staff.
-- All seeded users get `mustChangePassword = true` and must change their password via `/change-password` before reaching the dashboard.
+Production client setup uses migrations plus onboarding or reviewed provisioning. It does not require seed data, demo credentials, or demo users. If an operator uses the seed script for a controlled non-production setup, all identity values must be supplied through environment variables and the database must be isolated.
 
 ### Demo Mode (`APP_MODE=demo`)
 
