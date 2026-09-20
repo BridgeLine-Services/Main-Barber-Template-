@@ -145,16 +145,18 @@ export function OnboardingWizard() {
   const [slugServerError, setSlugServerError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [savedForLater, setSavedForLater] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   // ─── Load onboarding state (resume) ──────────────────────────────────────
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/dashboard/onboarding')
-        const data = await res.json()
+        const res = await fetch('/api/dashboard/onboarding', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
         if (cancelled) return
-        if (!res.ok) throw new Error(data.error || 'Failed to load')
+        if (!res.ok) throw new Error(data.error || `Unable to load setup (${res.status})`)
+        if (!data || typeof data !== 'object') throw new Error('The setup response was invalid.')
 
         const b: OnboardingBusiness | null = data.business || null
         setBusiness(b)
@@ -180,7 +182,7 @@ export function OnboardingWizard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadAttempt])
 
   // Shared PATCH helper — returns the parsed JSON, or throws with the error.
   const patchOnboarding = useCallback(
@@ -375,7 +377,11 @@ export function OnboardingWizard() {
         <p className="mt-1.5 text-sm text-zinc-400">{loadError}</p>
         <button
           type="button"
-          onClick={() => router.refresh()}
+          onClick={() => {
+            setLoadError(null)
+            setLoading(true)
+            setLoadAttempt((attempt) => attempt + 1)
+          }}
           className="mt-5 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
         >
           Retry
