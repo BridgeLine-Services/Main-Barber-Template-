@@ -43,8 +43,8 @@ export const authOptions: NextAuthOptions = {
             barberId: user.barberId,
           }
         } catch (error) {
-          console.error('Auth error - database may not be configured:', error)
-          throw new Error('Database connection failed. The database may not be configured.')
+          console.error('[auth] credential lookup failed', error instanceof Error ? error.message : 'unknown error')
+          throw new Error('Authentication service unavailable')
         }
       },
     }),

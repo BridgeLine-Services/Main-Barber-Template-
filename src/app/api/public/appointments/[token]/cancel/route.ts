@@ -110,9 +110,9 @@ export async function POST(
     console.error('Error cancelling appointment by token:', error)
 
     // Database not connected
-    if (error.message?.includes('No business found') || error.code === 'P1001' || error.message?.includes('prisma') || error.message?.includes('connect')) {
+    if (error.code === 'P1001' || error.code === 'P1017' || error.message?.includes('No business found')) {
       return NextResponse.json({
-        error: 'Database connection error. Please try again.',
+        error: 'Cancellation service is temporarily unavailable. Please try again later.',
       }, { status: 503 })
     }
 
