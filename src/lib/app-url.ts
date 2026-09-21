@@ -14,6 +14,10 @@ export function getAppUrl(): URL {
     ? deploymentUrl
     : LOCAL_APP_URL
 
+  if (!configuredUrl && !fallbackUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL or a Vercel deployment URL is required in production.')
+  }
+
   return new URL(normalizeUrl(configuredUrl || fallbackUrl || LOCAL_APP_URL))
 }
 

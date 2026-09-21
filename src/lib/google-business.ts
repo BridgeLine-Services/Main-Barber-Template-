@@ -18,6 +18,7 @@
 // ============================================================================
 
 import { prisma } from '@/lib/prisma'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { isGoogleEnabled } from '@/lib/env-check'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -373,10 +374,33 @@ export function isGBPConnected(): boolean {
   )
 }
 
-/**
- * Build the OAuth URL for connecting Google Business Profile
- */
-export function getGBPOAuthUrl(businessId: string, redirectUri: string): string {
+  const oauthStateSecret = () => process.env.NEXTAUTH_SECRET || 'development-only-oauth-state-secret'
+
+  export function createGBPOAuthState(userId: string, businessId: string): string {
+    const payload = `${userId}:${businessId}:${Date.now()}`
+    const signature = createHmac('sha256', oauthStateSecret()).update(payload).digest('base64url')
+    return Buffer.from(`${payload}:${signature}`).toString('base64url')
+  }
+
+  export function verifyGBPOAuthState(state: string, userId: string, businessId: string): boolean {
+    try {
+      const decoded = Buffer.from(state, 'base64url').toString('utf8')
+      const [stateUserId, stateBusinessId, issuedAt, signature] = decoded.split(':')
+      if (!stateUserId || !stateBusinessId || !issuedAt || !signature) return false
+      if (stateUserId !== userId || stateBusinessId !== businessId) return false
+      const payload = `${stateUserId}:${stateBusinessId}:${issuedAt}`
+      if (Date.now() - Number(issuedAt) > 10 * 60 * 1000) return false
+      const expected = createHmac('sha256', oauthStateSecret()).update(payload).digest('base64url')
+      return expected.length === signature.length && timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Build the OAuth URL for connecting Google Business Profile
+   */
+  export function getGBPOAuthUrl(userId: string, businessId: string, redirectUri: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId) throw new Error('GOOGLE_CLIENT_ID not configured')
 
@@ -391,7 +415,7 @@ export function getGBPOAuthUrl(businessId: string, redirectUri: string): string 
     scope: scopes,
     access_type: 'offline',
     prompt: 'consent',
-    state: businessId,
+    state: createGBPOAuthState(userId, businessId),
   })
 
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
