@@ -68,7 +68,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid booking data' },
+        { status: 400 }
+      )
+    }
 
     // Idempotency: if the client sends the same request twice (double-click),
     // the second one is rejected. Use a hash of the booking data.

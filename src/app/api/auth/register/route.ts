@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = registerSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
@@ -92,9 +92,9 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Registration error:', error)
 
-    if (error.message?.includes('database') || error.message?.includes('connect') || error.code === 'P1001') {
+    if (error?.code === 'P1001' || error?.code === 'P1017') {
       return NextResponse.json(
-        { error: 'Database not connected. Set DATABASE_URL in your Vercel environment variables.' },
+        { error: 'Registration service is temporarily unavailable. Please try again later.' },
         { status: 503 }
       )
     }

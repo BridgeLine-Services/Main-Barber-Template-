@@ -50,6 +50,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const role = (session.user as { role?: string }).role
+  if (role !== 'OWNER' && role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   // Disable in production — test endpoints create/delete data
   if (process.env.NODE_ENV === 'production' && process.env.ENABLE_E2E_TESTS !== 'true') {
     return NextResponse.json({ error: 'E2E tests disabled in production' }, { status: 403 })

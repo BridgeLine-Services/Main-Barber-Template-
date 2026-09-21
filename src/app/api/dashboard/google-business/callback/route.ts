@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { verifyGBPOAuthState } from '@/lib/google-business'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -33,8 +34,9 @@ export async function GET(req: NextRequest) {
 
   // The OAuth state is bound to the authenticated tenant. This prevents a
   // callback for one shop from being used to configure another shop.
+  const sessionUserId = (session.user as any).id
   const sessionBusinessId = (session.user as any).businessId
-  if (!state || !sessionBusinessId || state !== sessionBusinessId) {
+  if (!state || !sessionUserId || !sessionBusinessId || !verifyGBPOAuthState(state, sessionUserId, sessionBusinessId)) {
     return NextResponse.redirect(
       new URL('/dashboard/settings?gbp_error=invalid_state', req.url)
     )

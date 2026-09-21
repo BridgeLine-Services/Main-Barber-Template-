@@ -8,7 +8,7 @@
 const configuredAuthUrl = process.env.NEXTAUTH_URL?.trim()
 const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
 const deploymentUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() || process.env.VERCEL_URL?.trim()
-const buildAuthUrl = configuredAuthUrl || configuredAppUrl || (deploymentUrl ? `https://${deploymentUrl}` : 'http://localhost:3000')
+const buildAuthUrl = configuredAuthUrl || configuredAppUrl || (deploymentUrl ? `https://${deploymentUrl}` : 'https://example.com')
 
 const nextConfig = {
   // NextAuth's client bundle parses NEXTAUTH_URL during static generation. A
@@ -44,6 +44,9 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          ...(process.env.NODE_ENV === 'production'
+            ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000' }]
+            : []),
           {
             key: 'Content-Security-Policy',
             value: [
