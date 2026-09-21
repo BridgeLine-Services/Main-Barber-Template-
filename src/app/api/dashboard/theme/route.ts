@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest) {
   const businessId = user.businessId
   if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parseResult = updateThemeSchema.safeParse(body)
   if (!parseResult.success) {
     return NextResponse.json(
