@@ -7,7 +7,7 @@
 //   disabled    → sign-up hidden entirely, existing users only
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Scissors, Lock, Mail, AlertCircle, ArrowRight, User } from 'lucide-react'
 import Link from 'next/link'
@@ -20,7 +20,6 @@ export interface RegistrationModeProps {
 }
 
 export default function LoginForm({ registrationMode }: RegistrationModeProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login') // register only reachable when openRegistration
   const [name, setName] = useState('')
@@ -60,9 +59,10 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           email,
           password,
           redirect: false,
+          callbackUrl: '/dashboard',
         })
         if (result?.ok) {
-          router.push('/dashboard')
+          window.location.assign(result.url ?? '/dashboard')
         } else {
           // Registration worked but auto-login failed — switch to login mode
           setMode('login')
@@ -75,6 +75,7 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           email,
           password,
           redirect: false,
+          callbackUrl: '/dashboard',
         })
 
         if (result?.error) {
@@ -85,7 +86,7 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           }
           setLoading(false)
         } else if (result?.ok) {
-          router.push('/dashboard')
+          window.location.assign(result.url ?? '/dashboard')
         } else {
           setError('An unexpected error occurred. Please try again.')
           setLoading(false)
