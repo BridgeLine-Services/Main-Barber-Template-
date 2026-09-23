@@ -151,7 +151,8 @@ export async function GET(req: NextRequest) {
       if (slugError) {
         slugAvailable = false
       } else {
-        const conflict = await prisma.business.findUnique({ where: { slug: checkSlug } })
+        const normalizedSlug = slugify(checkSlug)
+        const conflict = await prisma.business.findUnique({ where: { slug: normalizedSlug } })
         // Own slug is always "available" for the same business.
         slugAvailable = !conflict || conflict.id === business?.id
       }
@@ -202,7 +203,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Your shop is already set up' }, { status: 409 })
     }
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = createSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
@@ -272,13 +273,16 @@ export async function POST(req: NextRequest) {
     )
   } catch (error: any) {
     console.error('Onboarding error:', error)
-    if (error.message?.includes('database') || error.message?.includes('connect') || error.code === 'P1001') {
+    if (error?.code === 'P1001' || error?.code === 'P1017') {
       return NextResponse.json(
-        { error: 'Database not connected. Set DATABASE_URL in your Vercel environment variables.' },
+        { error: 'Onboarding service is temporarily unavailable. Please try again later.' },
         { status: 503 }
       )
     }
-    return NextResponse.json({ error: 'Setup failed', detail: error.message }, { status: 500 })
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'That URL slug is already taken' }, { status: 409 })
+    }
+    return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
   }
 }
 

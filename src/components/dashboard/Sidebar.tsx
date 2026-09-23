@@ -234,7 +234,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             const isExpanded = expandedSections.has(section.label)
             // Auto-expand section containing active item
             const hasActive = section.items.some((item) => isItemActive(item.href))
-            const show = isExpanded || hasActive
+            const show = isExpanded
 
             return (
               <div key={section.label} className="mb-1">

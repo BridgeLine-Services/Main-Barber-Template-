@@ -50,6 +50,7 @@ export function ReviewsClient({
   const [newComment, setNewComment] = useState('')
   const [newBarberId, setNewBarberId] = useState('')
   const [adding, setAdding] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const filteredReviews = filter === 'all'
     ? reviews
@@ -108,6 +109,7 @@ export function ReviewsClient({
   const handleAddReview = async () => {
     if (!newAuthor.trim()) return
     setAdding(true)
+    setFormError(null)
     try {
       const res = await fetch('/api/dashboard/reviews', {
         method: 'POST',
@@ -120,8 +122,13 @@ export function ReviewsClient({
           barberId: newBarberId || undefined,
         }),
       })
-      if (res.ok) {
-        const created = await res.json()
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error || 'Failed to add review')
+      }
+      const created = await res.json().catch(() => null)
+      if (!created?.id) throw new Error('Review was not created')
+      {
         const barber = barbers.find(b => b.id === newBarberId)
         setReviews(prev => [{
           id: created.id,
@@ -143,7 +150,8 @@ export function ReviewsClient({
         setShowAddForm(false)
       }
     } catch (err) {
-      console.error('Add review error:', err)
+      const message = err instanceof Error ? err.message : 'Failed to add review'
+      setFormError(message)
     } finally {
       setAdding(false)
     }
@@ -184,6 +192,7 @@ export function ReviewsClient({
               <X className="w-4 h-4" />
             </button>
           </div>
+          {formError && <p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{formError}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-zinc-500 mb-1 block">Customer Name</label>
