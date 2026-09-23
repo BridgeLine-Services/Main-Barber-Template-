@@ -55,9 +55,10 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
     setLoading(true)
     try {
       const res = await fetch(`/api/dashboard/media?type=${type}`)
-      const data = await res.json()
-      setMedia(data.media || [])
-      setServices(data.services || [])
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(data?.error || 'Failed to load media')
+  setMedia(data?.media || [])
+  setServices(data?.services || [])
     } catch {
       toast({ title: 'Failed to load media', variant: 'destructive' })
     } finally {
@@ -83,34 +84,26 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
         method: 'POST',
         body: formData,
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Upload failed')
 
-      if (data.url) {
-        // Now create the media asset record
-        const createRes = await fetch('/api/dashboard/media', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: data.url,
-            type: activeType,
-            altText: file.name.replace(/\.[^/.]+$/, ''),
-            sortOrder: media.length,
-          }),
-        })
-        const createData = await createRes.json()
+      if (!data?.url) throw new Error('Upload response did not include a URL')
 
-        if (createData.media) {
-          setMedia([...media, createData.media])
-          toast({ title: 'Image uploaded successfully' })
-          // Portfolio work benefits from immediate service linking —
-          // open the editor so the owner/barber can associate a service.
-          if (activeType === 'BARBER_PORTFOLIO' || activeType === 'SERVICE_PHOTO') {
-            setEditing(createData.media)
-          }
-        }
-      } else {
-        toast({ title: 'Upload failed', description: data.error, variant: 'destructive' })
-      }
+      // Now create the media asset record
+      const createRes = await fetch('/api/dashboard/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: data.url,
+          type: activeType,
+          altText: file.name.replace(/\.[^/.]+$/, ''),
+          sortOrder: media.length,
+        }),
+      })
+      const created = await createRes.json().catch(() => null)
+      if (!createRes.ok) throw new Error(created?.error || 'Failed to save media record')
+      setMedia([...media, created.media])
+      toast({ title: 'Image uploaded successfully' })
     } catch {
       toast({ title: 'Upload failed', variant: 'destructive' })
     } finally {

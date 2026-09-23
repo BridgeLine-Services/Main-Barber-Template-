@@ -71,7 +71,7 @@ export const updateAppointmentSchema = z.object({
 
 export const createServiceSchema = z.object({
   name: z.string().min(1).max(100),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(2000).nullable().optional(),
   duration: z.number().int().min(5).max(480), // 5 min to 8 hours
   price: z.number().min(0).max(10000),
   isActive: z.boolean().optional(),
@@ -81,7 +81,7 @@ export const createServiceSchema = z.object({
 
 export const updateServiceSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(2000).nullable().optional(),
   duration: z.number().int().min(5).max(480).optional(),
   price: z.number().min(0).max(10000).optional(),
   isActive: z.boolean().optional(),
@@ -93,9 +93,9 @@ export const updateServiceSchema = z.object({
 
 export const createBarberSchema = z.object({
   name: z.string().min(1).max(100),
-  specialty: z.string().max(200).optional(),
-  bio: z.string().max(2000).optional(),
-  photo: z.string().url().optional(),
+  specialty: z.string().max(200).nullable().optional(),
+  bio: z.string().max(2000).nullable().optional(),
+  photo: z.string().url().nullable().optional(),
   isActive: z.boolean().optional(),
   order: z.number().int().optional(),
   serviceIds: z.array(z.string()).optional(),
@@ -103,9 +103,9 @@ export const createBarberSchema = z.object({
 
 export const updateBarberSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  specialty: z.string().max(200).optional(),
-  bio: z.string().max(2000).optional(),
-  photo: z.string().url().optional(),
+  specialty: z.string().max(200).nullable().optional(),
+  bio: z.string().max(2000).nullable().optional(),
+  photo: z.string().url().nullable().optional(),
   isActive: z.boolean().optional(),
   order: z.number().int().optional(),
   serviceIds: z.array(z.string()).optional(),

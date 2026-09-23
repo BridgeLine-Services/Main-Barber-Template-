@@ -24,10 +24,17 @@ const updateReviewSchema = z.object({
   comment: z.string().max(2000).optional(),
 })
 
-// POST — customer submits a review (unauthenticated but server-side tenant-resolved)
+// POST — customer submits a review, or an authenticated owner adds one manually.
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const session = await getServerSession(authOptions)
+    const owner = session?.user as any
+    const body = await req.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid review data' }, { status: 400 })
+    }
+    const isOwner = owner?.role === 'OWNER' && owner?.businessId
+
     const parseResult = createReviewSchema.safeParse(body)
     if (!parseResult.success) {
       return NextResponse.json(
@@ -41,7 +48,7 @@ export async function POST(req: NextRequest) {
     // Resolve the business server-side from hostname/tenant config
     // Do NOT accept businessId from the request
     const { resolveBusinessId } = await import('@/lib/tenant')
-    const businessId = await resolveBusinessId()
+    const businessId = isOwner ? owner.businessId : await resolveBusinessId()
 
     // If barberId is provided, verify it belongs to this business
     if (data.barberId) {

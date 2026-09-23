@@ -343,8 +343,9 @@ function InventoryForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">SKU</label>
-              <input
+  <label className="block text-sm text-zinc-400 mb-1">SKU <span className="text-zinc-600">(optional)</span></label>
+  <p className="mb-1.5 text-[11px] text-zinc-500">SKU means Stock Keeping Unit. Use it as an optional identifier for tracking products.</p>
+  <input
                 type="text"
                 value={sku}
                 onChange={e => setSku(e.target.value)}

@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const businessId = (session.user as any)?.businessId
-  const body = await req.json()
+  if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
+  const body = await req.json().catch(() => null)
 
   const parseResult = createServiceSchema.safeParse(body)
   if (!parseResult.success) {
