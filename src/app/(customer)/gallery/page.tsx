@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { generatePageMetadata } from '@/lib/generate-page-metadata'
 import Link from 'next/link'
-import { Calendar, Images } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Images } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { resolveBusiness } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
+import { Section, SectionHeading } from '@/components/customer/Section'
+import { BookButton } from '@/components/customer/Cta'
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,19 +70,12 @@ export default async function GalleryPage({
     }).catch(() => [])
 
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <header className="mx-auto max-w-2xl text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Images aria-hidden="true" />
-          </div>
-          <h1 className="mt-5 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-            {service.name} Examples
-          </h1>
-          <p className="mt-4 text-pretty leading-6 text-muted-foreground">
-            Real {service.name.toLowerCase()} work from our barbers. Every photo is a
-            haircut someone actually got here.
-          </p>
-        </header>
+      <Section className="pt-12 lg:pt-20">
+        <SectionHeading
+          eyebrow="Our Work"
+          title={`${service.name} Examples`}
+          description={`Real ${service.name.toLowerCase()} work from our barbers. Every photo is a haircut someone actually got here.`}
+        />
 
         {examples.length === 0 ? (
           <Card className="mx-auto mt-12 max-w-xl">
@@ -92,17 +87,14 @@ export default async function GalleryPage({
                   Our barbers are still adding {service.name.toLowerCase()} work. Check back soon.
                 </p>
               </div>
-              <Button asChild>
-                <Link href={`/book?serviceId=${service.id}`}>
-                  <Calendar data-icon="inline-start" />Book this service
-                </Link>
-              </Button>
+              <BookButton href={`/book?serviceId=${service.id}`} label="Book this service" size="md" />
             </CardContent>
           </Card>
         ) : (
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {examples.map((image) => (
-              <figure key={image.id} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+              <StaggerItem key={image.id}>
+              <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
                 <div className="aspect-[4/3] bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -125,18 +117,15 @@ export default async function GalleryPage({
                   )}
                 </figcaption>
               </figure>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         )}
 
-        <div className="mt-12 flex justify-center">
-          <Button asChild>
-            <Link href={`/book?serviceId=${service.id}`}>
-              <Calendar data-icon="inline-start" />Book this service
-            </Link>
-          </Button>
-        </div>
-      </div>
+        <Reveal className="mt-14 flex justify-center">
+          <BookButton href={`/book?serviceId=${service.id}`} label="Book this service" />
+        </Reveal>
+      </Section>
     )
   }
 
@@ -147,16 +136,12 @@ export default async function GalleryPage({
   }).catch(() => [])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-      <header className="mx-auto max-w-2xl text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Images aria-hidden="true" />
-        </div>
-        <h1 className="mt-5 text-balance text-4xl font-bold tracking-tight sm:text-5xl">Gallery</h1>
-        <p className="mt-4 text-pretty leading-6 text-muted-foreground">
-          A look at the work, space, and details that make {business.name} unique.
-        </p>
-      </header>
+    <Section className="pt-12 lg:pt-20">
+      <SectionHeading
+        eyebrow="Gallery"
+        title="The Shop, In Pictures"
+        description={`A look at the work, space, and details that make ${business.name} unique.`}
+      />
 
       {images.length === 0 ? (
         <Card className="mx-auto mt-12 max-w-xl">
@@ -166,30 +151,30 @@ export default async function GalleryPage({
               <h2 className="font-semibold">Gallery coming soon</h2>
               <p className="mt-1 text-sm text-muted-foreground">Check back soon for new shop photos.</p>
             </div>
-            <Button asChild>
-              <Link href="/book"><Calendar data-icon="inline-start" />Book an appointment</Link>
-            </Button>
+            <BookButton href="/book" label="Book an appointment" size="md" />
           </CardContent>
         </Card>
       ) : (
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((image) => (
-            <figure key={image.id} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <StaggerItem key={image.id}>
+            <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
               <div className="aspect-[4/3] bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image.url} alt={image.altText || `${business.name} gallery photo`} className="size-full object-cover" />
               </div>
               {image.caption && <figcaption className="px-4 py-3 text-sm leading-6 text-muted-foreground">{image.caption}</figcaption>}
             </figure>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {images.length > 0 && (
-        <div className="mt-12 flex justify-center">
-          <Button asChild><Link href="/book"><Calendar data-icon="inline-start" />Book an appointment</Link></Button>
-        </div>
+        <Reveal className="mt-14 flex justify-center">
+          <BookButton href="/book" label="Book an appointment" />
+        </Reveal>
       )}
-    </div>
+    </Section>
   )
 }

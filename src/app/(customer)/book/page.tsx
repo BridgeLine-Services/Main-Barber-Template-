@@ -290,7 +290,8 @@ function BookingFlow() {
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Book an Appointment</h1>
+          <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5">Reserve Your Chair</span>
+          <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Book an Appointment</h1>
           <p className="mt-2 text-muted-foreground">Pay in person — no online payment required.</p>
         </div>
 

@@ -5,8 +5,9 @@ import type { Metadata } from 'next'
 import { resolveBusiness } from '@/lib/tenant'
 import { ContactForm } from '@/components/customer/ContactForm'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { MapPin, Phone, Mail, Clock } from 'lucide-react'
+import { Section, SectionHeading } from '@/components/customer/Section'
+import { Reveal } from '@/components/motion/reveal'
 
 export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata({
@@ -36,23 +37,17 @@ export default async function ContactPage() {
     : []
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
+    <Section className="pt-12 lg:pt-20">
       {/* Header */}
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <Badge variant="outline" className="border-accent/40 text-accent px-3 py-1">
-          Get In Touch
-        </Badge>
-        <h1 className="text-4xl sm:text-5xl font-display font-semibold text-foreground tracking-tight">
-          Contact {shopName}
-        </h1>
-        <p className="text-muted-foreground text-base leading-relaxed">
-          Have questions about our services, walk-in availability, or custom group bookings? We are here to help.
-        </p>
-      </div>
+      <SectionHeading
+        eyebrow="Get In Touch"
+        title={`Contact ${shopName}`}
+        description="Have questions about our services, walk-in availability, or custom group bookings? We are here to help."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
         {/* Shop Info Card */}
-        <Card className="bg-card border-border p-8 space-y-8">
+        <Card className="bg-card/60 border-border/70 backdrop-blur-sm p-8 space-y-8">
           <div>
             <h2 className="text-2xl font-bold text-foreground  mb-6">Location & Information</h2>
             <div className="space-y-6">
@@ -119,7 +114,7 @@ export default async function ContactPage() {
         </Card>
 
         {/* Contact Form Card */}
-        <Card className="bg-card border-border p-8 space-y-6">
+        <Card className="bg-card/60 border-border/70 backdrop-blur-sm p-8 space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground ">Send Us a Message</h2>
             <p className="text-xs text-muted-foreground mt-1">
@@ -128,11 +123,12 @@ export default async function ContactPage() {
           </div>
           <ContactForm />
         </Card>
-      </div>
+      </Reveal>
 
       {/* Google Maps Embed */}
       {fullAddress && (
-        <Card className="bg-card border-border overflow-hidden p-0 relative">
+        <Reveal className="mt-12">
+        <Card className="bg-card/60 border-border/70 backdrop-blur-sm overflow-hidden p-0 relative">
           <div className="p-6 border-b border-border flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <MapPin className="h-5 w-5 text-accent" />
@@ -157,7 +153,8 @@ export default async function ContactPage() {
             src={`https://maps.google.com/maps?q=${encodeURIComponent(`${shopName} ${fullAddress}`)}&z=15&output=embed`}
           />
         </Card>
+        </Reveal>
       )}
-    </div>
+    </Section>
   )
 }

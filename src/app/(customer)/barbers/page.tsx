@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Section, SectionHeading } from '@/components/customer/Section'
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { Scissors, Calendar } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -51,19 +53,13 @@ export default async function BarbersPage() {
   })
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
+    <Section className="pt-12 lg:pt-20">
       {/* Header — configurable from business settings */}
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <Badge variant="outline" className="px-3 py-1" style={{ borderColor: business.accentColor, color: business.accentColor }}>
-          {business.teamSectionLabel || 'Our Team'}
-        </Badge>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
-          {business.teamSectionTitle || `Meet the Barbers at ${business.name}`}
-        </h1>
-        <p className="text-muted-foreground text-base leading-relaxed">
-          {business.teamSectionDescription || 'Each member of our team brings years of experience, attention to detail, and passion for precision cuts and classic grooming.'}
-        </p>
-      </div>
+      <SectionHeading
+        eyebrow={business.teamSectionLabel || 'Our Team'}
+        title={business.teamSectionTitle || `Meet the Barbers at ${business.name}`}
+        description={business.teamSectionDescription || 'Each member of our team brings years of experience, attention to detail, and passion for precision cuts and classic grooming.'}
+      />
 
       {/* Barbers Grid */}
       {barbers.length === 0 ? (
@@ -71,7 +67,7 @@ export default async function BarbersPage() {
           <p className="text-muted-foreground">No barbers have been added yet. Add barbers in the Dashboard under Team.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {barbers.map((barber) => {
             // Calculate barber's review stats from actual records
             const barberReviews: Array<{ rating: number }> = barber.reviews || []
@@ -81,7 +77,8 @@ export default async function BarbersPage() {
               : null
 
             return (
-              <Card key={barber.id} className="flex flex-col justify-between overflow-hidden">
+              <StaggerItem key={barber.id} className="h-full">
+              <Card className="flex h-full flex-col justify-between overflow-hidden border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
                 <div>
                   <CardHeader className="text-center pt-8 pb-4">
                     <div className="mx-auto mb-4 relative">
@@ -183,10 +180,11 @@ export default async function BarbersPage() {
                   )}
                 </CardFooter>
               </Card>
+              </StaggerItem>
             )
           })}
-        </div>
+        </Stagger>
       )}
-    </div>
+    </Section>
   )
 }
