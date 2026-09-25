@@ -8,6 +8,7 @@ import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction, MediaType } from '@prisma/client'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-errors'
 
 const createMediaSchema = z.object({
   url: z.string().url(),
@@ -35,49 +36,48 @@ const updateMediaSchema = z.object({
  * BARBER: list only their own media (barberId forced from session)
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const role = (session.user as any)?.role
-  const businessId = (session.user as any)?.businessId
-  const sessionBarberId = (session.user as any)?.barberId
-  const { searchParams } = new URL(req.url)
-  const type = searchParams.get('type') as MediaType | null
-  const urlBarberId = searchParams.get('barberId')
-  const serviceId = searchParams.get('serviceId')
-
-  const where: any = { businessId }
-  if (type) where.type = type
-  if (serviceId) where.serviceId = serviceId
-  if (role === 'BARBER') {
-    where.barberId = sessionBarberId
-  } else if (urlBarberId) {
-    where.barberId = urlBarberId
-  }
-
-  const media = await prisma.mediaAsset.findMany({
-    where,
-    orderBy: { sortOrder: 'asc' },
-  })
-
-  // Service options for linking portfolio work:
-  // OWNER — all active business services; BARBER — only services they offer.
-  const services =
-    role === 'BARBER' && sessionBarberId
-      ? (
-          await prisma.barberService.findMany({
-            where: { barberId: sessionBarberId, isActive: true, service: { isActive: true } },
-            select: { service: { select: { id: true, name: true } } },
-            orderBy: { sortOrder: 'asc' },
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const role = (session.user as any)?.role
+    const businessId = (session.user as any)?.businessId
+    const sessionBarberId = (session.user as any)?.barberId
+    const { searchParams } = new URL(req.url)
+    const type = searchParams.get('type') as MediaType | null
+    const urlBarberId = searchParams.get('barberId')
+    const serviceId = searchParams.get('serviceId')
+    const where: any = { businessId }
+    if (type) where.type = type
+    if (serviceId) where.serviceId = serviceId
+    if (role === 'BARBER') {
+      where.barberId = sessionBarberId
+    } else if (urlBarberId) {
+      where.barberId = urlBarberId
+    }
+    const media = await prisma.mediaAsset.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    })
+    // Service options for linking portfolio work:
+    // OWNER — all active business services; BARBER — only services they offer.
+    const services =
+      role === 'BARBER' && sessionBarberId
+        ? (
+            await prisma.barberService.findMany({
+              where: { barberId: sessionBarberId, isActive: true, service: { isActive: true } },
+              select: { service: { select: { id: true, name: true } } },
+              orderBy: { sortOrder: 'asc' },
+            })
+          ).map((bs) => bs.service)
+        : await prisma.service.findMany({
+            where: { businessId, isActive: true },
+            select: { id: true, name: true },
+            orderBy: { order: 'asc' },
           })
-        ).map((bs) => bs.service)
-      : await prisma.service.findMany({
-          where: { businessId, isActive: true },
-          select: { id: true, name: true },
-          orderBy: { order: 'asc' },
-        })
-
-  return NextResponse.json({ media, services })
+    return NextResponse.json({ media, services })
+  } catch (error) {
+    return handleApiError(error, 'GET /api/dashboard/media')
+  }
 }
 
 /**
@@ -117,83 +117,78 @@ async function validateServiceLink(
  * BARBER: can only create BARBER_PHOTO or BARBER_PORTFOLIO for themselves
  */
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const role = (session.user as any)?.role
-  const businessId = (session.user as any)?.businessId
-  const userId = (session.user as any)?.id
-  const sessionBarberId = (session.user as any)?.barberId
-
-  const body = await req.json().catch(() => null)
-  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  const parseResult = createMediaSchema.safeParse(body)
-  if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid media data', details: parseResult.error.flatten().fieldErrors },
-      { status: 400 }
-    )
-  }
-
-  const data = parseResult.data
-
-  // BARBER role restrictions: can only upload portfolio/photos for themselves
-  if (role === 'BARBER') {
-    if (!sessionBarberId) return NextResponse.json({ error: 'No barber profile' }, { status: 400 })
-    if (data.type !== MediaType.BARBER_PHOTO && data.type !== MediaType.BARBER_PORTFOLIO) {
-      return NextResponse.json({ error: 'Barbers can only upload photos for themselves' }, { status: 403 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const role = (session.user as any)?.role
+    const businessId = (session.user as any)?.businessId
+    const userId = (session.user as any)?.id
+    const sessionBarberId = (session.user as any)?.barberId
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    const parseResult = createMediaSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid media data', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
-    data.barberId = sessionBarberId
-  } else {
-    // OWNER: if barberId specified, verify barber belongs to this business
-    if (data.barberId) {
-      const barber = await prisma.barber.findFirst({
-        where: { id: data.barberId, businessId },
+    const data = parseResult.data
+    // BARBER role restrictions: can only upload portfolio/photos for themselves
+    if (role === 'BARBER') {
+      if (!sessionBarberId) return NextResponse.json({ error: 'No barber profile' }, { status: 400 })
+      if (data.type !== MediaType.BARBER_PHOTO && data.type !== MediaType.BARBER_PORTFOLIO) {
+        return NextResponse.json({ error: 'Barbers can only upload photos for themselves' }, { status: 403 })
+      }
+      data.barberId = sessionBarberId
+    } else {
+      // OWNER: if barberId specified, verify barber belongs to this business
+      if (data.barberId) {
+        const barber = await prisma.barber.findFirst({
+          where: { id: data.barberId, businessId },
+        })
+        if (!barber) return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
+      }
+    }
+    // Service-linked portfolio: validate tenant + (barber) own-service rule
+    const serviceError = await validateServiceLink(data.serviceId, businessId, role, role === 'BARBER' ? sessionBarberId : data.barberId)
+    if (serviceError) {
+      return NextResponse.json({ error: serviceError }, { status: 403 })
+    }
+    // If type is LOGO or HERO, unpublish previous assets of that type (only one active)
+    if (data.type === MediaType.LOGO || data.type === MediaType.HERO || data.type === MediaType.FAVICON || data.type === MediaType.OG_IMAGE) {
+      await prisma.mediaAsset.updateMany({
+        where: { businessId, type: data.type },
+        data: { isPublished: false },
       })
-      if (!barber) return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
     }
-  }
-
-  // Service-linked portfolio: validate tenant + (barber) own-service rule
-  const serviceError = await validateServiceLink(data.serviceId, businessId, role, role === 'BARBER' ? sessionBarberId : data.barberId)
-  if (serviceError) {
-    return NextResponse.json({ error: serviceError }, { status: 403 })
-  }
-
-  // If type is LOGO or HERO, unpublish previous assets of that type (only one active)
-  if (data.type === MediaType.LOGO || data.type === MediaType.HERO || data.type === MediaType.FAVICON || data.type === MediaType.OG_IMAGE) {
-    await prisma.mediaAsset.updateMany({
-      where: { businessId, type: data.type },
-      data: { isPublished: false },
+    const media = await prisma.mediaAsset.create({
+      data: {
+        businessId,
+        barberId: data.barberId || null,
+        serviceId: data.serviceId || null,
+        type: data.type,
+        url: data.url,
+        altText: data.altText || null,
+        caption: data.caption || null,
+        sortOrder: data.sortOrder,
+        isPublished: data.isPublished,
+      },
     })
-  }
-
-  const media = await prisma.mediaAsset.create({
-    data: {
+    await logAudit({
+      userId,
       businessId,
-      barberId: data.barberId || null,
-      serviceId: data.serviceId || null,
-      type: data.type,
-      url: data.url,
-      altText: data.altText || null,
-      caption: data.caption || null,
-      sortOrder: data.sortOrder,
-      isPublished: data.isPublished,
-    },
-  })
-
-  await logAudit({
-    userId,
-    businessId,
-    action: AuditAction.SETTINGS_UPDATED,
-    entityType: 'MediaAsset',
-    entityId: media.id,
-    newValues: data,
-    ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') || undefined,
-  })
-
-  return NextResponse.json({ media }, { status: 201 })
+      action: AuditAction.SETTINGS_UPDATED,
+      entityType: 'MediaAsset',
+      entityId: media.id,
+      newValues: data,
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
+    return NextResponse.json({ media }, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'POST /api/dashboard/media')
+  }
 }
 
 /**
@@ -201,69 +196,64 @@ export async function POST(req: NextRequest) {
  * Update a media asset (alt text, caption, sort order, published status)
  */
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const role = (session.user as any)?.role
-  const businessId = (session.user as any)?.businessId
-  const userId = (session.user as any)?.id
-  const sessionBarberId = (session.user as any)?.barberId
-
-  const body = await req.json().catch(() => null)
-  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  const parseResult = updateMediaSchema.safeParse(body)
-  if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid data', details: parseResult.error.flatten().fieldErrors },
-      { status: 400 }
-    )
-  }
-
-  const { id, ...updateData } = parseResult.data
-
-  const media = await prisma.mediaAsset.findUnique({ where: { id } })
-  if (!media) return NextResponse.json({ error: 'Media not found' }, { status: 404 })
-  if (media.businessId !== businessId) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  // Service-linked portfolio: validate tenant + (barber) own-service rule
-  if (updateData.serviceId !== undefined) {
-    const serviceError = await validateServiceLink(
-      updateData.serviceId,
-      businessId,
-      role,
-      role === 'BARBER' ? sessionBarberId : media.barberId
-    )
-    if (serviceError) {
-      return NextResponse.json({ error: serviceError }, { status: 403 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const role = (session.user as any)?.role
+    const businessId = (session.user as any)?.businessId
+    const userId = (session.user as any)?.id
+    const sessionBarberId = (session.user as any)?.barberId
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    const parseResult = updateMediaSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid data', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+    const { id, ...updateData } = parseResult.data
+    const media = await prisma.mediaAsset.findUnique({ where: { id } })
+    if (!media) return NextResponse.json({ error: 'Media not found' }, { status: 404 })
+    if (media.businessId !== businessId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    // Service-linked portfolio: validate tenant + (barber) own-service rule
+    if (updateData.serviceId !== undefined) {
+      const serviceError = await validateServiceLink(
+        updateData.serviceId,
+        businessId,
+        role,
+        role === 'BARBER' ? sessionBarberId : media.barberId
+      )
+      if (serviceError) {
+        return NextResponse.json({ error: serviceError }, { status: 403 })
+      }
+    }
+    // BARBER can only manage their own portfolio assets. Profile photos are
+    // intentionally owner-managed through the existing profile flow.
+    if (role === 'BARBER' && (media.barberId !== sessionBarberId || media.type !== MediaType.BARBER_PORTFOLIO)) {
+      return NextResponse.json({ error: 'You can only update your own portfolio media' }, { status: 403 })
+    }
+    const updated = await prisma.mediaAsset.update({
+      where: { id },
+      data: updateData,
+    })
+    await logAudit({
+      userId,
+      businessId,
+      action: AuditAction.SETTINGS_UPDATED,
+      entityType: 'MediaAsset',
+      entityId: id,
+      oldValues: media,
+      newValues: updateData,
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
+    return NextResponse.json({ media: updated })
+  } catch (error) {
+    return handleApiError(error, 'PATCH /api/dashboard/media')
   }
-
-  // BARBER can only manage their own portfolio assets. Profile photos are
-  // intentionally owner-managed through the existing profile flow.
-  if (role === 'BARBER' && (media.barberId !== sessionBarberId || media.type !== MediaType.BARBER_PORTFOLIO)) {
-    return NextResponse.json({ error: 'You can only update your own portfolio media' }, { status: 403 })
-  }
-
-  const updated = await prisma.mediaAsset.update({
-    where: { id },
-    data: updateData,
-  })
-
-  await logAudit({
-    userId,
-    businessId,
-    action: AuditAction.SETTINGS_UPDATED,
-    entityType: 'MediaAsset',
-    entityId: id,
-    oldValues: media,
-    newValues: updateData,
-    ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') || undefined,
-  })
-
-  return NextResponse.json({ media: updated })
 }
 
 /**
@@ -273,41 +263,38 @@ export async function PATCH(req: NextRequest) {
  * OWNER: can delete any media in their business
  */
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const role = (session.user as any)?.role
-  const businessId = (session.user as any)?.businessId
-  const userId = (session.user as any)?.id
-  const sessionBarberId = (session.user as any)?.barberId
-  const { searchParams } = new URL(req.url)
-  const body = await req.json().catch(() => ({}))
-  const id = searchParams.get('id') || (typeof body.id === 'string' ? body.id : null)
-
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
-
-  const media = await prisma.mediaAsset.findUnique({ where: { id } })
-  if (!media) return NextResponse.json({ error: 'Media not found' }, { status: 404 })
-  if (media.businessId !== businessId) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const role = (session.user as any)?.role
+    const businessId = (session.user as any)?.businessId
+    const userId = (session.user as any)?.id
+    const sessionBarberId = (session.user as any)?.barberId
+    const { searchParams } = new URL(req.url)
+    const body = await req.json().catch(() => ({}))
+    const id = searchParams.get('id') || (typeof body.id === 'string' ? body.id : null)
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+    const media = await prisma.mediaAsset.findUnique({ where: { id } })
+    if (!media) return NextResponse.json({ error: 'Media not found' }, { status: 404 })
+    if (media.businessId !== businessId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    if (role === 'BARBER' && (media.barberId !== sessionBarberId || media.type !== MediaType.BARBER_PORTFOLIO)) {
+      return NextResponse.json({ error: 'You can only delete your own portfolio media' }, { status: 403 })
+    }
+    await prisma.mediaAsset.delete({ where: { id } })
+    await logAudit({
+      userId,
+      businessId,
+      action: AuditAction.SETTINGS_UPDATED,
+      entityType: 'MediaAsset',
+      entityId: id,
+      oldValues: media,
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleApiError(error, 'DELETE /api/dashboard/media')
   }
-
-  if (role === 'BARBER' && (media.barberId !== sessionBarberId || media.type !== MediaType.BARBER_PORTFOLIO)) {
-    return NextResponse.json({ error: 'You can only delete your own portfolio media' }, { status: 403 })
-  }
-
-  await prisma.mediaAsset.delete({ where: { id } })
-
-  await logAudit({
-    userId,
-    businessId,
-    action: AuditAction.SETTINGS_UPDATED,
-    entityType: 'MediaAsset',
-    entityId: id,
-    oldValues: media,
-    ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') || undefined,
-  })
-
-  return NextResponse.json({ success: true })
 }

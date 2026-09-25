@@ -8,6 +8,7 @@ import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction } from '@prisma/client'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-errors'
 
 const updateThemeSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').optional(),
@@ -22,26 +23,26 @@ const updateThemeSchema = z.object({
  * OWNER: returns the current theme settings
  */
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const businessId = (session.user as any)?.businessId
-  if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
-
-  const business = await prisma.business.findUnique({
-    where: { id: businessId },
-    select: {
-      primaryColor: true,
-      accentColor: true,
-      secondaryColor: true,
-      fontFamily: true,
-      themeMode: true,
-    },
-  })
-
-  if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-
-  return NextResponse.json({ theme: business })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const businessId = (session.user as any)?.businessId
+    if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: {
+        primaryColor: true,
+        accentColor: true,
+        secondaryColor: true,
+        fontFamily: true,
+        themeMode: true,
+      },
+    })
+    if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    return NextResponse.json({ theme: business })
+  } catch (error) {
+    return handleApiError(error, 'GET /api/dashboard/theme')
+  }
 }
 
 /**
@@ -49,54 +50,51 @@ export async function GET() {
  * OWNER only: update theme colors, font, mode
  */
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const user = session.user as any
-  if (user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Forbidden — owner only' }, { status: 403 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const user = session.user as any
+    if (user.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Forbidden — owner only' }, { status: 403 })
+    }
+    const businessId = user.businessId
+    if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
+    const body = await req.json().catch(() => null)
+    const parseResult = updateThemeSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid theme data', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const oldBusiness = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { primaryColor: true, accentColor: true, secondaryColor: true, fontFamily: true, themeMode: true },
+    })
+    const updated = await prisma.business.update({
+      where: { id: businessId },
+      data: parseResult.data,
+      select: {
+        primaryColor: true,
+        accentColor: true,
+        secondaryColor: true,
+        fontFamily: true,
+        themeMode: true,
+      },
+    })
+    await logAudit({
+      userId: user.id,
+      businessId,
+      action: AuditAction.BRANDING_UPDATED,
+      entityType: 'Business',
+      entityId: businessId,
+      oldValues: oldBusiness,
+      newValues: parseResult.data,
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
+    return NextResponse.json({ theme: updated })
+  } catch (error) {
+    return handleApiError(error, 'PATCH /api/dashboard/theme')
   }
-
-  const businessId = user.businessId
-  if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
-
-  const body = await req.json().catch(() => null)
-  const parseResult = updateThemeSchema.safeParse(body)
-  if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid theme data', details: parseResult.error.flatten().fieldErrors },
-      { status: 400 }
-    )
-  }
-
-  const oldBusiness = await prisma.business.findUnique({
-    where: { id: businessId },
-    select: { primaryColor: true, accentColor: true, secondaryColor: true, fontFamily: true, themeMode: true },
-  })
-
-  const updated = await prisma.business.update({
-    where: { id: businessId },
-    data: parseResult.data,
-    select: {
-      primaryColor: true,
-      accentColor: true,
-      secondaryColor: true,
-      fontFamily: true,
-      themeMode: true,
-    },
-  })
-
-  await logAudit({
-    userId: user.id,
-    businessId,
-    action: AuditAction.BRANDING_UPDATED,
-    entityType: 'Business',
-    entityId: businessId,
-    oldValues: oldBusiness,
-    newValues: parseResult.data,
-    ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') || undefined,
-  })
-
-  return NextResponse.json({ theme: updated })
 }

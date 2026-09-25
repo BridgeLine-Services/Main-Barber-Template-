@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { requireOwner } from '@/lib/auth-helpers'
 import { resolveOwnerBusinessId } from '@/lib/onboarding'
 import { createServiceSchema } from '@/lib/validation'
+import { handleApiError } from '@/lib/api-errors'
 
 const serviceSubset = {
   id: true,
@@ -22,57 +23,60 @@ const serviceSubset = {
 } as const
 
 export async function GET() {
-  const auth = await requireOwner()
-  if (!auth.success) return auth.response
-
-  const businessId = await resolveOwnerBusinessId(auth.user)
-  if (!businessId) {
-    return NextResponse.json({ error: 'No business linked to your account yet' }, { status: 409 })
+  try {
+    const auth = await requireOwner()
+    if (!auth.success) return auth.response
+    const businessId = await resolveOwnerBusinessId(auth.user)
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business linked to your account yet' }, { status: 409 })
+    }
+    const services = await prisma.service.findMany({
+      where: { businessId },
+      select: serviceSubset,
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    })
+    return NextResponse.json({ services })
+  } catch (error) {
+    return handleApiError(error, 'GET /api/dashboard/onboarding/services')
   }
-
-  const services = await prisma.service.findMany({
-    where: { businessId },
-    select: serviceSubset,
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-  })
-  return NextResponse.json({ services })
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireOwner()
-  if (!auth.success) return auth.response
-
-  const businessId = await resolveOwnerBusinessId(auth.user)
-  if (!businessId) {
-    return NextResponse.json({ error: 'Create your business basics first' }, { status: 409 })
-  }
-
   try {
-    const body = await req.json()
-    const parsed = createServiceSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid service data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+    const auth = await requireOwner()
+    if (!auth.success) return auth.response
+    const businessId = await resolveOwnerBusinessId(auth.user)
+    if (!businessId) {
+      return NextResponse.json({ error: 'Create your business basics first' }, { status: 409 })
     }
-    const { name, description, duration, price, isActive } = parsed.data
-
-    const service = await prisma.service.create({
-      data: {
-        businessId, // server-resolved — never from the request body
-        name,
-        description: description || null,
-        duration,
-        price,
-        isActive: isActive ?? true,
-        order: 0,
-      },
-      select: serviceSubset,
-    })
-    return NextResponse.json({ service }, { status: 201 })
-  } catch (error: any) {
-    console.error('Onboarding service create error:', error)
-    return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
+    try {
+      const body = await req.json()
+      const parsed = createServiceSchema.safeParse(body)
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: 'Invalid service data', details: parsed.error.flatten().fieldErrors },
+          { status: 400 }
+        )
+      }
+      const { name, description, duration, price, isActive } = parsed.data
+      const service = await prisma.service.create({
+        data: {
+          businessId, // server-resolved — never from the request body
+          name,
+          description: description || null,
+          duration,
+          price,
+          isActive: isActive ?? true,
+          order: 0,
+        },
+        select: serviceSubset,
+      })
+      return NextResponse.json({ service }, { status: 201 })
+    } catch (error: any) {
+      console.error('Onboarding service create error:', error)
+      return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
+    }
+  } catch (error) {
+    return handleApiError(error, 'POST /api/dashboard/onboarding/services')
   }
 }

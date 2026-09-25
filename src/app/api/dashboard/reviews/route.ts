@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction } from '@prisma/client'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/api-errors'
 
 // Validation schemas
 const createReviewSchema = z.object({
@@ -79,147 +80,137 @@ export async function POST(req: NextRequest) {
 
 // GET — owner lists reviews (authenticated, OWNER only)
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const user = session.user as any
-  if (user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   try {
-    const { searchParams } = new URL(req.url)
-    const barberId = searchParams.get('barberId')
-
-    const where: any = { businessId: user.businessId }
-    if (barberId) {
-      where.barberId = barberId
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const reviews = await prisma.review.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: barberId ? undefined : { barber: { select: { name: true, slug: true } } },
-    })
-
-    const serialized = reviews.map(r => ({
-      ...r,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
-    }))
-
-    const avgRating = reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : '0.0'
-
-    return NextResponse.json({ reviews: serialized, avgRating, total: reviews.length })
+    const user = session.user as any
+    if (user.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    try {
+      const { searchParams } = new URL(req.url)
+      const barberId = searchParams.get('barberId')
+      const where: any = { businessId: user.businessId }
+      if (barberId) {
+        where.barberId = barberId
+      }
+      const reviews = await prisma.review.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: barberId ? undefined : { barber: { select: { name: true, slug: true } } },
+      })
+      const serialized = reviews.map(r => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      }))
+      const avgRating = reviews.length > 0
+        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+        : '0.0'
+      return NextResponse.json({ reviews: serialized, avgRating, total: reviews.length })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
+    }
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
+    return handleApiError(error, 'GET /api/dashboard/reviews')
   }
 }
 
 // PATCH — owner updates review (toggle featured, assign barber, edit)
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const user = session.user as any
-  if (user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   try {
-    const body = await req.json()
-    const parseResult = updateReviewSchema.safeParse(body)
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid review data', details: parseResult.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { id, ...updateData } = parseResult.data
-
-    // Verify review belongs to this business
-    const review = await prisma.review.findFirst({
-      where: { id, businessId: user.businessId },
-    })
-
-    if (!review) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+    const user = session.user as any
+    if (user.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-
-    // If barberId is being set, verify it belongs to this business
-    if (updateData.barberId) {
-      const barber = await prisma.barber.findFirst({
-        where: { id: updateData.barberId, businessId: user.businessId },
-      })
-      if (!barber) {
-        return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
+    try {
+      const body = await req.json()
+      const parseResult = updateReviewSchema.safeParse(body)
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { error: 'Invalid review data', details: parseResult.error.flatten().fieldErrors },
+          { status: 400 }
+        )
       }
+      const { id, ...updateData } = parseResult.data
+      // Verify review belongs to this business
+      const review = await prisma.review.findFirst({
+        where: { id, businessId: user.businessId },
+      })
+      if (!review) {
+        return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+      }
+      // If barberId is being set, verify it belongs to this business
+      if (updateData.barberId) {
+        const barber = await prisma.barber.findFirst({
+          where: { id: updateData.barberId, businessId: user.businessId },
+        })
+        if (!barber) {
+          return NextResponse.json({ error: 'Barber not found' }, { status: 404 })
+        }
+      }
+      const updated = await prisma.review.update({
+        where: { id },
+        data: {
+          ...updateData,
+          barberId: updateData.barberId === undefined ? undefined : (updateData.barberId || null),
+        },
+      })
+      await logAudit({
+        userId: user.id,
+        businessId: user.businessId,
+        action: AuditAction.SETTINGS_UPDATED,
+        entityType: 'Review',
+        entityId: id,
+        oldValues: review,
+        newValues: updateData,
+        ipAddress: getClientIP(req),
+        userAgent: req.headers.get('user-agent') || undefined,
+      })
+      return NextResponse.json(updated)
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to update review' }, { status: 500 })
     }
-
-    const updated = await prisma.review.update({
-      where: { id },
-      data: {
-        ...updateData,
-        barberId: updateData.barberId === undefined ? undefined : (updateData.barberId || null),
-      },
-    })
-
-    await logAudit({
-      userId: user.id,
-      businessId: user.businessId,
-      action: AuditAction.SETTINGS_UPDATED,
-      entityType: 'Review',
-      entityId: id,
-      oldValues: review,
-      newValues: updateData,
-      ipAddress: getClientIP(req),
-      userAgent: req.headers.get('user-agent') || undefined,
-    })
-
-    return NextResponse.json(updated)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update review' }, { status: 500 })
+    return handleApiError(error, 'PATCH /api/dashboard/reviews')
   }
 }
 
 // DELETE — owner deletes review
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const user = session.user as any
-  if (user.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      return NextResponse.json({ error: 'Review ID required' }, { status: 400 })
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const review = await prisma.review.findFirst({
-      where: { id, businessId: user.businessId },
-    })
-
-    if (!review) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+    const user = session.user as any
+    if (user.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-
-    await prisma.review.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    try {
+      const { searchParams } = new URL(req.url)
+      const id = searchParams.get('id')
+      if (!id) {
+        return NextResponse.json({ error: 'Review ID required' }, { status: 400 })
+      }
+      const review = await prisma.review.findFirst({
+        where: { id, businessId: user.businessId },
+      })
+      if (!review) {
+        return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+      }
+      await prisma.review.delete({ where: { id } })
+      return NextResponse.json({ success: true })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 })
+    }
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 })
+    return handleApiError(error, 'DELETE /api/dashboard/reviews')
   }
 }
