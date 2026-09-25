@@ -57,7 +57,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
         body: JSON.stringify({
           name: name || 'Loyalty Program',
           type,
-          tiers: tiers.sort((a, b) => a.threshold - b.threshold),
+          tiers: [...tiers].sort((a, b) => a.threshold - b.threshold),
           pointsPerDollar: type === 'POINTS' ? pointsPerDollar : null,
           isActive: true,
         }),
@@ -174,7 +174,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {tiers.sort((a, b) => a.threshold - b.threshold).map((tier, index) => (
+            {[...tiers].sort((a, b) => a.threshold - b.threshold).map((tier, index) => (
               <div
                 key={index}
                 className="flex flex-wrap items-end gap-3 bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4"
@@ -241,7 +241,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
           <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mt-4">
             <p className="text-xs text-amber-400 font-semibold mb-2">Preview:</p>
             <div className="flex flex-wrap gap-2">
-              {tiers.sort((a, b) => a.threshold - b.threshold).map((tier, i) => (
+              {[...tiers].sort((a, b) => a.threshold - b.threshold).map((tier, i) => (
                 <span key={i} className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg">
                   <span className="text-amber-400 font-bold">{tier.threshold}</span> {metricLabel} = {tier.reward || '???'}
                 </span>

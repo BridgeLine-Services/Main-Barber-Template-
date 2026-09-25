@@ -62,6 +62,16 @@ export function MarketingClient({
   const [previewing, setPreviewing] = useState(false)
   const [creating, setCreating] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const readError = async (res: Response): Promise<string> => {
+    try {
+      const data = await res.json()
+      return data?.error || 'Something went wrong. Please try again.'
+    } catch {
+      return 'Something went wrong. Please try again.'
+    }
+  }
 
   const audienceConfig = () => {
     if (audience === 'NOT_VISITED_BARBER') return { barberId }
@@ -78,10 +88,15 @@ export function MarketingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audience, audienceConfig: audienceConfig(), preview: true }),
       })
+      if (!res.ok) {
+        setError(await readError(res))
+        return
+      }
       const data = await res.json()
       setPreviewCount(data.recipientCount ?? 0)
-    } catch (e) {
-      console.error(e)
+      setError(null)
+    } catch {
+      setError('Could not load the preview. Check your connection and try again.')
     } finally {
       setPreviewing(false)
     }
@@ -96,14 +111,17 @@ export function MarketingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, subject, body, audience, audienceConfig: audienceConfig() }),
       })
-      if (res.ok) {
-        const newCampaign = await res.json()
-        setCampaigns([newCampaign, ...campaigns])
-        setShowForm(false)
-        setName(''); setSubject(''); setBody(''); setPreviewCount(null)
+      if (!res.ok) {
+        setError(await readError(res))
+        return
       }
-    } catch (e) {
-      console.error(e)
+      const newCampaign = await res.json()
+      setCampaigns([newCampaign, ...campaigns])
+      setShowForm(false)
+      setName(''); setSubject(''); setBody(''); setPreviewCount(null)
+      setError(null)
+    } catch {
+      setError('Could not create the campaign. Check your connection and try again.')
     } finally {
       setCreating(false)
     }
@@ -113,16 +131,19 @@ export function MarketingClient({
     setSendingId(campaignId)
     try {
       const res = await fetch(`/api/dashboard/marketing/campaigns/${campaignId}/send`, { method: 'POST' })
-      if (res.ok) {
-        const data = await res.json()
-        setCampaigns(campaigns.map(c =>
-          c.id === campaignId
-            ? { ...c, status: 'SENT', sentAt: new Date().toISOString(), recipientCount: data.sent }
-            : c
-        ))
+      if (!res.ok) {
+        setError(await readError(res))
+        return
       }
-    } catch (e) {
-      console.error(e)
+      const data = await res.json()
+      setCampaigns(campaigns.map(c =>
+        c.id === campaignId
+          ? { ...c, status: 'SENT', sentAt: new Date().toISOString(), recipientCount: data.sent }
+          : c
+      ))
+      setError(null)
+    } catch {
+      setError('Could not send the campaign. Check your connection and try again.')
     } finally {
       setSendingId(null)
     }
@@ -140,7 +161,7 @@ export function MarketingClient({
         </div>
         {isOwner && (
           <Button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { setError(null); setShowForm(!showForm) }}
             className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
           >
             {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -148,6 +169,15 @@ export function MarketingClient({
           </Button>
         )}
       </div>
+
+      {error && (
+        <div className="flex items-start justify-between gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} aria-label="Dismiss error" className="text-red-400/70 hover:text-red-300">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 space-y-4">
