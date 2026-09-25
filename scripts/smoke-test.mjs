@@ -7,7 +7,7 @@ if (!baseUrl) {
 }
 
 const origin = new URL(baseUrl)
-const paths = ['/', '/booking', '/login', '/api/health']
+const paths = ['/', '/book', '/login', '/api/health']
 let failed = false
 
 for (const pathname of paths) {
