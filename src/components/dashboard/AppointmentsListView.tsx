@@ -207,7 +207,7 @@ export function AppointmentsListView({
 
       {/* Filter Bar */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {/* Search Input */}
           <div className="relative lg:col-span-2">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -252,22 +252,20 @@ export function AppointmentsListView({
           )}
 
           {/* Date range inputs */}
-          <div className="flex gap-2">
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              placeholder="From"
-              className="bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
-            />
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              placeholder="To"
-              className="bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
-            />
-          </div>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            aria-label="Start date"
+            className="min-w-0 bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
+          />
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            aria-label="End date"
+            className="min-w-0 bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
+          />
         </div>
       </div>
 
