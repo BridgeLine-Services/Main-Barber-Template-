@@ -563,6 +563,27 @@ export async function createAppointmentSafely(params: {
       })
       if (blocked) throw new Error('BLOCKED')
 
+      // 5b. Check business closures (holidays, vacations). The slot display
+      // path (getAvailableSlots) already hides closure days; the POST path
+      // must enforce the same rule so direct bookings can't slip through.
+      const closures = await tx.businessClosure.findMany({
+        where: {
+          businessId,
+          isActive: true,
+          startDate: { lte: endTime },
+          endDate: { gte: startTime },
+        },
+      })
+      for (const closure of closures) {
+        if (closure.isAllDay) throw new Error('CLOSED')
+        if (closure.startTime && closure.endTime) {
+          // Closure times are business-local clock strings on the appointment's local date
+          const cStart = localTimeToUTCFromYMD(closure.startTime, year, month, day, tz)
+          const cEnd = localTimeToUTCFromYMD(closure.endTime, year, month, day, tz)
+          if (startTime < cEnd && endTime > cStart) throw new Error('CLOSED')
+        }
+      }
+
       // 6. Find or create the customer
       const customer = await tx.customer.upsert({
         where: {
@@ -651,6 +672,9 @@ export async function createAppointmentSafely(params: {
     }
     if (message === 'BLOCKED') {
       return { success: false, error: 'This time slot has been blocked by the shop.' }
+    }
+    if (message === 'CLOSED') {
+      return { success: false, error: 'The shop is closed at this time (holiday or closure).' }
     }
     return { success: false, error: message }
   }

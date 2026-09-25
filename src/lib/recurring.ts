@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getAvailableSlots, validateSlot, createAppointmentSafely } from '@/lib/availability'
-import { addDays } from 'date-fns'
+import { DateTime } from 'luxon'
+import { localTimeToUTCFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 
 // ============================================================================
 // Recurring Appointment Engine
@@ -27,6 +28,53 @@ export interface RecurringPreview {
 }
 
 /**
+ * Resolve the business timezone for wall-clock math. All occurrence dates and
+ * slot instants are computed in the BUSINESS timezone (not the server's), so a
+ * shop in America/Los_Angeles gets the same series on a UTC host as on a
+ * local one.
+ */
+async function getBusinessTimezone(businessId: string): Promise<string> {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { timezone: true },
+  })
+  return resolveBusinessTimezone(business)
+}
+
+/**
+ * Parse a preferred time like "2:00 PM" or "14:00" into a UTC instant on the
+ * given BUSINESS-LOCAL calendar date. The occurrence is a Luxon DateTime
+ * already set to the business timezone.
+ */
+function slotInstantFromLocalTime(occurrenceLocal: DateTime, timeStr: string): Date {
+  let hours = 0
+  let minutes = 0
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (match) {
+    hours = parseInt(match[1], 10)
+    minutes = parseInt(match[2], 10)
+    const period = match[3].toUpperCase()
+    if (period === 'PM' && hours < 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
+  } else {
+    const parts = timeStr.split(':')
+    hours = parseInt(parts[0], 10) || 0
+    minutes = parseInt(parts[1], 10) || 0
+  }
+  const hhmm = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  return localTimeToUTCFromYMD(hhmm, occurrenceLocal.year, occurrenceLocal.month, occurrenceLocal.day, occurrenceLocal.zoneName)
+}
+
+/**
+ * Compute the i-th occurrence on the business-local calendar. Adding days on
+ * the local calendar (rather than 24h increments on the UTC instant) keeps
+ * the wall-clock date stable across DST transitions.
+ */
+function occurrenceLocalDate(startDate: Date, intervalDays: number, index: number, timezone: string): DateTime {
+  return DateTime.fromJSDate(startDate).setZone(timezone).plus({ days: index * intervalDays })
+}
+
+/**
  * Preview a recurring appointment series WITHOUT creating any appointments.
  * Checks barber availability for each occurrence and returns conflicts.
  */
@@ -42,25 +90,23 @@ export async function previewRecurringAppointments(params: {
   const { businessId, barberId, serviceId, startDate, intervalWeeks, totalOccurrences, preferredTime } = params
 
   const intervalDays = intervalWeeks * 7
+  const timezone = await getBusinessTimezone(businessId)
   const occurrences: RecurringPreviewOccurrence[] = []
 
   for (let i = 0; i < totalOccurrences; i++) {
-    const occurrenceDate = addDays(startDate, i * intervalDays)
-    const dateLabel = occurrenceDate.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
+    const occurrenceLocal = occurrenceLocalDate(startDate, intervalDays, i, timezone)
+    const dateLabel = occurrenceLocal.setLocale('en-US').toFormat('ccc, LLL d')
+    const occurrenceInstant = occurrenceLocal.startOf('day').toUTC().toJSDate()
 
-    // Check if barber is working on this day
-    const dayOfWeek = occurrenceDate.getDay()
+    // Check if barber is working on this day (JS dayOfWeek: 0 = Sunday)
+    const dayOfWeek = occurrenceLocal.weekday % 7
     const schedule = await prisma.schedule.findUnique({
       where: { barberId_dayOfWeek: { barberId, dayOfWeek } },
     })
 
     if (!schedule || schedule.isOff) {
       occurrences.push({
-        date: occurrenceDate,
+        date: occurrenceInstant,
         dateLabel,
         available: false,
         reason: 'Barber not working on this day',
@@ -68,19 +114,19 @@ export async function previewRecurringAppointments(params: {
       continue
     }
 
-    // Check for business closures
+    // Check for business closures on this date
     const closures = await prisma.businessClosure.findMany({
       where: {
         businessId,
         isActive: true,
-        startDate: { lte: occurrenceDate },
-        endDate: { gte: occurrenceDate },
+        startDate: { lte: occurrenceInstant },
+        endDate: { gte: occurrenceInstant },
       },
     })
 
     if (closures.some(c => c.isAllDay)) {
       occurrences.push({
-        date: occurrenceDate,
+        date: occurrenceInstant,
         dateLabel,
         available: false,
         reason: 'Shop closed',
@@ -88,21 +134,23 @@ export async function previewRecurringAppointments(params: {
       continue
     }
 
-    // Check for blocked times
-    const dayStart = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate(), 0, 0, 0)
-    const dayEnd = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate() + 1, 0, 0, 0)
+    // Check for blocked times (business-local day bounds expressed in UTC)
+    const dayBounds = {
+      start: occurrenceLocal.startOf('day').toUTC().toJSDate(),
+      end: occurrenceLocal.endOf('day').toUTC().toJSDate(),
+    }
 
     const blockedTimes = await prisma.blockedTime.findMany({
       where: {
         businessId,
         OR: [{ barberId }, { barberId: null }],
-        startTime: { gte: dayStart, lt: dayEnd },
+        startTime: { gte: dayBounds.start, lt: dayBounds.end },
       },
     })
 
     // If we have a preferred time, validate the specific slot
     if (preferredTime) {
-      const bookingDate = parseTimeString(occurrenceDate, preferredTime)
+      const bookingDate = slotInstantFromLocalTime(occurrenceLocal, preferredTime)
       const validation = await validateSlot({
         businessId,
         barberId,
@@ -116,7 +164,7 @@ export async function previewRecurringAppointments(params: {
           bookingDate < bt.endTime && bookingDate >= bt.startTime
         )
         occurrences.push({
-          date: occurrenceDate,
+          date: occurrenceInstant,
           dateLabel,
           available: false,
           reason: isBlocked ? 'Time blocked' : validation.error,
@@ -125,7 +173,7 @@ export async function previewRecurringAppointments(params: {
       }
 
       occurrences.push({
-        date: occurrenceDate,
+        date: occurrenceInstant,
         dateLabel,
         available: true,
       })
@@ -135,14 +183,14 @@ export async function previewRecurringAppointments(params: {
         businessId,
         barberId,
         serviceId,
-        date: occurrenceDate,
+        date: occurrenceInstant,
       })
 
       const hasAvailable = slots.some(s => s.available)
 
       if (!hasAvailable) {
         occurrences.push({
-          date: occurrenceDate,
+          date: occurrenceInstant,
           dateLabel,
           available: false,
           reason: 'No available slots',
@@ -151,7 +199,7 @@ export async function previewRecurringAppointments(params: {
       }
 
       occurrences.push({
-        date: occurrenceDate,
+        date: occurrenceInstant,
         dateLabel,
         available: true,
       })
@@ -196,18 +244,16 @@ export async function createRecurringAppointments(params: {
 }> {
   const { businessId, barberId, serviceId, startDate, intervalWeeks, totalOccurrences, preferredTime, customerData, createdBy } = params
   const intervalDays = intervalWeeks * 7
+  const timezone = await getBusinessTimezone(businessId)
   const created: any[] = []
   const conflicts: { date: Date; dateLabel: string; reason: string }[] = []
 
   for (let i = 0; i < totalOccurrences; i++) {
-    const occurrenceDate = addDays(startDate, i * intervalDays)
-    const dateLabel = occurrenceDate.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
+    const occurrenceLocal = occurrenceLocalDate(startDate, intervalDays, i, timezone)
+    const dateLabel = occurrenceLocal.setLocale('en-US').toFormat('ccc, LLL d')
+    const occurrenceInstant = occurrenceLocal.startOf('day').toUTC().toJSDate()
 
-    const bookingDate = parseTimeString(occurrenceDate, preferredTime)
+    const bookingDate = slotInstantFromLocalTime(occurrenceLocal, preferredTime)
 
     const result = await createAppointmentSafely({
       businessId,
@@ -220,7 +266,7 @@ export async function createRecurringAppointments(params: {
     if (result.success) {
       created.push(result.appointment)
     } else {
-      conflicts.push({ date: occurrenceDate, dateLabel, reason: result.error || 'Unknown error' })
+      conflicts.push({ date: occurrenceInstant, dateLabel, reason: result.error || 'Unknown error' })
     }
   }
 
@@ -249,24 +295,4 @@ export async function createRecurringAppointments(params: {
   }
 
   return { created, conflicts }
-}
-
-/**
- * Parse a time string like "2:00 PM" into a Date on the given day.
- */
-function parseTimeString(date: Date, timeStr: string): Date {
-  const result = new Date(date)
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
-  if (match) {
-    let hours = parseInt(match[1], 10)
-    const minutes = parseInt(match[2], 10)
-    const period = match[3].toUpperCase()
-    if (period === 'PM' && hours < 12) hours += 12
-    if (period === 'AM' && hours === 12) hours = 0
-    result.setHours(hours, minutes, 0, 0)
-  } else {
-    const parts = timeStr.split(':')
-    result.setHours(parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0, 0, 0)
-  }
-  return result
 }

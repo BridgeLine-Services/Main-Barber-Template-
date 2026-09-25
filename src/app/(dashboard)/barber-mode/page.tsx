@@ -26,7 +26,29 @@ export default async function BarberModePage() {
   const userRole = user?.role || 'BARBER'
   const barberId = user?.barberId
 
-  if (!businessId) redirect('/login')
+  // Authenticated but NOT linked to a business. Sending them to /login is a
+  // dead end (the session is valid), so render a repair path instead.
+  if (!businessId) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground">
+            <Scissors className="h-7 w-7" />
+          </div>
+          <h1 className="font-semibold tracking-tight text-foreground">No shop linked yet</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account isn&apos;t linked to a shop yet. Ask the shop owner to finish
+            setting up your staff account, then come back.
+          </p>
+          <Link href="/dashboard" className="mt-6 inline-block">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   // BARBER without a linked profile cannot use the work surface
   // (mirrors requireStaff({ restrictToOwnBarber: true })).

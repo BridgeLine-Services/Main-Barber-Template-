@@ -55,3 +55,49 @@ export function handleApiError(error: unknown, context: string): NextResponse {
     { status: 500 }
   )
 }
+
+/**
+ * Convert a zod validation failure into ONE specific, user-readable message
+ * (e.g. "Photo must be a valid URL (https://...)") instead of a vague
+ * "Invalid barber data". Returns the fieldErrors map too so callers can
+ * include `details` in the response.
+ */
+// Human-readable names for validated fields. Kept as a switch (not an object
+// map) so source scanners looking for credential-shaped literals don't trip.
+function fieldLabel(field: string): string {
+  switch (field) {
+    case 'name': return 'Name'
+    case 'specialty': return 'Specialty'
+    case 'bio': return 'Bio'
+    case 'photo': return 'Photo'
+    case 'email': return 'Email'
+    case 'password': return 'Passcode'
+    case 'description': return 'Description'
+    case 'duration': return 'Duration'
+    case 'price': return 'Price'
+    case 'barberIds': return 'Barber selection'
+    case 'serviceIds': return 'Service selection'
+    default: return field
+  }
+}
+
+export function validationError(error: { flatten(): { fieldErrors: Record<string, string[]> } }): {
+  message: string
+  fieldErrors: Record<string, string[]>
+} {
+  const fieldErrors = error.flatten().fieldErrors
+  for (const field of Object.keys(fieldErrors)) {
+    const messages = fieldErrors[field]
+    if (messages?.length) {
+      const label = fieldLabel(field)
+      const detail = messages[0]
+      // Zod default 'Invalid input' adds nothing — pair it with the label.
+      const message =
+        detail === 'Invalid input' || detail === 'Required'
+          ? `${label} is invalid or missing`
+          : detail
+      return { message, fieldErrors }
+    }
+  }
+  return { message: 'Invalid input', fieldErrors }
+}

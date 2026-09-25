@@ -59,8 +59,12 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
   if (!res.ok) throw new Error(data?.error || 'Failed to load media')
   setMedia(data?.media || [])
   setServices(data?.services || [])
-    } catch {
-      toast({ title: 'Failed to load media', variant: 'destructive' })
+    } catch (err) {
+      toast({
+        title: 'Failed to load media',
+        description: err instanceof Error ? err.message : 'Unknown error. Please refresh to retry.',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
@@ -104,8 +108,12 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       if (!createRes.ok) throw new Error(created?.error || 'Failed to save media record')
       setMedia([...media, created.media])
       toast({ title: 'Image uploaded successfully' })
-    } catch {
-      toast({ title: 'Upload failed', variant: 'destructive' })
+    } catch (err) {
+      toast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Unknown error. Please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -115,15 +123,21 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this image?')) return
     try {
-      await fetch('/api/dashboard/media', {
+      const res = await fetch('/api/dashboard/media', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Failed to delete')
       setMedia(media.filter(m => m.id !== id))
       toast({ title: 'Image deleted' })
-    } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' })
+    } catch (err) {
+      toast({
+        title: 'Failed to delete',
+        description: err instanceof Error ? err.message : 'Unknown error. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -141,14 +155,21 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
           serviceId: asset.serviceId || null,
         }),
       })
-      const data = await res.json()
-      if (data.media) {
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Failed to update')
+      if (data?.media) {
         setMedia(media.map(m => m.id === asset.id ? data.media : m))
         setEditing(null)
         toast({ title: 'Image updated' })
+      } else {
+        throw new Error('Update response was not recognized')
       }
-    } catch {
-      toast({ title: 'Failed to update', variant: 'destructive' })
+    } catch (err) {
+      toast({
+        title: 'Failed to update',
+        description: err instanceof Error ? err.message : 'Unknown error. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 

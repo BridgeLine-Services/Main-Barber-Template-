@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import {
   LayoutDashboard,
@@ -66,19 +66,29 @@ interface NavSection {
 
 export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']))
+  // Section open/closed state. A section the user has explicitly toggled is
+  // remembered here; sections without a user choice follow auto behavior
+  // (open when they contain the active route, closed otherwise). The user's
+  // explicit choice always wins over route-based auto-expansion.
+  const [sectionState, setSectionState] = useState<Record<string, 'open' | 'closed'>>({})
+  const setSectionExpanded = (key: string, value: 'open' | 'closed') =>
+    setSectionState((prev) => ({ ...prev, [key]: value }))
 
   const isOwner = userRole === 'OWNER'
 
-  const toggleSection = (key: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  const isSectionExpanded = (key: string, hasActive: boolean) => {
+    if (sectionState[key] === 'open') return true
+    if (sectionState[key] === 'closed') return false
+    return hasActive // auto behavior: follow the active route until the user chooses
+  }
+
+  // Toggle based on the EFFECTIVE state so the first click on an auto-closed
+  // section opens it, and the first click on an auto-expanded one closes it.
+  const toggleSection = (key: string, hasActive: boolean) => {
+    setSectionExpanded(key, isSectionExpanded(key, hasActive) ? 'closed' : 'open')
   }
 
   // ─── Owner nav: grouped into Overview, Website, System ────────────────
@@ -160,10 +170,13 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const closeMobile = () => setMobileOpen(false)
 
   const isItemActive = (href: string) => {
-    // For settings?tab= links, check if pathname matches /dashboard/settings
+    // Settings links (?tab=) must match BOTH the route and the tab — otherwise
+    // every settings item highlights at once.
     if (href.includes('?tab=')) {
       const [path, query] = href.split('?')
-      return pathname === path
+      if (pathname !== path) return false
+      const tab = new URLSearchParams(query).get('tab')
+      return searchParams.get('tab') === tab
     }
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname.startsWith(href)
@@ -231,16 +244,16 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         {/* Navigation — Grouped Sections */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {sections.map((section) => {
-            const isExpanded = expandedSections.has(section.label)
-            // Auto-expand section containing active item
+            // Auto-expand section containing active item — unless the user
+            // explicitly collapsed it (their choice wins).
             const hasActive = section.items.some((item) => isItemActive(item.href))
-            const show = isExpanded
+            const show = isSectionExpanded(section.label, hasActive)
 
             return (
               <div key={section.label} className="mb-1">
                 {/* Section Header */}
                 <button
-                  onClick={() => toggleSection(section.label)}
+                  onClick={() => toggleSection(section.label, hasActive)}
                   className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
                   <ChevronDown

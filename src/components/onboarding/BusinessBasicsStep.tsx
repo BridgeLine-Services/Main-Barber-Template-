@@ -36,7 +36,7 @@ interface BusinessBasicsStepProps {
   onBack: () => void
 }
 
-type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'unavailable'
 
 export function BusinessBasicsStep({
   initial,
@@ -58,6 +58,7 @@ export function BusinessBasicsStep({
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(mode === 'update')
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
+  const [slugRetry, setSlugRetry] = useState(0)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ─── Field updates ───────────────────────────────────────────────────────
@@ -119,16 +120,27 @@ export function BusinessBasicsStep({
     checkTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/dashboard/onboarding?checkSlug=${encodeURIComponent(form.slug)}`)
+        if (!res.ok) {
+          // Server-side failure (auth, database, etc.) — NOT proof the slug is taken.
+          setSlugStatus('unavailable')
+          return
+        }
         const data = await res.json()
-        setSlugStatus(data.slugAvailable === true ? 'available' : 'taken')
+        // Only a definitive boolean answer counts. Anything else is unknown.
+        setSlugStatus(
+          data.slugAvailable === true ? 'available'
+          : data.slugAvailable === false ? 'taken'
+          : 'unavailable'
+        )
       } catch {
-        setSlugStatus('idle') // network issue — POST will still catch conflicts
+        // Network failure — availability is genuinely unknown, never "taken".
+        setSlugStatus('unavailable')
       }
     }, 450)
     return () => {
       if (checkTimer.current) clearTimeout(checkTimer.current)
     }
-  }, [form.slug, mode, initial.slug])
+  }, [form.slug, mode, initial.slug, slugRetry])
 
   const showSlugError = touched.slug || !!slugServerError
   const slugTaken = slugStatus === 'taken' || !!slugServerError
@@ -137,6 +149,8 @@ export function BusinessBasicsStep({
     !submitting &&
     slugStatus !== 'invalid' &&
     slugStatus !== 'taken' &&
+    slugStatus !== 'checking' &&
+    slugStatus !== 'unavailable' &&
     !slugServerError
 
   const markTouched = (field: string) => setTouched((t) => ({ ...t, [field]: true }))
@@ -227,6 +241,13 @@ export function BusinessBasicsStep({
                 <p className="text-red-400">{slugServerError || 'That slug is already taken — try another.'}</p>
               ) : slugStatus === 'invalid' && touched.slug ? (
                 <p className="text-red-400">{errors.slug}</p>
+              ) : slugStatus === 'unavailable' ? (
+                <p className="text-amber-400 flex items-center gap-1.5">
+                  <X className="h-3 w-3" /> Couldn't check availability — the server didn't answer.{' '}
+                  <button type="button" className="underline underline-offset-2" onClick={() => setSlugRetry((n) => n + 1)}>
+                    Retry
+                  </button>
+                </p>
               ) : slugStatus === 'checking' ? (
                 <p className="text-zinc-500 flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" /> Checking availability…
