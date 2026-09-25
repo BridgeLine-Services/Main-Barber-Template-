@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     const businessId = (session.user as any)?.businessId as string | undefined
     const sessionBarberId = (session.user as any)?.barberId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json({ error: 'Media storage is not configured. Set BLOB_READ_WRITE_TOKEN in the deployment environment.' }, { status: 503 })
+    }
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const type = formData.get('type') as MediaType | null

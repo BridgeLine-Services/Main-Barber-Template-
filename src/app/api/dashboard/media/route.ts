@@ -9,6 +9,7 @@ import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction, MediaType } from '@prisma/client'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { del } from '@vercel/blob'
 
 const createMediaSchema = z.object({
   url: z.string().url(),
@@ -162,29 +163,43 @@ export async function POST(req: NextRequest) {
         data: { isPublished: false },
       })
     }
-    const media = await prisma.mediaAsset.create({
-      data: {
+    let media
+    try {
+      media = await prisma.mediaAsset.create({
+        data: {
+          businessId,
+          barberId: data.barberId || null,
+          serviceId: data.serviceId || null,
+          type: data.type,
+          url: data.url,
+          altText: data.altText || null,
+          caption: data.caption || null,
+          sortOrder: data.sortOrder,
+          isPublished: data.isPublished,
+        },
+      })
+    } catch (error) {
+      try {
+        if (data.url.includes('.public.blob.vercel-storage.com/')) await del(data.url)
+      } catch (cleanupError) {
+        console.error('[media] orphan cleanup failed', cleanupError instanceof Error ? cleanupError.message : 'unknown error')
+      }
+      throw error
+    }
+    try {
+      await logAudit({
+        userId,
         businessId,
-        barberId: data.barberId || null,
-        serviceId: data.serviceId || null,
-        type: data.type,
-        url: data.url,
-        altText: data.altText || null,
-        caption: data.caption || null,
-        sortOrder: data.sortOrder,
-        isPublished: data.isPublished,
-      },
-    })
-    await logAudit({
-      userId,
-      businessId,
-      action: AuditAction.SETTINGS_UPDATED,
-      entityType: 'MediaAsset',
-      entityId: media.id,
-      newValues: data,
-      ipAddress: getClientIP(req),
-      userAgent: req.headers.get('user-agent') || undefined,
-    })
+        action: AuditAction.SETTINGS_UPDATED,
+        entityType: 'MediaAsset',
+        entityId: media.id,
+        newValues: data,
+        ipAddress: getClientIP(req),
+        userAgent: req.headers.get('user-agent') || undefined,
+      })
+    } catch (auditError) {
+      console.error('[media] audit log failed after create', auditError instanceof Error ? auditError.message : 'unknown error')
+    }
     return NextResponse.json({ media }, { status: 201 })
   } catch (error) {
     return handleApiError(error, 'POST /api/dashboard/media')
@@ -239,17 +254,21 @@ export async function PATCH(req: NextRequest) {
       where: { id },
       data: updateData,
     })
-    await logAudit({
-      userId,
-      businessId,
-      action: AuditAction.SETTINGS_UPDATED,
-      entityType: 'MediaAsset',
-      entityId: id,
-      oldValues: media,
-      newValues: updateData,
-      ipAddress: getClientIP(req),
-      userAgent: req.headers.get('user-agent') || undefined,
-    })
+    try {
+      await logAudit({
+        userId,
+        businessId,
+        action: AuditAction.SETTINGS_UPDATED,
+        entityType: 'MediaAsset',
+        entityId: id,
+        oldValues: media,
+        newValues: updateData,
+        ipAddress: getClientIP(req),
+        userAgent: req.headers.get('user-agent') || undefined,
+      })
+    } catch (auditError) {
+      console.error('[media] audit log failed after update', auditError instanceof Error ? auditError.message : 'unknown error')
+    }
     return NextResponse.json({ media: updated })
   } catch (error) {
     return handleApiError(error, 'PATCH /api/dashboard/media')
@@ -283,16 +302,20 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'You can only delete your own portfolio media' }, { status: 403 })
     }
     await prisma.mediaAsset.delete({ where: { id } })
-    await logAudit({
-      userId,
-      businessId,
-      action: AuditAction.SETTINGS_UPDATED,
-      entityType: 'MediaAsset',
-      entityId: id,
-      oldValues: media,
-      ipAddress: getClientIP(req),
-      userAgent: req.headers.get('user-agent') || undefined,
-    })
+    try {
+      await logAudit({
+        userId,
+        businessId,
+        action: AuditAction.SETTINGS_UPDATED,
+        entityType: 'MediaAsset',
+        entityId: id,
+        oldValues: media,
+        ipAddress: getClientIP(req),
+        userAgent: req.headers.get('user-agent') || undefined,
+      })
+    } catch (auditError) {
+      console.error('[media] audit log failed after delete', auditError instanceof Error ? auditError.message : 'unknown error')
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error, 'DELETE /api/dashboard/media')

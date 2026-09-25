@@ -50,8 +50,8 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
       return
     }
 
-    if (!isEdit && (!password || password.length < 6)) {
-      setError('Password must be at least 6 characters long for new account')
+    if (!isEdit && (!password || password.length < 8)) {
+      setError('Password must be at least 8 characters long for new account')
       return
     }
 
@@ -186,7 +186,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   className="bg-zinc-950 border-zinc-800 text-xs focus:border-amber-500"
                   required={!isEdit}
                 />

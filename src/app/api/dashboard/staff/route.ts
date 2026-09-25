@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
     try {
-      const body = await req.json()
+      const body = await req.json().catch(() => null)
       const parsed = inviteSchema.safeParse(body)
       if (!parsed.success) {
         return NextResponse.json(
@@ -80,6 +80,10 @@ export async function POST(req: NextRequest) {
         )
       }
       const businessId = await getCurrentBusinessId()
+      if (parsed.data.barberId) {
+        const barber = await prisma.barber.findFirst({ where: { id: parsed.data.barberId, businessId }, select: { id: true } })
+        if (!barber) return NextResponse.json({ error: 'Barber profile not found in this business' }, { status: 403 })
+      }
       // Check if email already exists
       const existing = await prisma.user.findUnique({
         where: { email: parsed.data.email.toLowerCase() },
@@ -101,19 +105,23 @@ export async function POST(req: NextRequest) {
         },
         select: { id: true, email: true, name: true, role: true },
       })
-      // Audit log
-      await prisma.auditLog.create({
-        data: {
-          businessId,
-          userId: (session.user as any).id,
-          action: 'USER_INVITED',
-          entityType: 'User',
-          entityId: user.id,
-          newValues: { name: parsed.data.name, email: parsed.data.email, role: parsed.data.role },
-          ipAddress: req.headers.get('x-forwarded-for'),
-          userAgent: req.headers.get('user-agent'),
-        },
-      })
+      // Audit logging is non-critical; it must not turn a successful invite into a failure.
+      try {
+        await prisma.auditLog.create({
+          data: {
+            businessId,
+            userId: (session.user as any).id,
+            action: 'USER_INVITED',
+            entityType: 'User',
+            entityId: user.id,
+            newValues: { name: parsed.data.name, email: parsed.data.email, role: parsed.data.role },
+            ipAddress: req.headers.get('x-forwarded-for'),
+            userAgent: req.headers.get('user-agent'),
+          },
+        })
+      } catch (auditError) {
+        console.error('[staff] audit log failed after invite', auditError instanceof Error ? auditError.message : 'unknown error')
+      }
       return NextResponse.json({
         user,
         tempPassword, // TODO: send temp password via email in production
