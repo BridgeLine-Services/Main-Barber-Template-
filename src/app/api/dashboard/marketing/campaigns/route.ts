@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createCampaign, resolveCampaignAudience } from '@/lib/marketing'
+import { CampaignAudience } from '@prisma/client'
 import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/marketing/campaigns — list all campaigns
@@ -38,6 +39,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name, subject, body: campaignBody, audience, audienceConfig, preview } = body
     if (!audience) return NextResponse.json({ error: 'audience required' }, { status: 400 })
+    // Validate audience against the CampaignAudience enum so a bad value
+    // returns an actionable 400 instead of a Prisma 500.
+    const validAudiences = Object.values(CampaignAudience)
+    if (!validAudiences.includes(audience)) {
+      return NextResponse.json(
+        { error: `Invalid audience "${audience}". Valid options: ${validAudiences.join(', ')}` },
+        { status: 400 }
+      )
+    }
     if (preview) {
       // Preview the audience size without creating the campaign
       const targets = await resolveCampaignAudience(businessId, audience, audienceConfig)

@@ -102,6 +102,9 @@ export async function POST(req: NextRequest) {
           passwordHash,
           businessId,
           barberId: parsed.data.barberId || null,
+          // Temp credentials must be replaced at first login — the dashboard
+          // gate routes mustChangePassword users to /change-password.
+          mustChangePassword: true,
         },
         select: { id: true, email: true, name: true, role: true },
       })
