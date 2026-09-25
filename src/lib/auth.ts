@@ -61,14 +61,24 @@ export const authOptions: NextAuthOptions = {
       // business carries businessId=null in the JWT. Once the business exists,
       // resolve it from the DB so tenant-scoped routes (which read the claim)
       // work immediately after onboarding — no re-login required.
-      if (!token.businessId && token.sub) {
+      if ((!token.businessId || ((token.role as string) === 'BARBER' && !token.barberId)) && token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { businessId: true, business: { select: { name: true } } },
+          select: {
+            businessId: true,
+            barberId: true,
+            business: { select: { name: true } },
+          },
         })
-        if (dbUser?.businessId) {
+        if (!token.businessId && dbUser?.businessId) {
           token.businessId = dbUser.businessId
           token.businessName = dbUser.business?.name
+        }
+        // Self-heal barberId the same way: a BARBER whose profile was linked
+        // (or created) AFTER they signed in would otherwise carry barberId=null
+        // until the next login, making Barber Mode reject them incorrectly.
+        if ((token.role as string) === 'BARBER' && !token.barberId && dbUser?.barberId) {
+          token.barberId = dbUser.barberId
         }
       }
       return token

@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateBarberSchema } from '@/lib/validation'
-import { handleApiError } from '@/lib/api-errors'
+import { handleApiError, validationError } from '@/lib/api-errors'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const parseResult = updateBarberSchema.safeParse(body)
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid barber data', details: parseResult.error.flatten().fieldErrors },
+        { error: validationError(parseResult.error).message, details: validationError(parseResult.error).fieldErrors },
         { status: 400 }
       )
     }

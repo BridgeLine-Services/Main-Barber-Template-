@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createBarberSchema } from '@/lib/validation'
 import bcrypt from 'bcryptjs'
-import { handleApiError } from '@/lib/api-errors'
+import { handleApiError, validationError } from '@/lib/api-errors'
 
 export async function GET() {
   try {
@@ -38,8 +38,9 @@ export async function POST(req: NextRequest) {
     // Validate barber fields (password/email are separate, not in schema)
     const parseResult = createBarberSchema.safeParse(body)
     if (!parseResult.success) {
+      const { message, fieldErrors } = validationError(parseResult.error)
       return NextResponse.json(
-        { error: 'Invalid barber data', details: parseResult.error.flatten().fieldErrors },
+        { error: message, details: fieldErrors },
         { status: 400 }
       )
     }

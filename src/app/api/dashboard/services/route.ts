@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createServiceSchema } from '@/lib/validation'
-import { handleApiError } from '@/lib/api-errors'
+import { handleApiError, validationError } from '@/lib/api-errors'
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const parseResult = createServiceSchema.safeParse(body)
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid service data', details: parseResult.error.flatten().fieldErrors },
+        { error: validationError(parseResult.error).message, details: parseResult.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
