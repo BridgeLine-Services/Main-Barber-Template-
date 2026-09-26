@@ -55,6 +55,7 @@ export default async function BarberProfilePage({ params }: PageProps) {
         orderBy: { sortOrder: 'asc' },
       },
       reviews: {
+        where: { isPublished: true },
         orderBy: { createdAt: 'desc' },
         take: 10,
       },

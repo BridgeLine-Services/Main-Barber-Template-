@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, Plus, CalendarOff, Loader2, AlertCircle } from 'lucide-react'
+import { Trash2, Plus, CalendarOff, Loader2, AlertCircle, Pencil } from 'lucide-react'
 
 interface Closure {
   id: string
@@ -21,6 +21,7 @@ export default function ClosuresPage() {
   const [closures, setClosures] = useState<Closure[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,30 +52,66 @@ export default function ClosuresPage() {
     }
   }
 
+  const toInputDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  const openEdit = (closure: Closure) => {
+    setEditingId(closure.id)
+    setForm({
+      title: closure.title,
+      description: closure.description || '',
+      startDate: toInputDate(closure.startDate),
+      endDate: toInputDate(closure.endDate),
+      isAllDay: closure.isAllDay,
+      startTime: closure.startTime || '',
+      endTime: closure.endTime || '',
+    })
+    setShowForm(true)
+    setError('')
+  }
+
+  const resetForm = () => {
+    setForm({
+      title: '', description: '', startDate: '', endDate: '',
+      isAllDay: true, startTime: '', endTime: '',
+    })
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     setError('')
 
     try {
-      const res = await fetch('/api/dashboard/closures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
+      const isEdit = !!editingId
+      const res = await fetch(
+        isEdit ? `/api/dashboard/closures/${editingId}` : '/api/dashboard/closures',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        }
+      )
 
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Failed to create closure')
+        setError(data.error || (isEdit ? 'Failed to update closure' : 'Failed to create closure'))
         return
       }
 
-      setClosures([...closures, data.closure])
-      setForm({
-        title: '', description: '', startDate: '', endDate: '',
-        isAllDay: true, startTime: '', endTime: '',
-      })
+      if (isEdit) {
+        setClosures(closures.map(c => (c.id === editingId ? { ...c, ...data } : c)))
+      } else {
+        setClosures([...closures, data.closure])
+      }
+      resetForm()
       setShowForm(false)
     } catch {
       setError('Network error')
@@ -134,7 +171,7 @@ export default function ClosuresPage() {
       {showForm && (
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-zinc-100">New Closure</CardTitle>
+            <CardTitle className="text-zinc-100">{editingId ? 'Edit Closure' : 'New Closure'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -221,9 +258,9 @@ export default function ClosuresPage() {
               <div className="flex gap-3">
                 <Button type="submit" disabled={submitting} className="bg-amber-500 text-black hover:bg-amber-400">
                   {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Create Closure
+                  {editingId ? 'Save Changes' : 'Create Closure'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm() }}
                   className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
                   Cancel
                 </Button>
@@ -254,14 +291,26 @@ export default function ClosuresPage() {
                     {!closure.isAllDay && closure.startTime && ` · ${closure.startTime}–${closure.endTime}`}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(closure.id)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-950/30"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(closure)}
+                    className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    title="Edit closure"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(closure.id)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                    title="Delete closure"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))

@@ -19,6 +19,7 @@ interface Review {
   rating: number
   comment: string | null
   isFeatured: boolean
+  isPublished: boolean
   isGoogleReview: boolean
   barberId: string | null
   barberName: string | null
@@ -73,8 +74,26 @@ export function ReviewsClient({
     }
   }
 
+  const togglePublished = async (id: string, published: boolean) => {
+    try {
+      const res = await fetch('/api/dashboard/reviews', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isPublished: !published }),
+      })
+      if (res.ok) {
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, isPublished: !published } : r))
+      } else {
+        alert('Could not change the review visibility. Try again.')
+      }
+    } catch (err) {
+      console.error('Publish toggle error:', err)
+      alert('Could not change the review visibility. Try again.')
+    }
+  }
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this review?')) return
+    if (!confirm('Delete this review? This cannot be undone.')) return
     try {
       await fetch(`/api/dashboard/reviews?id=${id}`, { method: 'DELETE' })
       setReviews(prev => prev.filter(r => r.id !== id))
@@ -136,6 +155,7 @@ export function ReviewsClient({
           rating: created.rating,
           comment: created.comment,
           isFeatured: false,
+          isPublished: true,
           isGoogleReview: false,
           barberId: created.barberId || null,
           barberName: barber?.name || null,
@@ -403,6 +423,18 @@ export function ReviewsClient({
                     )}
                   >
                     {r.isFeatured ? 'Unfeature' : 'Feature'}
+                  </button>
+                  <button
+                    onClick={() => togglePublished(r.id, r.isPublished)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
+                      r.isPublished
+                        ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                        : 'bg-green-500/10 text-green-400 border-green-500/30'
+                    )}
+                    title={r.isPublished ? 'Published on the website — click to unpublish' : 'Hidden from the website — click to publish'}
+                  >
+                    {r.isPublished ? 'Unpublish' : 'Publish'}
                   </button>
                   <button
                     onClick={() => handleDelete(r.id)}

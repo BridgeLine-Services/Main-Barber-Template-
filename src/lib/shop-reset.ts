@@ -150,9 +150,28 @@ export async function resetShopConfiguration(businessId: string): Promise<ResetS
     }
 
     // ── Reset the business record itself to setup-ready defaults ─────────
+    // Business identity: the previous client's name/slug/contact info are
+    // client-specific and must be cleared so a fresh client can configure the
+    // shop. The slug stays unique and URL-safe so routing keeps working.
+    const neutralSlug = `shop-${businessId.replace(/[^a-z0-9]/gi, '').slice(-8).toLowerCase()}-reset`
     await tx.business.update({
       where: { id: businessId },
       data: {
+        // Identity back to neutral template placeholder (onboarding re-collects it)
+        name: 'My Barbershop',
+        slug: neutralSlug,
+        phone: null,
+        email: null,
+        address: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        latitude: null,
+        longitude: null,
+        timezone: 'America/Los_Angeles',
+        googleBusinessProfile: null,
+        privacyPolicy: null,
+        termsPolicy: null,
         // Branding back to template defaults
         logo: null,
         primaryColor: '#1a1a1a',
@@ -192,13 +211,22 @@ export async function resetShopConfiguration(businessId: string): Promise<ResetS
       },
     })
 
+    const [tagAssignments, portalSessions, portalChallenges] = await Promise.all([
+      tx.customerTagAssignment.deleteMany({ where: { businessId } }),
+      tx.portalSession.deleteMany({ where: { businessId } }),
+      tx.portalVerificationChallenge.deleteMany({ where: { businessId } }),
+    ])
+
     const otherRecordsRemoved =
       count(loyaltyBarber.count) +
       count(loyaltyBusiness.count) +
       count(websiteContent.count) +
       count(seo.count) +
       count(noShow.count) +
-      count(retention.count)
+      count(retention.count) +
+      count(tagAssignments.count) +
+      count(portalSessions.count) +
+      count(portalChallenges.count)
 
     const result: ResetSummary = {
       businessId,

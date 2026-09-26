@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
         orderBy: { sortOrder: 'asc' },
       },
       reviews: {
+        where: { isPublished: true },
         select: { rating: true },
       },
     },

@@ -111,7 +111,7 @@ export default async function HomePage() {
       orderBy: { order: 'asc' },
     }),
     prisma.review.findMany({
-      where: { businessId: business.id, isFeatured: true },
+      where: { businessId: business.id, isFeatured: true, isPublished: true },
       orderBy: { createdAt: 'desc' },
       take: content?.featuredReviewCount ?? 3,
     }),

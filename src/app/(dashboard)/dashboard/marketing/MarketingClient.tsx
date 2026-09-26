@@ -12,6 +12,10 @@ import {
   Eye,
   Clock,
   CheckCircle2,
+  Pencil,
+  Trash2,
+  Archive,
+  RotateCcw,
 } from 'lucide-react'
 
 interface Campaign {
@@ -62,6 +66,9 @@ export function MarketingClient({
   const [previewing, setPreviewing] = useState(false)
   const [creating, setCreating] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [statusId, setStatusId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const readError = async (res: Response): Promise<string> => {
@@ -149,6 +156,93 @@ export function MarketingClient({
     }
   }
 
+  const openEdit = (c: Campaign) => {
+    setEditingId(c.id)
+    setName(c.name)
+    setSubject(c.subject)
+    setBody(c.body)
+    setAudience(c.audience)
+    setPreviewCount(null)
+    setShowForm(true)
+    setError(null)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditingId(null)
+    setName(''); setSubject(''); setBody(''); setPreviewCount(null)
+  }
+
+  const handleSave = async () => {
+    if (!name || !subject || !body) return
+    if (editingId) {
+      setCreating(true)
+      try {
+        const res = await fetch(`/api/dashboard/marketing/campaigns/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, subject, body, audience, audienceConfig: audienceConfig() }),
+        })
+        if (!res.ok) {
+          setError(await readError(res))
+          return
+        }
+        const updated = await res.json()
+        setCampaigns(campaigns.map(c => (c.id === editingId ? { ...c, ...updated } : c)))
+        closeForm()
+        setError(null)
+      } catch {
+        setError('Could not save the campaign. Check your connection and try again.')
+      } finally {
+        setCreating(false)
+      }
+    } else {
+      await handleCreate()
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const campaign = campaigns.find(c => c.id === id)
+    if (!confirm(`Delete campaign "${campaign?.name}"? This cannot be undone.`)) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/dashboard/marketing/campaigns/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setError(await readError(res))
+        return
+      }
+      setCampaigns(campaigns.filter(c => c.id !== id))
+      setError(null)
+    } catch {
+      setError('Could not delete the campaign. Check your connection and try again.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const toggleArchived = async (c: Campaign) => {
+    const archived = c.status === 'ARCHIVED'
+    const nextStatus = archived ? 'DRAFT' : 'ARCHIVED'
+    setStatusId(c.id)
+    try {
+      const res = await fetch(`/api/dashboard/marketing/campaigns/${c.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      })
+      if (!res.ok) {
+        setError(await readError(res))
+        return
+      }
+      setCampaigns(campaigns.map(x => (x.id === c.id ? { ...x, status: nextStatus } : x)))
+      setError(null)
+    } catch {
+      setError('Could not update the campaign status. Try again.')
+    } finally {
+      setStatusId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -161,7 +255,7 @@ export function MarketingClient({
         </div>
         {isOwner && (
           <Button
-            onClick={() => { setError(null); setShowForm(!showForm) }}
+            onClick={() => { setError(null); if (showForm) { closeForm() } else { setShowForm(true) } }}
             className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
           >
             {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -181,7 +275,7 @@ export function MarketingClient({
 
       {showForm && (
         <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-100">Create Campaign</h2>
+          <h2 className="text-sm font-semibold text-zinc-100">{editingId ? 'Edit Campaign' : 'Create Campaign'}</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -274,7 +368,7 @@ export function MarketingClient({
             )}
             <div className="flex-1" />
             <Button
-              onClick={handleCreate}
+              onClick={handleSave}
               disabled={creating || !name || !subject || !body}
               size="sm"
               className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
@@ -324,19 +418,65 @@ export function MarketingClient({
                     </span>
                   </div>
                 </div>
-                {isOwner && c.status === 'DRAFT' && (
-                  <Button
-                    onClick={() => handleSend(c.id)}
-                    disabled={sendingId === c.id}
-                    size="sm"
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold shrink-0"
-                  >
-                    {sendingId === c.id ? (
-                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending...</>
-                    ) : (
-                      <><Send className="w-3.5 h-3.5 mr-1.5" />Send</>
+                {isOwner && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {c.status === 'DRAFT' && (
+                      <Button
+                        onClick={() => handleSend(c.id)}
+                        disabled={sendingId === c.id}
+                        size="sm"
+                        className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                      >
+                        {sendingId === c.id ? (
+                          <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending...</>
+                        ) : (
+                          <><Send className="w-3.5 h-3.5 mr-1.5" />Send</>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      onClick={() => openEdit(c)}
+                      disabled={statusId === c.id || deletingId === c.id}
+                      size="sm"
+                      variant="outline"
+                      className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                      title="Edit campaign"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    {c.status !== 'SENT' && (
+                      <Button
+                        onClick={() => toggleArchived(c)}
+                        disabled={statusId === c.id}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                        title={c.status === 'ARCHIVED' ? 'Restore campaign' : 'Archive (disable) campaign'}
+                      >
+                        {statusId === c.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : c.status === 'ARCHIVED' ? (
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        ) : (
+                          <Archive className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => handleDelete(c.id)}
+                      disabled={deletingId === c.id}
+                      size="sm"
+                      variant="outline"
+                      className="border-zinc-700 bg-zinc-900 hover:bg-red-950/40 hover:border-red-500/30 text-zinc-400 hover:text-red-400"
+                      title="Delete campaign"
+                    >
+                      {deletingId === c.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

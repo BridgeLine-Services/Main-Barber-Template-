@@ -19,6 +19,7 @@ const createReviewSchema = z.object({
 const updateReviewSchema = z.object({
   id: z.string().min(1),
   isFeatured: z.boolean().optional(),
+  isPublished: z.boolean().optional(),
   barberId: z.string().optional().nullable(),
   authorName: z.string().min(1).max(100).optional(),
   rating: z.number().int().min(1).max(5).optional(),

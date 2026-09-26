@@ -29,7 +29,7 @@ export default async function ReviewsPage() {
     business = await resolveBusiness()
     if (business) {
       reviews = await prisma.review.findMany({
-        where: { businessId: business.id },
+        where: { businessId: business.id, isPublished: true },
         orderBy: { createdAt: 'desc' },
       })
     }
