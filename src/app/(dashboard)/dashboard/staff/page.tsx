@@ -14,6 +14,7 @@ interface StaffMember {
   name: string
   role: string
   barberId: string | null
+  isActive: boolean
   createdAt: string
 }
 
@@ -97,6 +98,32 @@ export default function StaffPage() {
         return
       }
       setStaff(staff.filter(s => s.id !== id))
+    } catch {
+      setError('Network error')
+    }
+  }
+
+  const handleToggleActive = async (id: string, name: string, isActive: boolean) => {
+    if (!confirm(
+      isActive
+        ? `Deactivate ${name}? They will no longer be able to sign in, but their account and history are preserved.`
+        : `Reactivate ${name}? They will be able to sign in again with their existing password.`
+    )) return
+
+    try {
+      const res = await fetch(`/api/dashboard/staff/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !isActive }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to update status')
+        return
+      }
+
+      fetchStaff()
     } catch {
       setError('Network error')
     }
@@ -271,6 +298,19 @@ export default function StaffPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
+                  {member.isActive ? (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                      Active
+                    </span>
+                  ) : (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border bg-zinc-700/30 text-zinc-400 border-zinc-600/40">
+                      Deactivated
+                    </span>
+                  )}
+                  <Button size="sm" variant="ghost" title={member.isActive ? 'Deactivate (blocks sign-in)' : 'Reactivate account'} onClick={() => handleToggleActive(member.id, member.name, member.isActive)}
+                    className="text-zinc-400 hover:text-blue-400 hover:bg-blue-950/30">
+                    {member.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleResetPassword(member.id, member.name)}
                     className="text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30">
                     <KeyRound className="w-4 h-4" />

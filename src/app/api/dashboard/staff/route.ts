@@ -40,6 +40,7 @@ export async function GET() {
           name: true,
           role: true,
           barberId: true,
+          isActive: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'asc' },

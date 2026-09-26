@@ -302,11 +302,26 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'You can only delete your own portfolio media' }, { status: 403 })
     }
     await prisma.mediaAsset.delete({ where: { id } })
+
+    // Storage cleanup: remove the uploaded object so we don't leave orphaned
+    // files behind. Only Vercel Blob URLs we own are deleted; external URLs are
+    // left alone. Failure is reported, never silently swallowed.
+    let storageWarning: string | undefined
+    if (media.url && media.url.includes('blob.vercel-storage.com')) {
+      try {
+        const { del } = await import('@vercel/blob')
+        await del(media.url)
+      } catch (storageError) {
+        console.error('[media] storage cleanup failed after delete', storageError instanceof Error ? storageError.message : 'unknown error')
+        storageWarning = 'The image was removed from your gallery, but the underlying storage file could not be deleted. It may need manual cleanup.'
+      }
+    }
+
     try {
       await logAudit({
         userId,
         businessId,
-        action: AuditAction.SETTINGS_UPDATED,
+        action: AuditAction.MEDIA_DELETED,
         entityType: 'MediaAsset',
         entityId: id,
         oldValues: media,
@@ -316,7 +331,7 @@ export async function DELETE(req: NextRequest) {
     } catch (auditError) {
       console.error('[media] audit log failed after delete', auditError instanceof Error ? auditError.message : 'unknown error')
     }
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, ...(storageWarning && { warning: storageWarning }) })
   } catch (error) {
     return handleApiError(error, 'DELETE /api/dashboard/media')
   }

@@ -13,6 +13,7 @@ import { handleApiError } from '@/lib/api-errors'
 const updateSchema = z.object({
   role: z.enum(['OWNER', 'BARBER']).optional(),
   name: z.string().min(1).max(100).optional(),
+  isActive: z.boolean().optional(),
 })
 
 /**
@@ -46,23 +47,43 @@ export async function PATCH(
       if (user.id === (session.user as any).id && parsed.data.role && parsed.data.role !== 'OWNER') {
         return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
       }
+      // Don't allow deactivating yourself
+      if (user.id === (session.user as any).id && parsed.data.isActive === false) {
+        return NextResponse.json({ error: 'You cannot deactivate your own account' }, { status: 400 })
+      }
+      // Don't allow deactivating the last remaining owner
+      if (parsed.data.isActive === false && user.role === 'OWNER') {
+        const activeOwners = await prisma.user.count({
+          where: { businessId, role: 'OWNER', isActive: true },
+        })
+        if (activeOwners <= 1) {
+          return NextResponse.json(
+            { error: 'Cannot deactivate the only remaining owner account' },
+            { status: 400 }
+          )
+        }
+      }
       const updated = await prisma.user.update({
         where: { id: params.id },
         data: {
           ...(parsed.data.role && { role: parsed.data.role }),
           ...(parsed.data.name && { name: parsed.data.name }),
+          ...(parsed.data.isActive !== undefined && { isActive: parsed.data.isActive }),
         },
-        select: { id: true, email: true, name: true, role: true },
+        select: { id: true, email: true, name: true, role: true, isActive: true },
       })
       // Audit log
       await prisma.auditLog.create({
         data: {
           businessId,
           userId: (session.user as any).id,
-          action: 'USER_ROLE_CHANGED',
+          action:
+            parsed.data.isActive !== undefined
+              ? 'USER_DEACTIVATED'
+              : 'USER_ROLE_CHANGED',
           entityType: 'User',
           entityId: params.id,
-          oldValues: { role: user.role, name: user.name },
+          oldValues: { role: user.role, name: user.name, isActive: user.isActive },
           newValues: parsed.data as any,
           ipAddress: req.headers.get('x-forwarded-for'),
           userAgent: req.headers.get('user-agent'),

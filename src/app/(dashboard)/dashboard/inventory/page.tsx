@@ -37,6 +37,7 @@ export default async function InventoryPage() {
 
   const serializedItems = items.map(i => ({
     ...i,
+    archivedAt: i.archivedAt ? i.archivedAt.toISOString() : null,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
   }))

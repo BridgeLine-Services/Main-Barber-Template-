@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BarberForm } from '@/components/dashboard/BarberForm'
-import { UserCircle, Plus, Edit2, Calendar, CheckCircle2, XCircle, Scissors, Clock, Loader2 } from 'lucide-react'
+import { UserCircle, Plus, Edit2, Calendar, CheckCircle2, XCircle, Scissors, Clock, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getInitials } from '@/lib/utils'
 
@@ -17,6 +17,8 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingBarber, setEditingBarber] = useState<any | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null) // barber id being deleted
+  const [confirmDelete, setConfirmDelete] = useState<any | null>(null) // barber pending confirmation
 
   const handleOpenAdd = () => {
     setEditingBarber(null)
@@ -52,6 +54,32 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
       alert('An error occurred while updating status')
     } finally {
       setLoadingId(null)
+    }
+  }
+
+  const handleDelete = async (barber: any) => {
+    if (deleting) return
+    setDeleting(barber.id)
+    try {
+      const res = await fetch(`/api/dashboard/barbers/${barber.id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete barber')
+        return
+      }
+      if (data.deactivated) {
+        // Barber had history — server deactivated them instead of deleting
+        alert(data.message || `${barber.name} has appointment history, so they were deactivated instead of deleted.`)
+      } else if (data.warning) {
+        alert(data.warning)
+      }
+      router.refresh()
+    } catch (err) {
+      console.error(err)
+      alert('An error occurred while deleting this barber')
+    } finally {
+      setDeleting(null)
+      setConfirmDelete(null)
     }
   }
 
@@ -158,14 +186,47 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                     <Clock className="w-3.5 h-3.5 text-amber-500" /> Manage Schedule
                   </Link>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleOpenEdit(barber)}
-                    className="h-8 text-xs text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 gap-1"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Edit Profile
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenEdit(barber)}
+                      className="h-8 text-xs text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 gap-1"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" /> Edit Profile
+                    </Button>
+                    {confirmDelete?.id === barber.id ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(barber)}
+                          disabled={deleting === barber.id}
+                          className="h-8 text-xs gap-1"
+                        >
+                          {deleting === barber.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Confirm delete'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDelete(null)}
+                          className="h-8 text-xs text-zinc-400"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmDelete(barber)}
+                        className="h-8 text-xs text-zinc-500 hover:text-red-400 hover:bg-zinc-900 gap-1"
+                        title="Delete or deactivate this barber"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )

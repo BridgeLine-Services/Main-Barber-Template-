@@ -29,6 +29,9 @@ export const authOptions: NextAuthOptions = {
 
           if (!user) return null
 
+          // Deactivated staff accounts cannot sign in (soft-deactivation)
+          if (user.isActive === false) return null
+
           const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!passwordValid) return null
 

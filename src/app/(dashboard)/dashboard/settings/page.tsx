@@ -15,6 +15,7 @@ import {
   Search, FileText, Image as ImageIcon, Check, HelpCircle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
+import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { resolveBusinessTimezone } from '@/lib/timezone'
 
 const TIMEZONES = [
@@ -849,6 +850,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* ── Danger Zone (all tabs) ── */}
+      <ResetShopCard />
   </div>
   )
 }

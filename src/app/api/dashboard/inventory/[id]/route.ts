@@ -46,7 +46,7 @@ export async function PATCH(
     }
     try {
       const body = await request.json()
-      const { name, sku, stock, unit, threshold, cost, vendor, barberId, notes, adjustment } = body
+      const { name, sku, stock, unit, threshold, cost, vendor, barberId, notes, adjustment, archived } = body
       const existing = await prisma.inventoryItem.findFirst({
         where: { id: params.id, businessId: user.businessId },
       })
@@ -71,6 +71,7 @@ export async function PATCH(
           vendor: vendor !== undefined ? (vendor?.trim() || null) : existing.vendor,
           barberId: barberId !== undefined ? (barberId || null) : existing.barberId,
           notes: notes !== undefined ? (notes?.trim() || null) : existing.notes,
+          ...(archived !== undefined && { archivedAt: archived ? new Date() : null }),
         },
       })
       await prisma.auditLog.create({

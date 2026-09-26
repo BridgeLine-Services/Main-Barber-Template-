@@ -10,6 +10,8 @@ import {
   Search,
   X,
   Edit3,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +28,7 @@ interface InventoryItem {
   cost: number | null
   vendor: string | null
   notes: string | null
+  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -42,20 +45,22 @@ interface InventoryClientProps {
 
 export function InventoryClient({ initialItems, barbers }: InventoryClientProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialItems)
-  const [filter, setFilter] = useState<'all' | 'low_stock' | 'out_of_stock'>('all')
+  const [filter, setFilter] = useState<'all' | 'low_stock' | 'out_of_stock' | 'archived'>('all')
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
 
   const filtered = items.filter(i => {
+    if (filter === 'archived' ? !i.archivedAt : !!i.archivedAt) return false
     if (filter === 'low_stock' && !(i.stock <= i.threshold && i.stock > 0)) return false
     if (filter === 'out_of_stock' && i.stock > 0) return false
     if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const lowStockCount = items.filter(i => i.stock <= i.threshold && i.stock > 0).length
-  const outOfStockCount = items.filter(i => i.stock <= 0).length
+  const lowStockCount = items.filter(i => !i.archivedAt && i.stock <= i.threshold && i.stock > 0).length
+  const outOfStockCount = items.filter(i => !i.archivedAt && i.stock <= 0).length
+  const archivedCount = items.filter(i => i.archivedAt).length
 
   const handleSave = async (data: any) => {
     try {
@@ -90,6 +95,32 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
       setItems(prev => prev.filter(i => i.id !== id))
     } catch (err) {
       console.error('Delete error:', err)
+    }
+  }
+
+  const handleToggleArchive = async (item: InventoryItem) => {
+    const archived = !item.archivedAt
+    if (!confirm(
+      archived
+        ? `Archive "${item.name}"? It will be hidden from lists and low-stock alerts but its history is preserved.`
+        : `Restore "${item.name}" to active inventory?`
+    )) return
+    try {
+      const res = await fetch(`/api/dashboard/inventory/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to update item')
+        return
+      }
+      const data = await res.json()
+      setItems(prev => prev.map(i => (i.id === item.id ? { ...i, archivedAt: data.archivedAt } : i)))
+    } catch (err) {
+      console.error('Archive error:', err)
+      alert('An error occurred')
     }
   }
 
@@ -142,7 +173,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex gap-2">
-          {(['all', 'low_stock', 'out_of_stock'] as const).map(f => (
+          {(['all', 'low_stock', 'out_of_stock', 'archived'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -153,7 +184,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
                   : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
               )}
             >
-              {f === 'all' ? 'All' : f === 'low_stock' ? 'Low Stock' : 'Out of Stock'}
+              {f === 'all' ? 'All' : f === 'low_stock' ? 'Low Stock' : f === 'out_of_stock' ? 'Out of Stock' : `Archived${archivedCount ? ` (${archivedCount})` : ''}`}
             </button>
           ))}
         </div>
@@ -249,6 +280,13 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
                             title="Edit"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleArchive(item)}
+                            className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-amber-950/40 text-zinc-400 hover:text-amber-400 flex items-center justify-center transition-colors"
+                            title={item.archivedAt ? 'Restore to active inventory' : 'Archive (keep history)'}
+                          >
+                            {item.archivedAt ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
                           </button>
                           <button
                             onClick={() => handleDelete(item.id)}

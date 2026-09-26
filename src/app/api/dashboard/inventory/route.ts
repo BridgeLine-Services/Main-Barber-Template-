@@ -16,8 +16,9 @@ export async function GET(request: Request) {
     }
     const { searchParams } = new URL(request.url)
     const filter = (searchParams.get('filter') as 'all' | 'low_stock' | 'out_of_stock') || 'all'
+    const includeArchived = searchParams.get('includeArchived') === 'true'
     try {
-      let where: any = { businessId: user.businessId }
+      const where: any = { businessId: user.businessId, ...(includeArchived ? {} : { archivedAt: null }) }
       const items = await prisma.inventoryItem.findMany({
         where,
         include: { barber: { select: { name: true } } },

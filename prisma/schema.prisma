@@ -129,6 +129,9 @@ model User {
   passwordChangedAt          DateTime?
   // Expiry for seed/admin-assigned temporary passwords (cleared on change)
   temporaryPasswordExpiresAt DateTime?
+  // Staff account status: false blocks sign-in without destroying the
+  // account, audit trail, or barber links (soft-deactivate for staff)
+  isActive Boolean @default(true)
 
   @@index([businessId])
 }
@@ -604,6 +607,8 @@ enum AuditAction {
   MEDIA_DELETED
   BARBER_PROFILE_UPDATED
   BARBER_SCHEDULE_UPDATED
+  SHOP_CONFIGURATION_RESET
+  BARBER_DELETED
 }
 
 model AuditLog {
@@ -769,6 +774,7 @@ model InventoryItem {
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   barberId   String? // null = shop-wide, specific barber = barber-owned
   barber     Barber?  @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  archivedAt  DateTime? // soft-delete support: archived items hide from lists/reports
   name       String
   sku        String?
   stock      Float    @default(0)
