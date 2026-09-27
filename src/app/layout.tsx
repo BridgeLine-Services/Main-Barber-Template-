@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Poppins, Montserrat, Playfair_Display, Roboto, Oswald, Lato } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
+import { PWARegister } from '@/components/pwa/PWARegister'
 import { getAppUrl, getAppUrlString } from '@/lib/app-url'
 
 // Template font options — every family selectable in onboarding/branding is
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} ${montserrat.variable} ${playfair.variable} ${roboto.variable} ${oswald.variable} ${lato.variable} font-sans`}>
+        <PWARegister />
         <Providers>{children}</Providers>
     </body>
 </html>
