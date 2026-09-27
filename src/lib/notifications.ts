@@ -57,6 +57,16 @@ interface AppointmentWithRelations {
 /**
  * Log a notification attempt to the database for delivery tracking.
  */
+/**
+ * Providers (SMTP/Twilio) can return verbose, multi-line errors that may
+ * embed recipient PII or the message payload. Notification logs must stay
+ * bounded and free of sensitive dumps: collapse whitespace and cap length.
+ */
+export function sanitizeErrorMessage(error: unknown, maxChars = 500): string {
+  const raw = error instanceof Error ? error.message : String(error ?? 'Unknown error')
+  return raw.replace(/\s+/g, ' ').trim().slice(0, maxChars) || 'Unknown error'
+}
+
 async function logNotification(params: {
   businessId?: string
   customerId?: string
@@ -85,8 +95,8 @@ async function logNotification(params: {
         type: params.type,
         status: params.status,
         content: params.content || null,
-        errorMessage: params.errorMessage || null,
-        failureReason: params.errorMessage || null,
+        errorMessage: params.errorMessage ? sanitizeErrorMessage(params.errorMessage) : null,
+        failureReason: params.errorMessage ? sanitizeErrorMessage(params.errorMessage) : null,
         providerMessageId: params.providerMessageId || null,
         idempotencyKey,
         scheduledAt: params.scheduledAt || null,
@@ -233,7 +243,7 @@ export async function sendBookingConfirmation(appointment: AppointmentWithRelati
         channel: 'EMAIL',
         type: 'BOOKING_CONFIRMATION',
         status: 'FAILED',
-        errorMessage: String(error),
+        errorMessage: sanitizeErrorMessage(error),
       })
     }
   }
@@ -265,7 +275,7 @@ export async function sendBookingConfirmation(appointment: AppointmentWithRelati
         channel: 'EMAIL',
         type: 'BOOKING_CONFIRMATION',
         status: 'FAILED',
-        errorMessage: String(error),
+        errorMessage: sanitizeErrorMessage(error),
       })
     }
   }
@@ -340,7 +350,7 @@ export async function sendAppointmentReminder(appointment: AppointmentWithRelati
       channel: 'EMAIL',
       type: 'BOOKING_REMINDER',
       status: 'FAILED',
-      errorMessage: String(error),
+      errorMessage: sanitizeErrorMessage(error),
     })
   }
 
@@ -456,7 +466,7 @@ export async function sendWaitlistSlotNotification(params: {
       channel: 'EMAIL',
       type: 'WAITLIST_NOTIFICATION',
       status: 'FAILED',
-      errorMessage: String(error),
+      errorMessage: sanitizeErrorMessage(error),
     })
   }
 

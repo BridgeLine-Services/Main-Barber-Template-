@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 import { isTwilioConfigured, sendSms } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
-import { isEmailConfigured } from '@/lib/notifications'
+import { isEmailConfigured, sanitizeErrorMessage } from '@/lib/notifications'
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -17,6 +17,19 @@ function getTransporter() {
  * so concurrent cron invocations cannot send the same row. */
 export async function processDueNotifications(limit = 50) {
   const now = new Date()
+
+  // Crash recovery: if a worker died mid-send, its claimed rows are stuck
+  // in PROCESSING forever. Re-queue claims that have gone stale so the
+  // notification is retried on the next cron run instead of being lost.
+  const staleCutoff = new Date(now.getTime() - 15 * 60 * 1000)
+  const requeued = await prisma.notificationLog.updateMany({
+    where: { status: 'PROCESSING', updatedAt: { lt: staleCutoff }, sentAt: null },
+    data: { status: 'PENDING' },
+  })
+  if (requeued.count > 0) {
+    console.warn(`[notification-worker] re-queued ${requeued.count} stale PROCESSING notification(s)`)
+  }
+
   const pending = await prisma.notificationLog.findMany({
     where: { status: 'PENDING', scheduledAt: { lte: now } },
     orderBy: { scheduledAt: 'asc' },
@@ -50,10 +63,10 @@ export async function processDueNotifications(limit = 50) {
       }
       sent++
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Notification delivery failed'
+      const message = sanitizeErrorMessage(error) || 'Notification delivery failed'
       await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'FAILED', errorMessage: message, failureReason: message } })
       failed++
     }
   }
-  return { checked: pending.length, sent, failed }
+  return { checked: pending.length, sent, failed, requeued: requeued.count }
 }
