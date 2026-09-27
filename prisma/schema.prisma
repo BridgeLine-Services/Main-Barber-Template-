@@ -61,6 +61,11 @@ model Business {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Soft deactivation: shop closed (temporarily or permanently). Blocks
+  // staff sign-ins and public bookings while preserving all data. Owners
+  // keep access for export and one-click reactivation.
+  deactivatedAt DateTime?
+
   users                        User[]
   barbers                      Barber[]
   services                     Service[]
@@ -590,6 +595,8 @@ enum AuditAction {
   USER_DEACTIVATED
   LOGIN_SUCCESS
   LOGIN_FAILED
+  BUSINESS_DEACTIVATED
+  BUSINESS_REACTIVATED
   SETTINGS_UPDATED
   REBOOKING_REMINDER_SENT
   CAMPAIGN_CREATED

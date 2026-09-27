@@ -3,11 +3,19 @@ import { prisma } from '@/lib/prisma'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { createToken, hashValue, normalizeContact, PORTAL_MAX_ATTEMPTS, PORTAL_SESSION_COOKIE, PORTAL_SESSION_TTL_MS } from '@/lib/portal-security'
+import { isPublicBusinessDeactivated } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 const INVALID = 'The verification code is invalid or expired. Please request a new code.'
 
 export async function POST(req: NextRequest) {
+  // Soft-deactivated shops do not accept public activity
+  if (await isPublicBusinessDeactivated()) {
+    return NextResponse.json(
+      { error: 'This shop is not accepting bookings right now.' },
+      { status: 503 }
+    )
+  }
   const limited = checkRateLimit(req, 'portal-verification-attempt', RATE_LIMITS.PORTAL_LOOKUP)
   if (limited) return NextResponse.json({ error: INVALID }, { status: 429 })
   try {

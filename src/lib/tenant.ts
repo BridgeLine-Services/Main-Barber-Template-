@@ -59,6 +59,16 @@ export async function resolveBusiness() {
   return resolvePublicBusiness()
 }
 
+/**
+ * True when the currently-resolved public business is soft-deactivated.
+ * Deactivated shops keep marketing pages online but must not accept
+ * bookings, queue joins, or portal lookups.
+ */
+export async function isPublicBusinessDeactivated(): Promise<boolean> {
+  const business = await resolvePublicBusiness()
+  return !business || business.deactivatedAt != null
+}
+
 export async function resolveBusinessId(): Promise<string> {
   const business = await resolvePublicBusiness()
   if (!business) throw new Error('Business tenant could not be resolved')

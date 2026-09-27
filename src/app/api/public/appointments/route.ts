@@ -8,6 +8,7 @@ import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/not
 import { createBookingSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { localTimeToUTCFromYMD, dayOfWeekFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
+import { isPublicBusinessDeactivated } from '@/lib/tenant'
 
 // Cache business timezone lookups within a request
 async function getBusinessTimezone(businessId: string): Promise<string> {
@@ -58,6 +59,13 @@ async function parseStartTime(
 }
 
 export async function POST(req: NextRequest) {
+  // Soft-deactivated shops do not accept public activity
+  if (await isPublicBusinessDeactivated()) {
+    return NextResponse.json(
+      { error: 'This shop is not accepting bookings right now.' },
+      { status: 503 }
+    )
+  }
   // Rate limit booking creation
   const rateLimitResult = checkRateLimit(req, 'public-booking', RATE_LIMITS.BOOKING)
   if (rateLimitResult) {

@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
-            include: { business: { select: { name: true } } },
+            include: { business: { select: { name: true, deactivatedAt: true } } },
           })
 
           if (!user) {
@@ -54,6 +54,10 @@ export const authOptions: NextAuthOptions = {
 
           // Deactivated staff accounts cannot sign in (soft-deactivation)
           if (user.isActive === false) return null
+
+          // A deactivated business blocks staff sign-in. Owners keep access
+          // so they can export data and reactivate the shop.
+          if (user.business?.deactivatedAt && user.role !== 'OWNER') return null
 
           const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!passwordValid) {

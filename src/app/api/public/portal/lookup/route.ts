@@ -4,11 +4,19 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { hashValue, normalizeContact, PORTAL_SESSION_COOKIE } from '@/lib/portal-security'
 import { toCustomerVisibleProfile } from '@/lib/customer-history'
+import { isPublicBusinessDeactivated } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 const UNAUTHORIZED = 'Please verify your email or phone before accessing your appointments.'
 
 export async function POST(req: NextRequest) {
+  // Soft-deactivated shops do not accept public activity
+  if (await isPublicBusinessDeactivated()) {
+    return NextResponse.json(
+      { error: 'This shop is not accepting bookings right now.' },
+      { status: 503 }
+    )
+  }
   const limited = checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
   if (limited) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
   try {

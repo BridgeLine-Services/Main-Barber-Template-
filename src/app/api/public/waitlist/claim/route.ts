@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createAppointmentSafely } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
+import { isPublicBusinessDeactivated } from '@/lib/tenant'
 
 export async function POST(request: NextRequest) {
   try {
+  // Soft-deactivated shops do not accept public activity
+  if (await isPublicBusinessDeactivated()) {
+    return NextResponse.json(
+      { error: 'This shop is not accepting bookings right now.' },
+      { status: 503 }
+    )
+  }
     const body = await request.json()
     const token = typeof body?.token === 'string' ? body.token : ''
     if (!token) return NextResponse.json({ success: false, error: 'A claim token is required' }, { status: 400 })

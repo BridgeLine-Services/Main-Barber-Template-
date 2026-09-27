@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { resolveBusiness } from '@/lib/tenant'
+import { resolveBusiness, isPublicBusinessDeactivated } from '@/lib/tenant'
 import { startOfDayUTC } from '@/lib/timezone'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import {
@@ -28,6 +28,13 @@ const joinQueueSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  // Soft-deactivated shops do not accept public activity
+  if (await isPublicBusinessDeactivated()) {
+    return NextResponse.json(
+      { error: 'This shop is not accepting bookings right now.' },
+      { status: 503 }
+    )
+  }
   const rateLimitResult = checkRateLimit(req, 'public-queue', RATE_LIMITS.QUEUE)
   if (rateLimitResult) {
     return NextResponse.json(rateLimitResult.body, { status: rateLimitResult.status })

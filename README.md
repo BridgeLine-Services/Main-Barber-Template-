@@ -68,6 +68,7 @@ database access, provider accounts, and the final booking test.
 - **Customer CRM**: Client list with booking history, contact info, notes, and SMS opt-in status.
 - **Staff Management**: Invite staff, link staff accounts to barber profiles, reset passwords, deactivate accounts, and transfer business ownership to another member (atomic role swap with full audit trail).
 - **Login Throttle**: Sign-in attempts are rate limited per IP and per account to blunt credential stuffing and brute-force attacks.
+- **Shop Deactivation**: Owner-only soft close — staff sign-ins and public bookings are blocked, all data preserved, one-click reactivation with full audit trail.
 
 ### 🏢 Multi-Tenant Architecture
 - Every business-scoped record is strictly linked to a `businessId`.
