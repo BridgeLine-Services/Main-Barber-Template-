@@ -102,6 +102,10 @@ model Business {
   firstAvailableBookingEnabled     Boolean @default(true) // allow "First available" option in the booking flow
   parkingAvailable                 Boolean @default(false)
   paymentInPerson                  Boolean @default(true)
+  // Centralized feature configuration (Requirement 27): sparse map of
+  // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
+  // Existing boolean columns above stay authoritative for their feature.
+  featureOverrides                 Json?
   customerRescheduleEnabled        Boolean @default(true)
   customerRescheduleMinNoticeHours Int     @default(24)
   customerRescheduleWindowDays     Int?
@@ -631,6 +635,7 @@ enum AuditAction {
   BARBER_SCHEDULE_UPDATED
   SHOP_CONFIGURATION_RESET
   BARBER_DELETED
+  FEATURE_CONFIG_UPDATED
 }
 
 model AuditLog {

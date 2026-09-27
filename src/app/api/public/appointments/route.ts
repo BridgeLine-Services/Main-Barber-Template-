@@ -9,6 +9,7 @@ import { createBookingSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { localTimeToUTCFromYMD, dayOfWeekFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
+import { isFeatureEnabled } from '@/lib/features'
 
 // Cache business timezone lookups within a request
 async function getBusinessTimezone(businessId: string): Promise<string> {
@@ -104,6 +105,20 @@ export async function POST(req: NextRequest) {
       `${reqBarberId || 'any'}-${serviceId}-${date}-${time}-${customer.email}`
 
     const businessId = await resolveBusinessId()
+
+    // Feature gate (Requirement 27): disabled online booking is enforced
+    // server-side, not merely hidden in the UI.
+    const businessFeatures = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { featureOverrides: true },
+    })
+    if (!businessFeatures || !isFeatureEnabled(businessFeatures, 'onlineBooking')) {
+      return NextResponse.json(
+        { error: 'Online booking is currently unavailable for this business.' },
+        { status: 403 }
+      )
+    }
+
     const businessPolicies = await prisma.business.findUnique({
       where: { id: businessId },
       select: {
