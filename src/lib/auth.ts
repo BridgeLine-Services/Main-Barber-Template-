@@ -57,7 +57,10 @@ export const authOptions: NextAuthOptions = {
 
           // A deactivated business blocks staff sign-in. Owners keep access
           // so they can export data and reactivate the shop.
-          if (user.business?.deactivatedAt && user.role !== 'OWNER') return null
+          // A deactivated business blocks staff sign-in. Owners keep access
+          // so they can export data and reactivate the shop. Platform
+          // owners are business-independent and always retain access.
+          if (user.business?.deactivatedAt && user.role !== 'OWNER' && user.role !== 'PLATFORM_OWNER') return null
 
           const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!passwordValid) {

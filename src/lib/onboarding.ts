@@ -15,7 +15,7 @@
 
 import { prisma } from '@/lib/prisma'
 
-export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding'
+export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding' | 'platform-owner'
 
 /**
  * Access decision for the dashboard gate.
@@ -115,6 +115,12 @@ export async function checkDashboardAccess(
 
   if (dbUser.mustChangePassword && !pathname.startsWith('/change-password')) {
     return { allowed: false, redirectTo: '/change-password', reason: 'password' }
+  }
+
+  // Platform owners administer businesses from the platform console, not
+  // a single business dashboard. They have no businessId by design.
+  if (dbUser.role === 'PLATFORM_OWNER') {
+    return { allowed: false, redirectTo: '/platform', reason: 'platform-owner' }
   }
 
   // Priority 3 — onboarding incomplete (owners only; barbers belong to a

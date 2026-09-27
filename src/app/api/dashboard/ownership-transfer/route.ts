@@ -12,6 +12,9 @@ import { handleApiError } from '@/lib/api-errors'
 
 const transferSchema = z.object({
   targetUserId: z.string().min(1, 'Target user required'),
+  // Only used (and required) when a PLATFORM_OWNER initiates the transfer;
+  // ignored for business owners, whose business is resolved server-side.
+  businessId: z.string().optional(),
 })
 
 /**
@@ -34,7 +37,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const caller = session.user as any
-    if (caller.role !== 'OWNER') {
+    // The owning business owner, or a platform owner administering the
+    // business, may initiate a transfer. Barbers get 403.
+    if (caller.role !== 'OWNER' && caller.role !== 'PLATFORM_OWNER') {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
 
@@ -47,7 +52,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const businessId = await getCurrentBusinessId()
+    // Platform owners operate across businesses: they pass the target
+    // business explicitly and it is resolved server-side. A business
+    // owner always uses their own business — the client can never
+    // choose someone else's.
+    let businessId: string | null = null
+    if (caller.role === 'PLATFORM_OWNER') {
+      businessId = parsed.data.businessId || null
+    } else {
+      businessId = await getCurrentBusinessId()
+    }
     if (!businessId) {
       return NextResponse.json({ error: 'No business context' }, { status: 400 })
     }
@@ -67,12 +81,25 @@ export async function POST(req: NextRequest) {
     if (target.role === 'OWNER') {
       return NextResponse.json({ error: 'Target user is already an owner' }, { status: 400 })
     }
+    // A platform-owner account keeps its platform privileges: business
+    // ownership must never overwrite that role (privilege-loss guard).
+    if (target.role === 'PLATFORM_OWNER') {
+      return NextResponse.json(
+        { error: 'Cannot transfer business ownership to a platform-owner account' },
+        { status: 400 }
+      )
+    }
 
     const [previousOwner, newOwner] = await prisma.$transaction(async (tx) => {
-      const demoted = await tx.user.update({
-        where: { id: caller.id },
-        data: { role: 'BARBER' },
-      })
+      // Demote the previous owner — except a PLATFORM_OWNER caller,
+      // who must never lose platform privileges via a business transfer.
+      const demoted =
+        caller.role === 'PLATFORM_OWNER'
+          ? await tx.user.findUniqueOrThrow({ where: { id: caller.id } })
+          : await tx.user.update({
+              where: { id: caller.id },
+              data: { role: 'BARBER' },
+            })
       const promoted = await tx.user.update({
         where: { id: target.id },
         data: { role: 'OWNER' },

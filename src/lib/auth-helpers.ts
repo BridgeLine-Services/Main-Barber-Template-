@@ -16,7 +16,7 @@ export interface AuthResult {
     id: string
     email: string
     name: string
-    role: 'OWNER' | 'BARBER'
+    role: 'PLATFORM_OWNER' | 'OWNER' | 'BARBER'
     businessId: string | null
     barberId?: string | null
   }
@@ -81,6 +81,28 @@ export async function requireOwner(): Promise<AuthResult | AuthError> {
       success: false,
       response: NextResponse.json(
         { error: 'Forbidden: Owner access required' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  return auth
+}
+
+/**
+ * Require PLATFORM_OWNER role. Any other caller (business owner,
+ * barber, customer, anonymous) gets 401/403. Server-side only —
+ * the client can never assert this by hiding UI.
+ */
+export async function requirePlatformOwner(): Promise<AuthResult | AuthError> {
+  const auth = await requireAuth()
+  if (!auth.success) return auth
+
+  if (auth.user.role !== 'PLATFORM_OWNER') {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: 'Forbidden: Platform owner access required' },
         { status: 403 }
       ),
     }

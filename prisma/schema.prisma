@@ -108,6 +108,7 @@ model Business {
 // ─── Users (Auth) ───────────────────────────────────────────────────────────
 
 enum UserRole {
+  PLATFORM_OWNER
   OWNER
   BARBER
 }
@@ -571,6 +572,8 @@ model NotificationLog {
 // ─── Audit Log ─────────────────────────────────────────────────────────────
 
 enum AuditAction {
+  PLATFORM_BUSINESS_CREATED
+  PLATFORM_ACCESS_DENIED
   APPOINTMENT_CREATED
   APPOINTMENT_CANCELLED
   APPOINTMENT_RESCHEDULED
