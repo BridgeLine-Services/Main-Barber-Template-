@@ -56,7 +56,7 @@ export interface FactorySnapshot {
     customerRescheduleWindowDays: number | null
     logo: string | null
   } | null
-  media: { hero: number; ogImage: number; favicon: number }
+  media: { hero: number; ogImage: number; favicon: number; heroImageUrl: string | null }
   seo: { siteTitle: string | null; siteDescription: string | null; ogImage: string | null } | null
   services: Array<{ isActive: boolean; price: number; duration: number }>
   barbers: Array<{ isActive: boolean; schedules: Array<{ isOff: boolean; startTime: string; endTime: string }> }>
@@ -92,7 +92,11 @@ export function evaluateFactoryReadiness(snapshot: FactorySnapshot): FactoryRead
   const brandingValid = !!business && isValidHexColor(business.primaryColor) && isValidHexColor(business.accentColor) && (!business.secondaryColor || isValidHexColor(business.secondaryColor))
   addFactoryCheck(checks, 'Branding', 'Branding configuration', brandingValid, 'Primary and accent colors must be valid hex colors.')
   addFactoryCheck(checks, 'Branding', 'Logo configured', !!business?.logo, 'Add a logo through the dashboard before launch.')
-  addFactoryCheck(checks, 'Branding', 'Hero image configured', snapshot.media.hero > 0, 'Add a published HERO media asset or intentionally approve a text-only hero.')
+  // The hero is satisfied either by a HERO media asset (media library) or by
+  // the hero image URL in WebsiteContent (dashboard → Settings → Website),
+  // which is exactly what the customer homepage renders from.
+  const heroConfigured = snapshot.media.hero > 0 || !!snapshot.media.heroImageUrl
+  addFactoryCheck(checks, 'Branding', 'Hero image configured', heroConfigured, 'Add a hero image in Settings → Website (or upload a HERO asset in the media library), or intentionally keep the text-only hero.')
   addFactoryCheck(checks, 'Branding', 'Favicon configured', snapshot.media.favicon > 0, 'Add a published FAVICON media asset.', 'optional_warning')
   addFactoryCheck(checks, 'SEO', 'SEO metadata', !!snapshot.seo?.siteTitle && !!snapshot.seo.siteDescription, 'Add a site title and meta description in SEO settings.')
   addFactoryCheck(checks, 'SEO', 'Social image configured', !!snapshot.seo?.ogImage || snapshot.media.ogImage > 0, 'Add an OG image for social sharing.', 'optional_warning')
@@ -131,7 +135,7 @@ function featureSnapshot() {
 export async function verifyFactoryReadiness(businessId: string): Promise<{ overall: 'READY' | 'NOT_READY'; checks: FactoryReadinessCheck[]; passed: number; failed: number; warnings: number }> {
   let databaseAvailable = true
   let business: FactorySnapshot['business'] = null
-  let media: FactorySnapshot['media'] = { hero: 0, ogImage: 0, favicon: 0 }
+  let media: FactorySnapshot['media'] = { hero: 0, ogImage: 0, favicon: 0, heroImageUrl: null }
   let seo: FactorySnapshot['seo'] = null
   let services: FactorySnapshot['services'] = []
   let barbers: FactorySnapshot['barbers'] = []
@@ -143,6 +147,7 @@ export async function verifyFactoryReadiness(businessId: string): Promise<{ over
         primaryColor: true, accentColor: true, secondaryColor: true, logo: true,
         onboardingCompleted: true, customerRescheduleMinNoticeHours: true,
         seo: { select: { siteTitle: true, siteDescription: true, ogImage: true } },
+        websiteContent: { select: { heroImageUrl: true } },
         mediaAssets: { where: { isPublished: true }, select: { type: true } },
         customerRescheduleWindowDays: true,
         services: { select: { isActive: true, price: true, duration: true } },
@@ -158,6 +163,7 @@ export async function verifyFactoryReadiness(businessId: string): Promise<{ over
         hero: result.mediaAssets.filter((asset) => asset.type === 'HERO').length,
         ogImage: result.mediaAssets.filter((asset) => asset.type === 'OG_IMAGE').length,
         favicon: result.mediaAssets.filter((asset) => asset.type === 'FAVICON').length,
+        heroImageUrl: result.websiteContent?.heroImageUrl ?? null,
       }
     }
   } catch (error) {

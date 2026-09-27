@@ -16,7 +16,7 @@ function snapshot(overrides: Partial<FactorySnapshot> = {}): FactorySnapshot {
       accentColor: '#d4af37', secondaryColor: '#222222', onboardingCompleted: true,
       customerRescheduleMinNoticeHours: 24, customerRescheduleWindowDays: 30, logo: 'https://cdn.example.com/logo.svg',
     },
-    media: { hero: 1, ogImage: 1, favicon: 1 },
+    media: { hero: 1, ogImage: 1, favicon: 1, heroImageUrl: null },
     seo: { siteTitle: 'Example Cuts', siteDescription: 'A neighborhood barber shop.', ogImage: 'https://cdn.example.com/og.png' },
     services: [{ isActive: true, price: 35, duration: 30 }],
     barbers: [{ isActive: true, schedules: [{ isOff: false, startTime: '09:00', endTime: '17:00' }] }],
@@ -37,6 +37,22 @@ const has = (input: FactorySnapshot, check: string, status: string) => checks(in
 assert(!checks(snapshot()).some((item) => item.status === 'FAIL'), 'valid client configuration passes')
 assert(has(snapshot({ business: null }), 'Business information', 'FAIL'), 'missing business information fails')
 assert(has(snapshot({ services: [] }), 'Active services', 'FAIL'), 'no services fails readiness')
+assert(
+  has(
+    snapshot({ media: { hero: 0, ogImage: 1, favicon: 1, heroImageUrl: 'https://cdn.example.com/hero.jpg' } }),
+    'Hero image configured',
+    'PASS'
+  ),
+  'website hero image URL satisfies the hero check'
+)
+assert(
+  has(
+    snapshot({ media: { hero: 0, ogImage: 1, favicon: 1, heroImageUrl: null } }),
+    'Hero image configured',
+    'FAIL'
+  ),
+  'no hero asset and no hero URL fails the hero check'
+)
 assert(has(snapshot({ barbers: [] }), 'Active barber', 'FAIL'), 'no active barber fails readiness')
 assert(has(snapshot({ barbers: [{ isActive: true, schedules: [] }] }), 'Weekly schedules', 'FAIL'), 'missing barber schedules fails readiness')
 assert(has(snapshot(), 'email', 'WARN'), 'disabled email does not block readiness')
