@@ -1,11 +1,13 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { checkDashboardAccess } from '@/lib/onboarding'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
+import { ExternalLink } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +71,15 @@ export default async function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-200 transition-colors hover:border-amber-500/50 hover:text-amber-400"
+            >
+              View Customer Website
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </Link>
             <div className="text-right">
               <p className="text-sm font-medium text-zinc-200">{userName}</p>
               <span className="inline-block text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full capitalize">
