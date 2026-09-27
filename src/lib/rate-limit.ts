@@ -95,6 +95,17 @@ export function rateLimit(
 }
 
 /**
+ * Check whether a key is currently rate limited WITHOUT consuming an
+ * attempt. Use for counters that should only increment on failure
+ * (e.g. login attempts).
+ */
+export function isRateLimited(key: string, config: RateLimitConfig): boolean {
+  cleanup()
+  const entry = limits.get(key)
+  return !!entry && entry.count >= config.maxRequests && Date.now() <= entry.resetTime
+}
+
+/**
  * Get client IP from request, accounting for Vercel's proxy headers.
  */
 export function getClientIP(req: Request): string {

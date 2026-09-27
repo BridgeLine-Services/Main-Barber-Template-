@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +30,8 @@ export default function StaffPage() {
 
   const [form, setForm] = useState({ name: '', email: '', role: 'BARBER', barberId: '' })
   const [barbers, setBarbers] = useState<{ id: string; name: string; isActive: boolean }[]>([])
+  const [transferring, setTransferring] = useState<string | null>(null)
+  const { data: session } = useSession()
 
   useEffect(() => { fetchStaff() }, [])
 
@@ -151,6 +154,31 @@ export default function StaffPage() {
       if (!res.ok) return
       setStaff(staff.map(s => s.id === id ? { ...s, role } : s))
     } catch {}
+  }
+
+  const handleTransferOwnership = async (id: string, name: string) => {
+    if (!confirm(
+      `Transfer ownership to ${name}? You will be demoted to BARBER and must sign in again to see the change. This cannot be undone from your side.`
+    )) return
+    setTransferring(id)
+    try {
+      const res = await fetch('/api/dashboard/ownership-transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: id }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error || 'Failed to transfer ownership')
+        return
+      }
+      setError('')
+      fetchStaff()
+    } catch {
+      setError('Network error')
+    } finally {
+      setTransferring(null)
+    }
   }
 
   const handleLinkBarber = async (id: string, barberId: string) => {
@@ -380,6 +408,18 @@ export default function StaffPage() {
                     className="text-zinc-400 hover:text-blue-400 hover:bg-blue-950/30">
                     {member.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                   </Button>
+                  {(session?.user as any)?.id !== member.id && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Transfer business ownership to this member"
+                      disabled={transferring !== null}
+                      onClick={() => handleTransferOwnership(member.id, member.name)}
+                      className="text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30"
+                    >
+                      {transferring === member.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => handleResetPassword(member.id, member.name)}
                     className="text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30">
                     <KeyRound className="w-4 h-4" />

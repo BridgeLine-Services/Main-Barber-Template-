@@ -9,6 +9,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
+import { rateLimit, isRateLimited, RATE_LIMITS } from './rate-limit'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -18,8 +19,26 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // Brute-force protection: per-IP and per-account sliding windows.
+        // Counted on every attempt (success or failure) so credential
+        // stuffing from one source is throttled regardless of outcome.
+        const ip =
+          (req?.headers && (req.headers as Record<string, string | string[] | undefined>)['x-forwarded-for']?.toString().split(',')[0].trim()) ||
+          (req?.headers && (req.headers as Record<string, string | string[] | undefined>)['x-real-ip']?.toString()) ||
+          'unknown'
+        // Failed-attempt throttle: successful sign-ins never consume the
+        // budget, so normal users and shared-IP offices are unaffected.
+        // Per-IP is generous to tolerate shared-IP offices; per-account
+        // stops targeted brute force on one login.
+        const ipKey = `login-fail-ip:${ip}`
+        const accountKey = `login-fail-account:${credentials.email.toLowerCase()}`
+        if (
+          isRateLimited(ipKey, { windowMs: 60_000, maxRequests: 10 }) ||
+          isRateLimited(accountKey, RATE_LIMITS.AUTH)
+        ) return null
 
         try {
           const user = await prisma.user.findUnique({
@@ -27,13 +46,21 @@ export const authOptions: NextAuthOptions = {
             include: { business: { select: { name: true } } },
           })
 
-          if (!user) return null
+          if (!user) {
+            rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
+            rateLimit(accountKey, RATE_LIMITS.AUTH)
+            return null
+          }
 
           // Deactivated staff accounts cannot sign in (soft-deactivation)
           if (user.isActive === false) return null
 
           const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
-          if (!passwordValid) return null
+          if (!passwordValid) {
+            rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
+            rateLimit(accountKey, RATE_LIMITS.AUTH)
+            return null
+          }
 
           return {
             id: user.id,

@@ -66,6 +66,8 @@ database access, provider accounts, and the final booking test.
 - **Barber & Schedule Controls**: Custom working hours per day of week, lunch breaks, and blocked vacation time.
 - **Service & Menu Management**: Add, edit, reorder, or toggle active status for haircut and beard services.
 - **Customer CRM**: Client list with booking history, contact info, notes, and SMS opt-in status.
+- **Staff Management**: Invite staff, link staff accounts to barber profiles, reset passwords, deactivate accounts, and transfer business ownership to another member (atomic role swap with full audit trail).
+- **Login Throttle**: Sign-in attempts are rate limited per IP and per account to blunt credential stuffing and brute-force attacks.
 
 ### 🏢 Multi-Tenant Architecture
 - Every business-scoped record is strictly linked to a `businessId`.
