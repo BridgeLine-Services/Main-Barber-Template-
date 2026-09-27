@@ -291,7 +291,9 @@ export async function getEarliestAvailableSlot(params: {
   const barbers = await prisma.barber.findMany({
     where: { businessId, isActive: true },
     include: {
-      services: true,
+      // Only serviceId is needed for the matching filter below — fetching
+      // full BarberService rows was an oversized response for this hot path.
+      services: { select: { serviceId: true } },
     },
     orderBy: { order: 'asc' },
   })

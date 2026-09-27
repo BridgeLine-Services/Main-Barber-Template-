@@ -59,12 +59,17 @@ export async function GET(req: NextRequest) {
       }
       const appointments = await prisma.appointment.findMany({
         where,
+        // Field-checked performance fix (Requirement 31): return only the
+        // relation fields the dashboard actually renders (verified across
+        // AppointmentsListView, AppointmentDetailsDialog, calendar and
+        // barber-mode pages) instead of full customer/barber/service rows.
         include: {
-          customer: true,
-          barber: true,
-          service: true,
+          customer: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
+          barber: { select: { id: true, name: true, specialty: true } },
+          service: { select: { id: true, name: true, price: true, duration: true } },
           intakeResponses: {
             orderBy: { createdAt: 'asc' },
+            select: { id: true, questionKey: true, questionLabel: true, answer: true },
           },
         },
         orderBy: { startTime: 'asc' },

@@ -59,22 +59,27 @@ export async function getRebookingTasks(businessId: string): Promise<RebookingTa
   const tasks: RebookingTask[] = []
   const now = new Date()
 
+  // Batch check (performance): ONE query for all candidates instead of a
+  // findFirst per customer (N+1). Customers who already have an upcoming
+  // appointment are skipped before the more expensive intelligence lookup.
+  const withUpcoming = await prisma.appointment.findMany({
+    where: {
+      customerId: { in: customers.map((c) => c.id) },
+      businessId,
+      status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
+      startTime: { gte: now },
+    },
+    select: { customerId: true },
+    distinct: ['customerId'],
+  })
+  const hasUpcoming = new Set(withUpcoming.map((a) => a.customerId))
+
   for (const customer of customers) {
+    if (hasUpcoming.has(customer.id)) continue // Already has an upcoming appointment
+
     const intelligence = await getCustomerIntelligence(customer.id, businessId)
 
     if (!intelligence.isDueForRebook || !intelligence.nextPredictedDate) continue
-
-    // Check if there's already a pending/confirmed appointment in the future
-    const futureAppt = await prisma.appointment.findFirst({
-      where: {
-        customerId: customer.id,
-        businessId,
-        status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
-        startTime: { gte: now },
-      },
-    })
-
-    if (futureAppt) continue // Already has an upcoming appointment
 
     const daysOverdue = Math.round(
       (now.getTime() - intelligence.nextPredictedDate.getTime()) / (1000 * 60 * 60 * 24)
