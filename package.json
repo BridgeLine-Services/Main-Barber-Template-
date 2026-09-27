@@ -26,6 +26,7 @@
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "test:tenant": "npx tsx tests/tenant-isolation.test.ts",
+    "test:matrix": "npx tsx tests/cross-tenant-matrix.test.ts",
     "test:booking": "npx tsx tests/booking.test.ts",
     "test:permissions": "npx tsx tests/role-permissions.test.ts",
     "test:platform": "npx tsx tests/platform-owner.test.ts",
