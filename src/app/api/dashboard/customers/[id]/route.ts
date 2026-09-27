@@ -93,7 +93,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     // Ownership check — must be OWNER (staff/barbers cannot delete customers).
     const caller = await prisma.user.findUnique({ where: su.id ? { id: su.id } : undefined, select: { role: true } })
-    if (caller?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (caller?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden: deletion is an owner-only action' }, { status: 403 })
 
     const { id } = await params
     const existing = await prisma.customer.findFirst({ where: { id, businessId } })

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAnalytics } from '@/lib/analytics'
+import { canManageBusiness } from '@/lib/permissions'
 import { AnalyticsClient } from './AnalyticsClient'
 
 export default async function AnalyticsPage() {
@@ -12,7 +13,7 @@ export default async function AnalyticsPage() {
   }
 
   const user = session.user as any
-  if (user.role !== 'OWNER') {
+  if (!canManageBusiness(user.role)) {
     redirect('/dashboard')
   }
 

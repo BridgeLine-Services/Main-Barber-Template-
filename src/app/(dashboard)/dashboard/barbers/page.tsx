@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { canManageBusiness } from '@/lib/permissions'
 import { BarbersClient } from '@/components/dashboard/BarbersClient'
 
 export default async function BarbersPage() {
@@ -11,7 +12,7 @@ export default async function BarbersPage() {
   }
 
   const user = session.user as any
-  if (user.role !== 'OWNER') {
+  if (!canManageBusiness(user.role)) {
     redirect('/dashboard')
   }
 

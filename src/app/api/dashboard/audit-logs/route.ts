@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireOwner } from '@/lib/auth-helpers'
+import { requireBusinessAdmin } from '@/lib/auth-helpers'
 import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 
@@ -12,7 +12,7 @@ import { handleApiError } from '@/lib/api-errors'
  */
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     try {
       const businessId = await getBusinessIdForUser(auth.user)

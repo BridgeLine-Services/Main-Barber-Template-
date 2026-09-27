@@ -13,7 +13,7 @@ import { handleApiError } from '@/lib/api-errors'
 const inviteSchema = z.object({
   name: z.string().min(1, 'Name required').max(100),
   email: z.string().email('Valid email required'),
-  role: z.enum(['OWNER', 'BARBER']),
+  role: z.enum(['OWNER', 'BUSINESS_ADMIN', 'BARBER']),
   barberId: z.string().optional(), // link to Barber profile
 })
 
@@ -27,8 +27,9 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
-      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    const callerRole = (session.user as { role?: string }).role
+    if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
+      return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })
     }
     try {
       const businessId = await getCurrentBusinessId()
@@ -68,8 +69,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
-      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    const callerRole = (session.user as { role?: string }).role
+    if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
+      return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })
     }
     try {
       const body = await req.json().catch(() => null)
@@ -79,6 +81,11 @@ export async function POST(req: NextRequest) {
           { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
           { status: 400 }
         )
+      }
+      // Privilege escalation prevention: only the OWNER can create another
+      // OWNER. A BUSINESS_ADMIN may invite barbers and business admins.
+      if (parsed.data.role === 'OWNER' && callerRole !== 'OWNER') {
+        return NextResponse.json({ error: 'Only the business owner can assign the Owner role' }, { status: 403 })
       }
       const businessId = await getCurrentBusinessId()
       if (parsed.data.barberId) {

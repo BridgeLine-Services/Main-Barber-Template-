@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentBusinessId } from '@/lib/business'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { can } from '@/lib/permissions'
 import { handleApiError } from '@/lib/api-errors'
 
 /**
@@ -17,7 +18,9 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (!can((session.user as { role?: string }).role, 'business.export-data')) {
+      // OWNER-only: a business admin manages the business but does not own
+      // its customer data for bulk export (Requirement 7 role boundary).
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
     try {

@@ -77,7 +77,9 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const setSectionExpanded = (key: string, value: 'open' | 'closed') =>
     setSectionState((prev) => ({ ...prev, [key]: value }))
 
-  const isOwner = userRole === 'OWNER'
+  // Owner nav is shared with BUSINESS_ADMIN — real authorization is server-side
+  // (page gates + API guards); the sidebar only controls visibility.
+  const isOwner = userRole === 'OWNER' || userRole === 'BUSINESS_ADMIN'
 
   const isSectionExpanded = (key: string, hasActive: boolean) => {
     if (sectionState[key] === 'open') return true

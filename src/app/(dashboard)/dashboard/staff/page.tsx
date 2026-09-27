@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import {
   UserPlus, Trash2, KeyRound, Shield, Loader2, AlertCircle,
   Mail, Crown, Scissors, Copy, Check, X
-} from 'lucide-react'
+, ShieldCheck } from 'lucide-react'
 
 interface StaffMember {
   id: string
@@ -304,6 +304,15 @@ export default function StaffPage() {
                       className="sr-only" />
                     <Scissors className="w-4 h-4 text-zinc-400" />
                     <span className="text-sm text-zinc-200">Barber</span>
+                  </label>
+                  <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    form.role === 'BUSINESS_ADMIN' ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-600'
+                  }`}>
+                    <input type="radio" name="role" value="BUSINESS_ADMIN" checked={form.role === 'BUSINESS_ADMIN'}
+                      onChange={() => setForm({ ...form, role: 'BUSINESS_ADMIN' })}
+                      className="sr-only" />
+                    <ShieldCheck className="w-4 h-4 text-zinc-400" />
+                    <span className="text-sm text-zinc-200">Business Admin (no ownership actions)</span>
                   </label>
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
                     form.role === 'OWNER' ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-600'

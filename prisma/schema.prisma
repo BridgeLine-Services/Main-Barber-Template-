@@ -110,6 +110,7 @@ model Business {
 enum UserRole {
   PLATFORM_OWNER
   OWNER
+  BUSINESS_ADMIN
   BARBER
 }
 

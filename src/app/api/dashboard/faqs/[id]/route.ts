@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireOwner, getBusinessIdForUser, logAudit } from '@/lib/auth-helpers'
+import { requireBusinessAdmin, getBusinessIdForUser, logAudit } from '@/lib/auth-helpers'
 import { z } from 'zod'
 import { AuditAction } from '@prisma/client'
 import { handleApiError } from '@/lib/api-errors'
@@ -21,7 +21,7 @@ const updateFaqSchema = z.object({
  */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     try {
       const businessId = await getBusinessIdForUser(auth.user)
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
  */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     try {
       const businessId = await getBusinessIdForUser(auth.user)

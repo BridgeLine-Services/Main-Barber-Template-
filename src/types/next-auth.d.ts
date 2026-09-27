@@ -10,7 +10,7 @@ declare module 'next-auth' {
       id: string
       email: string
       name: string
-      role: 'PLATFORM_OWNER' | 'OWNER' | 'BARBER'
+      role: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER'
       businessId: string | null
       businessName: string
       barberId: string | null
@@ -21,7 +21,7 @@ declare module 'next-auth' {
     id: string
     email: string
     name: string
-    role: 'PLATFORM_OWNER' | 'OWNER' | 'BARBER'
+    role: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER'
     businessId: string | null
     businessName: string
     barberId: string | null

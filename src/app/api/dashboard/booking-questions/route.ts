@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireOwner, getBusinessIdForUser } from '@/lib/auth-helpers'
+import { requireBusinessAdmin, getBusinessIdForUser } from '@/lib/auth-helpers'
 import { bookingQuestionSchema } from '@/lib/validation'
 import { handleApiError } from '@/lib/api-errors'
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     const businessId = await getBusinessIdForUser(auth.user)
     const parsed = bookingQuestionSchema.safeParse(await req.json())
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     const businessId = await getBusinessIdForUser(auth.user)
     const body = await req.json()
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const auth = await requireOwner()
+    const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
     const businessId = await getBusinessIdForUser(auth.user)
     const id = new URL(req.url).searchParams.get('id') || ''

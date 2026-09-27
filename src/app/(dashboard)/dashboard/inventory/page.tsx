@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { canManageBusiness } from '@/lib/permissions'
 import { InventoryClient } from './InventoryClient'
 
 export default async function InventoryPage() {
@@ -12,7 +13,7 @@ export default async function InventoryPage() {
   }
 
   const user = session.user as any
-  if (user.role !== 'OWNER') {
+  if (!canManageBusiness(user.role)) {
     redirect('/dashboard')
   }
 

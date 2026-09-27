@@ -16,7 +16,7 @@ export interface AuthResult {
     id: string
     email: string
     name: string
-    role: 'PLATFORM_OWNER' | 'OWNER' | 'BARBER'
+    role: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER'
     businessId: string | null
     barberId?: string | null
   }
@@ -81,6 +81,29 @@ export async function requireOwner(): Promise<AuthResult | AuthError> {
       success: false,
       response: NextResponse.json(
         { error: 'Forbidden: Owner access required' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  return auth
+}
+
+/**
+ * Require business-management access: OWNER or BUSINESS_ADMIN (Requirement 7).
+ * Barbers, customers, and anonymous callers get 401/403. This guard grants
+ * OPERATIONAL management only — ownership actions (data export, deletion,
+ * ownership transfer, onboarding/factory tooling) stay OWNER-only.
+ */
+export async function requireBusinessAdmin(): Promise<AuthResult | AuthError> {
+  const auth = await requireAuth()
+  if (!auth.success) return auth
+
+  if (auth.user.role !== 'OWNER' && auth.user.role !== 'BUSINESS_ADMIN') {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: 'Forbidden: Business owner or admin access required' },
         { status: 403 }
       ),
     }

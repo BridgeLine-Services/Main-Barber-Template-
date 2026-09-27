@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getDailyOperationsSnapshot } from '@/lib/daily-operations'
 import { getBusinessTimezone } from '@/lib/availability'
+import { canManageBusiness } from '@/lib/permissions'
 import { DailyOperationsClient } from './DailyOperationsClient'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,7 @@ export default async function DailyOperationsPage() {
   }
 
   const user = session.user as any
-  if (user.role !== 'OWNER') {
+  if (!canManageBusiness(user.role)) {
     redirect('/dashboard')
   }
   const businessId = user.businessId

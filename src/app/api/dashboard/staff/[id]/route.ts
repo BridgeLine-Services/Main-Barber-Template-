@@ -11,7 +11,7 @@ import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
 
 const updateSchema = z.object({
-  role: z.enum(['OWNER', 'BARBER']).optional(),
+  role: z.enum(['OWNER', 'BUSINESS_ADMIN', 'BARBER']).optional(),
   name: z.string().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
   barberId: z.string().nullable().optional(), // link/unlink a BARBER staff account to a barber profile
@@ -30,8 +30,16 @@ export async function PATCH(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
-      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    const callerRole = (session.user as { role?: string }).role
+    if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
+      return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })
+    }
+    // Privilege-escalation prevention: only the OWNER can assign, modify,
+    // or remove the OWNER role.
+    const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
+    if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
+      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
     }
     try {
       const body = await req.json()
@@ -45,6 +53,9 @@ export async function PATCH(
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
       // Don't allow demoting yourself
+      if (parsed.data.role === 'OWNER' && callerRole !== 'OWNER') {
+        return NextResponse.json({ error: 'Only the business owner can assign the Owner role' }, { status: 403 })
+      }
       if (user.id === (session.user as any).id && parsed.data.role && parsed.data.role !== 'OWNER') {
         return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
       }
@@ -147,8 +158,16 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
-      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    const callerRole = (session.user as { role?: string }).role
+    if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
+      return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })
+    }
+    // Privilege-escalation prevention: only the OWNER can assign, modify,
+    // or remove the OWNER role.
+    const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
+    if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
+      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
     }
     try {
       const businessId = await getCurrentBusinessId()
@@ -203,8 +222,16 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
-      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    const callerRole = (session.user as { role?: string }).role
+    if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
+      return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })
+    }
+    // Privilege-escalation prevention: only the OWNER can assign, modify,
+    // or remove the OWNER role.
+    const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
+    if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
+      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
     }
     try {
       const businessId = await getCurrentBusinessId()
