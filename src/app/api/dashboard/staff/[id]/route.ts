@@ -14,6 +14,7 @@ const updateSchema = z.object({
   role: z.enum(['OWNER', 'BARBER']).optional(),
   name: z.string().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
+  barberId: z.string().nullable().optional(), // link/unlink a BARBER staff account to a barber profile
 })
 
 /**
@@ -63,14 +64,43 @@ export async function PATCH(
           )
         }
       }
+      // Validate the barber profile belongs to this business before linking
+      if (parsed.data.barberId !== undefined) {
+        if (parsed.data.barberId === null) {
+          // unlinking: only meaningful for BARBER staff
+          if (user.role !== 'BARBER' && parsed.data.role !== 'BARBER') {
+            return NextResponse.json({ error: 'Only BARBER staff can be unlinked' }, { status: 400 })
+          }
+        } else {
+          const barber = await prisma.barber.findFirst({
+            where: { id: parsed.data.barberId, businessId },
+            select: { id: true },
+          })
+          if (!barber) {
+            return NextResponse.json({ error: 'Barber profile not found in this business' }, { status: 404 })
+          }
+          // A barber profile can only be linked to one staff account at a time
+          const existingLink = await prisma.user.findFirst({
+            where: { businessId, barberId: parsed.data.barberId, isActive: true, id: { not: user.id } },
+            select: { id: true, email: true },
+          })
+          if (existingLink) {
+            return NextResponse.json(
+              { error: `That barber profile is already linked to ${existingLink.email}` },
+              { status: 409 }
+            )
+          }
+        }
+      }
       const updated = await prisma.user.update({
         where: { id: params.id },
         data: {
           ...(parsed.data.role && { role: parsed.data.role }),
           ...(parsed.data.name && { name: parsed.data.name }),
           ...(parsed.data.isActive !== undefined && { isActive: parsed.data.isActive }),
+          ...(parsed.data.barberId !== undefined && { barberId: parsed.data.barberId }),
         },
-        select: { id: true, email: true, name: true, role: true, isActive: true },
+        select: { id: true, email: true, name: true, role: true, barberId: true, isActive: true },
       })
       // Audit log
       await prisma.auditLog.create({
@@ -78,9 +108,11 @@ export async function PATCH(
           businessId,
           userId: (session.user as any).id,
           action:
-            parsed.data.isActive !== undefined
-              ? 'USER_DEACTIVATED'
-              : 'USER_ROLE_CHANGED',
+            parsed.data.barberId !== undefined
+              ? 'USER_BARBER_LINK_CHANGED'
+              : parsed.data.isActive !== undefined
+                ? 'USER_DEACTIVATED'
+                : 'USER_ROLE_CHANGED',
           entityType: 'User',
           entityId: params.id,
           oldValues: { role: user.role, name: user.name, isActive: user.isActive },

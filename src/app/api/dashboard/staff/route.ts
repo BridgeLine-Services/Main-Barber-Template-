@@ -84,6 +84,17 @@ export async function POST(req: NextRequest) {
       if (parsed.data.barberId) {
         const barber = await prisma.barber.findFirst({ where: { id: parsed.data.barberId, businessId }, select: { id: true } })
         if (!barber) return NextResponse.json({ error: 'Barber profile not found in this business' }, { status: 403 })
+        // A barber profile can only be linked to one staff account at a time
+        const existingLink = await prisma.user.findFirst({
+          where: { businessId, barberId: parsed.data.barberId, isActive: true },
+          select: { email: true },
+        })
+        if (existingLink) {
+          return NextResponse.json(
+            { error: `That barber profile is already linked to ${existingLink.email}` },
+            { status: 409 }
+          )
+        }
       }
       // Check if email already exists
       const existing = await prisma.user.findUnique({
@@ -107,7 +118,7 @@ export async function POST(req: NextRequest) {
           // gate routes mustChangePassword users to /change-password.
           mustChangePassword: true,
         },
-        select: { id: true, email: true, name: true, role: true },
+        select: { id: true, email: true, name: true, role: true, barberId: true },
       })
       // Audit logging is non-critical; it must not turn a successful invite into a failure.
       try {

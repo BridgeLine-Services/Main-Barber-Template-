@@ -27,9 +27,18 @@ export default function StaffPage() {
   const [tempCreds, setTempCreds] = useState<{ email: string; password: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const [form, setForm] = useState({ name: '', email: '', role: 'BARBER' })
+  const [form, setForm] = useState({ name: '', email: '', role: 'BARBER', barberId: '' })
+  const [barbers, setBarbers] = useState<{ id: string; name: string; isActive: boolean }[]>([])
 
   useEffect(() => { fetchStaff() }, [])
+
+  // Barber profiles for staff <-> barber linking (owner view)
+  useEffect(() => {
+    fetch('/api/dashboard/barbers')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setBarbers(Array.isArray(data) ? data.map((b: any) => ({ id: b.id, name: b.name, isActive: b.isActive })) : []))
+      .catch(() => setBarbers([]))
+  }, [])
 
   const fetchStaff = async () => {
     setLoading(true)
@@ -50,7 +59,10 @@ export default function StaffPage() {
       const res = await fetch('/api/dashboard/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          barberId: form.role === 'BARBER' && form.barberId ? form.barberId : undefined,
+        }),
       })
       const data = await res.json()
 
@@ -61,7 +73,7 @@ export default function StaffPage() {
 
       setStaff([...staff, data.user])
       setTempCreds({ email: data.user.email, password: data.tempPassword })
-      setForm({ name: '', email: '', role: 'BARBER' })
+      setForm({ name: '', email: '', role: 'BARBER', barberId: '' })
       setShowForm(false)
     } catch {
       setError('Network error')
@@ -139,6 +151,29 @@ export default function StaffPage() {
       if (!res.ok) return
       setStaff(staff.map(s => s.id === id ? { ...s, role } : s))
     } catch {}
+  }
+
+  const handleLinkBarber = async (id: string, barberId: string) => {
+    const prev = staff.find((s) => s.id === id)?.barberId || null
+    // optimistic update, revert on failure
+    setStaff(staff.map((s) => (s.id === id ? { ...s, barberId: barberId || null } : s)))
+    try {
+      const res = await fetch(`/api/dashboard/staff/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barberId: barberId || null }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setError(data?.error || 'Failed to update barber link')
+        setStaff(staff.map((s) => (s.id === id ? { ...s, barberId: prev } : s)))
+      } else {
+        setError('')
+      }
+    } catch {
+      setError('Network error')
+      setStaff(staff.map((s) => (s.id === id ? { ...s, barberId: prev } : s)))
+    }
   }
 
   const copyCreds = () => {
@@ -253,6 +288,25 @@ export default function StaffPage() {
                   </label>
                 </div>
               </div>
+              {form.role === 'BARBER' && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Linked Barber Profile</label>
+                  <select
+                    value={form.barberId}
+                    onChange={(e) => setForm({ ...form, barberId: e.target.value })}
+                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="">No link — they'll only see their own profile once linked</option>
+                    {barbers.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}{b.isActive ? '' : ' (inactive)'}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Links this login to a barber profile so their appointments, schedule, and public
+                    page line up. You can change this later.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-3">
                 <Button type="submit" disabled={submitting} className="bg-amber-500 text-black hover:bg-amber-400">
                   {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -288,6 +342,21 @@ export default function StaffPage() {
                   <div>
                     <p className="font-semibold text-zinc-100">{member.name}</p>
                     <p className="text-sm text-zinc-400">{member.email}</p>
+                    {member.role === 'BARBER' && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">Barber profile:</span>
+                        <select
+                          value={member.barberId || ''}
+                          onChange={(e) => handleLinkBarber(member.id, e.target.value)}
+                          className="rounded-md bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-zinc-200 focus:border-amber-500 focus:outline-none"
+                        >
+                          <option value="">Not linked</option>
+                          {barbers.map((b) => (
+                            <option key={b.id} value={b.id}>{b.name}{b.isActive ? '' : ' (inactive)'}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium border ${
                     member.role === 'OWNER'
