@@ -23,7 +23,6 @@ import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 
-export const revalidate = 60
 
 // ─── Dynamic SEO Metadata ──────────────────────────────────────────────
 export async function generateMetadata(): Promise<Metadata> {

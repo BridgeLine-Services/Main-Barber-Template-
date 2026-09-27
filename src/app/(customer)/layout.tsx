@@ -39,12 +39,15 @@ export default async function CustomerLayout({
     where: { businessId: business.id },
   }).catch(() => null)
 
-  const isDark = (business.themeMode || 'dark') === 'dark'
-
+  // The .brand-theme class (styled by ThemeStyle/generateThemeCSS) owns the
+  // entire surface: --background, --foreground, --card, --accent, etc. The
+  // wrapper must consume those variables, NOT hardcoded zinc/white classes,
+  // so the business's primary/secondary colors and light/dark mode actually
+  // render. Never inline a raw hex here — Tailwind maps bg-accent etc. to
+  // hsl(var(--accent)), and a hex value inside hsl() is invalid CSS.
   return (
     <MotionProvider>
-      <div className={`brand-theme min-h-screen ${isDark ? 'bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-900'} flex flex-col pb-16 md:pb-0`}
-           style={{ ['--accent' as any]: business.accentColor }}>
+      <div className="brand-theme min-h-screen bg-background text-foreground flex flex-col pb-16 md:pb-0">
         <ThemeStyle business={business} />
         <SEO business={business} seo={seo} />
         <Navbar

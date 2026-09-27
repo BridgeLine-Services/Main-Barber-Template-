@@ -58,8 +58,13 @@ export async function PATCH(req: NextRequest) {
       // Validate business fields
       const parseResult = updateBusinessSchema.safeParse(businessFields)
       if (!parseResult.success) {
+        const fieldErrors = parseResult.error.flatten().fieldErrors
+        // Field-level messages, e.g. "email: Please enter a valid email address"
+        const readable = Object.entries(fieldErrors)
+          .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`)
+          .join('; ')
         return NextResponse.json(
-          { error: 'Invalid settings data', details: parseResult.error.flatten().fieldErrors },
+          { error: readable || 'Invalid settings data', details: fieldErrors },
           { status: 400 }
         )
       }

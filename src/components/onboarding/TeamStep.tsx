@@ -5,14 +5,14 @@
 // days, hours, and optional breaks). Everything persists immediately to the
 // authenticated owner's business, so leaving and returning resumes here.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, ArrowRight, Copy, Loader2, Pencil, Plus, Trash2, UserRound, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Copy, Image as ImageIcon, Loader2, Pencil, Plus, Trash2, Upload, UserRound, X } from 'lucide-react'
 
 export interface ScheduleDay {
   dayOfWeek: number // 0 = Sunday … 6 = Saturday
@@ -124,6 +124,34 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
   const [editingId, setEditingId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  // Photo upload — goes through the EXISTING media upload system
+  // (/api/dashboard/media/upload with type BARBER_PHOTO). A photo URL is also
+  // supported. If storage isn't configured the server returns a clear message
+  // and the owner can paste a URL instead.
+  const handlePhotoSelected = useCallback(async (file: File) => {
+    setPhotoUploadError(null)
+    setPhotoUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', 'BARBER_PHOTO')
+      const res = await fetch('/api/dashboard/media/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setForm((f) => ({ ...f, photo: data.url }))
+    } catch (err: any) {
+      setPhotoUploadError(
+        `${err.message}. You can paste a photo URL instead below until file storage is configured.`
+      )
+    } finally {
+      setPhotoUploading(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }, [])
   const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -411,13 +439,40 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
 
           <div>
             <Label className="text-zinc-300">Photo (optional)</Label>
-            <Input
-              className="mt-1.5"
-              value={form.photo}
-              onChange={(e) => setForm({ ...form, photo: e.target.value })}
-              placeholder="https://… or an uploaded file path"
-            />
+            <div className="flex gap-2 mt-1.5">
+              <Input
+                value={form.photo}
+                onChange={(e) => setForm({ ...form, photo: e.target.value })}
+                placeholder="https://… or upload a file"
+              />
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelected(f) }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0 border-zinc-700 text-zinc-300"
+                disabled={photoUploading}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {photoUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{form.photo ? 'Replace' : 'Upload'}</span>
+              </Button>
+            </div>
+            {photoUploadError && <p className="mt-1 text-xs text-red-400">{photoUploadError}</p>}
             {errors.photo && <p className="mt-1 text-xs text-red-400">{errors.photo}</p>}
+            {form.photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.photo} alt="Barber photo preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-zinc-700" />
+            )}
           </div>
 
           <label className="flex items-center gap-2 text-sm text-zinc-300">

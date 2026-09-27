@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Loader2, UserCircle, Mail, Lock, Sparkles, Image, CheckCircle2 } from 'lucide-react'
+import { Loader2, UserCircle, Mail, Lock, Sparkles, Image, CheckCircle2, Upload } from 'lucide-react'
 
 interface BarberFormProps {
   barber?: {
@@ -30,6 +30,33 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
   const [specialty, setSpecialty] = useState(barber?.specialty || '')
   const [bio, setBio] = useState(barber?.bio || '')
   const [photo, setPhoto] = useState(barber?.photo || '')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  // Photo upload — EXISTING media upload system (type BARBER_PHOTO).
+  // URL paste remains supported; if storage isn't configured the server
+  // returns a clear message shown below the field.
+  const handlePhotoSelected = async (file: File) => {
+    setPhotoUploadError(null)
+    setPhotoUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', 'BARBER_PHOTO')
+      const res = await fetch('/api/dashboard/media/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setPhoto(data.url)
+    } catch (err: any) {
+      setPhotoUploadError(
+        `${err.message}. You can paste a photo URL instead until file storage is configured.`
+      )
+    } finally {
+      setPhotoUploading(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
   const [email, setEmail] = useState(barber?.email || '')
   const [password, setPassword] = useState('')
   const [isActive, setIsActive] = useState(barber?.isActive ?? true)
@@ -143,13 +170,37 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Photo URL</Label>
-            <Input
-              value={photo}
-              onChange={(e) => setPhoto(e.target.value)}
-              placeholder="https://images.unsplash.com/photo-..."
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 font-mono"
-            />
+            <Label className="text-xs text-zinc-300">Photo</Label>
+            <div className="flex gap-2">
+              <Input
+                value={photo}
+                onChange={(e) => setPhoto(e.target.value)}
+                placeholder="https://… or upload a file"
+                className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 font-mono"
+              />
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelected(f) }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 border-zinc-700 text-zinc-300"
+                disabled={photoUploading || loading}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {photoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              </Button>
+            </div>
+            {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
+            {photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-zinc-700" />
+            )}
           </div>
 
           <div className="space-y-1.5">

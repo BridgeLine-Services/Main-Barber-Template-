@@ -19,7 +19,6 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export const revalidate = 60
 
 export default async function ReviewsPage() {
   let reviews: any[] = []
@@ -97,7 +96,7 @@ export default async function ReviewsPage() {
                 <Star
                   key={i}
                   className={`h-3.5 w-3.5 ${
-                    i < Math.round(Number(avgRating)) ? 'fill-amber-400 text-accent' : 'text-zinc-700'
+                    i < Math.round(Number(avgRating)) ? 'fill-accent text-accent' : 'text-muted-foreground'
                   }`}
                 />
               ))}
@@ -136,7 +135,7 @@ export default async function ReviewsPage() {
                     <Star
                       key={i}
                       className={`h-4 w-4 ${
-                        i < review.rating ? 'fill-amber-400 text-accent' : 'text-zinc-800'
+                        i < review.rating ? 'fill-accent text-accent' : 'text-zinc-800'
                       }`}
                     />
                   ))}

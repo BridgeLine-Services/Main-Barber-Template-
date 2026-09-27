@@ -41,7 +41,7 @@ export default async function PortalPage({ searchParams }: PageProps) {
           <div className="rounded-2xl border border-border bg-card p-8">
             <h2 className="mb-6 text-xl font-bold text-foreground ">Our Services</h2>
             <p className="text-sm text-muted-foreground">Visit our booking page to see available services and schedule an appointment.</p>
-            <a href="/book" className="mt-6 inline-flex rounded-lg bg-accent px-6 py-3 text-sm font-bold text-zinc-950 transition-colors hover:brightness-110">Book Appointment</a>
+            <a href="/book" className="mt-6 inline-flex rounded-lg bg-accent px-6 py-3 text-sm font-bold text-accent-foreground transition-colors hover:bg-accent/90">Book Appointment</a>
           </div>
         </div>
       </div>

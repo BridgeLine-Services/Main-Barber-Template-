@@ -18,7 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export const revalidate = 60
 
 export default async function BookingPolicyPage() {
   let business = null
@@ -139,7 +138,7 @@ export default async function BookingPolicyPage() {
 
         {/* Action Button */}
         <div className="text-center pt-4">
-          <Button asChild size="lg" className="bg-accent hover:brightness-110 text-zinc-950 font-bold px-8">
+          <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8">
             <Link href="/book">I Understand — Book Now</Link>
           </Button>
         </div>

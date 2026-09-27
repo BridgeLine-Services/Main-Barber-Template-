@@ -22,7 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export const revalidate = 60
 
 export default async function BarbersPage() {
   // Production: resolve business from DB — no demo fallback

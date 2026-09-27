@@ -283,13 +283,13 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
 
       {/* My Preferences (customer-visible only — staff notes are private) */}
       {data.profile && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-card/50 border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" /> My Preferences
+              <Sparkles className="w-4 h-4 text-accent" /> My Preferences
             </h2>
             {!editingPrefs ? (
-              <button onClick={startEditingPrefs} className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium">
+              <button onClick={startEditingPrefs} className="inline-flex items-center gap-1.5 text-xs text-accent hover:text-accent/80 font-medium">
                 <Pencil className="w-3.5 h-3.5" /> Edit
               </button>
             ) : (
@@ -298,7 +298,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
                 <button
                   onClick={savePreferences}
                   disabled={savingPrefs}
-                  className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 text-xs text-accent hover:text-accent/80 font-semibold disabled:opacity-50"
                 >
                   {savingPrefs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
                 </button>
@@ -314,13 +314,13 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
                     value={row.key}
                     onChange={(e) => setPrefDraft(prev => prev.map((r, idx) => idx === i ? { ...r, key: e.target.value } : r))}
                     placeholder="e.g. Guard length"
-                    className="w-1/3 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                    className="w-1/3 px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:border-ring"
                   />
                   <input
                     value={row.value}
                     onChange={(e) => setPrefDraft(prev => prev.map((r, idx) => idx === i ? { ...r, value: e.target.value } : r))}
                     placeholder="e.g. #2 on the sides"
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                    className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:border-ring"
                   />
                   <button
                     onClick={() => setPrefDraft(prev => prev.filter((_, idx) => idx !== i))}
@@ -333,7 +333,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
               ))}
               <button
                 onClick={() => setPrefDraft(prev => [...prev, { key: '', value: '' }])}
-                className="text-xs text-amber-400/80 hover:text-amber-300"
+                className="text-xs text-accent/80 hover:text-accent"
               >
                 + Add preference
               </button>
@@ -345,7 +345,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           ) : (data.profile.preferences.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {data.profile.preferences.map(p => (
-                <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-zinc-950/60 border border-zinc-800 rounded-full px-3 py-1.5">
+                <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-background/60 border border-border rounded-full px-3 py-1.5">
                   <span className="text-zinc-500">{p.label}</span>
                   <span className="text-zinc-200 font-medium">{p.value}</span>
                 </span>
@@ -359,7 +359,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
 
           {data.profile.preferredBarber && (
             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-800/60 text-sm">
-              <User className="w-4 h-4 text-amber-500" />
+              <User className="w-4 h-4 text-accent" />
               <span className="text-zinc-400">Preferred barber:</span>
               <span className="text-zinc-100 font-medium">{data.profile.preferredBarber.barberName}</span>
               <span className="text-xs text-zinc-600">({data.profile.preferredBarber.completedVisits} completed visits)</span>

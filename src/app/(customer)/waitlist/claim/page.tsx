@@ -42,8 +42,8 @@ function ClaimContent() {
 
   if (state === 'claiming') {
     return (
-      <div className="flex flex-col items-center gap-3 py-12 text-zinc-400">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
         <p className="text-sm">Checking availability…</p>
       </div>
     )
@@ -53,15 +53,15 @@ function ClaimContent() {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <CheckCircle2 className="w-14 h-14 text-emerald-400" />
-        <h2 className="text-2xl font-bold text-white font-poppins">You're booked!</h2>
-        <p className="text-sm text-zinc-400 max-w-sm">
+        <h2 className="text-2xl font-bold text-foreground font-poppins">You're booked!</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
           The open slot is yours. We've sent you a confirmation
           {confirmationNumber ? (
-            <> with confirmation number <strong className="text-amber-400 font-mono">{confirmationNumber}</strong></>
+            <> with confirmation number <strong className="text-accent font-mono">{confirmationNumber}</strong></>
           ) : null}
           .
         </p>
-        <a href="/book" className="mt-4 inline-flex rounded-lg bg-amber-500 px-6 py-3 text-sm font-bold text-zinc-950 transition-colors hover:bg-amber-400">
+        <a href="/book" className="mt-4 inline-flex rounded-lg bg-accent px-6 py-3 text-sm font-bold text-accent-foreground transition-colors hover:bg-accent/90">
           View Booking Options
         </a>
       </div>
@@ -78,11 +78,11 @@ function ClaimContent() {
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <XCircle className="w-14 h-14 text-red-400" />
-      <h2 className="text-2xl font-bold text-white font-poppins flex items-center gap-2">
+      <h2 className="text-2xl font-bold text-foreground font-poppins flex items-center gap-2">
         <CalendarCheck className="w-6 h-6 text-red-400" /> Slot no longer available
       </h2>
-      <p className="text-sm text-zinc-400 max-w-sm">{message}</p>
-      <a href="/book" className="mt-4 inline-flex rounded-lg bg-amber-500 px-6 py-3 text-sm font-bold text-zinc-950 transition-colors hover:bg-amber-400">
+      <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
+      <a href="/book" className="mt-4 inline-flex rounded-lg bg-accent px-6 py-3 text-sm font-bold text-accent-foreground transition-colors hover:bg-accent/90">
         Book Another Time
       </a>
     </div>
@@ -92,11 +92,11 @@ function ClaimContent() {
 export default function WaitlistClaimPage() {
   return (
     <div className="mx-auto max-w-xl px-4 py-16">
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
+      <div className="rounded-2xl border border-border bg-card p-8">
         <Suspense
           fallback={
-            <div className="flex flex-col items-center gap-3 py-12 text-zinc-400">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+            <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
             </div>
           }
         >

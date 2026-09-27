@@ -20,7 +20,6 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export const revalidate = 60
 
 export default async function ServicesPage() {
   const business = await resolveBusiness().catch(() => null)

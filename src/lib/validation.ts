@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { z } from 'zod'
+import { FONT_FAMILY_VALUES } from '@/lib/theme'
 
 // ─── Booking ───────────────────────────────────────────────────────────────
 
@@ -156,21 +157,46 @@ export const contactFormSchema = z.object({
 
 export const updateBusinessSchema = z.object({
   // Business identity
-  name: z.string().min(1).max(100).optional(),
+  name: z.string().min(1, 'Business name is required').max(100).optional(),
   phone: z.string().max(30).optional(),
-  email: z.string().email().max(100).optional(),
+  email: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.string().email('Please enter a valid email address').max(100).nullable().optional()
+  ),
   address: z.string().max(200).optional(),
   city: z.string().max(100).optional(),
   state: z.string().max(50).optional(),
   zipCode: z.string().max(20).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
+  latitude: z.preprocess(
+    (v) => (v === '' || v === null ? null : typeof v === 'string' ? Number(v) : v),
+    z.number().min(-90, 'Latitude must be between -90 and 90').max(90, 'Latitude must be between -90 and 90').nullable().optional()
+  ),
+  longitude: z.preprocess(
+    (v) => (v === '' || v === null ? null : typeof v === 'string' ? Number(v) : v),
+    z.number().min(-180, 'Longitude must be between -180 and 180').max(180, 'Longitude must be between -180 and 180').nullable().optional()
+  ),
   timezone: z.string().max(50).optional(),
 
-  // Branding
-  logo: z.string().url().max(2000).optional().or(z.literal('').optional()),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/).max(20).optional(),
-  accentColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/).max(20).optional(),
+  // Branding — must accept every field the settings branding tab sends,
+  // otherwise saves silently drop them (themeMode/font/secondary never persisted).
+  logo: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.string().url('Logo must be a valid URL').max(2000).nullable().optional()
+  ),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/, 'Primary color must be a hex color like #1a1a1a').max(20).optional(),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/, 'Accent color must be a hex color like #d4af37').max(20).optional(),
+  secondaryColor: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.string().regex(/^#[0-9a-fA-F]{3,8}$/, 'Secondary color must be a hex color like #2a2a2a').max(20).nullable().optional()
+  ),
+  themeMode: z.enum(['dark', 'light'], { message: 'Theme must be dark or light' }).optional(),
+  fontFamily: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.string().max(30, 'Unsupported font family').refine(
+      (v) => v === null || (FONT_FAMILY_VALUES as readonly string[]).includes(v),
+      'Unsupported font family'
+    ).nullable().optional()
+  ),
 
   // Social media
   instagram: z.string().max(100).optional(),
