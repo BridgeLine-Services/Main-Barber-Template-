@@ -75,7 +75,9 @@ DECLARE
     'PortalVerificationChallenge','PortalSession','Faq',
     -- Newly denormalized (migration 20260927153000): businessId is
     -- trigger-maintained from the parent record, never app-supplied.
-    'BarberService','BarberRewardProgram','AppointmentIntakeResponse'
+    'BarberService','BarberRewardProgram','AppointmentIntakeResponse',
+    -- Payment ledger (migration 20260927163000)
+    'Payment'
   ];
   tbl TEXT;
 BEGIN

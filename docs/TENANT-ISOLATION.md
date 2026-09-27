@@ -63,7 +63,7 @@ ship fake security.
 
 A complete, syntax-validated production script for steps 1-3 ships at
 `prisma/rls/production-rls.sql` (deliberately NOT in `prisma/migrations/`
-so it never auto-applies). It covers every business-scoped table — the 30 direct `businessId`
+so it never auto-applies). It covers every business-scoped table — the 31 direct `businessId`
 tables (including `BarberService`, `BarberRewardProgram` and
 `AppointmentIntakeResponse`, whose tenant key was denormalized by
 migration 20260927153000 and is maintained by database triggers, so it
@@ -102,7 +102,7 @@ Reproducible application + verification (Master Task Part 2):
 `scripts/apply-rls.ts` refuses to run without `DATABASE_ADMIN_URL` and
 refuses if it equals `DATABASE_URL`, so a deployment cannot silently
 enable FORCE RLS against the connection the app still uses as owner.
-`scripts/rls-status.ts` reports per-table policy coverage across all 32
+`scripts/rls-status.ts` reports per-table policy coverage across all 33
 tenant tables.
 
 The policies themselves are regression-tested against the real engine by

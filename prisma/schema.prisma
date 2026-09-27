@@ -16,15 +16,16 @@ datasource db {
 // ─── Business (Tenant) ──────────────────────────────────────────────────────
 
 model Business {
-  id                     String  @id @default(cuid())
+  payments               Payment[]
+  id                     String    @id @default(cuid())
   name                   String
-  slug                   String  @unique // URL slug for the shop
+  slug                   String    @unique // URL slug for the shop
   logo                   String?
-  primaryColor           String  @default("#1a1a1a") // dark / black theme default
-  accentColor            String  @default("#d4af37") // gold accent default
-  secondaryColor         String? @default("#2a2a2a") // secondary surface color
+  primaryColor           String    @default("#1a1a1a") // dark / black theme default
+  accentColor            String    @default("#d4af37") // gold accent default
+  secondaryColor         String?   @default("#2a2a2a") // secondary surface color
   fontFamily             String? // "poppins", "inter", "montserrat", etc.
-  themeMode              String  @default("dark") // "dark" or "light"
+  themeMode              String    @default("dark") // "dark" or "light"
   phone                  String?
   email                  String?
   address                String?
@@ -33,7 +34,7 @@ model Business {
   zipCode                String?
   latitude               Float?
   longitude              Float?
-  timezone               String  @default("America/Los_Angeles") // IANA timezone
+  timezone               String    @default("America/Los_Angeles") // IANA timezone
   instagram              String?
   facebook               String?
   tiktok                 String?
@@ -41,17 +42,17 @@ model Business {
   xTwitter               String?
   googleBusinessProfile  String?
   hours                  Json? // { monday: { open: "09:00", close: "18:00", isOff: false }, ... }
-  aboutText              String? @db.Text
+  aboutText              String?   @db.Text
   teamSectionLabel       String? // e.g. 'Our Team', 'The Artists' — badge above heading on /barbers
-  teamSectionTitle       String? @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
-  teamSectionDescription String? @db.Text // paragraph below heading on /barbers page
-  bookingPolicy          String? @db.Text
-  cancellationPolicy     String? @db.Text
-  latePolicy             String? @db.Text
-  noShowPolicyText       String? @db.Text
-  paymentPolicy          String? @db.Text
-  privacyPolicy          String? @db.Text
-  termsPolicy            String? @db.Text
+  teamSectionTitle       String?   @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
+  teamSectionDescription String?   @db.Text // paragraph below heading on /barbers page
+  bookingPolicy          String?   @db.Text
+  cancellationPolicy     String?   @db.Text
+  latePolicy             String?   @db.Text
+  noShowPolicyText       String?   @db.Text
+  paymentPolicy          String?   @db.Text
+  privacyPolicy          String?   @db.Text
+  termsPolicy            String?   @db.Text
 
   // ─── Onboarding (persistent white-label setup status) ────────────────────
   onboardingCompleted   Boolean   @default(false)
@@ -359,6 +360,7 @@ model RetentionSettings {
 // ─── Customers ────────────────────────────────────────────────────────────
 
 model Customer {
+  payments        Payment[]
   id              String    @id @default(cuid())
   businessId      String
   business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -400,6 +402,7 @@ enum AppointmentStatus {
 }
 
 model Appointment {
+  payments            Payment[]
   id                  String            @id @default(cuid())
   confirmationNumber  String            @unique // human-readable, e.g. BRB-8F42K
   customerAccessToken String            @unique // crypto.randomBytes(32).hex
@@ -897,6 +900,28 @@ model WebsiteContent {
   updatedAt             DateTime  @updatedAt
 }
 
+// ─── Payment architecture (Requirement 23) ──────────────────────────────
+enum PaymentKind {
+  CHARGE // service payment
+  DEPOSIT // required upfront deposit
+  TIP // gratuity
+  REFUND // reversal of a previous payment
+}
+
+enum PaymentMethod {
+  IN_PERSON // pay at the shop (default template behavior)
+  CARD // online card payment (future provider, e.g. Stripe)
+}
+
+enum PaymentStatus {
+  PENDING // created, awaiting settlement
+  PROCESSING // submitted to provider, not yet settled
+  SUCCEEDED // settled
+  FAILED // declined/errored (retryable)
+  CANCELED // abandoned/canceled before settlement
+  REFUNDED // fully reversed after succeeding
+}
+
 enum BookingQuestionType {
   SHORT_TEXT
   LONG_TEXT
@@ -944,6 +969,43 @@ model AppointmentIntakeResponse {
   createdAt       DateTime            @default(now())
 
   @@index([appointmentId])
+}
+
+// ─── Payment architecture (Requirement 23) ──────────────────────────────
+// Provider-agnostic payment ledger. The template ships pay-at-shop
+// (IN_PERSON) only; the PaymentProvider interface in src/lib/payments/
+// lets a deployment add an online provider (e.g. Stripe) without
+// touching booking logic. No card data is ever stored here — only
+// provider references, amounts and statuses (see docs/PAYMENTS.md).
+model Payment {
+  id                String        @id @default(cuid())
+  businessId        String
+  business          Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointmentId     String?
+  appointment       Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  customerId        String?
+  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  kind              PaymentKind
+  method            PaymentMethod
+  provider          String // provider id, e.g. "in_person", "stripe"
+  providerRefId     String? // provider's transaction/intent id — never card data
+  amount            Float
+  currency          String        @default("USD")
+  status            PaymentStatus @default(PENDING)
+  failureReason     String?
+  idempotencyKey    String?       @unique // deduplicates provider retries & webhooks
+  metadata          Json?
+  originalPaymentId String? // set on REFUND rows: the payment being reversed
+  originalPayment   Payment?      @relation("PaymentRefunds", fields: [originalPaymentId], references: [id], onDelete: SetNull)
+  refunds           Payment[]     @relation("PaymentRefunds")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([appointmentId])
+  @@index([customerId])
+  @@index([businessId, status])
 }
 
 model RescheduleHistory {
