@@ -61,6 +61,16 @@ without that wiring would either be bypassed (table-owner connections) or
 break all queries (FORCE RLS with no `app.business_id` set). We do not
 ship fake security.
 
+A complete, syntax-validated production script for steps 1-3 ships at
+`prisma/rls/production-rls.sql` (deliberately NOT in `prisma/migrations/`
+so it never auto-applies). It covers every business-scoped table
+(direct `businessId` columns plus the `Business`/`Schedule` tenant roots),
+uses `FORCE ROW LEVEL SECURITY`, grants the runtime role DML-only, and
+documents the `set_config(..., true)` transaction pattern for step 4.
+It was validated by executing the full policy-generation block against
+PostgreSQL inside a rolled-back transaction; apply it only after the
+role-split prerequisites are met.
+
 To add real RLS in production, the DBA must:
 
 1. Create a dedicated non-owner database role for the application
