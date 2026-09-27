@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         'Last Visit',
         'Total Spent (estimated)',
         'Notes',
+        'Archived',
         'Created At',
       ]
       const rows = customers.map((c) => {
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
           lastVisit ? new Date(lastVisit).toISOString().split('T')[0] : 'N/A',
           totalSpent.toFixed(2),
           (c.notes || '').replace(/"/g, '""'),
+          c.archivedAt ? 'Yes' : 'No',
           new Date(c.createdAt).toISOString().split('T')[0],
         ]
       })

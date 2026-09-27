@@ -17,7 +17,12 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const limit = parseInt(searchParams.get('limit') || '50')
     const skip = parseInt(searchParams.get('skip') || '0')
-    const where: any = { businessId }
+    const includeArchived = searchParams.get('includeArchived') === 'true'
+    // Archived (soft-deleted/anonymized) customers are hidden from the
+    // default list view per the customer data lifecycle (see
+    // docs/CUSTOMER-DATA-LIFECYCLE.md). Pass ?includeArchived=true for an
+    // explicit archived view.
+    const where: any = { businessId, ...(includeArchived ? {} : { archivedAt: null }) }
     // BARBER role: only customers who have appointments with them
     if (role === 'BARBER' && barberId) {
       where.appointments = { some: { barberId } }
