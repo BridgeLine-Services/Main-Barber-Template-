@@ -17,6 +17,7 @@ import {
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
+import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
 import { resolveBusinessTimezone } from '@/lib/timezone'
 
 const TIMEZONES = [
@@ -853,6 +854,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── Danger Zone (all tabs) ── */}
+      <PublishWebsiteCard />
       <DeactivateShopCard />
       <ResetShopCard />
   </div>

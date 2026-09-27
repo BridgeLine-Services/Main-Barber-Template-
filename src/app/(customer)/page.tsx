@@ -96,9 +96,16 @@ export default async function HomePage() {
 
   // Owner-editable hero + section copy/toggles (dashboard → Settings → Website
   // Content). Every field is optional; the site falls back to business data.
-  const content = await prisma.websiteContent.findUnique({
+  const rawContent = await prisma.websiteContent.findUnique({
     where: { businessId: business.id },
   }).catch(() => null)
+
+  // Draft/publish: render the published snapshot when one exists; the live
+  // editable fields are the DRAFT and only reach the public site after the
+  // owner publishes (or before the first publish, for legacy parity).
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
 
   const [barbers, services, reviews] = await Promise.all([
     prisma.barber.findMany({

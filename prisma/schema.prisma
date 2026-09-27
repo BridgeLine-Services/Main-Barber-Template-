@@ -597,6 +597,7 @@ enum AuditAction {
   LOGIN_FAILED
   BUSINESS_DEACTIVATED
   BUSINESS_REACTIVATED
+  WEBSITE_CONTENT_PUBLISHED
   SETTINGS_UPDATED
   REBOOKING_REMINDER_SENT
   CAMPAIGN_CREATED
@@ -847,6 +848,13 @@ model WebsiteContent {
   id                    String   @id @default(cuid())
   businessId            String   @unique
   business              Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Draft/publish: the editable fields above are the DRAFT. publishedContent
+  // is the last published snapshot the public site renders. Until the first
+  // publish it is null and the public site falls back to the live fields
+  // (pre-publish parity with existing deployments).
+  publishedContent Json?
+  publishedAt      DateTime?
   heroEyebrow           String?
   heroTitle             String?
   heroDescription       String?  @db.Text
