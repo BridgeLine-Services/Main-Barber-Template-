@@ -50,8 +50,9 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   NoShowPolicy, InventoryItem, MarketingCampaign, WebsiteContent,
 --   BookingQuestion, RescheduleHistory, PortalVerificationChallenge,
 --   PortalSession, Faq
--- Indirectly scoped (via Barber → Business joins; no direct column):
---   BarberService, BarberRewardProgram, AppointmentIntakeResponse
+-- Indirectly scoped — RESOLVED by migration 20260927153000, which
+--   denormalizes businessId (trigger-maintained) onto BarberService,
+--   BarberRewardProgram and AppointmentIntakeResponse.
 -- Tenant-root tables (their `id` IS the tenant key):
 --   Business, Schedule
 
@@ -67,7 +68,10 @@ DECLARE
     'BusinessClosure','BusinessRewardProgram','CustomerTagAssignment',
     'CancellationRecord','NoShowPolicy','InventoryItem','MarketingCampaign',
     'WebsiteContent','BookingQuestion','RescheduleHistory',
-    'PortalVerificationChallenge','PortalSession','Faq'
+    'PortalVerificationChallenge','PortalSession','Faq',
+    -- Newly denormalized (migration 20260927153000): businessId is
+    -- trigger-maintained from the parent record, never app-supplied.
+    'BarberService','BarberRewardProgram','AppointmentIntakeResponse'
   ];
   tbl TEXT;
 BEGIN
@@ -110,13 +114,10 @@ BEGIN
   END LOOP;
 END $$;
 
--- (c) Indirectly scoped tables (no businessId column): RLS on the child
---     table cannot decide tenancy without a subquery. Production-grade
---     approach: add the tenant key to these tables (denormalize businessId)
---     via a migration, then list them in t_direct above. Until then they
---     remain protected ONLY by application-level checks (which the
---     cross-tenant test matrix covers). Left un-enabled deliberately:
---     a wrong subquery policy is worse than a documented gap.
+-- (c) The formerly indirectly-scoped tables (BarberService,
+--     BarberRewardProgram, AppointmentIntakeResponse) now carry a
+--     trigger-maintained businessId (migration 20260927153000) and are
+--     included in t_direct above — no documented gap remains.
 
 -- ─── 3. Runtime role grants (least privilege) ──────────────────────────
 -- The app role gets DML only — no schema changes, no role management.
