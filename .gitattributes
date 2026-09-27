@@ -44,4 +44,4 @@
 public/icons/*.png !filter !diff !merge text
 # Self-hosted web fonts stay in plain git — they must never require the
 # (optional, separately-configured) LFS server to build (§59)
-src/fonts/*.woff2 !filter !diff !merge text
+src/fonts/*.woff2 !filter !diff !merge -text
