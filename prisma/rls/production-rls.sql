@@ -7,6 +7,10 @@
 -- SECURITY` applied blindly WOULD BREAK EVERY QUERY. See
 -- docs/TENANT-ISOLATION.md §"Database-level RLS".
 --
+-- REPRODUCIBLE APPLICATION (Master Task Part 2):
+--   DATABASE_ADMIN_URL=<owner-role connection URL> npm run db:apply-rls
+--   npm run db:rls-status          (verification report; --enforce = fail)
+--
 -- It is a ready-to-run script for the DBA of a production deployment
 -- where the runtime uses a SEPARATE, NON-OWNER database role and sets
 -- `app.business_id` per request/transaction (e.g. via a transactional

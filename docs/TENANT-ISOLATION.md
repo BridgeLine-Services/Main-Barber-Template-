@@ -78,17 +78,43 @@ role-split prerequisites are met.
 To add real RLS in production, the DBA must:
 
 1. Create a dedicated non-owner database role for the application
-   (`app_user`), grant `SELECT/INSERT/UPDATE/DELETE` on all tables.
-2. Enable RLS with `FORCE ROW LEVEL SECURITY` on business-scoped tables.
-3. Add policies keyed on `current_setting('app.business_id')::text`.
-4. Refactor data access to set `app.business_id` per request inside a
+   (`barbershop_app`), grant `SELECT/INSERT/UPDATE/DELETE` on all tables.
+   (Scripted: `prisma/rls/production-rls.sql` provisions the grants and
+   `NOBYPASSRLS` itself when applied.)
+2. Enable RLS with `FORCE ROW LEVEL SECURITY` on business-scoped tables
+   and create the tenant policies.
+3. Refactor data access to set `app.business_id` per request inside a
    Prisma interactive transaction (`$transaction` +
    `SELECT set_config('app.business_id', $1, true)`), so reads/writes run
    on the same connection that carries the variable.
 
+Reproducible application + verification (Master Task Part 2):
+
+    # 1. Provision the runtime role and point the app at it
+    #    (DATABASE_URL must use barbershop_app, NOT the owner role).
+    # 2. Switch the data layer to the per-transaction context pattern
+    #    (see "step 4" example in prisma/rls/production-rls.sql).
+    # 3. Apply:
+    DATABASE_ADMIN_URL=<owner-role connection URL> npm run db:apply-rls
+    # 4. Verify coverage (fails the build in ops pipelines via --enforce):
+    npm run db:rls-status -- --enforce
+
+`scripts/apply-rls.ts` refuses to run without `DATABASE_ADMIN_URL` and
+refuses if it equals `DATABASE_URL`, so a deployment cannot silently
+enable FORCE RLS against the connection the app still uses as owner.
+`scripts/rls-status.ts` reports per-table policy coverage across all 32
+tenant tables.
+
+The policies themselves are regression-tested against the real engine by
+`tests/rls-enforcement.test.ts`: it applies the template and seeds two
+tenants inside one rolled-back transaction, then proves cross-tenant
+reads/updates/deletes are refused, context-less sessions see nothing,
+platform-staff support access works, trigger-maintained child writes pass
+`WITH CHECK`, and no policy persists after rollback.
+
 These steps are external infrastructure + a data-access refactor and are
 documented here as the explicit production checklist; they are not
-claimed to be active.
+claimed to be active in this repository's own deployment.
 
 ## Adding a new business-scoped route (checklist)
 
