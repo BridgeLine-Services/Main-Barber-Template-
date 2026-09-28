@@ -128,6 +128,7 @@ function featureSnapshot() {
     sms: getFeatureConfig('sms'),
     google: getFeatureConfig('google'),
     reminders: getFeatureConfig('reminders'),
+    observability: getFeatureConfig('observability'),
   }
 }
 

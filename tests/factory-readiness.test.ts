@@ -26,6 +26,7 @@ function snapshot(overrides: Partial<FactorySnapshot> = {}): FactorySnapshot {
       sms: { enabled: false, configured: false, missing: [] },
       google: { enabled: false, configured: false, missing: [] },
       reminders: { enabled: false, configured: false, missing: [] },
+      observability: { enabled: false, configured: false, missing: [] },
     },
     ...overrides,
   }
@@ -63,6 +64,10 @@ assert(has(snapshot(), 'google', 'WARN'), 'disabled Google does not block readin
 assert(has(snapshot({ features: { ...snapshot().features, google: { enabled: true, configured: false, missing: ['GOOGLE_CLIENT_ID'] } } }), 'google', 'FAIL'), 'enabled Google without credentials blocks readiness')
 assert(has(snapshot(), 'reminders', 'WARN'), 'disabled reminders do not block readiness')
 assert(has(snapshot({ features: { ...snapshot().features, reminders: { enabled: true, configured: false, missing: ['CRON_SECRET'] } } }), 'reminders', 'FAIL'), 'enabled reminders without credentials block readiness')
+assert(has(snapshot(), 'observability', 'WARN'), 'observability without OBSERVABILITY_WEBHOOK_URL is a warning, not a failure')
+assert(has(snapshot({ features: { ...snapshot().features, observability: { enabled: true, configured: true, missing: [] } } }), 'observability', 'PASS'), 'configured observability webhook passes readiness')
+assert(has(snapshot({ features: { ...snapshot().features, observability: { enabled: true, configured: false, missing: ['OBSERVABILITY_WEBHOOK_URL'] } } }), 'observability', 'FAIL'), 'enabled observability without the webhook URL blocks readiness')
+assert(!JSON.stringify(checks(snapshot({ features: { ...snapshot().features, observability: { enabled: true, configured: true, missing: [] } } }))).match(/WEBHOOK|HOOK_URL|http[s]?:\/\/collector/i), 'readiness results never expose the webhook URL or credentials')
 assert(has(snapshot({ app: { ...snapshot().app, production: false } }), 'Production mode', 'FAIL'), 'demo mode cannot be production-ready')
 assert(!JSON.stringify(checks(snapshot())).match(/SECRET|TOKEN|PASSWORD|SMTP_PASS/i), 'readiness results contain no secret values')
 

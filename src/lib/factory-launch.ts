@@ -53,6 +53,7 @@ const FEATURE_LABELS: Record<FeatureName, string> = {
   sms: 'SMS',
   google: 'Google Business',
   reminders: 'Reminders',
+  observability: 'Observability',
 }
 
 export function buildDeploymentPreflight(): LaunchCheck[] {
