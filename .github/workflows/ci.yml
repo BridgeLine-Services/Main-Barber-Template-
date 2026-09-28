@@ -22,6 +22,20 @@ jobs:
       # environments still provide their own NEXT_PUBLIC_APP_URL.
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       APP_MODE: production
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: barber
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,4 +52,14 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx prisma validate
       - run: npx prisma generate
+      # Full CI test expansion (Requirement 32): every DB-backed test suite
+      # that does NOT require a live Next server runs against the Postgres
+      # service. Suites needing a running app + session auth are documented
+      # in docs/TESTING.md and run in dev via npm run test:all (test:matrix
+      # and friends, 11 suites).
+      - run: npx prisma migrate deploy
+      - run: npm run test:ci
+      # Dependency audit (Requirement 34): report-only for production deps
+      # at critical severity; does not fail the build on advisory noise.
+      - run: npm audit --omit=dev --audit-level=critical || echo '::warning title=npm audit::production-dependency advisories found (critical)'
       - run: npm run build
