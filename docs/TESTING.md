@@ -72,8 +72,12 @@ release; record results per client deployment.
   gate for "master template ready").
 - `npx tsx scripts/perf-check.ts [--strict]` — N+1 pattern scanner
   (REVIEW mode by default; see docs/PERFORMANCE.md).
-- GitHub Actions ("Template CI") runs: architecture check, lint,
-  typecheck, prisma validate/generate + migrate deploy, `test:ci`
-  (19 suites), a report-only production dependency audit, and the
-  production build. The Architecture Constitution workflow separately
-  enforces the architecture rules on every PR.
+- GitHub Actions ("Template CI") runs four jobs: template validation
+  (architecture check, lint, typecheck, prisma validate/generate,
+  production build); server tests against a real PostgreSQL service
+  (`migrate deploy` + `test:ci`, 20 suites); browser E2E + accessibility
+  (chromium + Playwright: guest booking, staff login, security bypass,
+  WCAG 2.1 AA axe scan against the production build with the seed and
+  E2E prep scripts applied); and a report-only production dependency
+  audit. The Architecture Constitution workflow separately enforces the
+  architecture rules on every PR.
