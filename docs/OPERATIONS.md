@@ -68,7 +68,7 @@ each deployment must configure it per client.
 - Failed sign-in spikes per IP (see the built-in login throttle).
 - Password-reset request volume spikes.
 - Audit-log review: `BUSINESS_DEACTIVATED`, `USER_ROLE_CHANGED`,
-  `SHOP_RESET` events should match known administrative actions.
+  `SHOP_CONFIGURATION_RESET` events should match known administrative actions.
 
 **Data quality**
 
