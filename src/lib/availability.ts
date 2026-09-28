@@ -75,8 +75,9 @@ export async function getAvailableSlots(params: {
   const dayOfWeek = dayOfWeekFromYMD(timezone, year, month, day)
 
   // Parallel: service info, barber schedule, appointments, blocked times, closures, overrides
-  const [service, barberService, schedule, appointments, blockedTimes, closures, override] = await Promise.all([
+  const [service, business, barberService, schedule, appointments, blockedTimes, closures, override] = await Promise.all([
     prisma.service.findFirst({ where: { id: serviceId, businessId, isActive: true } }),
+    prisma.business.findUnique({ where: { id: businessId }, select: { minAdvanceBookingMinutes: true, maxBookingWindowDays: true, bufferMinutes: true } }),
     prisma.barberService.findUnique({ where: { barberId_serviceId: { barberId, serviceId } } }),
     prisma.schedule.findUnique({ where: { barberId_dayOfWeek: { barberId, dayOfWeek } } }),
     prisma.appointment.findMany({
@@ -162,7 +163,15 @@ export async function getAvailableSlots(params: {
     }
   }
 
+  const now = new Date()
   const duration = barberService?.durationOverride ?? service.duration // minutes
+
+  // Booking rules: buffer time, minimum advance notice, maximum booking window
+  const bufferMinutes = service.bufferMinutes ?? business?.bufferMinutes ?? 0
+  const earliestStart = new Date(now.getTime() + (business?.minAdvanceBookingMinutes ?? 0) * 60_000)
+  const latestStart = business?.maxBookingWindowDays
+    ? new Date(now.getTime() + business.maxBookingWindowDays * 86_400_000)
+    : null
 
   // Parse working hours and convert to UTC using business timezone
   const dayStart = localTimeToUTCFromYMD(workingStart, year, month, day, timezone)
@@ -191,7 +200,6 @@ export async function getAvailableSlots(params: {
   )
 
   // Don't show past times (if checking today)
-  const now = new Date()
 
   // Walk the day in duration-minute increments
   const slots: { time: string; available: boolean }[] = []
@@ -213,14 +221,22 @@ export async function getAvailableSlots(params: {
 
     let available = true
 
-    // Check overlap with existing appointments
-    for (const appt of sortedAppointments) {
-      if (
-        slotStart < appt.endTime &&
-        slotEnd > appt.startTime
-      ) {
-        available = false
-        break
+    // Advance-notice and booking-window rules: mark slots that violate them unavailable
+    if (slotStart < earliestStart) available = false
+    if (available && latestStart && slotStart > latestStart) available = false
+
+    // Check overlap with existing appointments (buffer-aware: each appointment
+    // occupies [start, end + buffer) for scheduling purposes)
+    const slotOccupiedEnd = addMinutes(slotEnd, bufferMinutes)
+    if (available) {
+      for (const appt of sortedAppointments) {
+        if (
+          slotStart < addMinutes(appt.endTime, bufferMinutes) &&
+          slotOccupiedEnd > appt.startTime
+        ) {
+          available = false
+          break
+        }
       }
     }
 
@@ -398,17 +414,32 @@ export async function validateSlot(params: {
   })
   if (barberService && !barberService.isActive) return { valid: false, error: 'SERVICE_NOT_OFFERED' }
 
-  // 3. Compute end time
+  // 3. Booking rules: advance notice + booking window (server-side enforced)
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { minAdvanceBookingMinutes: true, maxBookingWindowDays: true, bufferMinutes: true },
+  })
+  const now = new Date()
+  if (business && startTime < new Date(now.getTime() + business.minAdvanceBookingMinutes * 60_000)) {
+    return { valid: false, error: 'TOO_SOON' }
+  }
+  if (business?.maxBookingWindowDays && startTime > new Date(now.getTime() + business.maxBookingWindowDays * 86_400_000)) {
+    return { valid: false, error: 'OUTSIDE_WINDOW' }
+  }
+
+  // 4. Compute end time + buffer
+  const bufferMinutes = service.bufferMinutes ?? business?.bufferMinutes ?? 0
   const endTime = addMinutes(startTime, barberService?.durationOverride ?? service.duration)
 
-  // 4. Check for conflicting appointments (double-booking protection)
+  // 5. Check for conflicting appointments (double-booking protection, buffer-aware:
+  //    each appointment occupies [start, end + buffer))
   const conflicting = await prisma.appointment.findFirst({
     where: {
       businessId,
       barberId,
       status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
-      startTime: { lt: endTime },
-      endTime: { gt: startTime },
+      startTime: { lt: addMinutes(endTime, bufferMinutes) },
+      endTime: { gt: addMinutes(startTime, -bufferMinutes) },
       ...(excludeAppointmentId ? { NOT: { id: excludeAppointmentId } } : {}),
     },
   })
@@ -464,6 +495,25 @@ export async function validateSlot(params: {
   })
   if (blocked) return { valid: false, error: 'BLOCKED' }
 
+  // 7. Check business closures (holidays, vacations) — same rule the POST path
+  //    and slot display enforce, so reschedules can't move into closed days.
+  const closures = await prisma.businessClosure.findMany({
+    where: {
+      businessId,
+      isActive: true,
+      startDate: { lte: endTime },
+      endDate: { gte: startTime },
+    },
+  })
+  for (const closure of closures) {
+    if (closure.isAllDay) return { valid: false, error: 'CLOSED' }
+    if (closure.startTime && closure.endTime) {
+      const cStart = localTimeToUTCFromYMD(closure.startTime, year, month, day, timezone)
+      const cEnd = localTimeToUTCFromYMD(closure.endTime, year, month, day, timezone)
+      if (startTime < cEnd && endTime > cStart) return { valid: false, error: 'CLOSED' }
+    }
+  }
+
   return { valid: true, endTime }
 }
 
@@ -510,17 +560,34 @@ export async function createAppointmentSafely(params: {
       })
       if (barberService && !barberService.isActive) throw new Error('SERVICE_NOT_OFFERED')
 
-      // 3. Compute end time
+      // 3. Booking rules: advance notice + booking window (enforced inside the
+      //    transaction so direct POSTs can't bypass them)
+      const business = await tx.business.findUnique({
+        where: { id: businessId },
+        select: { minAdvanceBookingMinutes: true, maxBookingWindowDays: true, bufferMinutes: true },
+      })
+      if (!business) throw new Error('Business not found')
+      const bookingNow = new Date()
+      if (startTime < new Date(bookingNow.getTime() + business.minAdvanceBookingMinutes * 60_000)) {
+        throw new Error('TOO_SOON')
+      }
+      if (business.maxBookingWindowDays && startTime > new Date(bookingNow.getTime() + business.maxBookingWindowDays * 86_400_000)) {
+        throw new Error('OUTSIDE_WINDOW')
+      }
+
+      // 4. Compute end time + buffer
+      const bufferMinutes = service.bufferMinutes ?? business.bufferMinutes ?? 0
       const endTime = addMinutes(startTime, barberService?.durationOverride ?? service.duration)
 
-      // 4. RE-CHECK availability inside the transaction (double-booking guard)
+      // 5. RE-CHECK availability inside the transaction (double-booking guard,
+      //    buffer-aware: each appointment occupies [start, end + buffer))
       const conflicting = await tx.appointment.findFirst({
         where: {
           businessId,
           barberId,
           status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
-          startTime: { lt: endTime },
-          endTime: { gt: startTime },
+          startTime: { lt: addMinutes(endTime, bufferMinutes) },
+          endTime: { gt: addMinutes(startTime, -bufferMinutes) },
         },
       })
       if (conflicting) throw new Error('SLOT_TAKEN')

@@ -228,6 +228,10 @@ export const updateBusinessSchema = z.object({
   customerRescheduleEnabled: z.boolean().optional(),
   customerRescheduleMinNoticeHours: z.number().int().min(0).max(720).optional(),
   customerRescheduleWindowDays: z.number().int().min(1).max(3650).nullable().optional(),
+  minAdvanceBookingMinutes: z.number().int().min(0).max(20160).optional(), // max 2 weeks
+  maxBookingWindowDays: z.number().int().min(1).max(3650).nullable().optional(),
+  bufferMinutes: z.number().int().min(0).max(240).optional(), // max 4 hours
+  cancellationDeadlineHours: z.number().int().min(0).max(720).optional(),
 })
 
 export const bookingQuestionSchema = z.object({
@@ -355,6 +359,10 @@ export const bookingSettingsSchema = z.object({
   customerRescheduleEnabled: z.boolean().optional(),
   customerRescheduleMinNoticeHours: z.number().int().min(0).max(720).optional(),
   customerRescheduleWindowDays: z.number().int().min(1).max(3650).nullable().optional(),
+  minAdvanceBookingMinutes: z.number().int().min(0).max(20160).optional(), // max 2 weeks
+  maxBookingWindowDays: z.number().int().min(1).max(3650).nullable().optional(),
+  bufferMinutes: z.number().int().min(0).max(240).optional(), // max 4 hours
+  cancellationDeadlineHours: z.number().int().min(0).max(720).optional(),
   bookingPolicy: policySchema,
   cancellationPolicy: policySchema,
   latePolicy: policySchema,

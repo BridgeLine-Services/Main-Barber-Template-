@@ -110,6 +110,12 @@ model Business {
   customerRescheduleMinNoticeHours Int     @default(24)
   customerRescheduleWindowDays     Int?
 
+  // Booking rules (server-side enforced in src/lib/availability.ts)
+  minAdvanceBookingMinutes  Int  @default(0)   // customer must book at least N minutes ahead (0 = off)
+  maxBookingWindowDays      Int?               // appointments cannot start more than N days out (null = no limit)
+  bufferMinutes             Int  @default(0)    // buffer after each appointment (business default)
+  cancellationDeadlineHours Int  @default(2)    // customer cancellation cutoff before start (0 = no deadline)
+
   @@index([slug])
 }
 
@@ -243,6 +249,7 @@ model Service {
   price                            Float // default price — payment is in person
   recommendedRebookingIntervalDays Int?
   isActive                         Boolean  @default(true)
+  bufferMinutes                    Int?     // per-service buffer override; null = use business.bufferMinutes
   order                            Int      @default(0)
   createdAt                        DateTime @default(now())
   updatedAt                        DateTime @updatedAt

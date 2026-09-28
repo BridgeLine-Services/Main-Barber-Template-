@@ -75,11 +75,19 @@ export async function POST(
       )
     }
 
-    // Cannot cancel within 2 hours of start time
+    // Business-configurable cancellation deadline (Business.cancellationDeadlineHours;
+    // 0 = no deadline). Defaults to 2 hours for businesses that never set it.
+    const business = await prisma.business.findUnique({
+      where: { id: appointment.businessId },
+      select: { cancellationDeadlineHours: true, name: true },
+    })
+    const deadlineHours = business?.cancellationDeadlineHours ?? 2
     const hoursUntilAppt = (apptTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-    if (hoursUntilAppt < 2) {
+    if (deadlineHours > 0 && hoursUntilAppt < deadlineHours) {
       return NextResponse.json(
-        { error: 'Appointments cannot be cancelled within 2 hours of the start time. Please call the shop directly.' },
+        {
+          error: `Appointments cannot be cancelled within ${deadlineHours} hour${deadlineHours === 1 ? '' : 's'} of the start time. Please call the shop directly.`,
+        },
         { status: 403 }
       )
     }
