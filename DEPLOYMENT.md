@@ -21,7 +21,7 @@ This guide walks you through deploying the Barber Booking System to Vercel.
 ## Step 1: Create the Project on Vercel
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import the `BridgeLine-Services/Barber` repository
+2. Import the `BridgeLine-Services/Main-Barber-Template-` repository
 3. Vercel will auto-detect Next.js — keep the default framework preset
 
 ## Step 2: Set Environment Variables

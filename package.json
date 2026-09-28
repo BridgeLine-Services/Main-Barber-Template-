@@ -2,7 +2,7 @@
   "name": "barber-booking-system",
   "version": "1.0.0",
   "private": true,
-  "description": "Multi-tenant barber shop website with booking engine and dashboard. No online payments \u2014 pay in person. PROPRIETARY: licensed per client, not open source (see LICENSE).",
+  "description": "Multi-tenant barber shop website with booking engine and dashboard. No online payments — pay in person. PROPRIETARY: licensed per client, not open source (see LICENSE).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

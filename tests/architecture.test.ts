@@ -64,6 +64,31 @@ assert.deepEqual(
   `Non-reserved email domains in source fixtures (use RFC 2606 reserved TLDs): ${emailOffenders.join('; ')}`
 )
 
+// Stale repository-name regression guard: docs must reference the current
+// master repository (BridgeLine-Services/Main-Barber-Template-), never the
+// retired BridgeLine-Services/Barber repository id.
+const STALE_REPO_REF = /BridgeLine-Services\/Barber\b/
+const staleRepoOffenders: string[] = []
+function scanDocs(dir: string) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) continue
+    if (!/\.(md|json|ts|tsx|mjs|yml|yaml|sh)$/.test(entry.name)) continue
+    const content = fs.readFileSync(full, 'utf8')
+    if (STALE_REPO_REF.test(content)) staleRepoOffenders.push(full)
+  }
+}
+scanDocs(root)
+for (const docsDir of ['docs', '.github']) {
+  const docsPath = path.join(root, docsDir)
+  if (fs.existsSync(docsPath)) scanDocs(docsPath)
+}
+if (staleRepoOffenders.length > 0) {
+  throw new Error(
+    `Stale 'BridgeLine-Services/Barber' repository references (must be 'BridgeLine-Services/Main-Barber-Template-'): ${staleRepoOffenders.join('; ')}`
+  )
+}
+
 execFileSync(process.execPath, [path.join(root, 'scripts', 'check-template-architecture.mjs')], {
   cwd: root,
   stdio: 'pipe',
