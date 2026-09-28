@@ -81,6 +81,10 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
   const [prefDraft, setPrefDraft] = useState<{ key: string; value: string }[]>([])
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [prefError, setPrefError] = useState<string | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const startEditingPrefs = () => {
     const prefs = data?.profile?.preferences || []
@@ -139,6 +143,30 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
     setData(null)
     setCodeRequested(false)
     setCode('')
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch('/api/public/portal/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: deleteConfirmText }),
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDeleteError(result.error || 'Could not delete your account. Please try again.')
+      } else {
+        setData(null)
+        setCodeRequested(false)
+        setCode('')
+        setDeleteOpen(false)
+      }
+    } catch {
+      setDeleteError('Network error. Please try again.')
+    }
+    setDeleting(false)
   }
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -403,6 +431,65 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
         )}
       </div>
       </Reveal>
+
+      {/* My data & account (§21 self-service data portability + deletion) */}
+      <div className="bg-card/40 border border-border rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-foreground/70 uppercase tracking-wide flex items-center gap-2">
+          My data & account
+        </h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Download everything we have for you, or delete your account. Deleting is permanent: your contact details and
+          preferences are erased and your appointment history is anonymized.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <a
+            href="/api/public/portal/data-export"
+            download
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 text-sm font-medium transition-colors"
+          >
+            Download my data
+          </a>
+          {!deleteOpen ? (
+            <button
+              onClick={() => { setDeleteOpen(true); setDeleteConfirmText(''); setDeleteError(null) }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-destructive/40 text-destructive/90 hover:bg-destructive/10 text-sm font-medium transition-colors"
+            >
+              Delete my account
+            </button>
+          ) : (
+            <div className="w-full space-y-2 border border-destructive/30 rounded-lg p-4 bg-background/50">
+              <p className="text-xs text-muted-foreground">
+                Type <span className="font-mono font-semibold text-foreground">DELETE</span> to confirm. This cannot be undone.
+                Export your data first if you want a copy.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  aria-label="Type DELETE to confirm account deletion"
+                  className="flex-1 min-w-40 px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:border-ring"
+                />
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirmText !== 'DELETE'}
+                  className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete permanently'}
+                </button>
+                <button
+                  onClick={() => setDeleteOpen(false)}
+                  className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+              {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

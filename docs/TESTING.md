@@ -31,6 +31,40 @@ website-publish.
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
 
+## Browser E2E, accessibility, and security tests (Playwright)
+
+`e2e/` contains real-browser end-to-end tests (Playwright + Chromium):
+
+- `public-booking.spec.ts` — guest visitor completes the full booking
+  wizard (service → barber → date → time → details → confirm →
+  confirmation page).
+- `staff-login.spec.ts` — staff login reaches the dashboard;
+  `/dashboard` without a session redirects to login.
+- `security.spec.ts` — browser-level attack attempts: unauthenticated
+  dashboard API calls, forged IDs, direct-URL access to dashboard
+  pages, portal endpoints without a portal session.
+- `accessibility.spec.ts` — automated axe (WCAG 2.1 A/AA) scans of the
+  home, booking, services, and login pages, plus a keyboard-focus test.
+
+Running them requires a real environment (they do NOT run in the
+server-free CI): a PostgreSQL database with migrations + seed applied,
+plus Chromium:
+
+```
+npm run e2e:install-browsers
+E2E_OWNER_EMAIL=... E2E_OWNER_PASSWORD=... npm run test:e2e
+```
+
+Playwright starts the production server itself (`webServer` in
+`playwright.config.ts`), or point `E2E_BASE_URL`/`E2E_NO_WEBSERVER` at
+an already-running instance. Staff-login credentials come from env —
+seed a dedicated E2E staff account; do not use production accounts.
+
+**Accessibility caveat:** an axe pass is necessary but not sufficient.
+The manual checklist (screen-reader walkthrough, reduced-motion,
+dialog focus trapping, date/time controls) must be performed per
+release; record results per client deployment.
+
 ## Other gates
 
 - `npm run master:check` — architecture check + client-independence scan +

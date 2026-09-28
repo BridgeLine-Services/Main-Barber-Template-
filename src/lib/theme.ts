@@ -51,9 +51,43 @@ export const FONT_FAMILY_VALUES = FONT_FAMILY_OPTIONS.map((f) => f.value)
  * to that selector instead of :root/body — used by the onboarding live
  * preview so previewing a theme doesn't restyle the whole dashboard.
  */
+/**
+ * Relative luminance of a hex color (WCAG 2.x definition).
+ * Used to pick a readable foreground for arbitrary client brand colors —
+ * a light gold accent needs dark text; a deep navy accent needs light text.
+ */
+function relativeLuminance(hex: string): number {
+  const clean = hex.replace('#', '')
+  const rgb = [0, 2, 4].map((i) => parseInt(clean.slice(i, i + 2), 16) / 255)
+  const [r, g, b] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** WCAG contrast ratio between two colors. */
+function contrastRatio(a: number, b: number): number {
+  const [hi, lo] = a > b ? [a, b] : [b, a]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/**
+ * Picks the foreground (near-black or near-white) that yields the higher
+ * WCAG contrast ratio against the given brand color. Guarantees accent and
+ * primary CTA text stays readable whatever colors a client configures —
+ * WCAG 2.1 AA (4.5:1) is enforced by the E2E axe suite.
+ */
+export function readableForegroundFor(hex: string): string {
+  const lum = relativeLuminance(hex)
+  const dark = relativeLuminance('#0a0a0a')
+  const light = relativeLuminance('#fafafa')
+  const hsl = contrastRatio(lum, dark) >= contrastRatio(lum, light) ? '0 0% 4%' : '0 0% 98%'
+  return hsl
+}
+
 export function generateThemeCSS(theme: ThemeSettings, scope?: string): string {
-  const accentHsl = hexToHsl(theme.accentColor || DEFAULT_BRANDING.accentColor)
-  const primaryHsl = hexToHsl(theme.primaryColor || DEFAULT_BRANDING.primaryColor)
+  const accentHex = theme.accentColor || DEFAULT_BRANDING.accentColor
+  const primaryHex = theme.primaryColor || DEFAULT_BRANDING.primaryColor
+  const accentHsl = hexToHsl(accentHex)
+  const primaryHsl = hexToHsl(primaryHex)
   const secondaryHsl = theme.secondaryColor
     ? hexToHsl(theme.secondaryColor)
     : hexToHsl(DEFAULT_BRANDING.secondaryColor)
@@ -63,6 +97,8 @@ export function generateThemeCSS(theme: ThemeSettings, scope?: string): string {
     : "'Inter', system-ui, sans-serif"
 
   const isDark = (theme.themeMode || DEFAULT_BRANDING.themeMode) === 'dark'
+  const accentFgHsl = readableForegroundFor(accentHex)
+  const primaryFgHsl = readableForegroundFor(primaryHex)
 
   if (scope) {
     // Scoped mode — everything in one block so the preview container owns
@@ -70,9 +106,9 @@ export function generateThemeCSS(theme: ThemeSettings, scope?: string): string {
     return `
 ${scope} {
   --accent: ${accentHsl};
-  --accent-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
+  --accent-foreground: ${accentFgHsl};
   --primary: ${primaryHsl};
-  --primary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
+  --primary-foreground: ${primaryFgHsl};
   --secondary: ${secondaryHsl};
   --secondary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
   --background: ${isDark ? primaryHsl : '0 0% 100%'};
@@ -98,9 +134,9 @@ ${scope} {
   return `
 .brand-theme {
   --accent: ${accentHsl};
-  --accent-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
+  --accent-foreground: ${accentFgHsl};
   --primary: ${primaryHsl};
-  --primary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
+  --primary-foreground: ${primaryFgHsl};
   --secondary: ${secondaryHsl};
   --secondary-foreground: ${isDark ? '0 0% 98%' : '0 0% 5%'};
   --background: ${isDark ? primaryHsl : '0 0% 100%'};

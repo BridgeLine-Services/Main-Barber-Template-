@@ -216,7 +216,7 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-xs text-zinc-500 hover:text-amber-400 transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 Forgot your password?
               </Link>
@@ -252,8 +252,8 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
         </div>
 
         {/* Footer info */}
-        <div className="text-center text-xs text-zinc-600 mt-8 space-y-2">
-          <a href="/" className="text-zinc-500 hover:text-amber-400 transition-colors">
+        <div className="text-center text-xs text-muted-foreground mt-8 space-y-2">
+          <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
             ← Back to Website
           </a>
         </div>
