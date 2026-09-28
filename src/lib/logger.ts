@@ -1,3 +1,5 @@
+import { reportError } from './observability'
+
 type LogContext = Record<string, string | number | boolean | null | undefined>
 
 function sanitize(context: LogContext = {}) {
@@ -27,6 +29,9 @@ export function logError(event: string, error: unknown, context?: LogContext) {
     errorCode: code,
     context: sanitize(context),
   }))
+  // Active error reporting: forwards to the configured collector when
+  // OBSERVABILITY_WEBHOOK_URL is set; no-op otherwise. Fire-and-forget.
+  void reportError(event, error, context)
 }
 
 export function safeServerError(error: unknown, fallback = 'Something went wrong. Please try again.') {

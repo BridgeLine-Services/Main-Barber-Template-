@@ -15,7 +15,7 @@ export interface EnvCheckResult {
 }
 
 export type EnvCategory = 'CORE' | 'OPTIONAL_FEATURE' | 'INTERNAL' | 'DEVELOPMENT_ONLY'
-export type FeatureName = 'email' | 'sms' | 'google' | 'reminders'
+export type FeatureName = 'email' | 'sms' | 'google' | 'reminders' | 'observability'
 
 export interface FeatureConfig {
   enabled: boolean
@@ -50,6 +50,7 @@ export const OPTIONAL_ENV_VARS = [
   { variable: 'GBP_ACCOUNT_ID', description: 'Google Business Profile account ID', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
   { variable: 'GBP_LOCATION_ID', description: 'Google Business Profile location ID', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
   { variable: 'REMINDERS_ENABLED', description: 'Enable scheduled reminders', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'reminders' as const },
+  { variable: 'OBSERVABILITY_WEBHOOK_URL', description: 'Webhook that receives forwarded production error events (Sentry/Better Stack/Datadog relay)', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'observability' as const },
   { variable: 'CRON_SECRET', description: 'Secret for protecting cron job endpoints', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'reminders' as const },
 ]
 
@@ -64,6 +65,7 @@ const FEATURE_REQUIREMENTS: Record<FeatureName, string[]> = {
   sms: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
   google: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GBP_ACCOUNT_ID', 'GBP_LOCATION_ID'],
   reminders: ['CRON_SECRET'],
+  observability: [],
 }
 
 export function isFeatureEnabled(variable: string): boolean {
@@ -76,6 +78,12 @@ export function isGoogleEnabled(): boolean { return isFeatureEnabled('GOOGLE_ENA
 export function isRemindersEnabled(): boolean { return isFeatureEnabled('REMINDERS_ENABLED') }
 
 export function getFeatureConfig(feature: FeatureName): FeatureConfig {
+  // Observability has no separate *_ENABLED flag: setting the webhook URL
+  // is what turns error forwarding on.
+  if (feature === 'observability') {
+    const enabled = !!process.env.OBSERVABILITY_WEBHOOK_URL?.trim()
+    return { enabled, configured: enabled, missing: [] as string[] }
+  }
   const flag = feature === 'email' ? 'EMAIL_ENABLED'
     : feature === 'sms' ? 'SMS_ENABLED'
       : feature === 'google' ? 'GOOGLE_ENABLED' : 'REMINDERS_ENABLED'

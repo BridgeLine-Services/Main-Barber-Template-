@@ -25,6 +25,25 @@ each deployment must configure it per client.
 - Test a restore at least once per quarter. An untested backup is not a
   backup.
 
+**Backup automation shipped with the template**
+
+- `npm run db:backup` — dumps `DATABASE_URL` (plain SQL, `--no-owner`,
+  schema + data) to a gzip file under `backups/`, with a sanity check that
+  the dump actually contains schema and data. Requires `pg_dump` on PATH
+  (or `PGBIN_DIR` pointing at a PostgreSQL client `bin/` directory).
+- `npm run db:backup-verify` — the verified-restore test: dumps the source,
+  restores it into a scratch database (`CREATE DATABASE` rights required),
+  checks base-table count, row-count parity on `Business`/`User`/
+  `Appointment`, and tenant integrity (no orphaned appointments), then
+  drops the scratch database. Prints `PASS` with timings; exit code is
+  non-zero on any failure, so it can gate a scheduled job.
+- Schedule both via cron (or the host's equivalent), e.g. daily backup at
+  03:00 local, weekly `db:backup-verify`. Production `DATABASE_URL` users
+  often lack `CREATE DATABASE` rights — run verify with `--url` against a
+  staging copy or an admin URL.
+- Provider-managed backups remain the primary mechanism; this automation
+  gives an off-host export plus proof that the export restorable.
+
 **Media backups**
 
 - Uploaded images live outside the database. Enable provider-level
@@ -57,6 +76,13 @@ each deployment must configure it per client.
 
 **Errors**
 
+- Active error reporting (shipped with the template): every `logError`
+  call is forwarded as a structured JSON event to the collector webhook
+  set in `OBSERVABILITY_WEBHOOK_URL` (any receiver that accepts JSON
+  POST: Better Stack, Datadog, Axiom, a Sentry relay). Fire-and-forget
+  with a 2.5s timeout and secret sanitizing; when the variable is unset it
+  is a no-op, so the template never hard-depends on a monitoring provider.
+  Configure per client deployment, then alert on the forwarded events.
 - Route `console.error` output (the app logs structured errors, e.g.
   `[auth]`, `[audit_log_failed]`) to a log drain. Recommended: Vercel log
   drain into an alerting service (e.g. Better Stack, Datadog, Axiom).

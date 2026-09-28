@@ -39,6 +39,7 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 | `SMS_ENABLED` | `false` | Set `true` only with all `TWILIO_*` values below |
 | `GOOGLE_ENABLED` | `false` | Set `true` only with Google credentials |
 | `REMINDERS_ENABLED` | `false` | Set `true` only with `CRON_SECRET` |
+| `OBSERVABILITY_WEBHOOK_URL` | unset | Set to a JSON webhook collector to enable active error reporting (no-op when unset) |
 | `SMTP_HOST` | `smtp.gmail.com` | Your SMTP host |
 | `SMTP_PORT` | `587` | SMTP port |
 | `SMTP_USER` | `your-email@gmail.com` | SMTP username |

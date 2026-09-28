@@ -57,3 +57,5 @@ jar
 .test-pgdata/
 test-results/
 playwright-report/
+# Local backup dumps (npm run db:backup)
+backups/
