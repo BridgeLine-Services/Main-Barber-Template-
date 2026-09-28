@@ -244,22 +244,28 @@ export async function sendCampaign(businessId: string, campaignId: string) {
 
   const targets = await resolveCampaignAudience(businessId, campaign.audience, campaign.audienceConfig as any)
 
-  // Log each notification
-  for (const target of targets) {
+  // Queue all campaign notifications in one batch insert (an audience of
+  // N used to issue N sequential INSERTs). A batched failure is logged and
+  // the campaign send continues below.
+  const recipients = targets
+    .map((target) => target.phone)
+    .filter((phone): phone is string => typeof phone === 'string' && phone.length > 0)
+  if (recipients.length > 0) {
     try {
-      await prisma.notificationLog.create({
-        data: {
+      await prisma.notificationLog.createMany({
+        data: recipients.map((phone) => ({
           appointmentId: null,
           channel: 'SMS',
           type: 'MARKETING_CAMPAIGN',
-          recipient: target.phone,
+          recipient: phone,
           content: `${campaign.subject}\n\n${campaign.body}`,
           status: 'PENDING',
           businessId,
-        },
+        })),
       })
     } catch (e) {
-      // Non-critical — continue sending to others
+      // Non-critical — campaign still marked sent below
+      console.error('campaign notification queueing failed', e)
     }
   }
 

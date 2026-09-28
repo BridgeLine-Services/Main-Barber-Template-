@@ -266,41 +266,7 @@ export async function importGoogleReviewsFromAPI(
 
     const data = await response.json()
     const reviews = data.reviews || []
-
-    for (const gr of reviews) {
-      const authorName = gr.reviewer?.displayName || 'Anonymous'
-      const rating = gr.starRating === 'FIVE' ? 5 :
-                     gr.starRating === 'FOUR' ? 4 :
-                     gr.starRating === 'THREE' ? 3 :
-                     gr.starRating === 'TWO' ? 2 : 1
-      const comment = gr.comment || null
-      const createTime = gr.createTime ? new Date(gr.createTime) : new Date()
-
-      // Check if review already exists
-      const existing = await prisma.review.findFirst({
-        where: {
-          businessId,
-          authorName,
-          createdAt: { gte: createTime },
-        },
-      })
-
-      if (existing) {
-        skipped++
-        continue
-      }
-
-      await prisma.review.create({
-        data: {
-          businessId,
-          authorName,
-          rating,
-          comment,
-          isGoogleReview: true,
-        },
-      })
-      imported++
-    }
+    ;({ imported, skipped } = await importReviewsBatched(businessId, normalizeGoogleReviews(reviews)))
   } catch (error: any) {
     errors.push(`Review import error: ${error.message}`)
   }
@@ -315,39 +281,81 @@ export async function importGoogleReviews(
   businessId: string,
   googleReviews: any[]
 ): Promise<{ imported: number; skipped: number }> {
+  const normalized = googleReviews.map((gr) => ({
+    authorName: gr.authorName,
+    rating: gr.starRating === 'FIVE' ? 5 :
+            gr.starRating === 'FOUR' ? 4 :
+            gr.starRating === 'THREE' ? 3 :
+            gr.starRating === 'TWO' ? 2 : 1,
+    comment: gr.comment || null,
+    createTime: gr.createTime,
+  }))
+  return importReviewsBatched(businessId, normalized)
+}
+
+/**
+ * Shared batched import: fetch the business's existing google reviews once,
+ * then insert all new ones in a single createMany. Replaces the previous
+ * per-review findFirst + create (2N queries for N reviews).
+ */
+async function importReviewsBatched(
+  businessId: string,
+  reviews: Array<{ authorName: string; rating: number; comment: string | null; createTime?: string }>,
+): Promise<{ imported: number; skipped: number }> {
   let imported = 0
   let skipped = 0
+  if (reviews.length === 0) return { imported, skipped }
 
-  for (const gr of googleReviews) {
-    const existing = await prisma.review.findFirst({
-      where: {
-        businessId,
-        authorName: gr.authorName,
-        createdAt: { gte: new Date(gr.createTime) },
-      },
-    })
-
-    if (existing) {
-      skipped++
-      continue
-    }
-
-    await prisma.review.create({
-      data: {
-        businessId,
-        authorName: gr.authorName,
-        rating: gr.starRating === 'FIVE' ? 5 :
-                gr.starRating === 'FOUR' ? 4 :
-                gr.starRating === 'THREE' ? 3 :
-                gr.starRating === 'TWO' ? 2 : 1,
-        comment: gr.comment || null,
-        isGoogleReview: true,
-      },
-    })
-    imported++
+  // One query for existing google reviews of this business
+  const existing = await prisma.review.findMany({
+    where: { businessId, isGoogleReview: true },
+    select: { authorName: true, createdAt: true },
+  })
+  // (authorName, latest createdAt) — a fetched review is a duplicate when ANY
+  // existing google review by the same author was created at or after it,
+  // i.e. when the author's latest existing review is at or after createTime.
+  const existingByAuthor = new Map<string, Date>()
+  for (const r of existing) {
+    const prior = existingByAuthor.get(r.authorName)
+    if (!prior || r.createdAt > prior) existingByAuthor.set(r.authorName, r.createdAt)
   }
 
+  const newReviews = reviews.filter((gr) => {
+    const createTime = gr.createTime ? new Date(gr.createTime) : new Date()
+    const prior = existingByAuthor.get(gr.authorName)
+    if (prior && prior >= createTime) {
+      skipped++
+      return false
+    }
+    return true
+  })
+
+  if (newReviews.length > 0) {
+    await prisma.review.createMany({
+      data: newReviews.map((gr) => ({
+        businessId,
+        authorName: gr.authorName,
+        rating: gr.rating,
+        comment: gr.comment,
+        isGoogleReview: true,
+      })),
+    })
+    imported = newReviews.length
+  }
   return { imported, skipped }
+}
+
+/** Map raw GBP API review objects to the normalized import shape. */
+function normalizeGoogleReviews(reviews: any[]): Array<{ authorName: string; rating: number; comment: string | null; createTime?: string }> {
+  return reviews.map((gr) => ({
+    authorName: gr.reviewer?.displayName || 'Anonymous',
+    rating: gr.starRating === 'FIVE' ? 5 :
+            gr.starRating === 'FOUR' ? 4 :
+            gr.starRating === 'THREE' ? 3 :
+            gr.starRating === 'TWO' ? 2 : 1,
+    comment: gr.comment || null,
+    createTime: gr.createTime,
+  }))
 }
 
 // ─── Config Check ──────────────────────────────────────────────────────────

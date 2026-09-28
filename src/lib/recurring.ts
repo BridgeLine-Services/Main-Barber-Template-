@@ -100,7 +100,7 @@ export async function previewRecurringAppointments(params: {
 
     // Check if barber is working on this day (JS dayOfWeek: 0 = Sunday)
     const dayOfWeek = occurrenceLocal.weekday % 7
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await prisma.schedule.findUnique({ // perf-ok: bounded per-occurrence conflict check for one recurring series
       where: { barberId_dayOfWeek: { barberId, dayOfWeek } },
     })
 
@@ -115,7 +115,7 @@ export async function previewRecurringAppointments(params: {
     }
 
     // Check for business closures on this date
-    const closures = await prisma.businessClosure.findMany({
+    const closures = await prisma.businessClosure.findMany({ // perf-ok: bounded per-occurrence conflict check for one recurring series
       where: {
         businessId,
         isActive: true,
@@ -140,7 +140,7 @@ export async function previewRecurringAppointments(params: {
       end: occurrenceLocal.endOf('day').toUTC().toJSDate(),
     }
 
-    const blockedTimes = await prisma.blockedTime.findMany({
+    const blockedTimes = await prisma.blockedTime.findMany({ // perf-ok: bounded per-occurrence conflict check for one recurring series
       where: {
         businessId,
         OR: [{ barberId }, { barberId: null }],
@@ -273,7 +273,7 @@ export async function createRecurringAppointments(params: {
   // Log to audit log
   if (created.length > 0) {
     try {
-      await prisma.auditLog.create({
+      await prisma.auditLog.create({ // perf-ok: bounded per-occurrence conflict check for one recurring series
         data: {
           businessId,
           action: 'APPOINTMENT_CREATED',

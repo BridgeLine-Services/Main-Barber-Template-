@@ -125,7 +125,7 @@ export async function PATCH(req: NextRequest) {
         } else {
           let counter = 1
           let uniqueSlug = `${slugBase}-${counter}`
-          while (await prisma.barber.findFirst({ where: { slug: uniqueSlug, NOT: { id: barberId } } })) {
+          while (await prisma.barber.findFirst({ where: { slug: uniqueSlug, NOT: { id: barberId } } })) { // perf-ok: slug uniqueness probe, 1-2 iterations in practice
             counter++
             uniqueSlug = `${slugBase}-${counter}`
           }

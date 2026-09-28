@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       let slug = slugify(name) || 'barber'
       if (await prisma.barber.findUnique({ where: { slug } })) {
         slug = `${slug}-${businessId.slice(-6)}`
-        while (await prisma.barber.findUnique({ where: { slug } })) {
+        while (await prisma.barber.findUnique({ where: { slug } })) { // perf-ok: slug uniqueness probe, 1-2 iterations in practice
           slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`
         }
       }

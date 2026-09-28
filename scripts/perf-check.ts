@@ -40,13 +40,22 @@ function scanFile(path: string) {
       if (ch === '{') depth++
       else if (ch === '}') {
         depth--
-        while (loopStack.length && depth < loopStack[loopStack.length - 1].endDepth) loopStack.pop()
+        // endDepth is the depth BEFORE the loop body opened; the loop ends
+        // when depth returns to that level (<= endDepth). Using < here popped
+        // one level too late, falsely flagging statements after a loop that
+        // were still inside the enclosing function.
+        while (loopStack.length && depth <= loopStack[loopStack.length - 1].endDepth) loopStack.pop()
       }
     }
-    if (/\bfor\s*\(|\.forEach\(|\bwhile\s*\(/.test(line)) {
+    // Brace-less single-line loops (for (...) stmt) have no scope to track and
+    // previously leaked onto the loop stack, falsely flagging code after them.
+    if (/\bfor\s*\(|\.forEach\(|\bwhile\s*\(/.test(line) && line.includes('{')) {
       loopStack.push({ endDepth: depth - 1, depth })
     }
     if (loopStack.length && prismaInLoop.test(line)) {
+      // Inline triage marker: append `// perf-ok: <reason>` to a line that is
+      // deliberately per-iteration (bounded loop, claim-CAS, uniqueness probe).
+      if (/\/\/\s*perf-ok:/.test(line)) continue
       console.error(`  N+1 candidate: ${rel}:${i + 1} -> ${line.trim().slice(0, 90)}`)
       findings++
     }
