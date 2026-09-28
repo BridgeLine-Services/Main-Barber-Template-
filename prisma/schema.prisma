@@ -541,6 +541,7 @@ enum NotificationType {
   WAITLIST_NOTIFICATION
   REBOOKING_REMINDER
   MARKETING_CAMPAIGN
+  STAFF_INVITE
 }
 
 enum NotificationChannel {

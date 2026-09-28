@@ -73,7 +73,7 @@ async function logNotification(params: {
   appointmentId?: string
   recipient: string
   channel: 'EMAIL' | 'SMS'
-  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN'
+  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE'
   status: 'PENDING' | 'SENT' | 'FAILED'
   content?: string
   errorMessage?: string
@@ -402,6 +402,64 @@ export async function sendSmsReminder(phone: string, message: string) {
     status: result.success ? 'SENT' : 'FAILED',
     errorMessage: result.success ? undefined : result.error,
   })
+}
+
+// ============================================================================
+// Staff invite notification
+// Best-effort delivery of temporary credentials when SMTP is configured.
+// The API response still returns the temp password to the inviting owner,
+// so a failed/absent email never blocks the invite.
+// ============================================================================
+
+export async function sendStaffInviteEmail(params: {
+  businessId: string
+  businessName: string
+  to: string
+  name: string
+  tempPassword: string
+  loginUrl: string
+}): Promise<boolean> {
+  if (!isEmailConfigured()) return false
+  try {
+    const transport = getTransporter()
+    await transport.sendMail({
+      from: getSmtpFromAddress(),
+      to: params.to,
+      subject: `You've been invited to join ${params.businessName}`,
+      text: [
+        `Hi ${params.name},`,
+        ``,
+        `You've been invited to the ${params.businessName} team.`,
+        ``,
+        `Sign in here: ${params.loginUrl}`,
+        `Email: ${params.to}`,
+        `Temporary password: ${params.tempPassword}`,
+        ``,
+        `You'll be asked to set your own password the first time you sign in.`,
+        ``,
+        `If you weren't expecting this invite, you can ignore this email.`,
+      ].join('\n'),
+    })
+    await logNotification({
+      businessId: params.businessId,
+      recipient: params.to,
+      channel: 'EMAIL',
+      type: 'STAFF_INVITE',
+      status: 'SENT',
+    })
+    return true
+  } catch (error) {
+    console.error('staff invite email failed:', sanitizeErrorMessage(error))
+    await logNotification({
+      businessId: params.businessId,
+      recipient: params.to,
+      channel: 'EMAIL',
+      type: 'STAFF_INVITE',
+      status: 'FAILED',
+      errorMessage: sanitizeErrorMessage(error),
+    })
+    return false
+  }
 }
 
 // ============================================================================

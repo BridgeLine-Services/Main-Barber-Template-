@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { sendStaffInviteEmail } from '@/lib/notifications'
 
 const inviteSchema = z.object({
   name: z.string().min(1, 'Name required').max(100),
@@ -144,10 +145,30 @@ export async function POST(req: NextRequest) {
       } catch (auditError) {
         console.error('[staff] audit log failed after invite', auditError instanceof Error ? auditError.message : 'unknown error')
       }
+      // Best-effort email of the temporary password (only when SMTP is
+      // configured). The response still returns it to the inviting owner, so
+      // a failed or absent email never blocks the invite.
+      let emailSent = false
+      try {
+        emailSent = await sendStaffInviteEmail({
+          businessId,
+          businessName: (session.user as any).businessName || 'your barbershop',
+          to: user.email,
+          name: user.name,
+          tempPassword,
+          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/login`,
+        })
+      } catch (emailError) {
+        console.error('[staff] invite email failed', emailError instanceof Error ? emailError.message : 'unknown error')
+      }
+
       return NextResponse.json({
         user,
-        tempPassword, // TODO: send temp password via email in production
-        message: 'Staff member invited. Share the temporary password securely.',
+        tempPassword,
+        emailSent,
+        message: emailSent
+          ? `Staff member invited. Temporary password sent to ${user.email}; also shown below in case the email doesn't arrive.`
+          : 'Staff member invited. Share the temporary password securely.',
       }, { status: 201 })
     } catch (error: any) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
