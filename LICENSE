@@ -1,0 +1,89 @@
+================================================================================
+MAIN BARBER TEMPLATE — PROPRIETARY SOFTWARE LICENSE
+================================================================================
+
+Copyright (c) 2026 BridgeLine Services ("Licensor"). All rights reserved.
+
+--------------------------------------------------------------------------------
+1. STATUS OF THIS DOCUMENT
+--------------------------------------------------------------------------------
+
+This is the licensing framework for the Main Barber Template master
+repository. It is a structural template, not final legal text. The
+definitive per-client license is granted in a signed client services
+agreement drafted by qualified counsel. See docs/LEGAL-PLACEHOLDERS.md
+for the full legal-document structure and the sections that require
+attorney review before commercial use.
+
+--------------------------------------------------------------------------------
+2. GRANT OF RIGHTS
+--------------------------------------------------------------------------------
+
+This software and its source code are PROPRIETARY. No rights are granted
+by possession of, access to, or compilation of this repository, except
+as expressly granted in a signed license agreement between the Licensor
+and the licensee (typically a barbershop business or reseller).
+
+By default — with no such agreement in place — the following are NOT
+permitted:
+
+  a. Copying, redistributing, publishing, or sublicensing the source
+     code or any derivative of it.
+  b. Selling, reselling, renting, leasing, or offering the software as
+     a service to third parties.
+  c. Creating derivative works, forks, or competing products based on
+     this software.
+  d. Removing or obscuring this license notice, copyright notices, or
+     attribution of the Licensor.
+  e. Use of the software to operate any barbershop or business.
+
+A signed per-client license, when granted, is limited, non-exclusive,
+non-transferable, and scoped to a single business deployment ("Client
+Copy"), unless the agreement explicitly states otherwise.
+
+--------------------------------------------------------------------------------
+3. OWNERSHIP OF TEMPLATE VS. BUSINESS CONTENT
+--------------------------------------------------------------------------------
+
+  Platform IP (owned by the Licensor):
+    Source code, architecture, components, booking engine, database
+    schema, migrations, admin dashboard UI, documentation, workflows.
+
+  Business Content (owned by the client of a Client Copy):
+    Business name, logo, brand assets, barber photos, gallery images,
+    service names/pricing/descriptions, customer records (subject to
+    law and the client agreement), business contact information,
+    hours, and SEO copy.
+
+A client license grants the client the right to USE the software for
+their business and to own their Business Content. It does not transfer
+ownership of the template software or its source code.
+
+--------------------------------------------------------------------------------
+4. NO WARRANTY
+--------------------------------------------------------------------------------
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED. THE LICENSOR DISCLAIMS ALL WARRANTIES, INCLUDING BUT NOT
+LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT. IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+5. TERMINATION
+--------------------------------------------------------------------------------
+
+On termination or expiration of a client license, the client's right to
+use the software ceases. Post-termination obligations (data return or
+export, license cessation, confidentiality) are defined in the signed
+client services agreement.
+
+--------------------------------------------------------------------------------
+6. ATTORNEY REVIEW REQUIRED
+--------------------------------------------------------------------------------
+
+Before granting any commercial license, this document and the client
+services agreement must be reviewed and approved by qualified counsel
+in the relevant jurisdiction(s). The Licensor makes no warranty of
+legal sufficiency for this template.

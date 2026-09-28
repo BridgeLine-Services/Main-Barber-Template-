@@ -7,6 +7,7 @@ import { MediaType } from '@prisma/client'
 import { put } from '@vercel/blob'
 import { randomUUID } from 'crypto'
 import { handleApiError } from '@/lib/api-errors'
+import { validateImageUpload, MIME_TO_EXTENSION } from '@/lib/file-validation'
 
 /**
  * POST /api/dashboard/media/upload
@@ -41,31 +42,33 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Barbers can only upload their own photos' }, { status: 403 })
       }
     }
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/svg+xml']
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Unsupported file type. Use JPEG, PNG, WebP, AVIF, or SVG.' }, { status: 400 })
-    }
-    // Map MIME types to safe extensions (do NOT use user-supplied extension)
-    const mimeToExt: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-      'image/avif': 'avif',
-      'image/svg+xml': 'svg',
-    }
-    const ext = mimeToExt[file.type] || 'jpg'
-    // Validate file size (10MB max)
+    // Validate file size (10MB max) BEFORE buffering the file
     const MAX_SIZE = 10 * 1024 * 1024
     if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'File too large. Maximum 10MB.' }, { status: 400 })
     }
-    // Generate a safe filename using server-derived extension
+
+    // Content-based validation (Requirement: never trust the client-provided
+    // MIME type alone). sniffImageType reads the file's magic bytes and the
+    // sniffed type must match the declared type; SVGs are sanitized to strip
+    // scripts, event handlers, and javascript:/external-entity vectors.
+    let validated: { contentType: string; buffer: Buffer }
+    try {
+      validated = validateImageUpload(file.type, new Uint8Array(await file.arrayBuffer()))
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : 'File rejected by validation.' },
+        { status: 400 },
+      )
+    }
+    const ext = MIME_TO_EXTENSION[validated.contentType as keyof typeof MIME_TO_EXTENSION]
+
+    // Generate a safe filename using the server-derived extension
     const filename = `${businessId}/${type.toLowerCase()}/${randomUUID()}.${ext}`
     try {
-      const blob = await put(filename, file, {
+      const blob = await put(filename, validated.buffer, {
         access: 'public',
-        contentType: file.type,
+        contentType: validated.contentType,
         addRandomSuffix: false,
       })
       return NextResponse.json({ url: blob.url, filename: blob.pathname, type })

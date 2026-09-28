@@ -2,7 +2,7 @@
   "name": "barber-booking-system",
   "version": "1.0.0",
   "private": true,
-  "description": "Multi-tenant barber shop website with booking engine and dashboard. No online payments \u2014 pay in person.",
+  "description": "Multi-tenant barber shop website with booking engine and dashboard. No online payments \u2014 pay in person. PROPRIETARY: licensed per client, not open source (see LICENSE).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -45,12 +45,13 @@
     "test:daily-operations": "npx tsx tests/daily-operations.test.ts",
     "test:marketing": "npx tsx tests/marketing.test.ts",
     "test:calendar-export": "npx tsx tests/calendar-export.test.ts",
-    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:calendar-export && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue",
+    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:files && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:calendar-export && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue",
     "db:apply-rls": "tsx scripts/apply-rls.ts",
     "db:rls-status": "tsx scripts/rls-status.ts",
     "client:independence": "tsx scripts/client-independence.ts",
     "master:check": "npm run architecture:check && npm run client:independence && npm run lint && npm run typecheck && npx prisma validate && npx prisma generate && npm run build",
-    "test:ci": "npx tsx tests/architecture.test.ts && npx tsx tests/barber-mode.test.ts && npx tsx tests/booking.test.ts && npx tsx tests/calendar-export.test.ts && npx tsx tests/cancellation-fill.test.ts && npx tsx tests/customer-history.test.ts && npx tsx tests/daily-operations.test.ts && npx tsx tests/factory-launch.test.ts && npx tsx tests/factory-readiness.test.ts && npx tsx tests/marketing.test.ts && npx tsx tests/payment-transitions.test.ts && npx tsx tests/portfolio.test.ts && npx tsx tests/queue.test.ts && npx tsx tests/reliability.test.ts && npx tsx tests/rls-enforcement.test.ts && npx tsx tests/role-permissions.test.ts && npx tsx tests/specialty-match.test.ts && npx tsx tests/tenant-isolation.test.ts && npx tsx tests/tenant-key-sync.test.ts"
+    "test:ci": "npx tsx tests/file-validation.test.ts && npx tsx tests/architecture.test.ts && npx tsx tests/barber-mode.test.ts && npx tsx tests/booking.test.ts && npx tsx tests/calendar-export.test.ts && npx tsx tests/cancellation-fill.test.ts && npx tsx tests/customer-history.test.ts && npx tsx tests/daily-operations.test.ts && npx tsx tests/factory-launch.test.ts && npx tsx tests/factory-readiness.test.ts && npx tsx tests/marketing.test.ts && npx tsx tests/payment-transitions.test.ts && npx tsx tests/portfolio.test.ts && npx tsx tests/queue.test.ts && npx tsx tests/reliability.test.ts && npx tsx tests/rls-enforcement.test.ts && npx tsx tests/role-permissions.test.ts && npx tsx tests/specialty-match.test.ts && npx tsx tests/tenant-isolation.test.ts && npx tsx tests/tenant-key-sync.test.ts",
+    "test:files": "npx tsx tests/file-validation.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
@@ -97,5 +98,6 @@
     "tailwindcss": "^3.4.10",
     "tsx": "^4.23.12",
     "typescript": "^5.5.4"
-  }
+  },
+  "license": "UNLICENSED"
 }

@@ -394,7 +394,7 @@ For production database changes, run reviewed migrations separately with `npx pr
 ## 🎨 Customization Guide
 
 - **Changing Colors & Aesthetics**:
-  Update `primaryColor` and `accentColor` in the `Business` database table or modify `tailwind.config.ts`.
+  Update `primaryColor`, `accentColor`, and theme settings in the `Business` database record (dashboard → Onboarding / Settings, or the provisioning script). The database is the authoritative branding source: a centralized resolver (`src/lib/theme.ts`) converts it to CSS variables that every themed component consumes. Do **not** modify `tailwind.config.ts` for a client's branding — that file defines template-wide design only.
 - **Modifying Services & Prices**:
   Shop owners can manage services directly through the Dashboard at `/dashboard/services`.
 - **Managing Barbers & Schedules**:
@@ -471,7 +471,7 @@ Detailed client-specific values should be supplied during onboarding rather than
 
 ## 📜 License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+This software is **PROPRIETARY**. Copyright (c) 2026 BridgeLine Services. All rights reserved. It is licensed per client under a signed client services agreement — it is **not** open-source and may not be redistributed, resold, or used to operate a business without such an agreement. See `LICENSE` (framework only, attorney review required) and `docs/LEGAL-PLACEHOLDERS.md` for the licensing structure.
 
 ---
 
