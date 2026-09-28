@@ -39,9 +39,13 @@ The schema carries targeted composite indexes for the hot paths
 ## Automated check
 
 `npx tsx scripts/perf-check.ts` scans application source for
-sequential prisma awaits inside loops (the N+1 pattern). It currently
-reports candidates in REVIEW mode (exit 0) because the heuristic also
-flags deliberately bounded loops (per-notification status updates,
-per-occurrence schedule checks). Triage the candidates, fix the
-unbounded ones, allowlist the deliberate ones, then run with `--strict`
-(`PERF_STRICT=1`) to enforce as a CI gate.
+sequential prisma awaits inside loops (the N+1 pattern). All candidates
+have been triaged: the unbounded loops were batched (campaign queue,
+GBP review import), and deliberately bounded loops carry an inline
+`// perf-ok: <reason>` marker (claim-and-send notification worker,
+per-occurrence recurring-series checks, slug uniqueness probes).
+
+`--strict` therefore runs as a gate inside `npm run master:check` and
+fails the build on any NEW untriaged prisma-await-in-loop. Triage new
+findings by batching the loop or adding a `// perf-ok: <reason>` marker
+with a justification bounded in size (not just in expectation).

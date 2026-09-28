@@ -68,10 +68,11 @@ release; record results per client deployment.
 ## Other gates
 
 - `npm run master:check` — architecture check + client-independence scan +
-  lint + typecheck + prisma validate/generate + production build (one
-  gate for "master template ready").
-- `npx tsx scripts/perf-check.ts [--strict]` — N+1 pattern scanner
-  (REVIEW mode by default; see docs/PERFORMANCE.md).
+  lint + typecheck + prisma validate/generate + strict N+1 scan + production
+  build (one gate for "master template ready").
+- `npx tsx scripts/perf-check.ts` — N+1 pattern scanner (REVIEW mode;
+  `--strict` fails on untriaged findings and runs inside master:check;
+  see docs/PERFORMANCE.md).
 - GitHub Actions ("Template CI") runs four jobs: template validation
   (architecture check, lint, typecheck, prisma validate/generate,
   production build); server tests against a real PostgreSQL service
