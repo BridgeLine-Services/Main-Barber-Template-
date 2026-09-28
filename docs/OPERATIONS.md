@@ -72,8 +72,9 @@ each deployment must configure it per client.
 
 **Data quality**
 
-- Daily job checking appointment integrity: end < start, orphaned
-  bookings, future-dated completions.
+- The template ships no scheduled integrity job; if you add one for a
+  client deployment (e.g. via Vercel Cron), check appointment integrity:
+  end < start, orphaned bookings, future-dated completions.
 
 ## 3. Third-Party Services
 
