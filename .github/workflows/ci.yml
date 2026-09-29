@@ -29,6 +29,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Production dependency audit: fails the build on any critical
+      # advisory. Dev-only advisories are excluded (--omit=dev).
+      - run: npm audit --omit=dev --audit-level=critical
       - run: npm run architecture:check
       - run: npm run test:architecture
       - run: npm run lint
