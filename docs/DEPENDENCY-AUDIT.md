@@ -1,46 +1,41 @@
 # Dependency audit (Requirement 34)
 
-`npm audit --omit=dev` (2026-09-29): **2 production vulnerabilities
-(1 critical, 1 high)** — nodemailer cleared (6.10.1 → 10.0.12). CI reports
-them on every run (report-only step) so they cannot be silently forgotten.
-The remaining pair (next / postcss) is resolved together by the next upgrade.
+`npm audit --omit=dev` (2026-09-29, after the Next 16 upgrade):
+**0 production vulnerabilities.**
 
-| Severity | Package | Advisory | Fix path |
-|----------|---------|----------|----------|
-| CRITICAL | next 14.2.35 | Self-hosted Image Optimizer DoS via remotePatterns configuration | Major upgrade to next 16.3.6+ |
-| HIGH | postcss (via next) | XSS via unescaped `</style>` in stringify output | Resolved by the same next upgrade |
-| ~~HIGH~~ | ~~nodemailer 6.10.1~~ | Email to an unintended domain via interpretation conflict | ✅ **Fixed 2026-09-29**: upgraded to nodemailer 10.0.12 (+ @types 7.0.12, `Transporter` type import); send path runtime-verified |
+## Upgrades completed (2026-09-29)
 
-## Why not upgraded now
+| Package | From → To | Advisory cleared |
+|---------|-----------|-------------------|
+| next | 14.2.35 → **16.3.6** | CRITICAL: self-hosted Image Optimizer DoS via remotePatterns config |
+| postcss (via next) | transitive | HIGH: XSS via unescaped `</style>` in stringify output |
+| nodemailer | 6.10.1 → **10.0.12** | HIGH: email to an unintended domain via interpretation conflict |
 
-Both fixes are **breaking-change major version bumps** of the framework
-(next 14 -> 16) and the mailer (nodemailer 6 -> 10). The codebase is
-currently on the latest patch of each major (14.2.35 is the final
-14.2.x; 6.10.1 is the final 6.x), so there is no in-major patch to take.
-A framework double-major upgrade is a dedicated, fully-tested change —
-not something to land unverified alongside other work.
+## How the upgrade was verified
 
-## Risk context / mitigations (as of this audit)
+Framework double-major (next 14 → 16, react 18 → 19) verified with:
 
-- **next Image Optimization DoS**: exploitable when the self-hosted image
-  optimizer is exposed with a permissive `remotePatterns` config. The
-  template's `next.config` does not enable broad `remotePatterns`; media
-  uploads are first-party. Practical exposure is low, but the upgrade
-  is still required to clear the advisory.
-- **postcss XSS**: postcss is a build-time transitive dependency of
-  next; the advisory is in CSS stringify output, not runtime user
-  input. Resolved by the next upgrade.
-- **nodemailer unintended domain**: send paths go through the
-  templated notification lib with fixed recipients from the database.
-  Upgrade required to clear the advisory.
+- `@next/codemod next-async-request-api` applied (25 files: `params` /
+  `searchParams` now awaited in dynamic route handlers and pages).
+- ESLint migrated to flat config (`eslint.config.mjs`, eslint 9) with the
+  pre-upgrade severity policy preserved; previously-unenforced v16 preset
+  rules (`no-explicit-any`, `no-unused-vars`, new react-hooks v6 rules)
+  are tracked as follow-up warnings, not hidden.
+- `next dev` runtime smoke: credentials login via next-auth, authenticated
+  dashboard APIs (`settings`, `services`, `barbers`, `audit-logs`,
+  `appointments`), SSR dashboard layout access gate, middleware
+  `x-pathname` stamp — all working under async request APIs.
+- Full CI battery (23 suites) green; live-server suites green
+  (PWA 22/22, notification resilience 16/16 against a running Next 16
+  server).
+- Production build compiles (24 static pages) with the production env vars.
+- next-auth remains on v4 (4.24.x is compatible with Next 16's async
+  headers in this codebase's usage); a future v5/Auth.js migration is
+  optional, not required for security.
 
-## Required update path (tracked, not done)
+## CI enforcement
 
-1. Upgrade `next` to >=16.3.6 and `nodemailer` to >=10.0.11 together
-   (breaking-change majors: verify `next dev`, production build, all
-   30 test suites, image config, and the build output on Vercel).
-2. Re-run `npm audit --omit=dev` until clean, then flip the CI step to
-   `--audit-level=critical` failing (`-D` in .github/workflows/ci.yml).
-
-Dev-only advisories are excluded (`--omit=dev`) as they do not ship to
-production.
+`.github/workflows/ci.yml` now runs
+`npm audit --omit=dev --audit-level=critical` after `npm ci`, so any new
+critical production advisory fails the build. Dev-only advisories are
+excluded (`--omit=dev`) as they do not ship to production.

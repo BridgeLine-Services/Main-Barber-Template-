@@ -128,7 +128,7 @@ entire site from **Dashboard → Branding**; nothing visual is hardcoded.
 ## 📋 Prerequisites
 
 Before running this project, ensure you have installed:
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v20.9.0 or higher (Next 16 minimum)
 - **npm**: v9.0.0 or higher
 - **PostgreSQL**: Local instance running on port 5432, or a hosted database (Neon, Supabase, Railway, Render)
 
