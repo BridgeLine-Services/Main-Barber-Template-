@@ -13,13 +13,14 @@ import CancelButton from './CancelButton'
 import RescheduleButton from './RescheduleButton'
 import { AddToCalendar } from '@/components/booking/AddToCalendar'
 
-export default async function ConfirmationPage({
-  params,
-  searchParams,
-}: {
-  params: { confirmationNumber: string }
-  searchParams: { token?: string }
-}) {
+export default async function ConfirmationPage(
+  props: {
+    params: Promise<{ confirmationNumber: string }>
+    searchParams: Promise<{ token?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   let appointment: any = null
   let hasToken = false
 
@@ -274,5 +275,5 @@ export default async function ConfirmationPage({
         </div>
       </div>
     </div>
-  )
+  );
 }

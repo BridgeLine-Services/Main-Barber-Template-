@@ -26,12 +26,13 @@ import { Badge } from '@/components/ui/badge'
 import { CustomerProfileClient } from './CustomerProfileClient'
 
 interface CustomerDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default async function CustomerDetailPage({ params }: CustomerDetailPageProps) {
+export default async function CustomerDetailPage(props: CustomerDetailPageProps) {
+  const params = await props.params;
   const session = await getServerSession(authOptions)
   if (!session?.user) {
     redirect('/login')
@@ -469,5 +470,5 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
         </div>
       </div>
     </div>
-  )
+  );
 }

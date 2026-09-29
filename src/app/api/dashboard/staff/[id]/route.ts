@@ -21,10 +21,8 @@ const updateSchema = z.object({
  * PATCH /api/dashboard/staff/[id]
  * Update staff member (owner only) — change role or name
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -149,10 +147,8 @@ export async function PATCH(
  * Reset a staff member's password (owner only)
  * Generates a new temporary password
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -213,10 +209,8 @@ export async function POST(
  * DELETE /api/dashboard/staff/[id]
  * Deactivate / remove a staff member (owner only)
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

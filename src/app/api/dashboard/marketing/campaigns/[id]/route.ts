@@ -23,7 +23,8 @@ const updateCampaignSchema = z.object({
 // PATCH /api/dashboard/marketing/campaigns/[id] — edit a campaign or change its
 // status (DRAFT ↔ ARCHIVED acts as enable/disable). Tenant-scoped: the
 // campaign is looked up under the authenticated user's businessId only.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -82,7 +83,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 // DELETE /api/dashboard/marketing/campaigns/[id] — permanently delete one
 // campaign. Deleting one campaign never affects any other campaign.
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

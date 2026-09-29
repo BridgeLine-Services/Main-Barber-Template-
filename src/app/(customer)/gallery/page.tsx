@@ -19,11 +19,12 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export default async function GalleryPage({
-  searchParams,
-}: {
-  searchParams?: { service?: string }
-}) {
+export default async function GalleryPage(
+  props: {
+    searchParams?: Promise<{ service?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const business = await resolveBusiness()
 
   if (!business) {

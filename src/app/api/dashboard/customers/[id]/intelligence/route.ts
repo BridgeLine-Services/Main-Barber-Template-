@@ -9,7 +9,8 @@ import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/customers/[id]/intelligence
 // Returns customer behavioral history + rebooking suggestion
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

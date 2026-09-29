@@ -5,10 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/customers/[id]/tags — list tags for a customer
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -30,10 +28,8 @@ export async function GET(
 }
 
 // POST /api/dashboard/customers/[id]/tags — assign a tag
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -81,10 +77,8 @@ export async function POST(
 }
 
 // DELETE /api/dashboard/customers/[id]/tags — remove a tag
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

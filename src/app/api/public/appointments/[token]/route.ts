@@ -11,10 +11,8 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
  *
  * Returns MINIMIZED data — no internal IDs, no full email/phone unless needed.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { token: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   // Rate limit to prevent brute-force
   const rateLimitResult = checkRateLimit(req, 'public-view', RATE_LIMITS.CUSTOMER_ACTION)
   if (rateLimitResult) {

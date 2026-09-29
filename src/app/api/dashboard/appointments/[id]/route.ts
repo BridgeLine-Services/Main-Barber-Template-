@@ -10,10 +10,11 @@ import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export async function GET(req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const auth = await requireStaff({ restrictToOwnBarber: true })
     if (!auth.success) return auth.response
@@ -53,7 +54,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
+export async function PATCH(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const auth = await requireStaff({ restrictToOwnBarber: true })
     if (!auth.success) return auth.response

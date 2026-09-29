@@ -14,7 +14,8 @@ import { handleApiError } from '@/lib/api-errors'
 // - Preselects favorite barber, favorite service
 // - Uses suggested date (average interval from last visit)
 // - Finds closest available time slot on that date
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -131,7 +132,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 // GET /api/dashboard/customers/[id]/rebook
 // Returns the rebooking suggestion without creating an appointment
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

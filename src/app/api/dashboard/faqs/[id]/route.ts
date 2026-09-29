@@ -19,7 +19,8 @@ const updateFaqSchema = z.object({
  * PATCH /api/dashboard/faqs/[id]
  * Updates an FAQ entry (OWNER only, must belong to their business).
  */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response
@@ -62,7 +63,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
  * DELETE /api/dashboard/faqs/[id]
  * Deletes an FAQ entry (OWNER only, must belong to their business).
  */
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response

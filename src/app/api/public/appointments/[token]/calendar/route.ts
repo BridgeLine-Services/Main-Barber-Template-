@@ -15,10 +15,8 @@ import {
  * appointment, reschedule, and cancel routes. Never addressable by
  * internal ID.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { token: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   // Rate limit to prevent brute-force, consistent with the other token routes
   const rateLimitResult = checkRateLimit(req, 'public-view', RATE_LIMITS.CUSTOMER_ACTION)
   if (rateLimitResult) {

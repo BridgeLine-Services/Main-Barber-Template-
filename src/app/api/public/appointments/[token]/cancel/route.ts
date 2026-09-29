@@ -11,10 +11,8 @@ import { isTerminalStatus } from '@/lib/validation'
  * Cancel an appointment using the customer's secure access token.
  * No login required — the token IS the authorization.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { token: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   // Rate limit
   const rateLimitResult = checkRateLimit(req, 'public-cancel', RATE_LIMITS.CUSTOMER_ACTION)
   if (rateLimitResult) {

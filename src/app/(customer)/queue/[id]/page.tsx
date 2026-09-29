@@ -19,7 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: 'Your Queue Spot' }
 }
 
-export default async function QueueStatusPage({ params }: { params: { id: string } }) {
+export default async function QueueStatusPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const business = await resolveBusiness().catch(() => null)
   if (!business) notFound()
 
@@ -158,5 +159,5 @@ export default async function QueueStatusPage({ params }: { params: { id: string
         </div>
       </div>
     </div>
-  )
+  );
 }

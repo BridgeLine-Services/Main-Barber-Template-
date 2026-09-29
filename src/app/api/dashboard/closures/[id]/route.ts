@@ -30,10 +30,8 @@ const updateClosureSchema = z.object({
  * Edit a business closure, or cancel/reactivate it via isActive.
  * Deleting or editing one closure only ever affects that closure.
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -111,10 +109,8 @@ export async function PATCH(
  * DELETE /api/dashboard/closures/[id]
  * Delete a business closure (owner only)
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

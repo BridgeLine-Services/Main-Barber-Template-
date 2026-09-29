@@ -9,12 +9,13 @@ import { TimeOffManager } from '@/components/dashboard/TimeOffManager'
 import { Clock, UserCircle } from 'lucide-react'
 
 interface SchedulePageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     barberId?: string
-  }
+  }>
 }
 
-export default async function SchedulePage({ searchParams }: SchedulePageProps) {
+export default async function SchedulePage(props: SchedulePageProps) {
+  const searchParams = await props.searchParams;
   const session = await getServerSession(authOptions)
   if (!session?.user) {
     redirect('/login')

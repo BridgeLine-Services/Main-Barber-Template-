@@ -13,10 +13,11 @@ import { Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'luc
 import PortfolioGallery from '@/components/customer/PortfolioGallery'
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   const barber = await prisma.barber.findUnique({
     where: { slug: params.slug },
     include: { business: true },
@@ -42,7 +43,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function BarberProfilePage({ params }: PageProps) {
+export default async function BarberProfilePage(props: PageProps) {
+  const params = await props.params;
   const barber = await prisma.barber.findUnique({
     where: { slug: params.slug },
     include: {
@@ -260,5 +262,5 @@ export default async function BarberProfilePage({ params }: PageProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }

@@ -17,7 +17,8 @@ import {
  * released opening (service/barber/time) and the eligible waitlist entries in
  * priority order. Owner/barber only; business-scoped.
  */
-export async function GET(req: NextRequest, { params }: { params: { appointmentId: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ appointmentId: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -60,7 +61,8 @@ export async function GET(req: NextRequest, { params }: { params: { appointmentI
  * receives the opening. Re-checks slot availability and transitions the entry
  * WAITING -> NOTIFIED atomically.
  */
-export async function POST(req: NextRequest, { params }: { params: { appointmentId: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ appointmentId: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
