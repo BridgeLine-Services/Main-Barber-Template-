@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -14,18 +14,44 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0)
   const limit = 50
 
-  useEffect(() => {
-    setLoading(true)
-    fetch(`/api/dashboard/audit-logs?limit=${limit}&offset=${offset}`)
-      .then(r => r.json())
-      .then(data => {
-        setLogs(data.logs || [])
+  const loadLogs = React.useCallback(async () => {
+    try {
+      const r = await fetch(`/api/dashboard/audit-logs?limit=${limit}&offset=${offset}`)
+      const data = await r.json()
+      if (Array.isArray(data.logs)) {
+        setLogs(data.logs)
         setHasMore(data.hasMore || false)
         setTotal(data.total || 0)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [offset])
+      }
+    } catch {
+      // Keep the last successful list on transient failures
+    } finally {
+      setLoading(false)
+    }
+  }, [limit, offset])
+
+  useEffect(() => {
+    setLoading(true)
+    loadLogs()
+  }, [loadLogs])
+
+  // Live updates: poll for new entries so the log reflects actual activity
+  // without a manual refresh. Skips a redundant fetch when the tab is hidden
+  // and pauses on deeper pages (offset > 0) to avoid jumping the view.
+  useEffect(() => {
+    if (offset !== 0) return
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadLogs()
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [offset, loadLogs])
+
+  // Refresh promptly when the user returns to the tab
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible' && offset === 0) loadLogs() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [offset, loadLogs])
 
   const formatAction = (action: string) => {
     return action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())

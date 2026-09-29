@@ -7,6 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { createBarberSchema } from '@/lib/validation'
 import bcrypt from 'bcryptjs'
 import { handleApiError, validationError } from '@/lib/api-errors'
+import { logAudit } from '@/lib/auth-helpers'
+import { getClientIP } from '@/lib/rate-limit'
 
 export async function GET() {
   try {
@@ -108,6 +110,16 @@ export async function POST(req: NextRequest) {
         })
       }
       return created
+    })
+    await logAudit({
+      userId: (session.user as any)?.id,
+      businessId,
+      action: 'BARBER_CREATED',
+      entityType: 'Barber',
+      entityId: barber.id,
+      newValues: { name: barber.name, specialty: barber.specialty, isActive: barber.isActive },
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
     })
     return NextResponse.json(barber)
   } catch (error) {

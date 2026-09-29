@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateServiceSchema } from '@/lib/validation'
 import { handleApiError, validationError } from '@/lib/api-errors'
+import { logAudit } from '@/lib/auth-helpers'
+import { getClientIP } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -62,6 +64,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       },
       include: { barbers: { include: { barber: true } } },
     })
+    await logAudit({
+      userId: (session.user as any)?.id,
+      businessId,
+      action: 'SERVICE_UPDATED',
+      entityType: 'Service',
+      entityId: service.id,
+      oldValues: { name: existing.name, duration: existing.duration, price: existing.price, isActive: existing.isActive },
+      newValues: { name: service.name, duration: service.duration, price: service.price, isActive: service.isActive },
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
     return NextResponse.json(service)
   } catch (error) {
     return handleApiError(error, 'PATCH /api/dashboard/services/[id]')
@@ -80,10 +93,31 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (appointments > 0) {
       // Soft delete
       await prisma.service.update({ where: { id: params.id }, data: { isActive: false } })
+      await logAudit({
+        userId: (session.user as any)?.id,
+        businessId,
+        action: 'SERVICE_DEACTIVATED',
+        entityType: 'Service',
+        entityId: params.id,
+        oldValues: { name: existing.name, isActive: true },
+        newValues: { name: existing.name, isActive: false },
+        ipAddress: getClientIP(req),
+        userAgent: req.headers.get('user-agent') || undefined,
+      })
       return NextResponse.json({ success: true, message: 'Deactivated (has existing appointments)' })
     }
     await prisma.barberService.deleteMany({ where: { serviceId: params.id } })
     await prisma.service.delete({ where: { id: params.id } })
+    await logAudit({
+      userId: (session.user as any)?.id,
+      businessId,
+      action: 'SERVICE_DELETED',
+      entityType: 'Service',
+      entityId: params.id,
+      oldValues: { name: existing.name, duration: existing.duration, price: existing.price },
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
+    })
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error, 'DELETE /api/dashboard/services/[id]')

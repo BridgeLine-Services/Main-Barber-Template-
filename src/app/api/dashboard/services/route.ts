@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createServiceSchema } from '@/lib/validation'
 import { handleApiError, validationError } from '@/lib/api-errors'
+import { logAudit } from '@/lib/auth-helpers'
+import { getClientIP } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
   try {
@@ -65,6 +67,16 @@ export async function POST(req: NextRequest) {
           : undefined,
       },
       include: { barbers: true },
+    })
+    await logAudit({
+      userId: (session.user as any)?.id,
+      businessId,
+      action: 'SERVICE_CREATED',
+      entityType: 'Service',
+      entityId: service.id,
+      newValues: { name: service.name, duration: service.duration, price: service.price, isActive: service.isActive },
+      ipAddress: getClientIP(req),
+      userAgent: req.headers.get('user-agent') || undefined,
     })
     return NextResponse.json(service)
   } catch (error) {
