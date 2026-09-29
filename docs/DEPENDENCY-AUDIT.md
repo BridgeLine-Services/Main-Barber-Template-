@@ -1,14 +1,15 @@
 # Dependency audit (Requirement 34)
 
-`npm audit --omit=dev` (2026-09-27): **3 production vulnerabilities
-(1 critical, 2 high)**. CI reports them on every run (report-only step)
-so they cannot be silently forgotten.
+`npm audit --omit=dev` (2026-09-29): **2 production vulnerabilities
+(1 critical, 1 high)** — nodemailer cleared (6.10.1 → 10.0.12). CI reports
+them on every run (report-only step) so they cannot be silently forgotten.
+The remaining pair (next / postcss) is resolved together by the next upgrade.
 
 | Severity | Package | Advisory | Fix path |
 |----------|---------|----------|----------|
 | CRITICAL | next 14.2.35 | Self-hosted Image Optimizer DoS via remotePatterns configuration | Major upgrade to next 16.3.6+ |
 | HIGH | postcss (via next) | XSS via unescaped `</style>` in stringify output | Resolved by the same next upgrade |
-| HIGH | nodemailer 6.10.1 | Email to an unintended domain via interpretation conflict | Major upgrade to nodemailer 10.0.11+ |
+| ~~HIGH~~ | ~~nodemailer 6.10.1~~ | Email to an unintended domain via interpretation conflict | ✅ **Fixed 2026-09-29**: upgraded to nodemailer 10.0.12 (+ @types 7.0.12, `Transporter` type import); send path runtime-verified |
 
 ## Why not upgraded now
 

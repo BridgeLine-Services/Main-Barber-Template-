@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { formatFullDate, formatTime } from '@/lib/utils'
 import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
 import { sendSms, isTwilioConfigured, buildReminderMessage, buildConfirmationMessage } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
 import { isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
@@ -13,7 +14,7 @@ import { isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
 // delivery tracking. The owner dashboard can show which messages failed.
 // ============================================================================
 
-let transporter: nodemailer.Transporter | null = null
+let transporter: Transporter | null = null
 
 export function isEmailConfigured(): boolean {
   if (!isEmailEnabled()) return false
@@ -27,7 +28,7 @@ export function notificationStatus() {
   }
 }
 
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): Transporter {
   if (transporter) return transporter
 
   transporter = nodemailer.createTransport({
