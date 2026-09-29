@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, Trash2, Quote, Plus, X, Search, Scissors } from 'lucide-react'
+import { Star, Trash2, Quote, Plus, X,Scissors } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

@@ -9,21 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
-import { formatFullDate, formatTime, formatPrice } from '@/lib/utils'
+import {formatTime, formatPrice } from '@/lib/utils'
 import {
-  Search,
-  Filter,
-  Download,
+  Search,Download,
   Plus,
-  CalendarDays,
-  User,
-  Scissors,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Repeat,
-} from 'lucide-react'
+  CalendarDays,Repeat } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface AppointmentsListViewProps {
@@ -44,7 +34,7 @@ export function AppointmentsListView({
   const [barberFilter, setBarberFilter] = useState('ALL')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
+  const [, setRefreshing] = useState(false)
 
   // Dialogs
   const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)

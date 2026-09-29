@@ -8,7 +8,7 @@ import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/loyalty/program
 // Returns the current loyalty program configuration
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest) {
           newValues: { name, type, tiers, pointsPerDollar, isActive },
         },
       })
-    } catch (e) {
+    } catch (_e) {
       // Non-critical
     }
     return NextResponse.json({

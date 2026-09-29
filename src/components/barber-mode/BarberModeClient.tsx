@@ -4,8 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CheckCircle2, UserX, XCircle, History, CalendarPlus, ChevronDown,
-  RefreshCw, Clock, Scissors, StickyNote, User, Loader2, ChevronRight,
-} from 'lucide-react'
+  RefreshCw, Clock, Scissors, StickyNote, User, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatRelativeWhen, availableActions } from '@/lib/barber-mode'
 import { Button } from '@/components/ui/button'
@@ -493,7 +492,7 @@ export function BarberModeClient(props: BarberModeClientProps) {
     return () => clearInterval(id)
   }, [])
 
-  const { current, next, upcoming, completed, cancelled, noShows, all, counts, todayLabel } = props
+  const { current, next, upcoming, cancelled, noShows, all, counts, todayLabel } = props
 
   return (
     <div className="mx-auto max-w-xl space-y-5">

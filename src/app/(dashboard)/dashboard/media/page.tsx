@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  Upload, Trash2, Edit3, X, Image as ImageIcon, Star, Eye, EyeOff,
-  GripVertical, Plus
+  Upload, Trash2, Edit3, X, Image as ImageIcon, Star, Eye, EyeOff,Plus
 } from 'lucide-react'
 
 interface MediaAsset {

@@ -10,7 +10,6 @@
  * Run standalone: npx tsx scripts/client-independence.ts
  * Run via gate:   npm run master:check   (fails the build on findings)
  */
-import { execSync } from 'child_process'
 import { readdirSync, statSync } from 'fs'
 
 const SRC_DIRS = ['src', 'scripts', 'prisma/rls', 'public']

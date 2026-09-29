@@ -12,7 +12,7 @@ import { handleApiError } from '@/lib/api-errors'
  * GET /api/dashboard/settings
  * Returns the business settings + SEO (OWNER only)
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const auth = await requireBusinessAdmin()
     if (!auth.success) return auth.response

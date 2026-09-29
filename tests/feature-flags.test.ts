@@ -17,8 +17,7 @@
  */
 import { prisma } from '../src/lib/prisma'
 import {
-  resolveFeatures, isFeatureEnabled, FEATURE_DEFAULTS,
-} from '../src/lib/features'
+  resolveFeatures, isFeatureEnabled } from '../src/lib/features'
 
 let passed = 0, failed = 0
 function assert(cond: boolean, msg: string) {

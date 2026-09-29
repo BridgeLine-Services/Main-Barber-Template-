@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  Save, User, Phone, Mail, Globe, Camera, Upload,
+  Save, User, Phone,Globe, Camera, Upload,
   Instagram, Facebook, Music2, Link as LinkIcon
 } from 'lucide-react'
 

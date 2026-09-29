@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getInitials, cn } from '@/lib/utils'
-import { Sparkles, Check, User, Zap, Clock, Loader2, Award } from 'lucide-react'
+import { Sparkles, Check,Zap,Loader2, Award } from 'lucide-react'
 import { rankBarbersForService } from '@/lib/specialty-match'
 import { format, parseISO } from 'date-fns'
 

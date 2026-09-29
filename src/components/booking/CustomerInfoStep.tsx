@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { isValidEmail, isValidPhone, formatPhoneInput } from '@/lib/utils'
-import { User, Mail, Phone, FileText, CheckCircle2, ArrowRight } from 'lucide-react'
+import { User, Mail, Phone,ArrowRight } from 'lucide-react'
 
 export interface CustomerInfo {
   firstName: string

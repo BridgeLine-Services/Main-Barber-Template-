@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BarberForm } from '@/components/dashboard/BarberForm'
-import { UserCircle, Plus, Edit2, Calendar, CheckCircle2, XCircle, Scissors, Clock, Loader2, Trash2 } from 'lucide-react'
+import { UserCircle, Plus, Edit2,CheckCircle2, XCircle,Clock, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getInitials } from '@/lib/utils'
 

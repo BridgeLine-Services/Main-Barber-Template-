@@ -98,7 +98,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
         onOpenChange(false)
         router.refresh()
       }, 2000)
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to rebook. Please try again.')
       setSubmitting(false)
     }

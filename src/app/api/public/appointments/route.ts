@@ -7,7 +7,7 @@ import { createAppointmentSafely, getAvailableSlots } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { createBookingSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { localTimeToUTCFromYMD, dayOfWeekFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
+import { localTimeToUTCFromYMD,resolveBusinessTimezone } from '@/lib/timezone'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
 import { isFeatureEnabled } from '@/lib/features'
 

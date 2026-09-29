@@ -11,7 +11,7 @@ interface BookingProgressProps {
   onStepClick?: (step: number) => void
 }
 
-export function BookingProgress({ currentStep, totalSteps, onStepClick }: BookingProgressProps) {
+export function BookingProgress({ currentStep, onStepClick }: BookingProgressProps) {
   return (
     <div className="w-full py-4">
       {/* Mobile progress indicator */}

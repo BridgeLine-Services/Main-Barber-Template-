@@ -87,7 +87,7 @@ async function cleanup(businessId: string) {
 // ────────────────────────────────────────────────────────────────────────────
 async function testMinimumAdvance() {
   console.log('\n📦 Minimum advance booking (minAdvanceBookingMinutes=120)')
-  const { business, barber, service, customer } = await setupBusiness({ minAdvanceBookingMinutes: 120 })
+  const { business, barber, service } = await setupBusiness({ minAdvanceBookingMinutes: 120 })
   try {
     const r1 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
@@ -112,7 +112,7 @@ async function testMinimumAdvance() {
 
 async function testMaxWindow() {
   console.log('\n📦 Maximum booking window (maxBookingWindowDays=7)')
-  const { business, barber, service, customer } = await setupBusiness({ maxBookingWindowDays: 7 })
+  const { business, barber, service } = await setupBusiness({ maxBookingWindowDays: 7 })
   try {
     const r1 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
@@ -197,7 +197,7 @@ async function testServiceBufferOverride() {
 
 async function testClosures() {
   console.log('\n📦 Closures: all-day + partial-day holiday')
-  const { business, barber, service, customer } = await setupBusiness({})
+  const { business, barber, service } = await setupBusiness({})
   try {
     // All-day closure 2 days out
     const closeDate = new Date(Date.now() + 2 * 86_400_000)
@@ -208,7 +208,9 @@ async function testClosures() {
         startDate: new Date(ymd), endDate: new Date(ymd), isAllDay: true, isActive: true,
       },
     })
-    const slot = new Date(Date.now() + 2 * 86_400_000 + 12 * 3_600_000)
+    // Anchor to an explicit UTC time on the closure date so the test
+    // cannot flake when the suite runs late in the UTC day.
+    const slot = new Date(`${ymd}T12:00:00.000Z`)
     const r1 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
       startTime: slot,
@@ -231,13 +233,13 @@ async function testClosures() {
         startTime: '00:00', endTime: '12:00', isActive: true,
       },
     })
-    const morning = new Date(Date.now() + 3 * 86_400_000 + 6 * 3_600_000)
+    const morning = new Date(`${holYMD}T06:00:00.000Z`)
     const r2 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
       startTime: morning,
     })
     assert(r2.valid === false && r2.error === 'CLOSED', 'partial-day closure blocks morning booking')
-    const afternoon = new Date(Date.now() + 3 * 86_400_000 + 13 * 3_600_000)
+    const afternoon = new Date(`${holYMD}T13:00:00.000Z`)
     const r3 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
       startTime: afternoon,
@@ -295,7 +297,7 @@ async function testRescheduleRules() {
 
 async function testValidAndInvalidBookings() {
   console.log('\n📦 End-to-end: valid booking succeeds, invalid rejected')
-  const { business, barber, service, customer } = await setupBusiness({
+  const { business, barber, service } = await setupBusiness({
     minAdvanceBookingMinutes: 60, maxBookingWindowDays: 30, bufferMinutes: 15,
   })
   try {

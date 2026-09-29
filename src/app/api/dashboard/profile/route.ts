@@ -13,7 +13,7 @@ import { handleApiError } from '@/lib/api-errors'
  * For BARBER role: resolves barberId from session.user.barberId.
  * For OWNER role: returns owner user info.
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const auth = await requireAuth()
     if (!auth.success) return auth.response

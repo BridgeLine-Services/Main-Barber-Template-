@@ -8,13 +8,10 @@ import {
   Calendar,
   Clock,
   User,
-  Scissors,
-  DollarSign,
-  Send,
+  Scissors,Send,
   Loader2,
   AlertTriangle,
-  TrendingUp,
-} from 'lucide-react'
+  TrendingUp } from 'lucide-react'
 
 interface RetentionMetrics {
   due: number

@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarCheck, CalendarX, CheckCircle2, Clock, DollarSign, UserX, Users, Armchair, ChevronRight, AlertTriangle } from 'lucide-react'
+import { CalendarCheck, CalendarX, CheckCircle2, Clock, DollarSign, UserX, Users, Armchair,AlertTriangle } from 'lucide-react'
 import type { DailyOperationsSnapshot } from '@/lib/daily-operations'
 
 interface Props {
@@ -29,7 +29,7 @@ function SummaryTile({ icon, label, value, accent }: { icon: React.ReactNode; la
   )
 }
 
-export function DailyOperationsClient({ snapshot, dbAvailable, timezone }: Props) {
+export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
   if (!dbAvailable) {
     return (
       <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">

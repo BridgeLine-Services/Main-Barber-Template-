@@ -6,8 +6,7 @@ import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function CancelButton({
-  confirmationNumber,
-  token,
+    token,
 }: {
   confirmationNumber: string
   token: string
@@ -33,7 +32,7 @@ export default function CancelButton({
       } else {
         alert(data.error || 'Failed to cancel. Please try again or call the shop.')
       }
-    } catch (err) {
+    } catch (_err) {
       alert('Failed to cancel. Please try again or call the shop.')
     } finally {
       setIsCancelling(false)

@@ -47,7 +47,7 @@ export async function getCurrentBusinessId(): Promise<string> {
  * tenant resolution (public routes).
  * @deprecated Use resolveBusinessId from @/lib/tenant for public routes.
  */
-export async function resolveBusinessIdFromRequest(req?: Request): Promise<string> {
+export async function resolveBusinessIdFromRequest(_req?: Request): Promise<string> {
   const session = await getServerSession(authOptions)
   if (session?.user) {
     const businessId = (session.user as any).businessId

@@ -74,7 +74,7 @@ interface AnalyticsClientProps {
 export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
   const [data, setData] = useState<AnalyticsData | null>(initialData)
   const [rangeDays, setRangeDays] = useState(30)
-  const [loading, setLoading] = useState(false)
+  const [, setLoading] = useState(false)
 
   const fetchAnalytics = useCallback(async (days: number) => {
     setLoading(true)
@@ -329,7 +329,6 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
               </thead>
               <tbody>
                 {servicesPerBarber.map((s, i) => {
-                  const maxTotal = Math.max(...servicesPerBarber.map(s => s.totalCount), 1)
                   return (
                     <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                       <td className="py-3 px-3 text-zinc-200 font-medium">{s.serviceName}</td>

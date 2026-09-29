@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import {
   LayoutDashboard,
@@ -18,9 +18,7 @@ import {
   ChevronRight,
   ChevronDown,
   Shield,
-  User,
-  Settings,
-  ScrollText,
+  User,ScrollText,
   CalendarOff,
   Gift,
   Repeat,
@@ -34,15 +32,11 @@ import {
   UserCircle,
   Globe,
   Palette,
-  FileText,
-  Bell,
-  Lock,
-  Store,
+  FileText,Store,
   Search,
   Smartphone,
   Activity,
-  Rocket,
-} from 'lucide-react'
+  Rocket } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
@@ -67,7 +61,6 @@ interface NavSection {
 export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   // Section open/closed state. A section the user has explicitly toggled is
   // remembered here; sections without a user choice follow auto behavior

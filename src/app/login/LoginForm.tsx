@@ -92,7 +92,7 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           setLoading(false)
         }
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to connect to the server. Please try again.')
       setLoading(false)
     }

@@ -47,7 +47,7 @@ const OFFENSE_COLORS: Record<number, string> = {
 }
 
 export function NoShowManagementClient({ initialData }: { initialData: NoShowData | null }) {
-  const [noShows, setNoShows] = useState(initialData?.noShows || [])
+  const [noShows] = useState(initialData?.noShows || [])
   const [policy, setPolicy] = useState<NoShowPolicy | null>(initialData?.policy || null)
   const [stats] = useState(initialData?.stats || { total: 0, uniqueCustomers: 0, repeatOffenders: 0 })
   const [saving, setSaving] = useState(false)

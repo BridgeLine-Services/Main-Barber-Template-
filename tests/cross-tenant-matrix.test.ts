@@ -77,7 +77,7 @@ async function main() {
   const customerA = await prisma.customer.create({ data: { firstName: 'Ann', lastName: 'Alpha', phone: '111-111-1111', email: `ann.a-${stamp}@matrix.test`, businessId: bizA.id } })
   await prisma.appointment.create({ data: { confirmationNumber: `MXA-${stamp}-1`, customerAccessToken: `tok-a-${stamp}`, businessId: bizA.id, customerId: customerA.id, barberId: barberA.id, serviceId: serviceA.id, startTime: new Date(Date.now() + 3600e3), endTime: new Date(Date.now() + 5400e3), status: 'CONFIRMED' } })
 
-  const ownerB = await prisma.user.create({ data: { email: `owner.b-${stamp}@matrix.test`, passwordHash, name: 'Owner B', role: 'OWNER', businessId: bizB.id } })
+  await prisma.user.create({ data: { email: `owner.b-${stamp}@matrix.test`, passwordHash, name: 'Owner B', role: 'OWNER', businessId: bizB.id } })
   const barberB = await prisma.barber.create({ data: { name: 'Barber B', businessId: bizB.id } })
   const serviceB = await prisma.service.create({ data: { name: 'Matrix Cut B', businessId: bizB.id, duration: 45, price: 35, isActive: true } })
   const customerB = await prisma.customer.create({ data: { firstName: 'Bob', lastName: 'Beta', phone: '222-222-2222', email: `bob.b-${stamp}@matrix.test`, businessId: bizB.id, notes: `SECRET-NOTE-B-${stamp}` } })

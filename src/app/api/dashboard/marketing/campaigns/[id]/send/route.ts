@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     try {
       const result = await sendCampaign(businessId, params.id)
       return NextResponse.json(result)
-    } catch (e: any) {
+    } catch (_e: any) {
       return NextResponse.json({ error: 'Failed to send the campaign. It may have no eligible recipients, or the audience could not be resolved. Check the campaign and try again.' }, { status: 400 })
     }
   } catch (error) {

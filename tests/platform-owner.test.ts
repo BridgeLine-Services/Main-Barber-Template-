@@ -81,7 +81,7 @@ async function main() {
     data: { email: `platform-${stamp}@plat.test`, passwordHash: password, name: 'Platform Owner', role: 'PLATFORM_OWNER' },
   })
   const barberA = await prisma.barber.create({ data: { name: 'A Barber', businessId: bizA.id } })
-  const barberUserA = await prisma.user.create({
+  await prisma.user.create({
     data: { email: `barbera-${stamp}@plat.test`, passwordHash: password, name: 'Barber A', role: 'BARBER', businessId: bizA.id, barberId: barberA.id },
   })
 

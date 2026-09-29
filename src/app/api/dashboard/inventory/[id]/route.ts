@@ -21,7 +21,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
       return NextResponse.json(item)
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to fetch item' }, { status: 500 })
     }
   } catch (error) {
@@ -121,7 +121,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
         },
       })
       return NextResponse.json({ success: true })
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 })
     }
   } catch (error) {

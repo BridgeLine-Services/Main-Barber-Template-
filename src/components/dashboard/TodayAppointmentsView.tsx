@@ -11,10 +11,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  Scissors,
-  Users,
-  RefreshCw,
-} from 'lucide-react'
+  Scissors,RefreshCw } from 'lucide-react'
 import { formatFullDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 
@@ -30,8 +27,7 @@ export function TodayAppointmentsView({
   initialAppointments,
   todayDateStr,
   userName,
-  userRole,
-  barberId,
+    barberId,
 }: TodayAppointmentsViewProps) {
   const router = useRouter()
   const [appointments, setAppointments] = useState(initialAppointments)

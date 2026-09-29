@@ -30,7 +30,7 @@ async function main() {
   const stamp = Date.now()
   const passwordHash = await bcrypt.hash('TestPass123!', 10)
   const biz = await prisma.business.create({ data: { name: 'Notif Shop', slug: `notif-a-${stamp}`, timezone: 'America/Los_Angeles' } })
-  const owner = await prisma.user.create({ data: { email: `owner.notif-${stamp}@t.test`, passwordHash, name: 'Notif Owner', role: 'OWNER', businessId: biz.id } })
+  await prisma.user.create({ data: { email: `owner.notif-${stamp}@t.test`, passwordHash, name: 'Notif Owner', role: 'OWNER', businessId: biz.id } })
   const barberRow = await prisma.barber.create({ data: { name: 'Notif Barber', businessId: biz.id } })
   const svc = await prisma.service.create({ data: { name: `Notif Cut ${stamp}`, businessId: biz.id, duration: 30, price: 20, isActive: true } })
     // Full-week schedule so the public booking engine finds availability.
@@ -103,9 +103,8 @@ async function main() {
     assert(smsQueued.queued === false, 'SMS without consent is never queued')
 
     let workerThrew = false
-    let result: Awaited<ReturnType<typeof processDueNotifications>> | null = null
     try {
-      result = await processDueNotifications(50)
+      await processDueNotifications(50)
     } catch {
       workerThrew = true
     }

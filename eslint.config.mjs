@@ -30,7 +30,8 @@ export default [
       // warnings so the upgrade stays reviewable; clearing them is a
       // tracked follow-up, not something to hide inside a framework bump.
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // '_'-prefixed params/catches are intentional placeholders.
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // react-hooks v6 adds these next-generation rules; the flagged
       // patterns pre-date the upgrade. Warnings for now, review separately.
       'react-hooks/set-state-in-effect': 'warn',

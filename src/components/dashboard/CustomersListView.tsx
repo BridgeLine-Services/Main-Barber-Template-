@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { CustomerSearch } from '@/components/dashboard/CustomerSearch'
-import { Users, Phone, Mail, Calendar, ChevronRight, UserCheck } from 'lucide-react'
-import { formatFullDate } from '@/lib/utils'
+import { Users, Phone, Mail, Calendar, ChevronRight } from 'lucide-react'
 
 interface CustomersListViewProps {
   initialCustomers: any[]

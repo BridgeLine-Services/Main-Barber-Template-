@@ -3,7 +3,6 @@ import { generatePageMetadata } from '@/lib/generate-page-metadata'
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { resolveBusiness } from '@/lib/tenant'

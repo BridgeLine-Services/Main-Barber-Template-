@@ -89,7 +89,6 @@ export function getTimezoneOptions(): TimezoneOption[] {
 export function formatTimezoneLabel(tz: string): string {
   let offset = ''
   try {
-    const offsetMinutes = -new Date().getTimezoneOffset()
     // Compute the zone's own offset (not the browser's) via Intl
     const dtf = Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' })
     const part = dtf.formatToParts(new Date()).find((p) => p.type === 'timeZoneName')

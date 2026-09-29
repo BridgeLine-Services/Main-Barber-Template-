@@ -64,7 +64,6 @@ export async function updateStock(
   itemId: string,
   businessId: string,
   newStock: number,
-  reason?: string
 ): Promise<InventoryItem> {
   const item = await prisma.inventoryItem.findFirst({
     where: { id: itemId, businessId },
@@ -84,7 +83,6 @@ export async function adjustStock(
   itemId: string,
   businessId: string,
   adjustment: number,
-  reason?: string
 ): Promise<InventoryItem> {
   const item = await prisma.inventoryItem.findFirst({
     where: { id: itemId, businessId },

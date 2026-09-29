@@ -225,7 +225,7 @@ export async function createCampaign(businessId: string, data: {
         newValues: { name: data.name, audience: data.audience },
       },
     })
-  } catch (e) {
+  } catch (_e) {
     // Non-critical
   }
 
@@ -290,7 +290,7 @@ export async function sendCampaign(businessId: string, campaignId: string) {
         newValues: { recipientCount: targets.length },
       },
     })
-  } catch (e) {
+  } catch (_e) {
     // Non-critical
   }
 

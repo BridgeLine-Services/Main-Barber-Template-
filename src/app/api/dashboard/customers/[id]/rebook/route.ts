@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           },
         },
       })
-    } catch (e) {
+    } catch (_e) {
       // Non-critical
     }
     return NextResponse.json({

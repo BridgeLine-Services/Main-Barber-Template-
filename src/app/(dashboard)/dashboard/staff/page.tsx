@@ -144,17 +144,6 @@ export default function StaffPage() {
     }
   }
 
-  const handleChangeRole = async (id: string, role: string) => {
-    try {
-      const res = await fetch(`/api/dashboard/staff/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      })
-      if (!res.ok) return
-      setStaff(staff.map(s => s.id === id ? { ...s, role } : s))
-    } catch {}
-  }
 
   const handleTransferOwnership = async (id: string, name: string) => {
     if (!confirm(

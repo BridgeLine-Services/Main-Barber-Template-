@@ -43,7 +43,7 @@ async function buildStartTime(dateStr: string, timeStr: string, businessId: stri
   return localTimeToUTCFromYMD(time24h, yr, mo, dy, tz)
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   // ─── Auth: only authenticated dashboard users can run tests ─────────────
   const session = await getServerSession(authOptions)
   if (!session?.user) {

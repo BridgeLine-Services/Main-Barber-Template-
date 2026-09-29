@@ -9,9 +9,8 @@ import { getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Section, SectionHeading } from '@/components/customer/Section'
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
+import {Stagger, StaggerItem } from '@/components/motion/reveal'
 import { Scissors, Calendar } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {

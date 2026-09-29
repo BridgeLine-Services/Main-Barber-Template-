@@ -13,7 +13,6 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
 
   const name = business?.name || process.env.NEXT_PUBLIC_APP_NAME || 'Book Appointment'
   const themeColor = business?.primaryColor || '#1a1a1a'
-  const accentColor = business?.accentColor || '#d4af37'
 
   return {
     name,

@@ -6,7 +6,7 @@ import { generateICalFeed } from '@/lib/calendar-sync'
 import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/calendar-feed.ics — iCal feed for owner/barber
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

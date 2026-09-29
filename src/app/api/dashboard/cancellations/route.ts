@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { CancellationReason } from '@prisma/client'
 import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/cancellations — list cancellation records with customer info

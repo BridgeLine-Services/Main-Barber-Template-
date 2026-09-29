@@ -191,7 +191,7 @@ export default function CalendarPage() {
               date={currentDate}
               appointments={appointments}
               onSelectAppointment={handleSelectAppointment}
-              onSelectSlot={(timeStr) => handleOpenAddForDate(currentDate.toISOString().split('T')[0])}
+              onSelectSlot={(_timeStr) => handleOpenAddForDate(currentDate.toISOString().split('T')[0])}
             />
           )}
 

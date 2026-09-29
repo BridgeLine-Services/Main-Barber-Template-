@@ -41,7 +41,6 @@ async function main() {
   const stamp = Date.now()
   console.log('\n── Applying RLS template inside a test transaction ──')
 
-  let created: { bizA: string; bizB: string; custA: string; custB: string } | null = null
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -78,7 +77,6 @@ async function main() {
         firstName: 'Rls', lastName: 'B', email: `rlscb-${stamp}@test.com`,
         phone: '555-0302', businessId: bizB } })).id
 
-      created = { bizA, bizB, custA, custB }
 
       console.log('\n── 1. Tenant-scoped session sees only its own rows ──')
       const ownCount = await tx.customer.count({ where: { businessId: bizB } })

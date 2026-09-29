@@ -186,7 +186,6 @@ async function main() {
   console.log(`👑 Created Owner User: ${owner.email}`)
 
   // 3. Create Barbers (generic placeholder names — customize in Dashboard)
-  const slugify = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   const barberData = [
     {

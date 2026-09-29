@@ -124,7 +124,7 @@ export function dayPartOf(date: Date, timezone: string): 'morning' | 'afternoon'
 export function rankWaitlistCandidates(
   entries: WaitlistCandidateInput[],
   opening: { businessId: string; barberId: string; serviceId: string; startTime: Date; timezone: string },
-  now: Date = new Date()
+  _now: Date = new Date()
 ): RankedCandidate[] {
   const slotDay = ymdInTimezone(opening.startTime, opening.timezone)
   const slotDayPart = dayPartOf(opening.startTime, opening.timezone)

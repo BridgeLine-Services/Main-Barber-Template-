@@ -64,14 +64,6 @@ interface OnboardingBusiness {
 
 type Step = 'welcome' | 'business' | 'branding' | 'services' | 'team' | 'booking' | 'review' | 'done'
 
-const initialBranding: BrandingForm = {
-  logo: null,
-  primaryColor: '#1a1a1a',
-  accentColor: '#d4af37',
-  secondaryColor: '#2a2a2a',
-  themeMode: 'dark',
-  fontFamily: null,
-}
 
 function brandingFromBusiness(b: OnboardingBusiness): BrandingForm {
   return {

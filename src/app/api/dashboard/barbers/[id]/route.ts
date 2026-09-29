@@ -126,7 +126,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     if (appointmentCount > 0) {
       // Safe deactivation — preserve history, remove from new bookings
-      const barber = await prisma.barber.update({
+      await prisma.barber.update({
         where: { id: params.id },
         data: { isActive: false },
       })

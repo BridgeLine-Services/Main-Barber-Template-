@@ -41,7 +41,6 @@ interface CustomerInfo {
   answers?: Record<string, string | boolean | string[]>
 }
 
-const STEPS = ['Service', 'Barber', 'Date', 'Time', 'Info', 'Confirm']
 
 function BookingFlow() {
   const searchParams = useSearchParams()
@@ -246,7 +245,7 @@ function BookingFlow() {
       } else {
         setBookingError(data.error || 'Booking failed. Please try again.')
       }
-    } catch (err) {
+    } catch (_err) {
       setBookingError('An error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)

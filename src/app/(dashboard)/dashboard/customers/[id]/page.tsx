@@ -22,7 +22,6 @@ import {
   AlertTriangle,
   TrendingDown,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { CustomerProfileClient } from './CustomerProfileClient'
 
 interface CustomerDetailPageProps {

@@ -117,7 +117,6 @@ function isSvgText(text: string): boolean {
 // a strict XML parser and rebuild the tree from an allowlist.
 
 const SCRIPT_BLOCK = /<script\b[\s\S]*?<\/script\s*>/gi
-const SCRIPT_TAG = /<script\b[^>]*\/?>/gi
 const EVENT_ATTR = /\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi
 const JS_URL = /(?:href|xlink:href|src|data)\s*=\s*(?:"\s*(?:javascript|vbscript):[^"]*"|'\s*(?:javascript|vbscript):[^']*'|\s*(?:javascript|vbscript):[^\s>]*)/gi
 const FOREIGN_OBJECT_START = /<foreignObject\b/i

@@ -82,7 +82,7 @@ async function main() {
   const barber1 = await prisma.barber.create({
     data: { businessId: business.id, name: 'Q Barber 1', slug: `qb1-${Date.now()}` },
   })
-  const barber2 = await prisma.barber.create({
+  await prisma.barber.create({
     data: { businessId: business.id, name: 'Q Barber 2', slug: `qb2-${Date.now()}` },
   })
 

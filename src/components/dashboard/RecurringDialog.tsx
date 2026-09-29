@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Repeat, Loader2, CheckCircle2, AlertTriangle, XCircle, Calendar } from 'lucide-react'
+import { Repeat, Loader2, CheckCircle2, AlertTriangle,Calendar } from 'lucide-react'
 
 interface RecurringDialogProps {
   open: boolean

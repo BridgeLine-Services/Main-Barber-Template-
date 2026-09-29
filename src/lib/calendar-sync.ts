@@ -38,7 +38,6 @@ export function generateICalFeed(
   }>,
   businessTimezone = 'UTC'
 ): string {
-  const now = toICalDate(new Date())
   const calName = escapeICal(businessName)
   const prodId = `//Barber Booking System//${calName}//EN`
 

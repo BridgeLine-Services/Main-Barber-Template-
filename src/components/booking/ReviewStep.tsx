@@ -3,23 +3,14 @@
 import React from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { formatFullDate, formatDuration, formatPrice } from '@/lib/utils'
 import { PAYMENT_DISCLAIMER } from '@/lib/constants'
 import {
   Scissors,
   User,
   Calendar,
-  Clock,
-  Mail,
-  Phone,
-  FileText,
-  AlertCircle,
-  Loader2,
-  CheckCircle,
-  CreditCard,
-  ShieldAlert,
-} from 'lucide-react'
+  Clock,AlertCircle,
+  Loader2,CreditCard } from 'lucide-react'
 
 interface ReviewStepProps {
   service: { name: string; duration: number; price: number } | null

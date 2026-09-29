@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  Save, Building2, Phone, Mail, MapPin, Clock, Globe, Palette, Users,
-  Search, FileText, Image as ImageIcon, Check, HelpCircle
+  Save, Building2, Phone,MapPin, Clock, Globe, Palette, Users,
+  Search, FileText, Image as ImageIcon,HelpCircle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'

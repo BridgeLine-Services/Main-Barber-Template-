@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
-import { resolveBusiness } from '@/lib/tenant'
 import { formatFullDate, formatTime, formatDuration, formatPrice } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

@@ -54,7 +54,6 @@ export async function PATCH(req: NextRequest) {
     const role = (session.user as any)?.role
     const sessionBarberId = (session.user as any)?.barberId
     const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     const parseResult = updateBarberServiceSchema.safeParse(body)

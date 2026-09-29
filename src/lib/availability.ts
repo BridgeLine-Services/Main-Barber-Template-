@@ -130,7 +130,6 @@ export async function getAvailableSlots(params: {
   let workingStart: string
   let workingEnd: string
   let workingBreaks: Array<{ start: string; end: string }> = []
-  let usingOverride = false
 
   if (override) {
     if (!override.isAvailable) return [] // Barber is off for this date
@@ -140,7 +139,6 @@ export async function getAvailableSlots(params: {
     if (override.breaks && Array.isArray(override.breaks)) {
       workingBreaks = override.breaks as Array<{ start: string; end: string }>
     }
-    usingOverride = true
   } else {
     // Fall back to recurring weekly schedule
     if (!schedule || schedule.isOff) return []

@@ -136,7 +136,7 @@ function canUploadMedia(user: SessionUser, mediaType: string): boolean {
   return mediaType === 'BARBER_PHOTO' || mediaType === 'BARBER_PORTFOLIO'
 }
 
-function canCreateManualAppointment(user: SessionUser): boolean { return true }
+function canCreateManualAppointment(_user: SessionUser): boolean { return true }
 
 // ─── Tests ────────────────────────────────────────────────────────────────
 

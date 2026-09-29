@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ServiceForm } from '@/components/dashboard/ServiceForm'
-import { Scissors, Plus, Edit2, Trash2, CheckCircle2, XCircle, Clock, DollarSign, Users, Loader2 } from 'lucide-react'
+import { Scissors, Plus, Edit2, Trash2, CheckCircle2, XCircle, Clock,Users, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDuration, formatPrice } from '@/lib/utils'
 
@@ -14,7 +14,6 @@ interface ServicesClientProps {
 
 export function ServicesClient({ initialServices, barbers }: ServicesClientProps) {
   const router = useRouter()
-  const [services, setServices] = useState(initialServices)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingService, setEditingService] = useState<any | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)

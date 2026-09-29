@@ -90,7 +90,7 @@ async function main() {
 
   const mk = (data: any) => prisma.mediaAsset.create({ data })
 
-  const fadeImg1 = await mk({
+  await mk({
     businessId: businessA.id, barberId: barberA1.id, serviceId: fadeA.id,
     type: 'BARBER_PORTFOLIO', url: 'https://cdn.example.com/fade1.jpg',
     altText: 'High skin fade by Marcus', caption: 'Burst fade', sortOrder: 0,

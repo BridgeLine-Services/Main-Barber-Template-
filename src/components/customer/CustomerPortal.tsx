@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Calendar, Clock, Scissors, User, Phone, Mail, CheckCircle, XCircle, Gift, ArrowLeft, CalendarPlus, Sparkles, Pencil, Save, Loader2 } from 'lucide-react'
+import { Search, Calendar, Clock, Scissors, User, Phone, Mail,XCircle, Gift, ArrowLeft, CalendarPlus, Sparkles, Pencil, Save, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/motion/reveal'
 

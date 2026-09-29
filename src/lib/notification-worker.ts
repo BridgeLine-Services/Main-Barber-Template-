@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 import { isTwilioConfigured, sendSms } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
-import { isEmailConfigured, sanitizeErrorMessage } from '@/lib/notifications'
+import {sanitizeErrorMessage } from '@/lib/notifications'
 
 function getTransporter() {
   return nodemailer.createTransport({

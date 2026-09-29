@@ -41,7 +41,7 @@ export function ContactForm() {
           message: data.message || 'Thank you! Your message has been received.',
         })
       }
-    } catch (err) {
+    } catch (_err) {
       setStatus({
         type: 'success',
         message: 'Thank you! Your message has been received. We will contact you soon.',

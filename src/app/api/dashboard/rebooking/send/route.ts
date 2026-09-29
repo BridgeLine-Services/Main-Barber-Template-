@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
           newValues: { channel: channel || 'SMS', success: result.success },
         },
       })
-    } catch (e) {
+    } catch (_e) {
       // Non-critical
     }
     return NextResponse.json(result)

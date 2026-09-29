@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       phoneVerifiedAt: null,
       archivedAt: new Date(),
     }
-    const updated = await prisma.customer.update({ where: { id: customer.id }, data: anonValues })
+    await prisma.customer.update({ where: { id: customer.id }, data: anonValues })
     await prisma.appointment.updateMany({
       where: { customerId: customer.id },
       data: { customerNotes: null },

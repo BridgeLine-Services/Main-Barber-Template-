@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
         ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
         : '0.0'
       return NextResponse.json({ reviews: serialized, avgRating, total: reviews.length })
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
     }
   } catch (error) {
@@ -175,7 +175,7 @@ export async function PATCH(req: NextRequest) {
         userAgent: req.headers.get('user-agent') || undefined,
       })
       return NextResponse.json(updated)
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to update review' }, { status: 500 })
     }
   } catch (error) {
@@ -208,7 +208,7 @@ export async function DELETE(req: NextRequest) {
       }
       await prisma.review.delete({ where: { id } })
       return NextResponse.json({ success: true })
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 })
     }
   } catch (error) {

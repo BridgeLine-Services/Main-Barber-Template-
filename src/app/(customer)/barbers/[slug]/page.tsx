@@ -8,7 +8,6 @@ import { getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
 import PortfolioGallery from '@/components/customer/PortfolioGallery'
 

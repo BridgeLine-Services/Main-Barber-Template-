@@ -12,7 +12,7 @@ import { handleApiError } from '@/lib/api-errors'
  * GET /api/dashboard/customers/export
  * Export all customers as CSV download (owner only)
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {

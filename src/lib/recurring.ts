@@ -289,7 +289,7 @@ export async function createRecurringAppointments(params: {
           },
         },
       })
-    } catch (e) {
+    } catch (_e) {
       // Non-critical
     }
   }

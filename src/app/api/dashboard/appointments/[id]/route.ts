@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, props: RouteParams) {
         )
       }
       return NextResponse.json(appointment)
-    } catch (error: any) {
+    } catch (_error: any) {
       return NextResponse.json({ error: 'Failed to update appointment. Please try again.' }, { status: 500 })
     }
   } catch (error) {

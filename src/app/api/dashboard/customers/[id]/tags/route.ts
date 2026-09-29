@@ -19,7 +19,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         orderBy: { assignedAt: 'desc' },
       })
       return NextResponse.json(tags)
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 })
     }
   } catch (error) {
@@ -105,7 +105,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
         },
       })
       return NextResponse.json({ success: true })
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to remove tag' }, { status: 500 })
     }
   } catch (error) {

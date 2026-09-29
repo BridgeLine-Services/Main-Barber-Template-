@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, ArrowRight, Loader2, Pencil, Plus, Trash2, Banknote, Scissors } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Pencil,Trash2, Banknote, Scissors } from 'lucide-react'
 
 export interface ServiceItem {
   id: string

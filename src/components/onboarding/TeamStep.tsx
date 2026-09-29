@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, ArrowRight, Copy, Image as ImageIcon, Loader2, Pencil, Plus, Trash2, Upload, UserRound, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Copy, Loader2, Pencil,Trash2, Upload, UserRound, X } from 'lucide-react'
 
 export interface ScheduleDay {
   dayOfWeek: number // 0 = Sunday … 6 = Saturday
