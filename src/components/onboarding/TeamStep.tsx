@@ -470,7 +470,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
             {photoUploadError && <p className="mt-1 text-xs text-red-400">{photoUploadError}</p>}
             {errors.photo && <p className="mt-1 text-xs text-red-400">{errors.photo}</p>}
             {form.photo && (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={form.photo} alt="Barber photo preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-zinc-700" />
             )}
           </div>

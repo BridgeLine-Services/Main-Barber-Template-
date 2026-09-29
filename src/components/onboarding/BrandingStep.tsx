@@ -151,7 +151,7 @@ export function BrandingStep({
               {/* Current logo preview */}
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-950 overflow-hidden">
                 {form.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={form.logo} alt="Logo preview" className="h-full w-full object-contain p-1" />
                 ) : (
                   <ImageIcon className="h-6 w-6 text-zinc-600" />
@@ -349,7 +349,7 @@ export function BrandingStep({
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 {form.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={form.logo} alt="" className="h-10 w-10 rounded-full object-contain" />
                 ) : (
                   <div

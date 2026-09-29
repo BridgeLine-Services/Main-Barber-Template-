@@ -55,7 +55,7 @@ export function AddAppointmentDialog({
   const [error, setError] = useState<string | null>(null)
 
   // Fetch initial barbers, services, and customers when opened
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     if (open) {
       fetchBarbers()

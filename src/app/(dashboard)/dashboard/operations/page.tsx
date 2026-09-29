@@ -25,13 +25,12 @@ export default async function DailyOperationsPage() {
 
   // "Today" in the business's timezone, not the server's.
   let timezone = 'America/New_York'
-  let todayStr: string
   try {
     timezone = await getBusinessTimezone(businessId)
   } catch {
     // fall through with default timezone — the snapshot call reports DB issues
   }
-  todayStr = new Intl.DateTimeFormat('en-CA', {
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',

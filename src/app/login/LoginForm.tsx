@@ -253,9 +253,9 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
 
         {/* Footer info */}
         <div className="text-center text-xs text-muted-foreground mt-8 space-y-2">
-          <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
             ← Back to Website
-          </a>
+          </Link>
         </div>
       </div>
     </div>

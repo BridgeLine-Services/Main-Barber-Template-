@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export const dynamic = 'force-static'
 
 /**
@@ -14,12 +16,12 @@ export default function OfflinePage() {
         We couldn&apos;t reach the shop right now. Check your connection and try again — your
         bookings are safe and waiting for you online.
       </p>
-      <a
+      <Link
         href="/"
         className="rounded-md bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-zinc-700"
       >
         Try again
-      </a>
+      </Link>
     </div>
   )
 }

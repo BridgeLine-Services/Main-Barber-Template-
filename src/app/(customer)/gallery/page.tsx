@@ -97,7 +97,7 @@ export default async function GalleryPage(
               <StaggerItem key={image.id}>
               <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
                 <div className="aspect-[4/3] bg-muted">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img
                     src={image.url}
                     alt={image.altText || `${service.name} example${image.barber ? ` by ${image.barber.name}` : ''}`}
@@ -161,7 +161,7 @@ export default async function GalleryPage(
             <StaggerItem key={image.id}>
             <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
               <div className="aspect-[4/3] bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={image.url} alt={image.altText || `${business.name} gallery photo`} className="size-full object-cover" />
               </div>
               {image.caption && <figcaption className="px-4 py-3 text-sm leading-6 text-muted-foreground">{image.caption}</figcaption>}

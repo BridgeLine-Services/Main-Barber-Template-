@@ -194,7 +194,7 @@ export function ReviewStep({ completing, serverError, onEditStep, onComplete, on
           <ReviewSection title="Branding" step="branding" onEdit={onEditStep}>
             <div className="flex items-center gap-3">
               {b.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img
                   src={b.logo}
                   alt="Shop logo"
@@ -265,7 +265,7 @@ export function ReviewStep({ completing, serverError, onEditStep, onComplete, on
                     <li key={barber.id} className="rounded-lg border border-zinc-800/70 bg-zinc-950/40 p-3">
                       <div className="flex items-center gap-2.5">
                         {barber.photo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                           
                           <img
                             src={barber.photo}
                             alt={barber.name}

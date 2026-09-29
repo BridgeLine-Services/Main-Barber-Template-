@@ -240,7 +240,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
           {media.map(asset => (
             <Card key={asset.id} className="bg-zinc-900 border-zinc-800 overflow-hidden group">
               <div className="relative aspect-square bg-zinc-800">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img
                   src={asset.url}
                   alt={asset.altText || ''}
@@ -306,7 +306,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={editing.url} alt={editing.altText || ''} className="w-full rounded-lg border border-zinc-700" />
               <div>
                 <Label className="text-zinc-400">Alt Text</Label>

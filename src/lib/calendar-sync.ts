@@ -42,7 +42,7 @@ export function generateICalFeed(
   const calName = escapeICal(businessName)
   const prodId = `//Barber Booking System//${calName}//EN`
 
-  let ics = [
+  const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:' + prodId,

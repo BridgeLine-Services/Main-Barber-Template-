@@ -198,7 +198,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
             </div>
             {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
             {photo && (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-zinc-700" />
             )}
           </div>

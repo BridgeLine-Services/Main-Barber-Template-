@@ -58,7 +58,7 @@ export default function PortfolioGallery({
         {visible.map((asset) => (
           <figure key={asset.id} className="rounded-lg overflow-hidden border bg-card">
             <div className="aspect-square bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src={asset.url}
                 alt={asset.altText || `${altFallback} portfolio work${asset.service ? ` — ${asset.service.name}` : ''}`}

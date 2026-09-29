@@ -470,7 +470,7 @@ export default function SettingsPage() {
                 placeholder="https://..."
               />
               {business.logo && (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img src={business.logo} alt="Logo preview" className="mt-2 h-16 rounded-lg border border-zinc-700 bg-zinc-800 p-2" />
               )}
             </div>
@@ -756,7 +756,7 @@ export default function SettingsPage() {
                   placeholder="https://... (recommended 1200x630px)"
                 />
                 {seo?.ogImage && (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={seo.ogImage} alt="OG preview" className="mt-2 max-w-sm rounded-lg border border-zinc-700" />
                 )}
               </div>

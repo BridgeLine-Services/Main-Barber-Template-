@@ -149,7 +149,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <div className="relative">
               {profile.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img
                   src={profile.photo}
                   alt={profile.name}
