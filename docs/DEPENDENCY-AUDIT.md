@@ -10,6 +10,7 @@
 | next | 14.2.35 → **16.3.6** | CRITICAL: self-hosted Image Optimizer DoS via remotePatterns config |
 | postcss (via next) | transitive | HIGH: XSS via unescaped `</style>` in stringify output |
 | nodemailer | 6.10.1 → **10.0.12** | HIGH: email to an unintended domain via interpretation conflict |
+| prisma / @prisma/client | 5.19.0 → **6.19.3** | none (5.x past end-of-support; proactive major) |
 
 ## How the upgrade was verified
 
