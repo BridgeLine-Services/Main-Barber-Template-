@@ -156,6 +156,9 @@ export const contactFormSchema = z.object({
 // ─── Business Settings ─────────────────────────────────────────────────────
 
 export const updateBusinessSchema = z.object({
+  // NOTE: nullable DB fields arrive as null when the dashboard sends the full
+  // business object back — these use .nullish() so a save never 400s on a
+  // field the shop has never filled in.
   // Business identity
   name: z.string().min(1, 'Business name is required').max(100).optional(),
   phone: z.string().max(30).optional(),
@@ -199,28 +202,28 @@ export const updateBusinessSchema = z.object({
   ),
 
   // Social media
-  instagram: z.string().max(100).optional(),
-  facebook: z.string().max(100).optional(),
-  tiktok: z.string().max(100).optional(),
-  youtube: z.string().max(100).optional(),
-  xTwitter: z.string().max(100).optional(),
-  googleBusinessProfile: z.string().max(200).optional(),
+  instagram: z.string().max(100).nullish(),
+  facebook: z.string().max(100).nullish(),
+  tiktok: z.string().max(100).nullish(),
+  youtube: z.string().max(100).nullish(),
+  xTwitter: z.string().max(100).nullish(),
+  googleBusinessProfile: z.string().max(200).nullish(),
 
   // Content
-  aboutText: z.string().max(5000).optional(),
-  teamSectionLabel: z.string().max(100).optional(),
-  teamSectionTitle: z.string().max(500).optional(),
-  teamSectionDescription: z.string().max(2000).optional(),
+  aboutText: z.string().max(5000).nullish(),
+  teamSectionLabel: z.string().max(100).nullish(),
+  teamSectionTitle: z.string().max(500).nullish(),
+  teamSectionDescription: z.string().max(2000).nullish(),
   hours: z.record(z.string(), z.any()).optional(),
 
   // Policies
-  bookingPolicy: z.string().max(5000).optional(),
-  cancellationPolicy: z.string().max(5000).optional(),
-  latePolicy: z.string().max(5000).optional(),
-  noShowPolicyText: z.string().max(5000).optional(),
-  paymentPolicy: z.string().max(5000).optional(),
-  privacyPolicy: z.string().max(10000).optional(),
-  termsPolicy: z.string().max(10000).optional(),
+  bookingPolicy: z.string().max(5000).nullish(),
+  cancellationPolicy: z.string().max(5000).nullish(),
+  latePolicy: z.string().max(5000).nullish(),
+  noShowPolicyText: z.string().max(5000).nullish(),
+  paymentPolicy: z.string().max(5000).nullish(),
+  privacyPolicy: z.string().max(10000).nullish(),
+  termsPolicy: z.string().max(10000).nullish(),
   walkInsWelcome: z.boolean().optional(),
   firstAvailableBookingEnabled: z.boolean().optional(),
   parkingAvailable: z.boolean().optional(),

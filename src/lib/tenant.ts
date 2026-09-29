@@ -27,9 +27,25 @@ export async function resolvePublicBusiness() {
   }
 
   const configuredBusinessId = process.env.SINGLE_BUSINESS_ID?.trim()
-  if (!configuredBusinessId) return null
+  if (configuredBusinessId) {
+    return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
+  }
 
-  return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
+  // Single-business deployments (the default client copy of this template)
+  // host on a domain that will not match any business slug — e.g.
+  // <project>.vercel.app — and often do not have SINGLE_BUSINESS_ID set yet.
+  // Falling back to the sole business keeps the public customer website
+  // reachable right after onboarding instead of showing "Shop Coming Soon"
+  // with an owner-login link (which wrongly made the public site look like it
+  // required authentication). Multi-tenant deployments resolve by host first
+  // and only reach this fallback when exactly one business exists.
+  const businessCount = await prisma.business.count().catch(() => 0)
+  if (businessCount === 1) {
+    const [sole] = await prisma.business.findMany({ take: 1 }).catch(() => [])
+    if (sole) return sole
+  }
+
+  return null
 }
 
 /** Resolve the configured business for a cloned single-business deployment. */

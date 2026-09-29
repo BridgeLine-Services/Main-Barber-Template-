@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -59,6 +59,12 @@ const DEFAULT_HOURS: Record<string, { open: string; close: string; isOff: boolea
 
 type Tab = 'business' | 'hours' | 'branding' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
 
+// Single source of truth for the selected tab: the ?tab= URL parameter.
+// The component derives the active tab from it — no duplicated state that can
+// drift. Invalid values fall back to the default tab.
+const VALID_TABS = ['business', 'hours', 'branding', 'social', 'policies', 'seo', 'faq', 'website', 'booking'] as const
+const DEFAULT_TAB: Tab = 'business'
+
 export default function SettingsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -69,7 +75,14 @@ export default function SettingsPage() {
   const [bookingQuestions, setBookingQuestions] = useState<any[]>([])
   const [newQuestion, setNewQuestion] = useState({ label: '', key: '', type: 'SHORT_TEXT', required: false })
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<Tab>((searchParams.get('tab') as Tab) || 'business')
+  const router = useRouter()
+  // Derived from the URL — refresh, direct links, back/forward, and in-app
+  // tab clicks all resolve identically without duplicated state.
+  const rawTab = searchParams.get('tab') as Tab | null
+  const activeTab: Tab = rawTab && (VALID_TABS as readonly string[]).includes(rawTab) ? rawTab : DEFAULT_TAB
+  const setActiveTab = (tab: Tab) => {
+    router.push(`/dashboard/settings?tab=${tab}`, { scroll: false })
+  }
 
   useEffect(() => {
     fetch('/api/dashboard/settings')
