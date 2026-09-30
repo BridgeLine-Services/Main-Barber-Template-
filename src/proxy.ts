@@ -26,14 +26,21 @@ function addSecurityHeaders(response: NextResponse) {
   }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  console.log('[PROXY-DEBUG] running for', pathname)
 
   // Defense-in-depth: EVERY /api/dashboard route is business-staff-only.
   // Middleware rejects CUSTOMER sessions before any route code runs, so the
   // entire dashboard API surface is uniformly protected (page-level gate in
   // src/lib/onboarding.ts + per-route DB-fresh session checks remain the
   // authoritative guards — this layer catches gaps between them).
+  if (pathname === '/login') {
+    return addSecurityHeaders(NextResponse.json({ error: 'blocked' }, { status: 451 }))
+  }
+  if (pathname.startsWith('/api/guard-test')) {
+    return addSecurityHeaders(NextResponse.json({ error: 'blocked' }, { status: 451 }))
+  }
   if (pathname.startsWith('/api/dashboard')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
