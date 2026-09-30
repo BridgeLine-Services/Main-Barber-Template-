@@ -14,7 +14,7 @@ import { resolveSessionCustomer } from '@/lib/customer-link'
 // like ?customerId= are ignored entirely.
 // ============================================================================
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as { role?: string } | undefined)?.role
   if (!session?.user || role !== 'CUSTOMER') {

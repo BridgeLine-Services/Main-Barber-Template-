@@ -49,13 +49,13 @@ function cookiePairs(setCookie: string): string {
   return setCookie.split(/,(?=[^;]+?=)/).map((c) => c.split(';')[0].trim()).filter(Boolean).join('; ')
 }
 
-async function api(path: string, init: RequestInit = {}, cookie = ''): Promise<{ status: number; body: any }> {
+async function api(path: string, init: RequestInit = {}, cookie = ''): Promise<{ status: number; body: Record<string, unknown> | null }> {
   const res = await fetch(`${BASE}${path}`, {
     redirect: 'manual',
     ...init,
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie: cookiePairs(cookie) } : {}), ...((init.headers as Record<string, string>) || {}) },
   })
-  let body: any = null
+  let body: Record<string, unknown> | null = null
   try { body = await res.json() } catch { /* non-JSON */ }
   return { status: res.status, body }
 }
@@ -99,7 +99,7 @@ async function main() {
       body: JSON.stringify({ name: 'Invited Barber', email: `inv.barber-${stamp}@test.com`, role: 'BARBER' }),
     }, ownerALogin.sessionCookie)
     assert(r.status === 201, `owner invites a barber (got ${r.status})`)
-    const inviteUrl: string = r.body?.inviteUrl || ''
+    const inviteUrl: string = (r.body?.inviteUrl as string | undefined) || ''
     const token = new URL(inviteUrl).searchParams.get('token') || ''
     assert(token.length >= 32, 'response includes a secure invite link with a token')
     const inviteRecord = await prisma.staffInvitation.findFirst({
@@ -144,13 +144,13 @@ async function main() {
 
     console.log('\n── Invitation inspection (GET before accept) ──')
     r = await api(`/api/auth/accept-invitation?token=${encodeURIComponent(token)}`)
-    assert(r.status === 200 && r.body?.valid === true && r.body?.businessName === bizA.name,
+    assert(r.status === 200 && (r.body?.valid as boolean | undefined) === true && (r.body?.businessName as string | undefined) === bizA.name,
       'invitee can inspect the invitation before accepting')
 
     console.log('\n── Acceptance ──')
     r = await api('/api/auth/accept-invitation', {
       method: 'POST',
-      body: JSON.stringify({ token, password, role: 'OWNER' as any }), // role in body must be ignored
+      body: JSON.stringify({ token, password, role: 'OWNER' as string }), // role in body must be ignored
     })
     assert(r.status === 201, `invitation accepted (got ${r.status})`)
     const acceptedUser = await prisma.user.findUnique({ where: { email: `inv.barber-${stamp}@test.com` } })
@@ -225,7 +225,7 @@ async function main() {
     const stillPending = await prisma.staffInvitation.findUnique({ where: { id: freshInvite.id } })
     assert(stillPending?.revokedAt === null, "business A's invitation untouched by the other owner")
     r = await api('/api/dashboard/staff', {}, ownerBLogin.sessionCookie)
-    assert((r.body?.invitations || []).every((i: any) => i.email !== `fresh-${stamp}@test.com`),
+    assert(((r.body?.invitations as { email?: string }[] | undefined) || []).every((i) => i.email !== `fresh-${stamp}@test.com`),
       'invitation list is scoped to the caller business')
 
     console.log('\n── Audit trail ──')

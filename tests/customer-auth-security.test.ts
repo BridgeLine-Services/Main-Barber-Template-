@@ -48,7 +48,7 @@ function cookiePairs(setCookie: string): string {
   return setCookie.split(/,(?=[^;]+?=)/).map((c) => c.split(';')[0].trim()).filter(Boolean).join('; ')
 }
 
-async function api(path: string, init: RequestInit = {}, cookie = '', host?: string): Promise<{ status: number; body: any; res: Response }> {
+async function api(path: string, init: RequestInit = {}, cookie = '', host?: string): Promise<{ status: number; body: Record<string, unknown> | null; res: Response }> {
   const res = await fetch(`${BASE}${path}`, {
     redirect: 'manual',
     ...init,
@@ -59,7 +59,7 @@ async function api(path: string, init: RequestInit = {}, cookie = '', host?: str
       ...(init.headers as Record<string, string> || {}),
     },
   })
-  let body: any = null
+  let body: Record<string, unknown> | null = null
   try { body = await res.json() } catch { /* non-JSON */ }
   return { status: res.status, body, res }
 }
@@ -114,7 +114,7 @@ async function main() {
     const custAEmail = `alice-custsec-${stamp}@test.com`
     let r = await api('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name: 'Alice A', email: custAEmail, password, role: 'OWNER' as any, businessId: bizB.id }),
+      body: JSON.stringify({ name: 'Alice A', email: custAEmail, password, role: 'OWNER' as string, businessId: bizB.id }),
     })
     assert(r.status === 201, `signup with role:"OWNER" in body accepted as new account (got ${r.status})`)
     const custA = await prisma.user.findUnique({ where: { email: custAEmail } })
@@ -147,7 +147,7 @@ async function main() {
     const custBLogin = await login(custBEmail, password)
     assert(custALogin.ok && custBLogin.ok, 'both customers sign in')
     r = await api('/api/auth/session', {}, custALogin.sessionCookie)
-    assert(r.body?.user?.role === 'CUSTOMER', 'session exposes role CUSTOMER')
+    assert((r.body?.user as { role?: string } | undefined)?.role === 'CUSTOMER', 'session exposes role CUSTOMER')
 
     console.log('\n── CUSTOMER is locked out of every dashboard API ──')
     r = await api('/api/dashboard/staff', {}, custALogin.sessionCookie)
@@ -181,7 +181,7 @@ async function main() {
         customer: { firstName: 'Alice', lastName: 'A', phone: '555-0111', email: `victim-${stamp}@test.com` },
       }),
     }, custALogin.sessionCookie, bizA.slug)
-    assert(r.status === 200 && r.body?.success === true, `signed-in customer books successfully (got ${r.status}, body ${JSON.stringify(r.body)})`)
+    assert(r.status === 200 && (r.body?.success as boolean | undefined) === true, `signed-in customer books successfully (got ${r.status}, body ${JSON.stringify(r.body)})`)
     const bookedEmail = await prisma.appointment.findFirst({
       where: { businessId: bizA.id },
       orderBy: { createdAt: 'desc' },
@@ -201,15 +201,15 @@ async function main() {
 
     console.log('\n── Portal: session-resolved customer, no IDOR ──')
     r = await api('/api/portal/me', {}, custALogin.sessionCookie, bizA.slug)
-    assert(r.status === 200 && r.body?.customer?.email === custAEmail, 'portal /me resolves Alice from the session')
+    assert(r.status === 200 && (r.body?.customer as { email?: string } | undefined)?.email === custAEmail, 'portal /me resolves Alice from the session')
     r = await api('/api/portal/appointments', {}, custALogin.sessionCookie, bizA.slug)
-    assert(r.status === 200 && (r.body?.upcoming || []).length === 1, `Alice sees her own upcoming appointment (got ${(r.body?.upcoming || []).length})`)
+    assert(r.status === 200 && ((r.body?.upcoming as unknown[] | undefined) || []).length === 1, `Alice sees her own upcoming appointment (got ${((r.body?.upcoming as unknown[] | undefined) || []).length})`)
 
     // Bob has never booked here: empty portal, and cannot see Alice's data
     r = await api('/api/portal/me', {}, custBLogin.sessionCookie, bizA.slug)
     assert(r.status === 200 && r.body?.customer === null, 'Bob has no customer record at shop A (empty, not an error)')
     r = await api('/api/portal/appointments?customerId=' + bookedEmail!.customerId, {}, custBLogin.sessionCookie, bizA.slug)
-    assert(r.status === 200 && (r.body?.upcoming || []).length === 0 && (r.body?.history || []).length === 0,
+    assert(r.status === 200 && ((r.body?.upcoming as unknown[] | undefined) || []).length === 0 && ((r.body?.history as unknown[] | undefined) || []).length === 0,
       'Bob cannot see Alice\'s appointments even by passing ?customerId=')
 
     // Bob tries to cancel Alice's appointment → 404 (ownership-scoped lookup)
@@ -228,7 +228,7 @@ async function main() {
     r = await api(`/api/portal/appointments/${bookedEmail!.id}`, {
       method: 'PATCH', body: JSON.stringify({ action: 'cancel' }),
     }, custALogin.sessionCookie, bizA.slug)
-    assert(r.status === 200 && r.body?.success === true, `Alice cancels her own appointment (got ${r.status})`)
+    assert(r.status === 200 && (r.body?.success as boolean | undefined) === true, `Alice cancels her own appointment (got ${r.status})`)
     const cancelAudit = await prisma.auditLog.findFirst({
       where: { businessId: bizA.id, action: 'APPOINTMENT_CANCELLED', entityId: bookedEmail!.id },
     })
