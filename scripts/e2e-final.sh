@@ -14,25 +14,44 @@ npx tsx -e "
 import { prisma } from './src/lib/prisma'
 async function main() {
   await prisma.business.deleteMany({ where: { slug: 'review-test-shop' } })
-  await prisma.user.deleteMany({ where: { email: { in: ['e2e-owner@test.dev', 'e2e2@test.dev'] } } })
+  await prisma.user.deleteMany({ where: { email: { in: ['e2e-owner@test.dev', 'e2e2@test.dev', 'weak@test.dev'] } } })
   console.log('clean')
 }
 main().finally(() => prisma['\$disconnect']())" >/dev/null 2>&1
 sleep 1
 
-echo "═══ 1. OWNER_REGISTRATION_MODE enforcement (API) ═══"
-# Server runs with OWNER_REGISTRATION_MODE unset → default 'onboarding' (open)
-R=$(req POST /api/auth/register '{"name":"E2E Owner","email":"E2E-Owner@Test.dev","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
-check "registration open by default (onboarding mode)" "201" "$R"
+echo "═══ 1. Owner signup vs customer signup (API) ═══"
+# OWNER_REGISTRATION_MODE unset → default 'onboarding' (open). The owner
+# onboarding signup is the ONLY public path that creates an OWNER account.
+R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"E2E-Owner@Test.dev","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
+check "owner registration open by default (onboarding mode)" "201" "$R"
 # Same email, different case → duplicate prevented by normalization
-R=$(req POST /api/auth/register '{"name":"E2E Owner","email":"  e2e-owner@test.dev ","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
+R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"  e2e-owner@test.dev ","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
 check "normalized email prevents duplicate account" "409" "$R"
+# Public customer signup ALWAYS creates a CUSTOMER — never OWNER/staff
+R=$(req POST /api/auth/register '{"name":"E2E Two","email":"e2e2@test.dev","password":"Passw0rd123"}' | jqpy "str(d['user']['role'])")
+check "public signup always creates a CUSTOMER" "CUSTOMER" "$R"
 # Weak password rejected by shared policy
-R=$(req POST /api/auth/register '{"name":"E2E Two","email":"e2e2@test.dev","password":"password"}' -o /dev/null -w "%{http_code}")
+R=$(req POST /api/auth/register '{"name":"Weak One","email":"weak@test.dev","password":"password"}' -o /dev/null -w "%{http_code}")
 check "weak password rejected" "400" "$R"
 # Detailed error leak check: 500 handler returns generic message only
 R=$(req POST /api/auth/register '{"name":"X"}' | jqpy "str('detail' in d)")
 check "no internal detail in error responses" "False" "$R"
+
+echo "═══ 1b. A customer session can never reach management ═══"
+JARC=$(mktemp)
+csrfc=$(curl -s -b "$JARC" -c "$JARC" $BASE/api/auth/csrf | jqpy "d['csrfToken']")
+curl -s -o /dev/null -X POST $BASE/api/auth/callback/credentials -H 'Content-Type: application/x-www-form-urlencoded' -b "$JARC" -c "$JARC" --data-urlencode "csrfToken=$csrfc" --data-urlencode "email=e2e2@test.dev" --data-urlencode "password=Passw0rd123" --data-urlencode "json=true"
+AUTHC=$(curl -s -b "$JARC" $BASE/api/auth/session | jqpy "str(d.get('user',{}).get('email',''))")
+check "customer authenticated" "e2e2@test.dev" "$AUTHC"
+# Customer POSTing onboarding → rejected (middleware + per-route guard)
+R=$(curl -s -X POST -H 'Content-Type: application/json' -b "$JARC" -o /dev/null -w "%{http_code}" $BASE/api/dashboard/onboarding -d '{"businessName":"Nope Shop","slug":"nope-shop","timezone":"America/Los_Angeles"}')
+check "customer blocked from onboarding API" "403" "$R"
+R=$(curl -s -b "$JARC" -o /dev/null -w "%{http_code}" $BASE/api/dashboard/services)
+check "customer blocked from dashboard APIs" "403" "$R"
+R=$(curl -s -b "$JARC" -o /dev/null -w "%{http_code}" $BASE/dashboard)
+check "customer redirected away from dashboard page" "307" "$R"
+rm -f "$JARC"
 
 echo "═══ 2. Onboarding through to Review ═══"
 NEXTAUTH_URL=$BASE
