@@ -14,6 +14,7 @@
  * Run: npx tsx tests/tenant-key-sync.test.ts
  */
 import { prisma } from '../src/lib/prisma'
+import type { BookingQuestionType } from '@prisma/client'
 
 let passed = 0, failed = 0
 function assert(cond: boolean, msg: string) {
@@ -60,16 +61,16 @@ async function main() {
     if (q) {
       ir = await prisma.appointmentIntakeResponse.create({ data: {
         appointmentId: appointment.id, questionId: q.id, questionKey: 'k',
-        questionLabel: 'l', answer: { text: 'r' } as any,
-        questionType: 'SHORT_TEXT' as any,
-      } as any, select: { id: true, businessId: true } })
+        questionLabel: 'l', answer: { text: 'r' },
+        questionType: 'SHORT_TEXT' as BookingQuestionType,
+      }, select: { id: true, businessId: true } })
       assert(ir.businessId === business.id, 'AppointmentIntakeResponse insert: trigger sets businessId from appointment')
     } else {
       ir = await prisma.appointmentIntakeResponse.create({ data: {
         appointmentId: appointment.id, questionKey: 'k', questionLabel: 'l',
-        answer: { text: 'r' } as any,
-        questionType: 'SHORT_TEXT' as any,
-      } as any, select: { id: true, businessId: true } })
+        answer: { text: 'r' },
+        questionType: 'SHORT_TEXT' as BookingQuestionType,
+      }, select: { id: true, businessId: true } })
       assert(ir.businessId === business.id, 'AppointmentIntakeResponse insert: trigger sets businessId from appointment')
     }
 

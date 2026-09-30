@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { AppointmentsListView } from '@/components/dashboard/AppointmentsListView'
 
@@ -11,18 +12,21 @@ export default async function AppointmentsPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
   const userRole = user.role
   const barberId = user.barberId
 
-  const whereFilter: any = { businessId }
+  const whereFilter: Prisma.AppointmentWhereInput = { businessId }
   if (userRole === 'BARBER' && barberId) {
     whereFilter.barberId = barberId
   }
 
-  let appointments: any[] = []
-  let barbers: any[] = []
+  type AppointmentWithIncludes = Prisma.AppointmentGetPayload<{
+    include: { customer: true; barber: true; service: true; intakeResponses: true }
+  }>
+  let appointments: AppointmentWithIncludes[] = []
+  let barbers: Array<{ id: string; name: string }> = []
   try {
     appointments = await prisma.appointment.findMany({
       where: whereFilter,

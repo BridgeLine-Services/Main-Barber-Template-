@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ appointme
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business' }, { status: 403 })
     try {
       const opening = await getOpeningForAppointment(businessId, params.appointmentId)
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ appointme
         holdMinutes: OFFER_HOLD_MINUTES,
         candidates,
       })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database not available' }, { status: 503 })
       }
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ appointm
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business' }, { status: 403 })
     try {
       const body = await req.json().catch(() => ({}))
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ appointm
         return NextResponse.json({ error: 'This opening is no longer available' }, { status: 409 })
       }
       const origin = new URL(req.url).origin
-      const actor = (session.user as any)?.name || (session.user as any)?.email || 'staff'
+      const actor = session.user?.name || session.user?.email || 'staff'
       const result = await offerOpeningToCandidate({ opening, entryId, claimOrigin: origin, actorLabel: actor })
       switch (result.outcome) {
         case 'OFFERED':
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ appointm
         case 'NOT_FOUND':
           return NextResponse.json({ error: 'Waitlist entry not found' }, { status: 404 })
       }
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database not available' }, { status: 503 })
       }

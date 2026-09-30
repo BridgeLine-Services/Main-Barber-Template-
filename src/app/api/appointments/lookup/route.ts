@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         managementUrl: `/appointment/${appointment.confirmationNumber}?token=${appointment.customerAccessToken}`,
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error looking up appointment:', error)
     return NextResponse.json({ error: 'Failed to lookup appointment' }, { status: 500 })
   }

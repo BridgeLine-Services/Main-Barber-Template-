@@ -31,10 +31,10 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     const business = businessId
       ? await prisma.business.findUnique({ where: { id: businessId }, select: { deactivatedAt: true } })
       : null
@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     if (!businessId) {
       return NextResponse.json({ error: 'No business context' }, { status: 400 })
     }
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     })
 
     await logAudit({
-      userId: (session.user as any).id,
+      userId: session.user.id,
       businessId,
       action: 'BUSINESS_DEACTIVATED',
       entityType: 'Business',

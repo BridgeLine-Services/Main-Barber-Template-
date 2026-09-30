@@ -32,11 +32,23 @@ export default function CalendarPage() {
       if (!Number.isNaN(parsed.getTime())) setCurrentDate(parsed)
     }
   }, [])
-  const [appointments, setAppointments] = useState<any[]>([])
+  // Dashboard appointment row (matches the API's customer/barber/service includes)
+interface CalendarAppointment {
+  id: string
+  startTime: string
+  endTime: string
+  status: string
+  customerNotes?: string | null
+  customer: { id: string; firstName: string; lastName: string; phone: string; email: string }
+  barber: { id: string; name: string; specialty?: string | null }
+  service: { id: string; name: string; price: number; duration: number }
+}
+
+const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
   const [loading, setLoading] = useState(false)
 
   // Dialog states
-  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addInitialDate, setAddInitialDate] = useState<string>('')
@@ -83,7 +95,7 @@ export default function CalendarPage() {
     setCurrentDate(new Date())
   }
 
-  const handleSelectAppointment = (appt: any) => {
+  const handleSelectAppointment = (appt: CalendarAppointment) => {
     setSelectedAppointment(appt)
     setDetailsOpen(true)
   }
@@ -117,7 +129,7 @@ export default function CalendarPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* View Switcher Tabs */}
-          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-auto">
+          <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week' | 'month')} className="w-auto">
             <TabsList className="bg-zinc-950 border border-zinc-800 text-zinc-400 p-1 h-9">
               <TabsTrigger value="day" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 text-xs px-3 py-1">
                 Day

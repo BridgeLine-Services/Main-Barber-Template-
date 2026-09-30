@@ -78,32 +78,32 @@ const completed = (daysBack: number, extra: Partial<AudienceCustomer['appointmen
 
 // ── NOT_REBOOKED ────────────────────────────────────────────────────────────
 {
-  const withFuture = customer([completed(5), { status: 'CONFIRMED', startTime: daysAhead(3) } as any])
+  const withFuture = customer([completed(5), { status: 'CONFIRMED', startTime: daysAhead(3) }])
   check('NOT_REBOOKED does not match with a confirmed future appt', matchAudienceCustomer(withFuture, 'NOT_REBOOKED', NOW).matches === false)
 
-  const withPastOnly = customer([completed(5), { status: 'CONFIRMED', startTime: daysAgo(1) } as any])
+  const withPastOnly = customer([completed(5), { status: 'CONFIRMED', startTime: daysAgo(1) }])
   check('NOT_REBOOKED matches when the only confirmed appt is in the past', matchAudienceCustomer(withPastOnly, 'NOT_REBOOKED', NOW).matches === true)
 
-  const withPendingFuture = customer([completed(5), { status: 'PENDING', startTime: daysAhead(3) } as any])
+  const withPendingFuture = customer([completed(5), { status: 'PENDING', startTime: daysAhead(3) }])
   check('NOT_REBOOKED does not match with a pending future appt', matchAudienceCustomer(withPendingFuture, 'NOT_REBOOKED', NOW).matches === false)
 
   const neverVisited = customer([])
   check('NOT_REBOOKED never matches with no completed visits', matchAudienceCustomer(neverVisited, 'NOT_REBOOKED', NOW).matches === false)
 
-  const cancelledOnly = customer([{ status: 'CANCELLED', startTime: daysAhead(3) } as any])
+  const cancelledOnly = customer([{ status: 'CANCELLED', startTime: daysAhead(3) }])
   check('NOT_REBOOKED never matches with no completed visits (cancelled future)', matchAudienceCustomer(cancelledOnly, 'NOT_REBOOKED', NOW).matches === false)
 }
 
 // ── CANCELLED / NO_SHOWED ───────────────────────────────────────────────────
 {
-  const c = customer([completed(5), { status: 'CANCELLED', startTime: daysAgo(3) } as any])
+  const c = customer([completed(5), { status: 'CANCELLED', startTime: daysAgo(3) }])
   const r = matchAudienceCustomer(c, 'CANCELLED', NOW)
   check('CANCELLED matches a customer with one cancellation', r.matches === true)
   check('CANCELLED reason is set', r.reason === 'Has cancelled an appointment')
 
   check('CANCELLED does not match without cancellations', matchAudienceCustomer(customer([completed(5)]), 'CANCELLED', NOW).matches === false)
 
-  const ns = customer([completed(5), { status: 'NO_SHOW', startTime: daysAgo(3) } as any])
+  const ns = customer([completed(5), { status: 'NO_SHOW', startTime: daysAgo(3) }])
   const rns = matchAudienceCustomer(ns, 'NO_SHOWED', NOW)
   check('NO_SHOWED matches a customer with one no-show', rns.matches === true)
   check('NO_SHOWED reason is set', rns.reason === 'Has no-showed an appointment')
@@ -155,7 +155,7 @@ const completed = (daysBack: number, extra: Partial<AudienceCustomer['appointmen
 
   check(
     'USED_SERVICE ignores non-completed uses (cancelled appt does not count)',
-    matchAudienceCustomer(customer([{ status: 'CANCELLED', startTime: daysAgo(5), service: { id: 'service-1', name: 'Classic Cut' } } as any]), 'USED_SERVICE', NOW, config).matches === false
+    matchAudienceCustomer(customer([{ status: 'CANCELLED', startTime: daysAgo(5), service: { id: 'service-1', name: 'Classic Cut' } }]), 'USED_SERVICE', NOW, config).matches === false
   )
 
   check(
@@ -185,7 +185,7 @@ const completed = (daysBack: number, extra: Partial<AudienceCustomer['appointmen
 
 // ── ISO string dates are accepted alongside Date objects ────────────────────
 {
-  const c = customer([{ status: 'COMPLETED', startTime: daysAgo(40).toISOString() } as any])
+  const c = customer([{ status: 'COMPLETED', startTime: daysAgo(40).toISOString() }])
   check('ISO string startTime works for INACTIVE_30', matchAudienceCustomer(c, 'INACTIVE_30', NOW).matches === true)
 }
 

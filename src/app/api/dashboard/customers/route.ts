@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
-    const role = (session.user as any)?.role
-    const barberId = (session.user as any)?.barberId
+    const businessId = session.user?.businessId
+    const role = session.user?.role
+    const barberId = session.user?.barberId
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
     const limit = parseInt(searchParams.get('limit') || '50')

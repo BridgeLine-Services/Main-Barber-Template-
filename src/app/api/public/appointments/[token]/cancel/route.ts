@@ -112,7 +112,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       status: 'CANCELLED',
       confirmationNumber: appointment.confirmationNumber,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error cancelling appointment by token:', error)
 
     // Database not connected

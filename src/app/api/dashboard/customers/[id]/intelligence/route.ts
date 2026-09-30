@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     // Verify customer belongs to this business
     const customer = await prisma.customer.findFirst({
       where: { id: params.id, businessId },

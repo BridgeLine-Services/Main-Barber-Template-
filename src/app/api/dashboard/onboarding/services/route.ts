@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         select: serviceSubset,
       })
       return NextResponse.json({ service }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding service create error:', error)
       return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })
     }

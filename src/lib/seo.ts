@@ -10,7 +10,7 @@ export interface BusinessData {
   zipCode?: string | null
   latitude?: number | null
   longitude?: number | null
-  hours?: any
+  hours?: Record<string, { open?: string; close?: string; isOff?: boolean }> | null
   aboutText?: string | null
 }
 

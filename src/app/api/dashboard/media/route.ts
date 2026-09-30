@@ -40,9 +40,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const businessId = (session.user as any)?.businessId
-    const sessionBarberId = (session.user as any)?.barberId
+    const role = session.user?.role
+    const businessId = session.user?.businessId
+    const sessionBarberId = session.user?.barberId
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type') as MediaType | null
     const urlBarberId = searchParams.get('barberId')
@@ -121,10 +121,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
-    const sessionBarberId = (session.user as any)?.barberId
+    const role = session.user?.role
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
+    const sessionBarberId = session.user?.barberId
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     const parseResult = createMediaSchema.safeParse(body)
@@ -214,10 +214,10 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
-    const sessionBarberId = (session.user as any)?.barberId
+    const role = session.user?.role
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
+    const sessionBarberId = session.user?.barberId
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     const parseResult = updateMediaSchema.safeParse(body)
@@ -285,10 +285,10 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
-    const sessionBarberId = (session.user as any)?.barberId
+    const role = session.user?.role
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
+    const sessionBarberId = session.user?.barberId
     const { searchParams } = new URL(req.url)
     const body = await req.json().catch(() => ({}))
     const id = searchParams.get('id') || (typeof body.id === 'string' ? body.id : null)

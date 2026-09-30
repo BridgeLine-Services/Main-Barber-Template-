@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
         resetUrl: `/reset-password?token=${rawToken}`,
       }),
     })
-  } catch (error: any) {
+  } catch (error) {
     if (error.code === 'P1001' || error.message?.includes('connect')) {
       return NextResponse.json({
         success: false,

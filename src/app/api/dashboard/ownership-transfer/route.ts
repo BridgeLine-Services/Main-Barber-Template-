@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const caller = session.user as any
+    const caller = session.user
     // The owning business owner, or a platform owner administering the
     // business, may initiate a transfer. Barbers get 403.
     if (caller.role !== 'OWNER' && caller.role !== 'PLATFORM_OWNER') {

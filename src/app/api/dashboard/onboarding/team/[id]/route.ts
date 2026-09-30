@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         })
       })
       return NextResponse.json({ barber })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding barber update error:', error)
       return NextResponse.json({ error: 'Failed to update barber' }, { status: 500 })
     }
@@ -144,7 +144,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     try {
       await prisma.barber.delete({ where: { id: existing.id } }) // schedules cascade
       return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding barber delete error:', error)
       return NextResponse.json({ error: 'Failed to delete barber' }, { status: 500 })
     }

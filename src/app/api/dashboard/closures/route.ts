@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 const createClosureSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100),
@@ -41,7 +42,7 @@ export async function GET() {
         orderBy: { startDate: 'asc' },
       })
       return NextResponse.json({ closures })
-    } catch (error: any) {
+    } catch (error) {
       // Database error
       if (error.message?.includes('No business found') || error.code === 'P1001') {
         return NextResponse.json({ error: 'Database not available' }, { status: 503 })
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }
     try {
@@ -92,17 +93,17 @@ export async function POST(req: NextRequest) {
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'SETTINGS_UPDATED',
           entityType: 'BusinessClosure',
           entityId: closure.id,
-          newValues: parsed.data as any,
+          newValues: toAuditJson(parsed.data),
           ipAddress: req.headers.get('x-forwarded-for'),
           userAgent: req.headers.get('user-agent'),
         },
       })
       return NextResponse.json({ closure }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes('No business found') || error.code === 'P1001') {
         return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 })
       }

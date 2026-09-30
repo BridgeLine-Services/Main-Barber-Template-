@@ -30,7 +30,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    role?: 'PLATFORM_OWNER' | 'OWNER' | 'BARBER'
+    role?: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER'
     businessId?: string | null
     businessName?: string
     barberId?: string | null

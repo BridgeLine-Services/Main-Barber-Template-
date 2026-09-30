@@ -88,7 +88,7 @@ export function ReviewStep({ completing, serverError, onEditStep, onComplete, on
         if (cancelled) return
         if (!res.ok) throw new Error(json.error || 'Failed to load your summary.')
         setData(json)
-      } catch (err: any) {
+      } catch (err) {
         if (!cancelled) setLoadError(err.message || 'Failed to load your summary.')
       }
     })()

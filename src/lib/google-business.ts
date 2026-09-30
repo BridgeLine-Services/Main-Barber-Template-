@@ -113,7 +113,19 @@ function getLocationPath(): string | null {
  * Build the Google Business Profile hours JSON from the business's hours field.
  * GBP expects: { periods: [{ openDay, openTime, closeDay, closeTime }], isAlwaysOpen }
  */
-function buildGBPHours(businessHours: any): any {
+/** Review object shape returned by the Google Business Profile API. */
+interface GBPApiReview {
+  reviewer?: { displayName?: string }
+  starRating?: string
+  comment?: string
+  createTime?: string
+}
+
+interface DayHours { isOff?: boolean; open?: string; close?: string }
+interface GBPTimeOfDay { hours: number; minutes: number }
+interface GBPPeriod { openDay: string; openTime: GBPTimeOfDay; closeDay: string; closeTime: GBPTimeOfDay }
+
+function buildGBPHours(businessHours: Record<string, DayHours> | null | undefined): { periods: GBPPeriod[]; isAlwaysOpen: boolean } {
   if (!businessHours) return { periods: [], isAlwaysOpen: false }
 
   const dayMap: Record<string, string> = {
@@ -121,11 +133,11 @@ function buildGBPHours(businessHours: any): any {
     thursday: 'THURSDAY', friday: 'FRIDAY', saturday: 'SATURDAY', sunday: 'SUNDAY',
   }
 
-  const periods: any[] = []
+  const periods: GBPPeriod[] = []
   for (const [day, hours] of Object.entries(businessHours)) {
     const dayName = dayMap[day.toLowerCase()]
     if (!dayName) continue
-    const h = hours as any
+    const h: DayHours = hours
     if (h.isOff) continue
     if (!h.open || !h.close) continue
 
@@ -162,7 +174,7 @@ export async function prepareBusinessSyncPayload(businessId: string) {
       administrativeArea: business.state || null,
       postalCode: business.zipCode || null,
     },
-    regularHours: buildGBPHours(business.hours),
+    regularHours: buildGBPHours(business.hours as Record<string, DayHours> | null),
     metadata: {
       timezone: business.timezone,
     },
@@ -221,7 +233,7 @@ export async function syncBusinessToGoogle(businessId: string): Promise<SyncResu
       const errorData = await response.json().catch(() => ({}))
       errors.push(`Location update failed: ${errorData.error?.message || response.statusText}`)
     }
-  } catch (error: any) {
+  } catch (error) {
     errors.push(`Sync request failed: ${error.message}`)
   }
 
@@ -267,7 +279,7 @@ export async function importGoogleReviewsFromAPI(
     const data = await response.json()
     const reviews = data.reviews || []
     ;({ imported, skipped } = await importReviewsBatched(businessId, normalizeGoogleReviews(reviews)))
-  } catch (error: any) {
+  } catch (error) {
     errors.push(`Review import error: ${error.message}`)
   }
 
@@ -277,9 +289,11 @@ export async function importGoogleReviewsFromAPI(
 /**
  * Import reviews from a provided array (alternative to API fetch).
  */
+interface ImportedReview { authorName: string; rating: number; comment: string | null; createTime?: string }
+
 export async function importGoogleReviews(
   businessId: string,
-  googleReviews: any[]
+  googleReviews: Array<{ authorName: string; starRating?: string; comment?: string | null; createTime?: string }>
 ): Promise<{ imported: number; skipped: number }> {
   const normalized = googleReviews.map((gr) => ({
     authorName: gr.authorName,
@@ -346,7 +360,7 @@ async function importReviewsBatched(
 }
 
 /** Map raw GBP API review objects to the normalized import shape. */
-function normalizeGoogleReviews(reviews: any[]): Array<{ authorName: string; rating: number; comment: string | null; createTime?: string }> {
+function normalizeGoogleReviews(reviews: GBPApiReview[]): ImportedReview[] {
   return reviews.map((gr) => ({
     authorName: gr.reviewer?.displayName || 'Anonymous',
     rating: gr.starRating === 'FIVE' ? 5 :

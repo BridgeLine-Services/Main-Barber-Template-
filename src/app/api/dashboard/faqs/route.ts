@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest) {
         orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
       })
       return NextResponse.json({ faqs })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching FAQs:', error)
       return NextResponse.json({ error: 'Failed to fetch FAQs' }, { status: 500 })
     }
@@ -66,14 +66,14 @@ export async function POST(req: NextRequest) {
       })
       await logAudit({
         businessId,
-        userId: (auth.user as any).id,
+        userId: auth.user.id,
         action: AuditAction.SETTINGS_UPDATED,
         entityType: 'Faq',
         entityId: faq.id,
         newValues: { question: faq.question, category: faq.category },
       })
       return NextResponse.json({ faq }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating FAQ:', error)
       return NextResponse.json({ error: 'Failed to create FAQ' }, { status: 500 })
     }

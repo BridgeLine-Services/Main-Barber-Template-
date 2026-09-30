@@ -174,7 +174,7 @@ export default async function BarberProfilePage(props: PageProps) {
             Services & Pricing
           </h2>
           <div className="grid gap-4">
-            {barber.services.map((bs: any) => {
+            {barber.services.map((bs) => {
               const price = bs.priceOverride ?? bs.service?.price
               const duration = bs.durationOverride ?? bs.service?.duration
               return (
@@ -200,8 +200,8 @@ export default async function BarberProfilePage(props: PageProps) {
           Assets tied to a deactivated service are hidden server-side. */}
       {(() => {
         const portfolioAssets = barber.mediaAssets
-          .filter((a: any) => !a.service || a.service.isActive)
-          .map((a: any) => ({
+          .filter((a) => !a.service || a.service.isActive)
+          .map((a) => ({
             id: a.id,
             url: a.url,
             altText: a.altText,
@@ -221,7 +221,7 @@ export default async function BarberProfilePage(props: PageProps) {
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Recent Reviews</h2>
           <div className="grid gap-4">
-            {barber.reviews.map((review: any) => (
+            {barber.reviews.map((review) => (
               <Card key={review.id}>
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between mb-2">

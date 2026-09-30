@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
     }
     // The OAuth state is bound to the authenticated tenant. This prevents a
     // callback for one shop from being used to configure another shop.
-    const sessionUserId = (session.user as any).id
-    const sessionBusinessId = (session.user as any).businessId
+    const sessionUserId = session.user.id
+    const sessionBusinessId = session.user.businessId
     if (!state || !sessionUserId || !sessionBusinessId || !verifyGBPOAuthState(state, sessionUserId, sessionBusinessId)) {
       return NextResponse.redirect(
         new URL('/dashboard/settings?gbp_error=invalid_state', req.url)
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(
         new URL(`/dashboard/settings?${params.toString()}`, req.url)
       )
-    } catch (error: any) {
+    } catch (error) {
       console.error('GBP callback error:', error)
       return NextResponse.redirect(
         new URL(`/dashboard/settings?gbp_error=${encodeURIComponent(error.message || 'callback_failed')}`, req.url)

@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json({ slots })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching availability:', error)
     return NextResponse.json(
       { error: 'Availability is temporarily unavailable. Please try again.' },

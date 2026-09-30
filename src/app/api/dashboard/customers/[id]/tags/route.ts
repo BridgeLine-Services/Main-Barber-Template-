@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { CustomerTag } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 // GET /api/dashboard/customers/[id]/tags — list tags for a customer
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -12,7 +14,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     try {
       const tags = await prisma.customerTagAssignment.findMany({
         where: { customerId: params.id, businessId: user.businessId },
@@ -35,7 +37,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     try {
       const body = await request.json()
       const { tag } = body
@@ -63,7 +65,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
           action: 'CUSTOMER_TAG_ADDED',
           entityType: 'Customer',
           entityId: params.id,
-          newValues: { tag } as any,
+          newValues: toAuditJson({ tag }),
         },
       })
       return NextResponse.json(assignment, { status: 201 })
@@ -84,7 +86,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     try {
       const { searchParams } = new URL(request.url)
       const tag = searchParams.get('tag')
@@ -92,7 +94,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
         return NextResponse.json({ error: 'Tag parameter required' }, { status: 400 })
       }
       await prisma.customerTagAssignment.deleteMany({
-        where: { customerId: params.id, businessId: user.businessId, tag: tag as any },
+        where: { customerId: params.id, businessId: user.businessId, tag: tag as CustomerTag },
       })
       await prisma.auditLog.create({
         data: {
@@ -101,7 +103,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
           action: 'CUSTOMER_TAG_REMOVED',
           entityType: 'Customer',
           entityId: params.id,
-          oldValues: { tag } as any,
+          oldValues: toAuditJson({ tag }),
         },
       })
       return NextResponse.json({ success: true })

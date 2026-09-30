@@ -90,7 +90,7 @@ async function setup() {
   return { business, owner, barber, barberUser, barber2, service }
 }
 
-async function cleanup(ids: any) {
+async function cleanup(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n🧹 Cleaning up test data...')
   await prisma.user.deleteMany({ where: { businessId: ids.business.id } })
   await prisma.barber.deleteMany({ where: { businessId: ids.business.id } })
@@ -140,7 +140,7 @@ function canCreateManualAppointment(_user: SessionUser): boolean { return true }
 
 // ─── Tests ────────────────────────────────────────────────────────────────
 
-async function testRolePermissions(ids: any) {
+async function testRolePermissions(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n🔑 Testing role permissions...')
 
   const ownerSession: SessionUser = {
@@ -246,7 +246,7 @@ async function main() {
   console.log('  Section 16: Role-Permission Tests')
   console.log('═══════════════════════════════════════════')
 
-  let ids: any
+  let ids: Awaited<ReturnType<typeof setup>> | undefined
   try {
     ids = await setup()
     await testRolePermissions(ids)

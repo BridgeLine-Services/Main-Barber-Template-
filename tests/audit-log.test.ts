@@ -44,7 +44,8 @@ async function main() {
     assert(row.userId === user.id && row.user?.email === user.email, 'records WHO performed the action')
     assert(row.action === 'SERVICE_CREATED' && row.entityType === 'Service' && row.entityId === 'svc_123', 'records WHAT happened and the entity')
     assert(!!row.createdAt && row.createdAt.getTime() <= Date.now(), 'records WHEN it happened (timestamp)')
-    assert((row.newValues as any)?.name === 'Skin Fade' && (row.newValues as any)?.price === 40, 'records NEW values')
+    const newValues = (row.newValues ?? {}) as Record<string, unknown>
+    assert(newValues.name === 'Skin Fade' && newValues.price === 40, 'records NEW values')
     assert(row.ipAddress === '203.0.113.7' && row.userAgent === 'audit-test-agent', 'records IP address and user agent')
 
     // 2. Old + new values (update flow)
@@ -55,7 +56,9 @@ async function main() {
       ipAddress: '203.0.113.7', userAgent: 'audit-test-agent',
     })
     const upd = await prisma.auditLog.findFirst({ where: { businessId: bizA.id, action: 'SERVICE_UPDATED' }, orderBy: { createdAt: 'desc' } })
-    assert((upd?.oldValues as any)?.price === 40 && (upd?.newValues as any)?.price === 45, 'update entries capture previous AND new values')
+    const updOld = (upd?.oldValues ?? {}) as Record<string, unknown>
+    const updNew = (upd?.newValues ?? {}) as Record<string, unknown>
+    assert(updOld.price === 40 && updNew.price === 45, 'update entries capture previous AND new values')
 
     // 3. All new audit actions accepted by the enum (regression for the migration)
     for (const action of ['SERVICE_CREATED', 'SERVICE_UPDATED', 'SERVICE_DEACTIVATED', 'SERVICE_DELETED', 'BARBER_CREATED', 'BARBER_UPDATED'] as const) {

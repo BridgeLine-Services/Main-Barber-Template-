@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
-    const role = (session.user as any)?.role
-    const barberId = (session.user as any)?.barberId
+    const businessId = session.user?.businessId
+    const role = session.user?.role
+    const barberId = session.user?.barberId
     const { searchParams } = new URL(req.url)
     const queryBarberId = searchParams.get('barberId')
     const targetBarberId = role === 'BARBER' ? barberId : queryBarberId
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const body = await req.json()
     const parseResult = createBlockedTimeSchema.safeParse(body)
     if (!parseResult.success) {

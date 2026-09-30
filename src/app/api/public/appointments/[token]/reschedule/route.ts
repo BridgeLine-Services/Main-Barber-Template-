@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return result
     }, { isolationLevel: 'Serializable' })
     return NextResponse.json({ success: true, startTime: updated.startTime, endTime: updated.endTime })
-  } catch (error: any) {
+  } catch (error) {
     if (error?.code === 'P2034' || error?.code === '23P01') {
       return NextResponse.json({ error: 'That time is no longer available. Please choose another time.' }, { status: 409 })
     }

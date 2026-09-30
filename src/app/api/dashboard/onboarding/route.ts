@@ -173,7 +173,7 @@ export async function GET(req: NextRequest) {
         activeServices,
         activeBarbers,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding GET error:', error)
       return NextResponse.json({ error: 'Failed to load onboarding state' }, { status: 500 })
     }
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
         },
         { status: 201 }
       )
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding error:', error)
       if (error?.code === 'P1001' || error?.code === 'P1017') {
         return NextResponse.json(
@@ -391,7 +391,7 @@ export async function PATCH(req: NextRequest) {
         business,
         message: completing ? 'Onboarding complete' : 'Saved',
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding PATCH error:', error)
       return NextResponse.json({ error: 'Update failed. Please try again.' }, { status: 500 })
     }

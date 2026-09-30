@@ -21,7 +21,7 @@ export default async function BarberModePage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user?.businessId
   const userRole = user?.role || 'BARBER'
   const barberId = user?.barberId

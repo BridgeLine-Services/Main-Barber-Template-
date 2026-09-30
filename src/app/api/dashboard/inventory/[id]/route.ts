@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -11,7 +12,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     try {
       const item = await prisma.inventoryItem.findFirst({
         where: { id: params.id, businessId: user.businessId },
@@ -36,7 +37,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -77,8 +78,8 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
           action: 'INVENTORY_UPDATED',
           entityType: 'InventoryItem',
           entityId: updated.id,
-          oldValues: { stock: existing.stock } as any,
-          newValues: { stock: newStock, name: updated.name } as any,
+          oldValues: toAuditJson({ stock: existing.stock }),
+          newValues: toAuditJson({ stock: newStock, name: updated.name }),
         },
       })
       return NextResponse.json(updated)
@@ -98,7 +99,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -117,7 +118,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
           action: 'INVENTORY_UPDATED',
           entityType: 'InventoryItem',
           entityId: params.id,
-          oldValues: { name: existing.name } as any,
+          oldValues: toAuditJson({ name: existing.name }),
         },
       })
       return NextResponse.json({ success: true })

@@ -34,7 +34,12 @@ export function AddAppointmentDialog({
   const [isNewCustomer, setIsNewCustomer] = useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
-  const [customers, setCustomers] = useState<any[]>([])
+  // Lightweight shapes of the dashboard API list responses used by this dialog
+interface DialogCustomer { id: string; firstName: string; lastName: string; phone: string; email: string }
+interface DialogBarber { id: string; name: string }
+interface DialogService { id: string; name: string; price: number; duration?: number; isActive: boolean }
+
+const [customers, setCustomers] = useState<DialogCustomer[]>([])
 
   // New Customer Form State
   const [firstName, setFirstName] = useState('')
@@ -43,8 +48,8 @@ export function AddAppointmentDialog({
   const [email, setEmail] = useState('')
 
   // Appointment State
-  const [barbers, setBarbers] = useState<any[]>([])
-  const [services, setServices] = useState<any[]>([])
+  const [barbers, setBarbers] = useState<DialogBarber[]>([])
+  const [services, setServices] = useState<DialogService[]>([])
   const [selectedBarberId, setSelectedBarberId] = useState(initialBarberId || '')
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [date, setDate] = useState(initialDate || new Date().toISOString().split('T')[0])
@@ -86,8 +91,8 @@ export function AddAppointmentDialog({
     try {
       const res = await fetch('/api/dashboard/services')
       if (res.ok) {
-        const data = await res.json()
-        setServices(data.filter((s: any) => s.isActive))
+        const data: DialogService[] = await res.json()
+        setServices(data.filter((s) => s.isActive))
         if (data.length > 0) {
           setSelectedServiceId(data[0].id)
         }
@@ -153,7 +158,14 @@ export function AddAppointmentDialog({
     try {
       const startTime = new Date(`${date}T${time}`)
 
-      const body: any = {
+      const body: {
+        barberId: string | null
+        serviceId: string | null
+        startTime: string
+        notes: string
+        customerData?: { firstName: string; lastName: string; phone: string; email: string }
+        customerId?: string | null
+      } = {
         barberId: selectedBarberId,
         serviceId: selectedServiceId,
         startTime: startTime.toISOString(),
@@ -185,7 +197,7 @@ export function AddAppointmentDialog({
 
       if (onSuccess) onSuccess()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to add appointment')
     } finally {
       setLoading(false)

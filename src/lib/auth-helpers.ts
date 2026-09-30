@@ -6,12 +6,14 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 import { NextResponse } from 'next/server'
+import type { AuditAction, Prisma } from '@prisma/client'
+import type { Session } from 'next-auth'
 import { prisma } from './prisma'
 import { logEvent } from './logger'
 
 export interface AuthResult {
   success: true
-  session: any
+  session: Session | null
   user: {
     id: string
     email: string
@@ -43,7 +45,7 @@ export async function requireAuth(): Promise<AuthResult | AuthError> {
   // JWT claims are a session cache and may outlive a membership/role change.
   // Resolve the user from the database for every protected API request so a
   // deleted user or moved tenant cannot keep using an old token.
-  const sessionUser = session.user as any
+  const sessionUser = session.user
   const dbUser = await prisma.user.findUnique({
     where: sessionUser.id ? { id: sessionUser.id } : { email: sessionUser.email },
     select: {
@@ -169,14 +171,22 @@ export async function verifyBusinessAccess(
 /**
  * Log an audit event.
  */
+/** Converts a value into a Prisma InputJsonValue, serializing Dates to ISO
+ * strings (and dropping other non-JSON types) so audit snapshots persist safely. */
+export function toAuditJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(
+    JSON.stringify(value, (_k, v) => (v instanceof Date ? v.toISOString() : v)),
+  ) as Prisma.InputJsonValue
+}
+
 export async function logAudit(params: {
   userId?: string
   businessId?: string
-  action: string
+  action: AuditAction
   entityType?: string
   entityId?: string
-  oldValues?: any
-  newValues?: any
+  oldValues?: Prisma.InputJsonValue
+  newValues?: Prisma.InputJsonValue
   ipAddress?: string
   userAgent?: string
 }): Promise<void> {
@@ -189,7 +199,7 @@ export async function logAudit(params: {
         data: {
           userId: params.userId,
           businessId: params.businessId,
-          action: params.action as any,
+          action: params.action,
           entityType: params.entityType ?? 'System',
           entityId: params.entityId ?? 'unknown',
           oldValues: params.oldValues ?? undefined,

@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest) {
         return NextResponse.json({ error: 'Business not found' }, { status: 404 })
       }
       return NextResponse.json({ business, seo, websiteContent, bookingQuestions })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[settings] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest) {
         userAgent: req.headers.get('user-agent') || undefined,
       })
       return NextResponse.json({ business: updated, seo: updatedSeo, websiteContent: updatedWebsiteContent })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[settings] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const service = await prisma.service.findFirst({
       where: { id: params.id, businessId },
       include: { barbers: { include: { barber: true } } },
@@ -31,8 +31,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
     const body = await req.json()
     const parseResult = updateServiceSchema.safeParse(body)
     if (!parseResult.success) {
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       include: { barbers: { include: { barber: true } } },
     })
     await logAudit({
-      userId: (session.user as any)?.id,
+      userId: session.user?.id,
       businessId,
       action: 'SERVICE_UPDATED',
       entityType: 'Service',
@@ -88,8 +88,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
     const existing = await prisma.service.findFirst({ where: { id: params.id, businessId } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const appointments = await prisma.appointment.count({ where: { serviceId: params.id } })
@@ -97,7 +97,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       // Soft delete
       await prisma.service.update({ where: { id: params.id }, data: { isActive: false } })
       await logAudit({
-        userId: (session.user as any)?.id,
+        userId: session.user?.id,
         businessId,
         action: 'SERVICE_DEACTIVATED',
         entityType: 'Service',
@@ -112,7 +112,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     await prisma.barberService.deleteMany({ where: { serviceId: params.id } })
     await prisma.service.delete({ where: { id: params.id } })
     await logAudit({
-      userId: (session.user as any)?.id,
+      userId: session.user?.id,
       businessId,
       action: 'SERVICE_DELETED',
       entityType: 'Service',

@@ -12,7 +12,7 @@ export async function GET(_request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     const businessId = user.businessId
     try {
       const business = await prisma.business.findUnique({

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error handling contact form:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to submit contact form' },

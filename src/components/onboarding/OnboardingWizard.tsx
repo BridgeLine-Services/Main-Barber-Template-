@@ -165,7 +165,7 @@ export function OnboardingWizard() {
           }
         } else {
         }
-      } catch (err: any) {
+      } catch (err) {
         if (!cancelled) setLoadError(err.message || 'Something went wrong loading your setup.')
       } finally {
         if (!cancelled) setLoading(false)
@@ -229,7 +229,7 @@ export function OnboardingWizard() {
         setBusiness(json.business)
         setStep('branding')
       }
-    } catch (err: any) {
+    } catch (err) {
       if (err.message?.toLowerCase().includes('slug')) setSlugServerError(err.message)
       else setServerError(err.message || 'Network error — check your connection and try again.')
     } finally {
@@ -253,7 +253,7 @@ export function OnboardingWizard() {
       })
       setBusiness(json.business)
       setStep('services')
-    } catch (err: any) {
+    } catch (err) {
       setServerError(err.message || 'Failed to save your branding.')
     } finally {
       setSubmitting(false)
@@ -268,7 +268,7 @@ export function OnboardingWizard() {
       const json = await patchOnboarding({ step: 'services' })
       setBusiness(json.business)
       setStep('services')
-    } catch (err: any) {
+    } catch (err) {
       setServerError(err.message || 'Failed to continue.')
     } finally {
       setSubmitting(false)
@@ -284,7 +284,7 @@ export function OnboardingWizard() {
       setBusiness(json.business)
       setStep(next)
       window.scrollTo({ top: 0 })
-    } catch (err: any) {
+    } catch (err) {
       setServerError(err.message || 'Failed to continue.')
     } finally {
       setSubmitting(false)
@@ -324,7 +324,7 @@ export function OnboardingWizard() {
       } else {
         setSavedForLater(true) // saved — resume here any time
       }
-    } catch (err: any) {
+    } catch (err) {
       setServerError(err.message || 'Failed to save your booking settings.')
     } finally {
       setSubmitting(false)
@@ -342,7 +342,7 @@ export function OnboardingWizard() {
       setStep('done')
       // Brief success moment, then into the dashboard.
       setTimeout(() => router.push('/dashboard'), 1400)
-    } catch (err: any) {
+    } catch (err) {
       // The server refused completion — show which requirements are missing
       // (the Review step re-fetches the authoritative list on next render).
       setServerError(err.message || 'Some requirements are still missing.')

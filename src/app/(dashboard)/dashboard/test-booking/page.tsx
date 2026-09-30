@@ -27,7 +27,7 @@ export default function E2ETestPage() {
       const data = await res.json()
       setResults(data.steps || [])
       setSummary(data.summary || '')
-    } catch (err: any) {
+    } catch (err) {
       setResults([{ step: 'error', status: 'fail', message: err.message || 'Request failed' }])
     } finally {
       setRunning(false)

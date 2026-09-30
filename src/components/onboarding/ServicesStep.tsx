@@ -63,7 +63,7 @@ export function ServicesStep({ submitting, serverError, onContinue, onBack }: Se
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to load services')
       setServices(json.services || [])
-    } catch (err: any) {
+    } catch (err) {
       setLoadError(err.message || 'Something went wrong loading your services.')
     } finally {
       setLoading(false)
@@ -154,7 +154,7 @@ export function ServicesStep({ submitting, serverError, onContinue, onBack }: Se
         setServices((prev) => [...prev, json.service])
       }
       resetForm()
-    } catch (err: any) {
+    } catch (err) {
       setActionError(err.message || 'Something went wrong.')
     } finally {
       setBusy(false)
@@ -173,7 +173,7 @@ export function ServicesStep({ submitting, serverError, onContinue, onBack }: Se
       }
       setServices((prev) => prev.filter((s) => s.id !== id))
       if (editingId === id) resetForm()
-    } catch (err: any) {
+    } catch (err) {
       setActionError(err.message)
     } finally {
       setBusy(false)

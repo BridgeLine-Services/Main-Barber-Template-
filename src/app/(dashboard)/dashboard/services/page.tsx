@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { Barber, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
 import { ServicesClient } from '@/components/dashboard/ServicesClient'
@@ -12,15 +13,18 @@ export default async function ServicesPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   if (!canManageBusiness(user.role)) {
     return <BarberServicesClient />
   }
 
   const businessId = user.businessId
 
-  let services: any[] = []
-  let barbers: any[] = []
+  type ServiceWithIncludes = Prisma.ServiceGetPayload<{
+    include: { barbers: { include: { barber: true } } }
+  }>
+  let services: ServiceWithIncludes[] = []
+  let barbers: Barber[] = []
 
   try {
     [services, barbers] = await Promise.all([
@@ -48,7 +52,7 @@ export default async function ServicesPage() {
     ...s,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
-    barbers: s.barbers.map((b: any) => ({
+    barbers: s.barbers.map((b) => ({
       barberId: b.barberId,
       serviceId: b.serviceId,
       barberName: b.barber?.name,

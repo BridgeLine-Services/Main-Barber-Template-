@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       .catch(() => undefined) // audit must never break the reset flow
 
     return NextResponse.json({ success: true, message: 'Password reset successfully. Please log in.' })
-  } catch (error: any) {
+  } catch (error) {
     if (error.code === 'P1001' || error.message?.includes('connect')) {
       return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 })
     }

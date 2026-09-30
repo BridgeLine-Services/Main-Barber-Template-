@@ -14,7 +14,7 @@ export default async function DailyOperationsPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   if (!canManageBusiness(user.role)) {
     redirect('/dashboard')
   }

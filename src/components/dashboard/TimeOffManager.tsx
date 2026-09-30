@@ -68,7 +68,7 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
       setStartDate('')
       setEndDate('')
       router.refresh()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'An error occurred')
     } finally {
       setLoading(false)
@@ -90,7 +90,7 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
       }
 
       router.refresh()
-    } catch (err: any) {
+    } catch (err) {
       alert(err.message || 'An error occurred')
     } finally {
       setDeletingId(null)

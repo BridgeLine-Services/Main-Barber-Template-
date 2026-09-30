@@ -16,9 +16,23 @@ import {
   CalendarDays,Repeat } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+/** Serialized dashboard appointment (dates ISO strings) matching what
+ * /dashboard/appointments passes down after its findMany + include. */
+export interface AppointmentListItem {
+  id: string
+  status: string
+  startTime: string
+  endTime?: string | null
+  confirmationNumber?: string | null
+  barberId?: string | null
+  customer: { id: string; firstName?: string | null; lastName?: string | null; email?: string | null; phone?: string | null } | null
+  barber: { id: string; name: string; specialty?: string | null } | null
+  service: { id: string; name: string; price?: number | null; duration?: number | null } | null
+}
+
 interface AppointmentsListViewProps {
-  initialAppointments: any[]
-  barbers: any[]
+  initialAppointments: AppointmentListItem[]
+  barbers: Array<{ id: string; name: string }>
   userRole: string
 }
 

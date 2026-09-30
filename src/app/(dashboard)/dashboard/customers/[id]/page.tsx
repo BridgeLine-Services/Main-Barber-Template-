@@ -37,12 +37,11 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
 
-  let customer: any = null
-  try {
-    customer = await prisma.customer.findFirst({
+  const customer = await prisma.customer
+    .findFirst({
       where: {
         id: params.id,
         businessId,
@@ -59,9 +58,10 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
         },
       },
     })
-  } catch (error) {
-    console.error('Failed to load customer:', error)
-  }
+    .catch((error) => {
+      console.error('Failed to load customer:', error)
+      return null
+    })
 
   if (!customer) {
     notFound()
@@ -73,8 +73,8 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
   const appointments = customer.appointments
   const totalAppointments = appointments.length
 
-  const completedAppointments = appointments.filter((a: any) => a.status === 'COMPLETED')
-  const totalSpent = completedAppointments.reduce((acc: number, a: any) => acc + (a.service?.price || 0), 0)
+  const completedAppointments = appointments.filter((a) => a.status === 'COMPLETED')
+  const totalSpent = completedAppointments.reduce((acc: number, a) => acc + (a.service?.price || 0), 0)
 
   const lastVisit = intelligence.lastVisit
   const firstVisit = intelligence.firstVisit
@@ -437,7 +437,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
                   </td>
                 </tr>
               ) : (
-                appointments.map((appt: any) => {
+                appointments.map((appt) => {
                   const dateStr = formatFullDate(new Date(appt.startTime))
                   const timeStr = `${formatTime(new Date(appt.startTime))} - ${formatTime(new Date(appt.endTime))}`
                   const statusColor = STATUS_COLORS[appt.status] || 'bg-zinc-800 text-zinc-300 border-zinc-700'

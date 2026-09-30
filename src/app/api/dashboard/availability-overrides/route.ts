@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
     const { searchParams } = new URL(req.url)
     const urlBarberId = searchParams.get('barberId')
     const targetBarberId = role === 'BARBER' ? sessionBarberId : urlBarberId
@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
     const { searchParams } = new URL(req.url)
     const urlBarberId = searchParams.get('barberId')
     const targetBarberId = role === 'BARBER' ? sessionBarberId : urlBarberId
@@ -136,10 +136,10 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
     const { searchParams } = new URL(req.url)
     const overrideId = searchParams.get('id')
     if (!overrideId) return NextResponse.json({ error: 'id required' }, { status: 400 })

@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 const updateClosureSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100).optional(),
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }
     try {
@@ -82,18 +83,18 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'SETTINGS_UPDATED',
           entityType: 'BusinessClosure',
           entityId: params.id,
-          oldValues: { title: closure.title, startDate: closure.startDate, endDate: closure.endDate, isActive: closure.isActive } as any,
-          newValues: { title: updated.title, startDate: updated.startDate, endDate: updated.endDate, isActive: updated.isActive } as any,
+          oldValues: toAuditJson({ title: closure.title, startDate: closure.startDate, endDate: closure.endDate, isActive: closure.isActive }),
+          newValues: toAuditJson({ title: updated.title, startDate: updated.startDate, endDate: updated.endDate, isActive: updated.isActive }),
           ipAddress: req.headers.get('x-forwarded-for'),
           userAgent: req.headers.get('user-agent'),
         },
       })
       return NextResponse.json(updated)
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes('No business found') || error.code === 'P1001') {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }
@@ -116,7 +117,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }
     try {
@@ -134,17 +135,17 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'SETTINGS_UPDATED',
           entityType: 'BusinessClosure',
           entityId: params.id,
-          oldValues: closure as any,
+          oldValues: toAuditJson(closure),
           ipAddress: req.headers.get('x-forwarded-for'),
           userAgent: req.headers.get('user-agent'),
         },
       })
       return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes('No business found') || error.code === 'P1001') {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }

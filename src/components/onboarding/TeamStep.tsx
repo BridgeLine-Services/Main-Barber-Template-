@@ -143,7 +143,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       setForm((f) => ({ ...f, photo: data.url }))
-    } catch (err: any) {
+    } catch (err) {
       setPhotoUploadError(
         `${err.message}. You can paste a photo URL instead below until file storage is configured.`
       )
@@ -160,7 +160,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to load your team')
       setBarbers(json.barbers || [])
-    } catch (err: any) {
+    } catch (err) {
       setLoadError(err.message || 'Something went wrong loading your team.')
     } finally {
       setLoading(false)
@@ -289,7 +289,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
         setBarbers((prev) => [...prev, json.barber])
       }
       resetForm()
-    } catch (err: any) {
+    } catch (err) {
       setActionError(err.message || 'Something went wrong.')
     } finally {
       setBusy(false)
@@ -308,7 +308,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
       }
       setBarbers((prev) => prev.filter((b) => b.id !== id))
       if (editingId === id) resetForm()
-    } catch (err: any) {
+    } catch (err) {
       setActionError(err.message)
     } finally {
       setBusy(false)

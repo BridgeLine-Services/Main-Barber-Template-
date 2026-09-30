@@ -306,7 +306,7 @@ export async function POST(_req: NextRequest) {
       summary: `${steps.filter((s) => s.status === 'pass').length}/${steps.length} tests passed`,
     })
 
-  } catch (error: any) {
+  } catch (error) {
     // Clean up on error
     if (testAppointmentId) {
       await prisma.appointment.delete({ where: { id: testAppointmentId! } }).catch(() => {})

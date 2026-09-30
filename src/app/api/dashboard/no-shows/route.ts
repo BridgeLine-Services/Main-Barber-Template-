@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getReliabilitySummary } from '@/lib/reliability'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 // GET /api/dashboard/no-shows — list no-show appointments and policy
 export async function GET(request: Request) {
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -98,7 +99,7 @@ export async function PATCH(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -140,7 +141,7 @@ export async function PATCH(request: Request) {
           action: 'NO_SHOW_POLICY_UPDATED',
           entityType: 'NoShowPolicy',
           entityId: policy.id,
-          newValues: { firstNoShow, secondNoShow, thirdNoShow, requireDeposit } as any,
+          newValues: toAuditJson({ firstNoShow, secondNoShow, thirdNoShow, requireDeposit }),
         },
       })
       return NextResponse.json(policy)

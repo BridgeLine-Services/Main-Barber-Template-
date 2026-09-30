@@ -11,7 +11,7 @@ export default async function LoyaltyPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
   const userRole = user.role
 

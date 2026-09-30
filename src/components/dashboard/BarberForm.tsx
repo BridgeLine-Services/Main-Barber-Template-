@@ -48,7 +48,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       setPhoto(data.url)
-    } catch (err: any) {
+    } catch (err) {
       setPhotoUploadError(
         `${err.message}. You can paste a photo URL instead until file storage is configured.`
       )
@@ -124,7 +124,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
 
       onSave()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'An error occurred')
     } finally {
       setLoading(false)

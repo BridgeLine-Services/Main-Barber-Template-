@@ -76,7 +76,7 @@ export function AppointmentDetailsDialog({
       setShowCancelReasonInput(false)
       if (onUpdated) onUpdated()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
       setLoading(false)
@@ -112,7 +112,7 @@ export function AppointmentDetailsDialog({
       setIsRescheduling(false)
       if (onUpdated) onUpdated()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Error rescheduling')
     } finally {
       setLoading(false)

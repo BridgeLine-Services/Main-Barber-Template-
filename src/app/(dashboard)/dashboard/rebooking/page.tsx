@@ -12,7 +12,7 @@ export default async function RebookingDashboardPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
 
   let tasks: any[] = []

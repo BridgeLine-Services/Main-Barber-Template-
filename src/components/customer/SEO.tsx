@@ -11,7 +11,7 @@ interface SEOProps {
     zipCode?: string | null
     latitude?: number | null
     longitude?: number | null
-    hours?: any
+    hours?: Record<string, { open?: string; close?: string; isOff?: boolean }> | null
     logo?: string | null
     slug?: string
     aboutText?: string | null
@@ -55,10 +55,10 @@ export function SEO({ business, seo }: SEOProps) {
   const ogImage = seo?.ogImage || business.logo || undefined
   const keywords = seo?.keywords || undefined
 
-  const openingHoursSpec: any[] = []
+  const openingHoursSpec: Array<Record<string, string>> = []
 
   if (business.hours && typeof business.hours === 'object') {
-    Object.entries(business.hours).forEach(([day, val]: [string, any]) => {
+    Object.entries(business.hours).forEach(([day, val]) => {
       const fullDay = DAY_MAP[day.toLowerCase()]
       if (fullDay && val && !val.isOff && val.open && val.close) {
         openingHoursSpec.push({

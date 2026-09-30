@@ -19,7 +19,14 @@ async function test(name: string, fn: () => Promise<void> | void) {
 }
 
 // Test collector: records forwarded payloads.
-let forwarded: any[] = []
+interface ForwardedEvent {
+  event?: string
+  errorCode?: string
+  message?: string
+  timestamp?: string
+  context?: Record<string, string | undefined>
+}
+let forwarded: ForwardedEvent[] = []
 const originalFetch = globalThis.fetch
 
 async function run() {
@@ -27,21 +34,21 @@ async function run() {
 
   await test('no-op when OBSERVABILITY_WEBHOOK_URL unset', async () => {
     delete process.env.OBSERVABILITY_WEBHOOK_URL
-    forwarded = []
-    globalThis.fetch = (async () => { forwarded.push('called'); return new Response('{}', { status: 200 }) }) as typeof fetch
+    let calls = 0
+    globalThis.fetch = (async () => { calls++; return new Response('{}', { status: 200 }) }) as typeof fetch
     await logError('obs_test', new Error('boom'))
     await new Promise((r) => setTimeout(r, 30))
-    assert.equal(forwarded.length, 0, 'must not fetch when unconfigured')
+    assert.equal(calls, 0, 'must not fetch when unconfigured')
   })
 
   await test('forwards structured error event when configured', async () => {
     process.env.OBSERVABILITY_WEBHOOK_URL = 'https://collector.example.com/ingest'
     forwarded = []
-    let capturedBody: any = null
+    let capturedBody: ForwardedEvent | null = null
     let capturedUrl = ''
-    globalThis.fetch = (async (url: any, init: any) => {
+    globalThis.fetch = (async (url: string | URL | Request, init: RequestInit) => {
       capturedUrl = String(url)
-      capturedBody = JSON.parse(init.body)
+      capturedBody = JSON.parse(String(init.body))
       forwarded.push(capturedBody)
       return new Response('{}', { status: 200 })
     }) as typeof fetch
@@ -60,15 +67,15 @@ async function run() {
   await test('sanitizes secrets from forwarded context', async () => {
     process.env.OBSERVABILITY_WEBHOOK_URL = 'https://collector.example.com/ingest'
     forwarded = []
-    globalThis.fetch = (async (_url: any, init: any) => {
-      forwarded.push(JSON.parse(init.body))
+    globalThis.fetch = (async (_url: string | URL | Request, init: RequestInit) => {
+      forwarded.push(JSON.parse(String(init.body)))
       return new Response('{}', { status: 200 })
     }) as typeof fetch
     await logError('obs_secret', new Error('x'), {
       password: 'hunter2', SMTP_TOKEN: 'abc', userEmail: 'a@b.com', safe: 'keep',
     })
     await new Promise((r) => setTimeout(r, 30))
-    const body = forwarded[0]
+    const body = forwarded[0] as ForwardedEvent
     assert.equal(body.context.password, undefined)
     assert.equal(body.context.SMTP_TOKEN, undefined)
     assert.equal(body.context.userEmail, undefined)
@@ -103,7 +110,7 @@ async function run() {
 
   await test('hung collector does not block longer than the timeout', async () => {
     process.env.OBSERVABILITY_WEBHOOK_URL = 'https://collector.example.com/ingest'
-    globalThis.fetch = (async (_url: any, init: any) => {
+    globalThis.fetch = (async (_url: string | URL | Request, init: RequestInit) => {
       // Simulate a collector that never responds: respect the abort signal.
       return new Promise<Response>((_resolve, reject) => {
         init.signal.addEventListener('abort', () => reject(new Error('timeout')))

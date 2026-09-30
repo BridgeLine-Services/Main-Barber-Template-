@@ -7,25 +7,31 @@ import { BarberForm } from '@/components/dashboard/BarberForm'
 import { UserCircle, Plus, Edit2,CheckCircle2, XCircle,Clock, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getInitials } from '@/lib/utils'
+import type { Prisma } from '@prisma/client'
+
+// DTO produced by the barbers page: full Barber row (dates as ISO strings)
+// plus the appointments count
+type BarberWithCount = Prisma.BarberGetPayload<{ include: { _count: { select: { appointments: true } } } }>
+type BarberDTO = Omit<BarberWithCount, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }
 
 interface BarbersClientProps {
-  initialBarbers: any[]
+  initialBarbers: BarberDTO[]
 }
 
 export function BarbersClient({ initialBarbers }: BarbersClientProps) {
   const router = useRouter()
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingBarber, setEditingBarber] = useState<any | null>(null)
+  const [editingBarber, setEditingBarber] = useState<BarberDTO | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null) // barber id being deleted
-  const [confirmDelete, setConfirmDelete] = useState<any | null>(null) // barber pending confirmation
+  const [confirmDelete, setConfirmDelete] = useState<BarberDTO | null>(null) // barber pending confirmation
 
   const handleOpenAdd = () => {
     setEditingBarber(null)
     setIsFormOpen(true)
   }
 
-  const handleOpenEdit = (barber: any) => {
+  const handleOpenEdit = (barber: BarberDTO) => {
     setEditingBarber(barber)
     setIsFormOpen(true)
   }
@@ -34,7 +40,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
     router.refresh()
   }
 
-  const handleToggleActive = async (barber: any) => {
+  const handleToggleActive = async (barber: BarberDTO) => {
     setLoadingId(barber.id)
     try {
       const res = await fetch(`/api/dashboard/barbers/${barber.id}`, {
@@ -57,7 +63,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
     }
   }
 
-  const handleDelete = async (barber: any) => {
+  const handleDelete = async (barber: BarberDTO) => {
     if (deleting) return
     setDeleting(barber.id)
     try {
@@ -113,7 +119,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
           </div>
         ) : (
           initialBarbers.map((barber) => {
-            const apptCount = barber._count?.appointments ?? barber.appointmentsCount ?? 0
+            const apptCount = barber._count?.appointments ?? 0
 
             return (
               <div

@@ -8,7 +8,7 @@ export default async function MarketingPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user) redirect('/login')
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
 
   const [campaigns, barbers, services] = await Promise.all([

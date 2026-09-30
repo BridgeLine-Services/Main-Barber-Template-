@@ -154,7 +154,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
 
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Error updating schedule')
     } finally {
       setLoading(false)

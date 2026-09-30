@@ -74,7 +74,7 @@ export function TimeStep({
 
       setSlots(data.slots || [])
       setEarliest(data.earliest || null)
-    } catch (err: any) {
+    } catch (err) {
       console.error('TimeStep fetch error:', err)
       setError(err.message || 'Error loading available times. Please try again.')
     } finally {

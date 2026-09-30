@@ -21,8 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 
 export default async function ReviewsPage() {
-  let reviews: any[] = []
-  let business: any = null
+  let reviews: Awaited<ReturnType<typeof prisma.review.findMany>> = []
+  let business: Awaited<ReturnType<typeof resolveBusiness>> = null
 
   try {
     business = await resolveBusiness()

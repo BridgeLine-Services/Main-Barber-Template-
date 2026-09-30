@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { toAuditJson } from '@/lib/auth-helpers'
 
 const updateSchema = z.object({
   role: z.enum(['OWNER', 'BUSINESS_ADMIN', 'BARBER']).optional(),
@@ -54,11 +55,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       if (parsed.data.role === 'OWNER' && callerRole !== 'OWNER') {
         return NextResponse.json({ error: 'Only the business owner can assign the Owner role' }, { status: 403 })
       }
-      if (user.id === (session.user as any).id && parsed.data.role && parsed.data.role !== 'OWNER') {
+      if (user.id === session.user.id && parsed.data.role && parsed.data.role !== 'OWNER') {
         return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
       }
       // Don't allow deactivating yourself
-      if (user.id === (session.user as any).id && parsed.data.isActive === false) {
+      if (user.id === session.user.id && parsed.data.isActive === false) {
         return NextResponse.json({ error: 'You cannot deactivate your own account' }, { status: 400 })
       }
       // Don't allow deactivating the last remaining owner
@@ -115,7 +116,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action:
             parsed.data.barberId !== undefined
               ? 'USER_BARBER_LINK_CHANGED'
@@ -125,13 +126,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           entityType: 'User',
           entityId: params.id,
           oldValues: { role: user.role, name: user.name, isActive: user.isActive },
-          newValues: parsed.data as any,
+          newValues: toAuditJson(parsed.data),
           ipAddress: req.headers.get('x-forwarded-for'),
           userAgent: req.headers.get('user-agent'),
         },
       })
       return NextResponse.json({ user: updated })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'USER_PASSWORD_CHANGED',
           entityType: 'User',
           entityId: params.id,
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         tempPassword,
         message: 'Password reset. Share the temporary password securely.',
       })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }
@@ -234,7 +235,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
       // Don't allow deleting yourself
-      if (user.id === (session.user as any).id) {
+      if (user.id === session.user.id) {
         return NextResponse.json({ error: 'You cannot remove yourself' }, { status: 400 })
       }
       // Check if this is the last owner
@@ -251,7 +252,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'USER_DEACTIVATED',
           entityType: 'User',
           entityId: params.id,
@@ -261,7 +262,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         },
       })
       return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }

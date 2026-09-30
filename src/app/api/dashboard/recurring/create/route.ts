@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
     const body = await req.json()
     const {
       barberId,

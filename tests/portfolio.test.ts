@@ -18,6 +18,7 @@
  * Run: npx tsx tests/portfolio.test.ts (requires the database)
  */
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../src/lib/prisma'
 import { buildPortfolioFilters, filterPortfolio } from '../src/lib/portfolio'
 import { readFileSync } from 'fs'
@@ -88,7 +89,7 @@ async function main() {
     data: { businessId: businessA.id, name: 'Ghost', slug: `ghost-${Date.now()}`, isActive: false },
   })
 
-  const mk = (data: any) => prisma.mediaAsset.create({ data })
+  const mk = (data: Prisma.MediaAssetUncheckedCreateInput) => prisma.mediaAsset.create({ data })
 
   await mk({
     businessId: businessA.id, barberId: barberA1.id, serviceId: fadeA.id,
@@ -154,12 +155,12 @@ async function main() {
       { id: '3', url: 'u3', altText: null, caption: null, service: { id: 'beard', name: 'Beards' } },
       { id: '4', url: 'u4', altText: null, caption: null, service: null },
     ]
-    const filters = buildPortfolioFilters(assets as any)
+    const filters = buildPortfolioFilters(assets)
     assert(filters[0].id === 'all' && filters.length === 3, 'filters: All first + unique configured services only')
-    assert(filterPortfolio(assets as any, 'fade').length === 2, 'fade filter returns fade work')
-    assert(filterPortfolio(assets as any, 'beard').length === 1, 'beard filter returns beard work')
-    assert(filterPortfolio(assets as any, 'all').length === 4, 'All includes unlinked work')
-    assert(filterPortfolio(assets as any, 'nonexistent').length === 0, 'unknown filter yields empty view')
+    assert(filterPortfolio(assets, 'fade').length === 2, 'fade filter returns fade work')
+    assert(filterPortfolio(assets, 'beard').length === 1, 'beard filter returns beard work')
+    assert(filterPortfolio(assets, 'all').length === 4, 'All includes unlinked work')
+    assert(filterPortfolio(assets, 'nonexistent').length === 0, 'unknown filter yields empty view')
     const emptyFilters = buildPortfolioFilters([])
     assert(emptyFilters.length === 1 && emptyFilters[0].id === 'all', 'no assets → only the All filter (no empty categories)')
   }

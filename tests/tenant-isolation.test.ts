@@ -165,7 +165,7 @@ async function setup() {
   return { businessA, businessB, ownerA, ownerB, barberA, barberB, serviceA, serviceB, customerA, customerB, apptA, apptB }
 }
 
-async function cleanup(ids: any) {
+async function cleanup(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n🧹 Cleaning up test data...')
   await prisma.appointment.deleteMany({ where: { businessId: { in: [ids.businessA.id, ids.businessB.id] } } })
   await prisma.customer.deleteMany({ where: { businessId: { in: [ids.businessA.id, ids.businessB.id] } } })
@@ -175,7 +175,7 @@ async function cleanup(ids: any) {
   await prisma.business.deleteMany({ where: { id: { in: [ids.businessA.id, ids.businessB.id] } } })
 }
 
-async function testTenantIsolation(ids: any) {
+async function testTenantIsolation(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n🔒 Testing tenant isolation...')
 
   // Test 1: Appointments are scoped by businessId
@@ -254,7 +254,7 @@ async function main() {
   console.log('  Section 14: Tenant Isolation Tests')
   console.log('═══════════════════════════════════════════')
 
-  let ids: any
+  let ids: Awaited<ReturnType<typeof setup>> | undefined
   try {
     ids = await setup()
     await testTenantIsolation(ids)

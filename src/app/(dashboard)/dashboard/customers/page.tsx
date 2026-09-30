@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { CustomersListView } from '@/components/dashboard/CustomersListView'
 
@@ -10,19 +11,25 @@ export default async function CustomersPage() {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
   const isBarber = user.role === 'BARBER'
   const barberId = user.barberId
 
-  const whereClause: any = { businessId }
+  const whereClause: Prisma.CustomerWhereInput = { businessId }
   if (isBarber && barberId) {
     whereClause.appointments = {
       some: { barberId },
     }
   }
 
-  let customers: any[] = []
+  type CustomerWithIncludes = Prisma.CustomerGetPayload<{
+    include: {
+      _count: { select: { appointments: true } }
+      appointments: { select: { startTime: true }; orderBy: { startTime: 'desc' }; take: number }
+    }
+  }>
+  let customers: CustomerWithIncludes[] = []
   try {
     customers = await prisma.customer.findMany({
       where: whereClause,
@@ -46,7 +53,7 @@ export default async function CustomersPage() {
     ...c,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
-    appointments: c.appointments.map((a: any) => ({
+    appointments: c.appointments.map((a) => ({
       ...a,
       startTime: a.startTime.toISOString(),
     })),

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const user = session.user as any
+    const user = session.user
     const businessId = user?.businessId
     const barberId = user?.barberId
     if (!businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

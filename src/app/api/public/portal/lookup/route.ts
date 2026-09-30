@@ -35,11 +35,11 @@ export async function POST(req: NextRequest) {
     if (!contactMatches) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
     const appointments = await prisma.appointment.findMany({ where: { customerId: customer.id, businessId: business.id }, include: { barber: { select: { id: true, name: true, photo: true, isActive: true } }, service: { select: { id: true, name: true, price: true, duration: true, recommendedRebookingIntervalDays: true, isActive: true } } }, orderBy: { startTime: 'desc' }, take: 50 })
     const now = new Date()
-    const safe = appointments.map((a: any) => ({ confirmationNumber: a.confirmationNumber, customerAccessToken: a.customerAccessToken, status: a.status, startTime: a.startTime.toISOString(), endTime: a.endTime.toISOString(), barber: a.barber, service: a.service }))
-    const upcoming = safe.filter((a: any) => new Date(a.startTime) >= now && !['CANCELLED', 'NO_SHOW'].includes(a.status))
-    const past = safe.filter((a: any) => new Date(a.startTime) < now || ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status))
+    const safe = appointments.map((a) => ({ confirmationNumber: a.confirmationNumber, customerAccessToken: a.customerAccessToken, status: a.status, startTime: a.startTime.toISOString(), endTime: a.endTime.toISOString(), barber: a.barber, service: a.service }))
+    const upcoming = safe.filter((a) => new Date(a.startTime) >= now && !['CANCELLED', 'NO_SHOW'].includes(a.status))
+    const past = safe.filter((a) => new Date(a.startTime) < now || ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status))
     const rewardProgram = await prisma.businessRewardProgram.findFirst({ where: { businessId: business.id, isActive: true } })
-    const completedCount = appointments.filter((a: any) => a.status === 'COMPLETED').length
+    const completedCount = appointments.filter((a) => a.status === 'COMPLETED').length
 
     // ── "Book your usual" suggestion (from the customer's own history) ──
     // Derived from the last COMPLETED visit, falling back to the most recent
@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
     // no usable history, `usual` stays null and the portal shows nothing.
     // Catalog ids (serviceId/barberId) are public catalog references — the
     // booking wizard re-validates everything through the canonical engine.
-    const lastVisit = appointments.find((a: any) => a.status === 'COMPLETED')
-    const fallbackVisit = appointments.find((a: any) => !['CANCELLED', 'NO_SHOW', 'RESCHEDULED'].includes(a.status))
+    const lastVisit = appointments.find((a) => a.status === 'COMPLETED')
+    const fallbackVisit = appointments.find((a) => !['CANCELLED', 'NO_SHOW', 'RESCHEDULED'].includes(a.status))
     const baseVisit = lastVisit || fallbackVisit || null
 
     const usual =
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         smsConsent: customer.smsConsent,
         preferences: customer.preferences,
       },
-      appointments: appointments.map((a: any) => ({
+      appointments: appointments.map((a) => ({
         id: a.id,
         status: a.status,
         startTime: a.startTime,

@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       await logAudit({
         userId: user.id,
         businessId: business.id,
-        action: 'CREATE',
+        action: 'PLATFORM_BUSINESS_CREATED',
         entityType: 'Business',
         entityId: business.id,
         newValues: { name: business.name, slug: business.slug },
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         business: { id: business.id, name: business.name, slug: business.slug },
         message: 'Shop created successfully!',
       }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Create shop error:', error)
       if (error.code === 'P2002') {
         return NextResponse.json(

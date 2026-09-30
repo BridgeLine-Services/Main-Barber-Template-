@@ -48,7 +48,7 @@ export async function GET() {
         orderBy: { createdAt: 'asc' },
       })
       return NextResponse.json({ staff })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database not available' }, { status: 503 })
       }
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
         await prisma.auditLog.create({
           data: {
             businessId,
-            userId: (session.user as any).id,
+            userId: session.user.id,
             action: 'USER_INVITED',
             entityType: 'User',
             entityId: user.id,
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       try {
         emailSent = await sendStaffInviteEmail({
           businessId,
-          businessName: (session.user as any).businessName || 'your barbershop',
+          businessName: session.user.businessName || 'your barbershop',
           to: user.email,
           name: user.name,
           tempPassword,
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
           ? `Staff member invited. Temporary password sent to ${user.email}; also shown below in case the email doesn't arrive.`
           : 'Staff member invited. Share the temporary password securely.',
       }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 })
       }

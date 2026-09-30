@@ -17,7 +17,7 @@ export async function getCurrentBusiness() {
   // Try authenticated user first (for dashboard routes)
   const session = await getServerSession(authOptions)
   if (session?.user) {
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     if (businessId) {
       const business = await prisma.business.findUnique({ where: { id: businessId } })
       if (business) return business
@@ -34,7 +34,7 @@ export async function getCurrentBusiness() {
 export async function getCurrentBusinessId(): Promise<string> {
   const session = await getServerSession(authOptions)
   if (session?.user) {
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     if (businessId) return businessId
   }
 
@@ -50,7 +50,7 @@ export async function getCurrentBusinessId(): Promise<string> {
 export async function resolveBusinessIdFromRequest(_req?: Request): Promise<string> {
   const session = await getServerSession(authOptions)
   if (session?.user) {
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     if (businessId) return businessId
   }
 

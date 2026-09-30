@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const barbers = await prisma.barber.findMany({
       where: { businessId },
       include: {
@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
     const body = await req.json().catch(() => null)
     // Validate barber fields (password/email are separate, not in schema)
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       return created
     })
     await logAudit({
-      userId: (session.user as any)?.id,
+      userId: session.user?.id,
       businessId,
       action: 'BARBER_CREATED',
       entityType: 'Barber',

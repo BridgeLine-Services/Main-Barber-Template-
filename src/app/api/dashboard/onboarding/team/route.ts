@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         select: { ...barberSubset, schedules: { select: scheduleSelect, orderBy: { dayOfWeek: 'asc' } } },
       })
       return NextResponse.json({ barber }, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding barber create error:', error)
       return NextResponse.json({ error: 'Failed to add barber' }, { status: 500 })
     }

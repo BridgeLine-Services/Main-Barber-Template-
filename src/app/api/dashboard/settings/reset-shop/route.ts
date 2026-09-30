@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') {
+    if (session.user?.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can reset a shop' }, { status: 403 })
     }
     // Tenant isolation: businessId comes from the session, never the request
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     if (!businessId) {
       return NextResponse.json({ error: 'No business associated with this account' }, { status: 400 })
     }
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: AuditAction.SHOP_CONFIGURATION_RESET,
           entityType: 'Business',
           entityId: businessId,

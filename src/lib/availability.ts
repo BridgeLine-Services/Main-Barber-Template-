@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { generateConfirmationNumber, generateCustomerAccessToken } from '@/lib/utils'
 import { addMinutes } from 'date-fns'
@@ -149,6 +150,7 @@ export async function getAvailableSlots(params: {
     }
   }
 
+  const closureBlockedRanges: Array<{ startTime: Date; endTime: Date }> = []
   // Check business closures (holidays, vacations, etc.)
   for (const closure of closures) {
     if (closure.isAllDay) return [] // Entire day is closed
@@ -157,7 +159,7 @@ export async function getAvailableSlots(params: {
       // Convert closure times from business-local to UTC
       const closureStart = localTimeToUTCFromYMD(closure.startTime, year, month, day, timezone)
       const closureEnd = localTimeToUTCFromYMD(closure.endTime, year, month, day, timezone)
-      blockedTimes.push({ startTime: closureStart, endTime: closureEnd } as any)
+      closureBlockedRanges.push({ startTime: closureStart, endTime: closureEnd })
     }
   }
 
@@ -187,10 +189,16 @@ export async function getAvailableSlots(params: {
   }
 
   // Parse blocked times into date ranges (already UTC from DB)
-  const blockedRanges = blockedTimes.map((bt) => ({
-    start: bt.startTime,
-    end: bt.endTime,
-  }))
+  const blockedRanges = [
+    ...blockedTimes.map((bt) => ({
+      start: bt.startTime,
+      end: bt.endTime,
+    })),
+    ...closureBlockedRanges.map((r) => ({
+      start: r.startTime,
+      end: r.endTime,
+    })),
+  ]
 
   // Sort appointments by start time
   const sortedAppointments = appointments.sort(
@@ -536,7 +544,7 @@ export async function createAppointmentSafely(params: {
     policiesAcceptedAt?: Date | null
     policyVersion?: string | null
   }
-}): Promise<{ success: boolean; appointment?: any; error?: string; customerAccessToken?: string }> {
+}): Promise<{ success: boolean; appointment?: Prisma.AppointmentGetPayload<{ include: { service: true; barber: true } }>; error?: string; customerAccessToken?: string }> {
   const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData } = params
 
   try {
@@ -712,8 +720,8 @@ export async function createAppointmentSafely(params: {
           orderBy: { sortOrder: 'asc' },
         })
         const responses = questions
-          .filter((question: any) => customerData.answers?.[question.key] !== undefined)
-          .map((question: any) => ({
+          .filter((question) => customerData.answers?.[question.key] !== undefined)
+          .map((question) => ({
             appointmentId: appointment.id,
             questionId: question.id,
             questionKey: question.key,
@@ -729,7 +737,7 @@ export async function createAppointmentSafely(params: {
     }, { isolationLevel: 'Serializable' })
 
     return { success: true, appointment: result, customerAccessToken: result.customerAccessToken }
-  } catch (error: any) {
+  } catch (error) {
     const message = error.message || 'Unknown error'
     if (message === 'SLOT_TAKEN' || error?.code === 'P2034' || error?.code === '23P01') {
       return { success: false, error: 'That appointment was just booked by someone else. Please choose another time.' }

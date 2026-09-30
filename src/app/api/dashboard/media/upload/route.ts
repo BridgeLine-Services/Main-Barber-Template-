@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const businessId = (session.user as any)?.businessId as string | undefined
-    const sessionBarberId = (session.user as any)?.barberId
+    const role = session.user?.role
+    const businessId = session.user?.businessId as string | undefined
+    const sessionBarberId = session.user?.barberId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json({ error: 'Media storage is not configured. Set BLOB_READ_WRITE_TOKEN in the deployment environment.' }, { status: 503 })

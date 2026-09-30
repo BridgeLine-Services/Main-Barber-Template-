@@ -36,10 +36,10 @@ export async function POST() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if ((session.user as any).role !== 'OWNER') {
+    if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     if (!businessId) {
       return NextResponse.json({ error: 'No business context' }, { status: 400 })
     }
@@ -63,7 +63,7 @@ export async function POST() {
     })
 
     await logAudit({
-      userId: (session.user as any).id,
+      userId: session.user.id,
       businessId,
       action: 'WEBSITE_CONTENT_PUBLISHED',
       entityType: 'WebsiteContent',
@@ -87,7 +87,7 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const businessId = (session.user as any).businessId
+    const businessId = session.user.businessId
     const content = businessId
       ? await prisma.websiteContent.findUnique({
           where: { businessId },

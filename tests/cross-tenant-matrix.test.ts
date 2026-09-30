@@ -45,12 +45,12 @@ function cookiePairs(setCookie: string): string {
     .join('; ')
 }
 
-async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: any; text: string }> {
+async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: unknown; text: string }> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie: cookiePairs(cookie) } : {}), ...(init.headers || {}) },
   })
-  let body: any = null
+  let body: unknown = null
   const text = await res.text()
   try { body = JSON.parse(text) } catch { /* non-JSON (e.g. CSV) */ }
   return { status: res.status, body, text }
@@ -58,7 +58,7 @@ async function api(path: string, init: RequestInit = {}, cookie: string = ''): P
 
 /** An attack attempt "succeeds safely" if it did not return 200 AND the
  * response contains none of B's sensitive marker strings. */
-function safeAttempt(res: { status: number; body: any; text: string }, markers: string[], label: string) {
+function safeAttempt(res: { status: number; body: unknown; text: string }, markers: string[], label: string) {
   const leaked = markers.filter((m) => res.text.includes(m))
   assert(res.status !== 200 && leaked.length === 0, `${label} blocked (status ${res.status}${leaked.length ? ', LEAKED: ' + leaked.join(', ') : ''})`)
 }
@@ -106,7 +106,7 @@ async function main() {
     override: await prisma.availabilityOverride.findUnique({ where: { id: overrideB.id } }),
     business: await prisma.business.findUnique({ where: { id: bizB.id } }),
   })
-  const strip = (o: any) => JSON.stringify(o, (k, v) => (k === 'updatedAt' ? undefined : v))
+  const strip = (o: unknown) => JSON.stringify(o, (k, v) => (k === 'updatedAt' ? undefined : v))
   const before = await snapshot()
 
   // Markers that must never appear in a response to A.

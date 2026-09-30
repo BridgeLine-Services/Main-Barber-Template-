@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         syncedFields: result.syncedFields,
         errors: result.errors,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('GBP sync error:', error)
       return NextResponse.json({ error: 'Failed to sync with Google Business Profile' }, { status: 500 })
     }

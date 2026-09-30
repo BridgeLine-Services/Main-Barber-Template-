@@ -19,8 +19,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
-    const userId = (session.user as any)?.id
+    const businessId = session.user?.businessId
+    const userId = session.user?.id
     // Verify customer belongs to this business
     const customer = await prisma.customer.findFirst({
       where: { id: params.id, businessId },
@@ -137,7 +137,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const customer = await prisma.customer.findFirst({
       where: { id: params.id, businessId },
       select: { id: true, preferences: true },

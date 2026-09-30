@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest) {
         // OWNER: return user info
         return NextResponse.json({ user: auth.user })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile fetch error:', error)
       return NextResponse.json({ error: 'Server error' }, { status: 500 })
     }
@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest) {
         userAgent: req.headers.get('user-agent') || undefined,
       })
       return NextResponse.json({ barber: updated })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile update error:', error)
       return NextResponse.json({ error: 'Server error' }, { status: 500 })
     }

@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         prisma.auditLog.count({ where }),
       ])
       return NextResponse.json({ logs, total, hasMore: offset + logs.length < total })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[audit-logs] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }

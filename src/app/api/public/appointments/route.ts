@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
       confirmationNumber: result.appointment?.confirmationNumber,
       customerAccessToken: result.customerAccessToken,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Booking error:', error)
 
     // Database not available — reject booking

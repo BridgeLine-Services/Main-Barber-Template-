@@ -7,15 +7,40 @@ import { Scissors, Plus, Edit2, Trash2, CheckCircle2, XCircle, Clock,Users, Load
 import { Button } from '@/components/ui/button'
 import { formatDuration, formatPrice } from '@/lib/utils'
 
+// DTOs produced by the services page (Prisma rows serialized for the client)
+interface ServiceBarberRef {
+  barberId: string
+  serviceId: string
+  barberName: string | null
+}
+
+interface ServiceRow {
+  id: string
+  name: string
+  description: string | null
+  duration: number
+  price: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  barbers: ServiceBarberRef[]
+}
+
+interface BarberOption {
+  id: string
+  name: string
+  isActive: boolean
+}
+
 interface ServicesClientProps {
-  initialServices: any[]
-  barbers: any[]
+  initialServices: ServiceRow[]
+  barbers: BarberOption[]
 }
 
 export function ServicesClient({ initialServices, barbers }: ServicesClientProps) {
   const router = useRouter()
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingService, setEditingService] = useState<any | null>(null)
+  const [editingService, setEditingService] = useState<ServiceRow | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const handleOpenAdd = () => {
@@ -23,7 +48,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
     setIsFormOpen(true)
   }
 
-  const handleOpenEdit = (service: any) => {
+  const handleOpenEdit = (service: ServiceRow) => {
     setEditingService(service)
     setIsFormOpen(true)
   }
@@ -32,7 +57,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
     router.refresh()
   }
 
-  const handleToggleActive = async (service: any) => {
+  const handleToggleActive = async (service: ServiceRow) => {
     setLoadingId(service.id)
     try {
       const res = await fetch(`/api/dashboard/services/${service.id}`, {
@@ -55,7 +80,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
     }
   }
 
-  const handleDelete = async (service: any) => {
+  const handleDelete = async (service: ServiceRow) => {
     if (!confirm(`Are you sure you want to delete "${service.name}"?`)) return
 
     setLoadingId(service.id)
@@ -125,7 +150,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
               ) : (
                 initialServices.map((service) => {
                   const barbersCount = service.barbers?.length || 0
-                  const barberNames = service.barbers?.map((b: any) => b.barber?.name || b.barberName).filter(Boolean).join(', ')
+                  const barberNames = service.barbers?.map((b) => b.barberName).filter(Boolean).join(', ')
 
                   return (
                     <tr key={service.id} className="hover:bg-zinc-900/70 transition-colors">

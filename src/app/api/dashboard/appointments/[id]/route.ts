@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, props: RouteParams) {
         )
       }
       return NextResponse.json(appointment)
-    } catch (_error: any) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Failed to update appointment. Please try again.' }, { status: 500 })
     }
   } catch (error) {
@@ -202,7 +202,7 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         userAgent: req.headers.get('user-agent') || undefined,
       })
       return NextResponse.json(updated)
-    } catch (error: any) {
+    } catch (error) {
       if (error?.message === 'SLOT_TAKEN' || error?.code === 'P2034' || error?.code === '23P01') {
         return NextResponse.json({ error: 'That appointment was just booked by someone else. Please choose another time.' }, { status: 409 })
       }

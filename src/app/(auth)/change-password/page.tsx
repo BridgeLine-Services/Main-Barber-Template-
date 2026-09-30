@@ -85,7 +85,7 @@ export default function ChangePasswordPage() {
             <CardTitle className="text-xl text-zinc-100">Change Your Password</CardTitle>
             <p className="text-sm text-zinc-400 mt-1">
               For security, you must set a new password before continuing
-              {session?.user ? ` (signed in as ${(session.user as any).email ?? 'your account'})` : ''}.
+              {session?.user ? ` (signed in as ${session.user.email ?? 'your account'})` : ''}.
             </p>
           </CardHeader>
           <CardContent>

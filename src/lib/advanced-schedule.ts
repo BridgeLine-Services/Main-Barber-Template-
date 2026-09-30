@@ -38,7 +38,7 @@ export async function getScheduleConfig(businessId: string): Promise<ScheduleCon
     select: { hours: true },
   })
   if (!business?.hours) return DEFAULT_SCHEDULE_CONFIG
-  const hours = business.hours as any
+  const hours = business.hours as { scheduleConfig?: Partial<ScheduleConfig> } | null
   return { ...DEFAULT_SCHEDULE_CONFIG, ...hours.scheduleConfig }
 }
 
@@ -50,13 +50,13 @@ export async function updateScheduleConfig(
     where: { id: businessId },
     select: { hours: true },
   })
-  const currentHours = (business?.hours as any) || {}
+  const currentHours = (business?.hours as { scheduleConfig?: Partial<ScheduleConfig> } | null) || {}
   const currentConfig = { ...DEFAULT_SCHEDULE_CONFIG, ...currentHours.scheduleConfig }
   const newConfig = { ...currentConfig, ...config }
   const updatedHours = { ...currentHours, scheduleConfig: newConfig }
   await prisma.business.update({
     where: { id: businessId },
-    data: { hours: updatedHours as any },
+    data: { hours: updatedHours },
   })
   return newConfig
 }

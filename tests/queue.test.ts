@@ -14,6 +14,7 @@
  * Run: npx tsx tests/queue.test.ts (requires the database)
  */
 
+import type { QueueEntry } from '../src/lib/queue'
 import { prisma } from '../src/lib/prisma'
 import {
   computeQueuePositions,
@@ -89,7 +90,7 @@ async function main() {
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
 
-  const mkWalkIn = (data: any) =>
+  const mkWalkIn = (data: { first: string; phone: string; serviceId: string; barberId?: string }) =>
     prisma.waitlistEntry.create({
       data: {
         businessId: business.id,
@@ -155,13 +156,13 @@ async function main() {
   console.log('\nWait estimation (honest, data-supported)')
   {
     // w2 (shave 15m) + w3 (cut 30m) ahead of nothing → 45m total; 2 barbers → ~25 (rounded to 5)
-    const queue = [w1, w2, w3].map((e) => ({ ...e, status: 'WAITING' }))
-    const ahead = entriesAheadOf(w3 as any, queue as any)
+    const queue: QueueEntry[] = [w1, w2, w3].map((e) => ({ ...e, status: 'WAITING' }))
+    const ahead = entriesAheadOf(w3, queue)
     assert(ahead.length === 2, 'entries ahead counted by arrival order')
-    assert(estimateWaitMinutes(ahead as any, 2) === 25, '45 min of work ÷ 2 barbers → 25 min estimate')
-    assert(estimateWaitMinutes(ahead as any, 1) === 45, 'single barber → full 45 min estimate')
+    assert(estimateWaitMinutes(ahead, 2) === 25, '45 min of work ÷ 2 barbers → 25 min estimate')
+    assert(estimateWaitMinutes(ahead, 1) === 45, 'single barber → full 45 min estimate')
     assert(estimateWaitMinutes([], 2) === 5, 'empty queue → minimum 5 min estimate')
-    assert(estimateWaitMinutes(ahead as any, 0) === null, 'no active barbers → no estimate (no false promises)')
+    assert(estimateWaitMinutes(ahead, 0) === null, 'no active barbers → no estimate (no false promises)')
     const broken = [{ id: 'x', status: 'WAITING', createdAt: new Date(), service: null }]
     assert(estimateWaitMinutes(broken, 1) === null, 'missing service duration → no estimate')
   }

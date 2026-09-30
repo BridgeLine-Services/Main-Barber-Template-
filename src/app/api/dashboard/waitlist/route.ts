@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
           entry.preferredDate.getTime() < todayEnd.getTime(),
       }))
       return NextResponse.json({ entries: withQueueMeta })
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes('No business found') || error.code === 'P1001') {
         return NextResponse.json({ error: 'Database not available' }, { status: 503 })
       }
@@ -103,7 +103,7 @@ export async function PATCH(req: NextRequest) {
       }
       const updated = await prisma.waitlistEntry.findUnique({ where: { id } })
       return NextResponse.json({ entry: updated })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error' }, { status: 503 })
       }

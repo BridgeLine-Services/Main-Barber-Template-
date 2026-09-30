@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import type { Barber, BlockedTime, Schedule } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ScheduleEditor } from '@/components/dashboard/ScheduleEditor'
 import { AvailabilityOverrides } from '@/components/dashboard/AvailabilityOverrides'
@@ -21,11 +22,11 @@ export default async function SchedulePage(props: SchedulePageProps) {
     redirect('/login')
   }
 
-  const user = session.user as any
+  const user = session.user
   const businessId = user.businessId
   const isOwner = user.role === 'OWNER'
 
-  let allBarbers: any[] = []
+  let allBarbers: Barber[] = []
   try {
     allBarbers = await prisma.barber.findMany({
       where: { businessId, isActive: true },
@@ -54,8 +55,8 @@ export default async function SchedulePage(props: SchedulePageProps) {
 
   const selectedBarber = allBarbers.find((b) => b.id === targetBarberId) || null
 
-  let schedules: any[] = []
-  let blockedTimes: any[] = []
+  let schedules: Schedule[] = []
+  let blockedTimes: BlockedTime[] = []
 
   try {
     [schedules, blockedTimes] = await Promise.all([

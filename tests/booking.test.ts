@@ -105,7 +105,7 @@ async function setup() {
   return { business, barber1, barber2, service, customer }
 }
 
-async function cleanup(ids: any) {
+async function cleanup(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n🧹 Cleaning up test data...')
   await prisma.appointment.deleteMany({ where: { businessId: ids.business.id } })
   await prisma.schedule.deleteMany({ where: { barberId: { in: [ids.barber1.id, ids.barber2.id] } } })
@@ -138,7 +138,7 @@ function getDayOfWeek(date: Date): number {
 
 // ─── Tests ────────────────────────────────────────────────────────────────
 
-async function testBookingFlow(ids: any) {
+async function testBookingFlow(ids: Awaited<ReturnType<typeof setup>>) {
   console.log('\n📅 Testing booking flow...')
 
   const { business, barber1, barber2, service, customer } = ids
@@ -271,7 +271,7 @@ async function main() {
   console.log('  Section 15: Booking Flow Tests')
   console.log('═══════════════════════════════════════════')
 
-  let ids: any
+  let ids: Awaited<ReturnType<typeof setup>> | undefined
   try {
     ids = await setup()
     await testBookingFlow(ids)

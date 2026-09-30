@@ -89,16 +89,16 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role
-        token.businessId = (user as any).businessId
-        token.businessName = (user as any).businessName
-        token.barberId = (user as any).barberId
+        token.role = user.role as typeof token.role
+        token.businessId = user.businessId as string | null
+        token.businessName = user.businessName as string | undefined
+        token.barberId = user.barberId as string | null
       }
       // Self-heal stale claims: an owner who signed in BEFORE creating their
       // business carries businessId=null in the JWT. Once the business exists,
       // resolve it from the DB so tenant-scoped routes (which read the claim)
       // work immediately after onboarding — no re-login required.
-      if ((!token.businessId || ((token.role as string) === 'BARBER' && !token.barberId)) && token.sub) {
+      if ((!token.businessId || (token.role === 'BARBER' && !token.barberId)) && token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
           select: {
@@ -114,7 +114,7 @@ export const authOptions: NextAuthOptions = {
         // Self-heal barberId the same way: a BARBER whose profile was linked
         // (or created) AFTER they signed in would otherwise carry barberId=null
         // until the next login, making Barber Mode reject them incorrectly.
-        if ((token.role as string) === 'BARBER' && !token.barberId && dbUser?.barberId) {
+        if (token.role === 'BARBER' && !token.barberId && dbUser?.barberId) {
           token.barberId = dbUser.barberId
         }
       }
@@ -124,11 +124,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         // token.sub is the user's DB id (NextAuth default) — expose it so
         // API routes can resolve the DB user authoritatively.
-        ;(session.user as any).id = token.sub
-        ;(session.user as any).role = token.role
-        ;(session.user as any).businessId = token.businessId
-        ;(session.user as any).businessName = token.businessName
-        ;(session.user as any).barberId = token.barberId
+        ;session.user.id = token.sub
+        ;session.user.role = token.role
+        ;session.user.businessId = token.businessId
+        ;session.user.businessName = token.businessName
+        ;session.user.barberId = token.barberId
       }
       return session
     },

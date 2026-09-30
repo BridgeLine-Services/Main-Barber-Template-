@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ earliest: null })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Earliest availability error:', error)
     return NextResponse.json(
       { error: 'Availability is temporarily unavailable. Please try again.' },

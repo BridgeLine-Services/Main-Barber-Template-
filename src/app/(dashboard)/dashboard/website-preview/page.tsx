@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 export default async function WebsitePreviewPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user) redirect('/login')
-  const businessId = (session.user as any).businessId
+  const businessId = session.user.businessId
   if (!businessId) redirect('/dashboard')
 
   const [content, business] = await Promise.all([

@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
     const { searchParams } = new URL(req.url)
     const urlBarberId = searchParams.get('barberId')
     const targetBarberId = role === 'BARBER' ? sessionBarberId : urlBarberId
@@ -51,9 +51,9 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     const parseResult = updateBarberServiceSchema.safeParse(body)
@@ -121,9 +121,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     const { serviceId, barberId: bodyBarberId } = body as { serviceId?: string; barberId?: string }
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
         },
       })
       return NextResponse.json(result, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       // Already exists
       if (error.code === 'P2002') {
         return NextResponse.json({ error: 'This service is already linked to this barber' }, { status: 409 })
@@ -177,9 +177,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const role = (session.user as any)?.role
-    const sessionBarberId = (session.user as any)?.barberId
-    const businessId = (session.user as any)?.businessId
+    const role = session.user?.role
+    const sessionBarberId = session.user?.barberId
+    const businessId = session.user?.businessId
     const { searchParams } = new URL(req.url)
     const urlBarberId = searchParams.get('barberId')
     const serviceId = searchParams.get('serviceId')

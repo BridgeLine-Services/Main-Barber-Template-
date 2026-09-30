@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const barber = await prisma.barber.findFirst({
       where: { id: params.id, businessId },
       include: {
@@ -34,8 +34,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
     const existing = await prisma.barber.findFirst({ where: { id: params.id, businessId } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const body = await req.json()
@@ -81,7 +81,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       include: { services: { include: { service: true } } },
     })
     await logAudit({
-      userId: (session.user as any)?.id,
+      userId: session.user?.id,
       businessId,
       action: 'BARBER_UPDATED',
       entityType: 'Barber',
@@ -116,8 +116,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
 
     const existing = await prisma.barber.findFirst({ where: { id: params.id, businessId } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -134,7 +134,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         await prisma.auditLog.create({
           data: {
             businessId,
-            userId: (session.user as any).id,
+            userId: session.user.id,
             action: 'BARBER_DEACTIVATED',
             entityType: 'Barber',
             entityId: params.id,
@@ -183,7 +183,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       await prisma.auditLog.create({
         data: {
           businessId,
-          userId: (session.user as any).id,
+          userId: session.user.id,
           action: 'BARBER_DELETED',
           entityType: 'Barber',
           entityId: params.id,

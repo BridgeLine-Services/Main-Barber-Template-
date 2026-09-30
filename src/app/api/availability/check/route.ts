@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ dates })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Availability check error:', error)
 
     // Return empty (no indicators) on error — don't block the calendar

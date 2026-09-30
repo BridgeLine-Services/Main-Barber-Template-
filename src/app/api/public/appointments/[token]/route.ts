@@ -65,7 +65,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ token: st
         },
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching appointment by token:', error)
     return NextResponse.json({ error: 'Failed to fetch appointment' }, { status: 500 })
   }

@@ -75,7 +75,7 @@ export function RecurringDialog({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to preview')
       setPreview(data)
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to generate preview')
     } finally {
       setLoading(false)
@@ -123,7 +123,7 @@ export function RecurringDialog({
         setPreview(null)
         window.location.reload()
       }, 2500)
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to create appointments')
     } finally {
       setCreating(false)

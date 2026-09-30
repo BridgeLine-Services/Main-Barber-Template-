@@ -1,3 +1,4 @@
+import type { Appointment } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getAvailableSlots, validateSlot, createAppointmentSafely } from '@/lib/availability'
 import { DateTime } from 'luxon'
@@ -239,13 +240,13 @@ export async function createRecurringAppointments(params: {
   }
   createdBy?: string
 }): Promise<{
-  created: any[]
+  created: Appointment[]
   conflicts: { date: Date; dateLabel: string; reason: string }[]
 }> {
   const { businessId, barberId, serviceId, startDate, intervalWeeks, totalOccurrences, preferredTime, customerData, createdBy } = params
   const intervalDays = intervalWeeks * 7
   const timezone = await getBusinessTimezone(businessId)
-  const created: any[] = []
+  const created: Appointment[] = []
   const conflicts: { date: Date; dateLabel: string; reason: string }[] = []
 
   for (let i = 0; i < totalOccurrences; i++) {

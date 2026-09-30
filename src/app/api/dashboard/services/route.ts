@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const services = await prisma.service.findMany({
       where: { businessId },
       include: { barbers: { include: { barber: true } } },
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if ((session.user as any)?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const businessId = (session.user as any)?.businessId
+    if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
     const body = await req.json().catch(() => null)
     const parseResult = createServiceSchema.safeParse(body)
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       include: { barbers: true },
     })
     await logAudit({
-      userId: (session.user as any)?.id,
+      userId: session.user?.id,
       businessId,
       action: 'SERVICE_CREATED',
       entityType: 'Service',

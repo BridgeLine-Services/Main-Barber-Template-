@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       })
       await logAudit({
         businessId,
-        userId: (auth.user as any).id,
+        userId: auth.user.id,
         action: AuditAction.SETTINGS_UPDATED,
         entityType: 'Faq',
         entityId: faq.id,
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         newValues: parsed.data,
       })
       return NextResponse.json({ faq })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating FAQ:', error)
       return NextResponse.json({ error: 'Failed to update FAQ' }, { status: 500 })
     }
@@ -77,14 +77,14 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       await prisma.faq.delete({ where: { id: params.id } })
       await logAudit({
         businessId,
-        userId: (auth.user as any).id,
+        userId: auth.user.id,
         action: AuditAction.SETTINGS_UPDATED,
         entityType: 'Faq',
         entityId: params.id,
         oldValues: { question: existing.question },
       })
       return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting FAQ:', error)
       return NextResponse.json({ error: 'Failed to delete FAQ' }, { status: 500 })
     }

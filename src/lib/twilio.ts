@@ -81,7 +81,7 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
       success: true,
       messageId: data.sid,
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Twilio fetch error:', error)
     return {
       success: false,

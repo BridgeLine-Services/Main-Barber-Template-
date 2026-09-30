@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const sessionUser = session.user as any
+  const sessionUser = session.user
 
   try {
     const body = await req.json()
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, redirectTo })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Change password error:', error)
     return NextResponse.json({ error: 'Failed to change password' }, { status: 500 })
   }

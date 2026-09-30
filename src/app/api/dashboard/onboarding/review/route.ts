@@ -94,7 +94,7 @@ export async function GET() {
         barbers,
         requirements, // { ok, missing: [{ code, label, hint, step }] }
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding review error:', error)
       return NextResponse.json({ error: 'Failed to load your setup summary.' }, { status: 500 })
     }

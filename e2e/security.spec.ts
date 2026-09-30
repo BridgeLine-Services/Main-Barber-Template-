@@ -39,7 +39,7 @@ test('guessed/forged IDs do not expose other records', async ({ request }) => {
     // assert the not-found view renders and no OTHER email (e.g. a leaked
     // customer record) is present.
     expect(html.toLowerCase()).toMatch(/couldn.t find|not found|no appointment/)
-    const emails = html.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []
+    const emails: string[] = html.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? []
     const nonPublic = emails.filter((e) => !e.endsWith('@yourbarbershop.com') && !e.endsWith('@example.com'))
     expect(nonPublic, 'forged confirmation number leaked a record email').toEqual([])
   }

@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         select: serviceSubset,
       })
       return NextResponse.json({ service })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding service update error:', error)
       return NextResponse.json({ error: 'Failed to update service' }, { status: 500 })
     }
@@ -87,7 +87,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     try {
       await prisma.service.delete({ where: { id: existing.id } })
       return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Onboarding service delete error:', error)
       return NextResponse.json({ error: 'Failed to delete service' }, { status: 500 })
     }

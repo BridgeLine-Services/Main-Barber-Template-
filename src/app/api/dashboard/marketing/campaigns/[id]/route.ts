@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage marketing campaigns' }, { status: 403 })
     }
@@ -88,7 +88,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const user = session.user as any
+    const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage marketing campaigns' }, { status: 403 })
     }

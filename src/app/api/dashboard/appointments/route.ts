@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         orderBy: { startTime: 'asc' },
       })
       return NextResponse.json(appointments)
-    } catch (error: any) {
+    } catch (error) {
       console.error('[appointments] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         })
       }
       return NextResponse.json(result.appointment, { status: 201 })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[appointments] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const { id } = await params
     const customer = await prisma.customer.findFirst({
       where: { id, businessId },
@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     const { id } = await params
     const existing = await prisma.customer.findFirst({ where: { id, businessId } })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!Object.keys(data).length) return NextResponse.json({ error: 'No valid fields supplied' }, { status: 400 })
       const updated = await prisma.customer.update({ where: { id: existing.id }, data })
       await logAudit({
-        userId: (session.user as any)?.id,
+        userId: session.user?.id,
         businessId,
         action: 'CUSTOMER_UPDATED',
         entityType: 'Customer',
@@ -87,7 +87,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = (session.user as any)?.businessId
+    const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
     const su = session.user as { id?: string }
 

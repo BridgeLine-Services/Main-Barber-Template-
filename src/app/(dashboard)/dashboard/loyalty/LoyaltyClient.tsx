@@ -70,7 +70,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
 
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch (err: any) {
+    } catch (err) {
       alert(err.message || 'Failed to save loyalty program')
     } finally {
       setSaving(false)

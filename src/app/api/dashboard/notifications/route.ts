@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         take: limit,
       })
       return NextResponse.json({ logs })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[notifications] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
     }

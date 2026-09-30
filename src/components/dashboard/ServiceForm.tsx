@@ -99,7 +99,7 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
 
       onSave()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'An error occurred')
     } finally {
       setLoading(false)

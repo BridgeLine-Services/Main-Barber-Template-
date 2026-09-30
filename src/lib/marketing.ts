@@ -1,3 +1,4 @@
+import type { CampaignAudience } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // ============================================================================
@@ -197,8 +198,8 @@ export async function createCampaign(businessId: string, data: {
   name: string
   subject: string
   body: string
-  audience: string
-  audienceConfig?: any
+  audience: CampaignAudience
+  audienceConfig?: { barberId?: string; serviceId?: string }
   createdBy?: string
 }) {
   const campaign = await prisma.marketingCampaign.create({
@@ -207,7 +208,7 @@ export async function createCampaign(businessId: string, data: {
       name: data.name,
       subject: data.subject,
       body: data.body,
-      audience: data.audience as any,
+      audience: data.audience,
       audienceConfig: data.audienceConfig || undefined,
       status: 'DRAFT',
     },
@@ -242,7 +243,12 @@ export async function sendCampaign(businessId: string, campaignId: string) {
 
   if (!campaign) throw new Error('Campaign not found')
 
-  const targets = await resolveCampaignAudience(businessId, campaign.audience, campaign.audienceConfig as any)
+  const cfg = campaign.audienceConfig
+  const audienceConfig =
+    cfg && typeof cfg === 'object' && !Array.isArray(cfg)
+      ? { barberId: (cfg as { barberId?: string }).barberId, serviceId: (cfg as { serviceId?: string }).serviceId }
+      : undefined
+  const targets = await resolveCampaignAudience(businessId, campaign.audience, audienceConfig)
 
   // Queue all campaign notifications in one batch insert (an audience of
   // N used to issue N sequential INSERTs). A batched failure is logged and

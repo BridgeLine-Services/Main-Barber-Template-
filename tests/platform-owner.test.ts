@@ -46,12 +46,12 @@ function cookiePairs(setCookie: string): string {
     .join('; ')
 }
 
-async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: any }> {
+async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: unknown }> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie: cookiePairs(cookie) } : {}), ...(init.headers || {}) },
   })
-  let body: any = null
+  let body: unknown = null
   try { body = await res.json() } catch { /* empty */ }
   return { status: res.status, body }
 }
@@ -106,7 +106,8 @@ async function main() {
     assert(platformLogin.ok, 'platform owner can sign in')
     const platformRes = await api('/api/platform/businesses', {}, platformLogin.sessionCookie)
     assert(platformRes.status === 200, `platform owner lists businesses (got ${platformRes.status})`)
-    const listed = (platformRes.body?.businesses || []).map((b: any) => b.id)
+    const platformData = (platformRes.body ?? {}) as { businesses?: Array<{ id: string }> }
+    const listed = (platformData.businesses || []).map((b) => b.id)
     assert(listed.includes(bizA.id) && listed.includes(bizB.id), 'platform list includes both test businesses')
 
     // ── 2. Platform owner creates a business ───────────────────────────
@@ -121,7 +122,8 @@ async function main() {
       }),
     }, platformLogin.sessionCookie)
     assert(created.status === 201, `platform owner creates business (got ${created.status})`)
-    assert(!!created.body?.initialPassword, 'creation returns one-time owner password')
+    const createdBody = (created.body ?? {}) as { initialPassword?: string }
+    assert(!!createdBody.initialPassword, 'creation returns one-time owner password')
 
     const newOwner = await prisma.user.findUnique({ where: { email: `newowner-${stamp}@plat.test` } })
     assert(newOwner?.role === 'OWNER', 'created user has OWNER role')
@@ -144,7 +146,8 @@ async function main() {
       method: 'PATCH',
       body: JSON.stringify({ businessId: bizB.id, action: 'deactivate' }),
     }, platformLogin.sessionCookie)
-    assert(deact.status === 200 && deact.body?.status === 'DEACTIVATED', `platform owner deactivates business (got ${deact.status})`)
+    const deactBody = (deact.body ?? {}) as { status?: string }
+    assert(deact.status === 200 && deactBody.status === 'DEACTIVATED', `platform owner deactivates business (got ${deact.status})`)
 
     const blockedBarber = await login(barberUserB.email, 'TestPass123!')
     assert(!blockedBarber.ok, 'barber of deactivated business cannot sign in')
@@ -156,7 +159,8 @@ async function main() {
       method: 'PATCH',
       body: JSON.stringify({ businessId: bizB.id, action: 'reactivate' }),
     }, platformLogin.sessionCookie)
-    assert(react.status === 200 && react.body?.status === 'ACTIVE', `platform owner reactivates business (got ${react.status})`)
+    const reactBody = (react.body ?? {}) as { status?: string }
+    assert(react.status === 200 && reactBody.status === 'ACTIVE', `platform owner reactivates business (got ${react.status})`)
 
     const barberBack = await login(barberUserB.email, 'TestPass123!')
     assert(barberBack.ok, 'barber can sign in again after reactivation')

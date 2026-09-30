@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest) {
         })
       }
       return NextResponse.json({ seo })
-    } catch (error: any) {
+    } catch (error) {
       console.error('SEO fetch error:', error)
       return NextResponse.json({ error: 'Server error' }, { status: 500 })
     }
@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest) {
         userAgent: req.headers.get('user-agent') || undefined,
       })
       return NextResponse.json({ seo })
-    } catch (error: any) {
+    } catch (error) {
       console.error('SEO update error:', error)
       return NextResponse.json({ error: 'Server error' }, { status: 500 })
     }

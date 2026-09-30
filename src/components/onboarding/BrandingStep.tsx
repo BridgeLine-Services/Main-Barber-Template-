@@ -89,7 +89,7 @@ export function BrandingStep({
         throw new Error(data.error || 'Upload failed')
       }
       setField('logo', data.url)
-    } catch (err: any) {
+    } catch (err) {
       setUploadError(
         `${err.message}. You can paste a logo URL instead below until file storage is configured.`
       )

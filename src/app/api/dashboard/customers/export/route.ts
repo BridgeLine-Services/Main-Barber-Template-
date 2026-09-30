@@ -99,7 +99,7 @@ export async function GET(_req: NextRequest) {
           'Content-Disposition': `attachment; filename="customers-export-${timestamp}.csv"`,
         },
       })
-    } catch (error: any) {
+    } catch (error) {
       if (error.code === 'P1001' || error.message?.includes('No business found')) {
         return NextResponse.json({ error: 'Database connection error. Please try again.' }, { status: 503 })
       }

@@ -1,5 +1,6 @@
 'use client'
 
+import type { BookingQuestion } from '@prisma/client'
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -72,7 +73,7 @@ export default function SettingsPage() {
   const [business, setBusiness] = useState<any>(null)
   const [seo, setSeo] = useState<any>(null)
   const [websiteContent, setWebsiteContent] = useState<any>({})
-  const [bookingQuestions, setBookingQuestions] = useState<any[]>([])
+  const [bookingQuestions, setBookingQuestions] = useState<BookingQuestion[]>([])
   const [newQuestion, setNewQuestion] = useState({ label: '', key: '', type: 'SHORT_TEXT', required: false })
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -133,7 +134,7 @@ export default function SettingsPage() {
   // Copy weekday hours to all days
   const copyWeekdays = () => {
     const weekday = business.hours?.monday || DEFAULT_HOURS.monday
-    const updated: any = {}
+    const updated: Record<string, { open: string; close: string; isOff: boolean }> = {}
     DAYS.forEach(d => {
       updated[d.key] = d.key === 'sunday' || d.key === 'saturday'
         ? { ...weekday, isOff: true }

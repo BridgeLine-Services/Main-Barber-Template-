@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       message: 'Account created. You can now sign in.',
     }, { status: 201 })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration error:', error)
 
     if (error?.code === 'P1001' || error?.code === 'P1017') {
