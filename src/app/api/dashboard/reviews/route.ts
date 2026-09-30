@@ -87,6 +87,7 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -127,6 +128,7 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -191,6 +193,7 @@ export async function DELETE(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

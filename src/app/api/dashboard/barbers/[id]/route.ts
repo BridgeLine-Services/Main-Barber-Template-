@@ -14,6 +14,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     const barber = await prisma.barber.findFirst({
       where: { id: params.id, businessId },
@@ -34,6 +35,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const businessId = session.user?.businessId
     const existing = await prisma.barber.findFirst({ where: { id: params.id, businessId } })
@@ -116,6 +118,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const businessId = session.user?.businessId
 

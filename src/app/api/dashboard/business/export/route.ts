@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (!can((session.user as { role?: string }).role, 'business.export-data')) {
       // OWNER-only: bulk export of the business's data is an ownership
       // action, not a delegated administration task.

@@ -13,6 +13,7 @@ export async function GET(_request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     const businessId = user.businessId
     try {

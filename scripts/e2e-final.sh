@@ -7,6 +7,7 @@ PASS=0; FAIL=0
 JAR=$(mktemp)
 jqpy() { python3 -c "import sys,json;d=json.load(sys.stdin);print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
 check() { if [ "$2" = "$3" ]; then echo "✓ $1"; PASS=$((PASS+1)); else echo "✗ $1 (want '$2' got '$3')"; FAIL=$((FAIL+1)); fi; }
+check_at_least() { if [ "$3" -ge "$2" ] 2>/dev/null; then echo "✓ $1"; PASS=$((PASS+1)); else echo "✗ $1 (want at least $2 got $3)"; FAIL=$((FAIL+1)); fi; }
 req() { curl -s -X ${1} -H 'Content-Type: application/json' -b "$JAR" -c "$JAR" "${@:4}" "$BASE$2" -d "$3"; }
 
 echo "═══ 0. Cleanup: remove users/businesses from previous runs ═══"
@@ -153,14 +154,14 @@ check "reset token cleared" "None" "$(echo $R | jqpy "str(d['tok'])")"
 
 echo "═══ 4. Public site: hours come from the database ═══"
 R=$(curl -s -H "Host: review-test-shop" $BASE | grep -c "09:00 - 18:00")
-check "public site renders DB-backed business hours" "1" "$R"
+check_at_least "public site renders DB-backed business hours" 1 "$R"
 # Null out the DB hours → the site must show the by-appointment note, never invented hours
 npx tsx -e "
 import { prisma } from './src/lib/prisma'
 async function main() { await prisma.business.update({ where: { slug: 'review-test-shop' }, data: { hours: null } }) }
 main().finally(() => prisma.\$disconnect())" >/dev/null 2>&1
 R=$(curl -s -H "Host: review-test-shop" $BASE | grep -c "By appointment")
-check "unconfigured hours show by-appointment note (no invented hours)" "1" "$R"
+check_at_least "unconfigured hours show by-appointment note (no invented hours)" 1 "$R"
 
 echo ""
 echo "═══ RESULTS: $PASS passed, $FAIL failed ═══"

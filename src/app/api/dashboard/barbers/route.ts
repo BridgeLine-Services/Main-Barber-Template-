@@ -14,6 +14,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     const barbers = await prisma.barber.findMany({
       where: { businessId },
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })

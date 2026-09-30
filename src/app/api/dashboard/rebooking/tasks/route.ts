@@ -12,6 +12,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     const tasks = await getRebookingTasks(businessId)
     return NextResponse.json({

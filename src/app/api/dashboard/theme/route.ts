@@ -26,6 +26,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business on session' }, { status: 400 })
     const business = await prisma.business.findUnique({
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden — owner only' }, { status: 403 })

@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const { searchParams } = req.nextUrl
     const code = searchParams.get('code')
     const state = searchParams.get('state') // businessId

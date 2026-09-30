@@ -36,6 +36,7 @@ export async function POST() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
     }
@@ -87,6 +88,7 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user.businessId
     const content = businessId
       ? await prisma.websiteContent.findUnique({

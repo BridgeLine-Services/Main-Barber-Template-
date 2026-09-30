@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ appointme
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business' }, { status: 403 })
     try {
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ appointm
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'No business' }, { status: 403 })
     try {

@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const caller = session.user
     // The owning business owner, or a platform owner administering the
     // business, may initiate a transfer. Barbers get 403.

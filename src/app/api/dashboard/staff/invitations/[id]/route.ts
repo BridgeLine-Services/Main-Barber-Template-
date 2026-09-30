@@ -19,6 +19,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const callerRole = (session.user as { role?: string }).role
     if (callerRole !== 'OWNER' && callerRole !== 'BUSINESS_ADMIN') {
       return NextResponse.json({ error: 'Business owner or admin access required' }, { status: 403 })

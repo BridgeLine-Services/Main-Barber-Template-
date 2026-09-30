@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user?.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can reset a shop' }, { status: 403 })
     }

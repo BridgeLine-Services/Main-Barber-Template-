@@ -12,6 +12,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     try {
       const item = await prisma.inventoryItem.findFirst({
@@ -37,6 +38,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -99,6 +101,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

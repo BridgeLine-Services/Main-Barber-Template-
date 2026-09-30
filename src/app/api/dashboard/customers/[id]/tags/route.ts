@@ -14,6 +14,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     try {
       const tags = await prisma.customerTagAssignment.findMany({
@@ -37,6 +38,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     try {
       const body = await request.json()
@@ -86,6 +88,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     try {
       const { searchParams } = new URL(request.url)

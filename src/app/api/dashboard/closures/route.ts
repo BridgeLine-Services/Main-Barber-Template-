@@ -35,6 +35,7 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     try {
       const businessId = await getCurrentBusinessId()
       const closures = await prisma.businessClosure.findMany({
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }

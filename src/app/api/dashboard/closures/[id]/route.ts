@@ -38,6 +38,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }
@@ -117,6 +118,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     if (session.user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Only owners can manage closures' }, { status: 403 })
     }

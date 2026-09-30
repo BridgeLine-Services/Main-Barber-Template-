@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')
     const serviceId = searchParams.get('serviceId')

@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
