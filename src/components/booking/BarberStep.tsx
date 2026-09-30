@@ -34,6 +34,62 @@ interface BarberStepProps {
   serviceName?: string | null
 }
 
+interface FlexRowProps {
+  icon: React.ReactNode
+  title: string
+  badge: string
+  selected: boolean
+  onClick: () => void
+  children: React.ReactNode
+}
+
+// Shared presentation for the two schedule-flexibility rows — hoisted to
+// module level so no component is created during render (react-compiler
+// rule); it renders purely from props.
+function FlexRow({ icon, title, badge, selected, onClick, children }: FlexRowProps) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+      aria-pressed={selected}
+      className={cn(
+        'group relative cursor-pointer w-full text-left px-4 sm:px-5 py-4 -mx-4 sm:-mx-5',
+        'transition-colors duration-micro focus-ring rounded-sm',
+        'hover:bg-primary/[0.04]',
+        selected && 'bg-primary/[0.06]'
+      )}
+    >
+      {selected && (
+        <span aria-hidden="true" className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-primary" />
+      )}
+      <div className="flex items-center gap-4 pl-2 sm:pl-3">
+        <div
+          className={cn(
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-micro',
+            selected
+              ? 'border-primary bg-primary/15 text-primary'
+              : 'border-border bg-secondary/60 text-muted-foreground group-hover:text-primary'
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2.5">
+            <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+            <span className="rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+              {badge}
+            </span>
+            {selected && <Check className="h-4 w-4 text-primary stroke-[3]" aria-label="Selected" />}
+          </div>
+          <div className="mt-0.5">{children}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Barber selection as human profiles — hairline-separated editorial rows,
 // portrait-forward where photos exist, with specialty/bio where available.
 // All selection logic (earliest-slot fetch, service filtering,
@@ -87,63 +143,6 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
       onSelect('any')
     }
   }
-
-  // Shared presentation for the two schedule-flexibility rows.
-  const FlexRow = ({
-    icon,
-    title,
-    badge,
-    selected,
-    onClick,
-    children,
-  }: {
-    icon: React.ReactNode
-    title: string
-    badge: string
-    selected: boolean
-    onClick: () => void
-    children: React.ReactNode
-  }) => (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
-      aria-pressed={selected}
-      className={cn(
-        'group relative cursor-pointer w-full text-left px-4 sm:px-5 py-4 -mx-4 sm:-mx-5',
-        'transition-colors duration-micro focus-ring rounded-sm',
-        'hover:bg-primary/[0.04]',
-        selected && 'bg-primary/[0.06]'
-      )}
-    >
-      {selected && (
-        <span aria-hidden="true" className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-primary" />
-      )}
-      <div className="flex items-center gap-4 pl-2 sm:pl-3">
-        <div
-          className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-micro',
-            selected
-              ? 'border-primary bg-primary/15 text-primary'
-              : 'border-border bg-secondary/60 text-muted-foreground group-hover:text-primary'
-          )}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2.5">
-            <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
-            <span className="rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
-              {badge}
-            </span>
-            {selected && <Check className="h-4 w-4 text-primary stroke-[3]" aria-label="Selected" />}
-          </div>
-          <div className="mt-0.5">{children}</div>
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <div>
