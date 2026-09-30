@@ -13,7 +13,7 @@ service; locally just have Postgres up and `DATABASE_URL` set):
 architecture, barber-mode, booking, calendar-export, cancellation-fill,
 customer-history, daily-operations, factory-launch, factory-readiness,
 feature-flags (lib-level parts), marketing, payment-transitions,
-portfolio, queue, reliability, rls-enforcement, role-permissions,
+portfolio, queue, reliability, role-permissions,
 specialty-match, tenant-isolation, tenant-key-sync.
 
 Run all: `npm run test:ci`
@@ -27,9 +27,15 @@ app, hence the dev server:
 business-admin-role, business-deactivation, cross-tenant-matrix,
 customer-data-lifecycle, feature-flags (HTTP part), fonts,
 notification-resilience, ownership-transfer, platform-owner, pwa,
-website-publish.
+website-publish, rls-enforcement.
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
+
+Note: `rls-enforcement` runs in this dev set, not CI, because it requires
+the app's DB role to NOT own the tenant tables (Postgres owners bypass
+RLS). In CI the same user migrates and tests, so RLS cannot be enforced
+there; it is validated against a properly role-split database instead
+(see docs/RLS-*.md / scripts/rls-status.ts).
 
 ## Browser E2E, accessibility, and security tests (Playwright)
 
