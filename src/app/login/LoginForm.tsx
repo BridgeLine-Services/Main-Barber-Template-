@@ -298,7 +298,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
                 Booking with an account? <span className="text-primary font-medium">Create your customer account</span>
               </Link>
             </div>
-          )
+          )}
           {/* Registration switch — adapts to OWNER_REGISTRATION_MODE */}
           {openRegistration ? (
             <div className="mt-8 hairline pt-5 text-center">
