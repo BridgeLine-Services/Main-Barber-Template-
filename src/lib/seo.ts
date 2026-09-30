@@ -76,7 +76,7 @@ export function generateLocalBusinessSchema(business: BusinessData) {
     telephone: business.phone || undefined,
     email: business.email || undefined,
     image: business.logo || `${baseUrl}/og-image.png`,
-    description: business.aboutText || `Premium barber shop services at ${business.name}.`,
+    description: business.aboutText || `View services and book an appointment at ${business.name}.`,
     priceRange: '$$',
   }
 
