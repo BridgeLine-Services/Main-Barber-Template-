@@ -37,12 +37,7 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
 
-  useEffect(() => {
-    fetchWaitlist()
-  }, [])
-
   const fetchWaitlist = async () => {
-    setLoading(true)
     try {
       const res = await fetch('/api/dashboard/waitlist')
       const data = await res.json()
@@ -53,6 +48,10 @@ export default function WaitlistPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    void fetchWaitlist()
+  }, [])
 
   const updateStatus = async (id: string, status: string) => {
     try {

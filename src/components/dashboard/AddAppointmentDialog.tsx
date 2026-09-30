@@ -59,19 +59,6 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch initial barbers, services, and customers when opened
-   
-  useEffect(() => {
-    if (open) {
-      fetchBarbers()
-      fetchServices()
-      fetchCustomers()
-      if (initialDate) setDate(initialDate)
-      if (initialBarberId) setSelectedBarberId(initialBarberId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialDate, initialBarberId])
-
   const fetchBarbers = async () => {
     try {
       const res = await fetch('/api/dashboard/barbers')
@@ -113,6 +100,31 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
       console.error(e)
     }
   }
+
+  // Sync prop -> state during render (React's adjust-state-during-render
+  // pattern) so re-opening the dialog with a different date/barber resets it
+  // without a synchronous setState inside the effect.
+  const [prevDateProp, setPrevDateProp] = useState(initialDate)
+  if (initialDate && initialDate !== prevDateProp) {
+    setPrevDateProp(initialDate)
+    setDate(initialDate)
+  }
+  const [prevBarberProp, setPrevBarberProp] = useState(initialBarberId)
+  if (initialBarberId && initialBarberId !== prevBarberProp) {
+    setPrevBarberProp(initialBarberId)
+    setSelectedBarberId(initialBarberId)
+  }
+
+  // Fetch barbers, services, and customers when the dialog opens
+  useEffect(() => {
+    if (open) {
+      void fetchBarbers()
+      void fetchServices()
+      void fetchCustomers()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialDate, initialBarberId])
+
 
   const filteredCustomers = customers.filter((c) => {
     const query = customerSearch.toLowerCase()

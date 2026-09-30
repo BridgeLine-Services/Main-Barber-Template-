@@ -35,12 +35,7 @@ export default function ClosuresPage() {
     endTime: '',
   })
 
-  useEffect(() => {
-    fetchClosures()
-  }, [])
-
   const fetchClosures = async () => {
-    setLoading(true)
     try {
       const res = await fetch('/api/dashboard/closures')
       const data = await res.json()
@@ -51,6 +46,10 @@ export default function ClosuresPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    void fetchClosures()
+  }, [])
 
   const toInputDate = (dateStr: string) => {
     const d = new Date(dateStr)
