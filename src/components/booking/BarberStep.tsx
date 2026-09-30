@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getInitials, cn } from '@/lib/utils'
-import { Sparkles, Check,Zap,Loader2, Award } from 'lucide-react'
+import { Sparkles, Check, Zap, Loader2 } from 'lucide-react'
 import { rankBarbersForService } from '@/lib/specialty-match'
 import { format, parseISO } from 'date-fns'
 
@@ -35,6 +34,10 @@ interface BarberStepProps {
   serviceName?: string | null
 }
 
+// Barber selection as human profiles — hairline-separated editorial rows,
+// portrait-forward where photos exist, with specialty/bio where available.
+// All selection logic (earliest-slot fetch, service filtering,
+// specialty-match ranking) is unchanged from the previous implementation.
 export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailable, serviceId, serviceName }: BarberStepProps) {
   const [earliestSlot, setEarliestSlot] = useState<EarliestSlot | null>(null)
   const [loadingEarliest, setLoadingEarliest] = useState(false)
@@ -85,109 +88,123 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
     }
   }
 
+  // Shared presentation for the two schedule-flexibility rows.
+  const FlexRow = ({
+    icon,
+    title,
+    badge,
+    selected,
+    onClick,
+    children,
+  }: {
+    icon: React.ReactNode
+    title: string
+    badge: string
+    selected: boolean
+    onClick: () => void
+    children: React.ReactNode
+  }) => (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+      aria-pressed={selected}
+      className={cn(
+        'group relative cursor-pointer w-full text-left px-4 sm:px-5 py-4 -mx-4 sm:-mx-5',
+        'transition-colors duration-micro focus-ring rounded-sm',
+        'hover:bg-primary/[0.04]',
+        selected && 'bg-primary/[0.06]'
+      )}
+    >
+      {selected && (
+        <span aria-hidden="true" className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-primary" />
+      )}
+      <div className="flex items-center gap-4 pl-2 sm:pl-3">
+        <div
+          className={cn(
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-micro',
+            selected
+              ? 'border-primary bg-primary/15 text-primary'
+              : 'border-border bg-secondary/60 text-muted-foreground group-hover:text-primary'
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2.5">
+            <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+            <span className="rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+              {badge}
+            </span>
+            {selected && <Check className="h-4 w-4 text-primary stroke-[3]" aria-label="Selected" />}
+          </div>
+          <div className="mt-0.5">{children}</div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="space-y-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Select a Barber</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+    <div>
+      <div className="mb-8">
+        <p className="eyebrow-accent mb-3">Your Barber</p>
+        <h2 className="display-heading text-display-3 text-foreground">Select a Barber</h2>
+        <p className="text-sm text-muted-foreground mt-2">
           Pick your preferred barber or choose any available team member.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="border-t border-border/60">
         {/* First Available — earliest slot across all barbers.
             Rendered only when the owner allows it (handler passed). */}
         {onSelectFirstAvailable && (
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={handleFirstAvailable}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFirstAvailable() } }}
-          aria-pressed={selectedId === 'first-available'}
-          className={cn(
-            'relative cursor-pointer transition-all duration-200 p-5 bg-card border-amber-500/40 hover:border-accent hover:bg-accent/15 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:outline-none md:col-span-2',
-            selectedId === 'first-available' &&
-              'border-amber-500 bg-amber-500/15 ring-1 ring-amber-500/50 shadow-lg shadow-amber-500/20'
-          )}
-        >
-          {selectedId === 'first-available' && (
-            <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center">
-              <Check className="w-4 h-4 stroke-[3]" />
-            </div>
-          )}
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-accent/20 border border-amber-500/40 flex items-center justify-center text-accent shrink-0">
-              <Zap className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-foreground">First Available</h3>
-                <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-accent/20 text-accent border border-accent/30">
-                  Earliest
-                </span>
-              </div>
+          <div className="border-b border-border/60">
+            <FlexRow
+              icon={<Zap className="h-5 w-5" aria-hidden="true" />}
+              title="First Available"
+              badge="Earliest"
+              selected={selectedId === 'first-available'}
+              onClick={handleFirstAvailable}
+            >
               {loadingEarliest ? (
                 <div className="flex items-center gap-2 mt-1">
-                  <Loader2 className="w-3 h-3 text-accent/60 animate-spin" />
+                  <Loader2 className="w-3 h-3 text-primary/60 animate-spin" aria-hidden="true" />
                   <p className="text-xs text-muted-foreground">Finding the earliest slot...</p>
                 </div>
               ) : earliestSlot ? (
-                <p className="text-xs text-foreground/70 mt-1">
-                  <span className="text-accent font-semibold">{earliestSlot.time}</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="font-semibold text-primary">{earliestSlot.time}</span>
                   {' on '}
-                  <span className="text-accent font-semibold">
+                  <span className="font-semibold text-primary">
                     {format(parseISO(earliestSlot.date), 'EEE, MMM d')}
                   </span>
                   {' with '}
-                  <span className="text-foreground font-medium">{earliestSlot.barberName}</span>
+                  <span className="font-medium text-foreground/80">{earliestSlot.barberName}</span>
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground mt-1">
                   No availability in the next 30 days.
                 </p>
               )}
-            </div>
+            </FlexRow>
           </div>
-        </Card>
         )}
 
         {/* Any Available Barber option */}
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => onSelect('any')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect('any') } }}
-          aria-pressed={selectedId === 'any'}
-          className={cn(
-            'relative cursor-pointer transition-all duration-200 p-5 bg-card border-accent/30 hover:border-accent hover:bg-card focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:outline-none md:col-span-2',
-            selectedId === 'any' &&
-              'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/40 shadow-lg shadow-amber-500/10'
-          )}
-        >
-          {selectedId === 'any' && (
-            <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center">
-              <Check className="w-4 h-4 stroke-[3]" />
-            </div>
-          )}
-
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-accent/20 border border-amber-500/40 flex items-center justify-center text-accent shrink-0">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-foreground">Any Available Barber</h3>
-                <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-accent/20 text-accent border border-accent/30">
-                  Flexible
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Show available times across our whole team for maximum schedule flexibility.
-              </p>
-            </div>
-          </div>
-        </Card>
+        <div className="border-b border-border/60">
+          <FlexRow
+            icon={<Sparkles className="h-5 w-5" aria-hidden="true" />}
+            title="Any Available Barber"
+            badge="Flexible"
+            selected={selectedId === 'any'}
+            onClick={() => onSelect('any')}
+          >
+            <p className="text-xs text-muted-foreground mt-1">
+              Show available times across our whole team for maximum schedule flexibility.
+            </p>
+          </FlexRow>
+        </div>
 
         {/* Individual barbers — specialty matches ranked first (data-driven
             from the barber's own specialty text vs. the chosen service name;
@@ -196,53 +213,64 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
           const isSelected = selectedId === barber.id
 
           return (
-            <Card
+            <button
               key={barber.id}
-              role="button"
-              tabIndex={0}
+              type="button"
               onClick={() => onSelect(barber.id)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(barber.id) } }}
               aria-pressed={isSelected}
               className={cn(
-                'relative cursor-pointer transition-all duration-200 p-5 bg-card/70 border-border hover:border-accent/50 hover:bg-card focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:outline-none flex items-center gap-4',
-                isSelected &&
-                  'border-accent bg-accent/5 ring-1 ring-accent/30 shadow-lg shadow-amber-500/10'
+                'group relative block w-full text-left px-4 sm:px-5 py-5 -mx-4 sm:-mx-5 border-b border-border/60',
+                'transition-colors duration-micro focus-ring rounded-sm',
+                'hover:bg-primary/[0.04]',
+                isSelected && 'bg-primary/[0.06]'
               )}
             >
               {isSelected && (
-                <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </div>
+                <span aria-hidden="true" className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-primary" />
               )}
 
-              <Avatar className="w-14 h-14 border border-border bg-secondary shrink-0">
-                {barber.photo ? (
-                  <AvatarImage src={barber.photo} alt={barber.name} className="object-cover" />
-                ) : null}
-                <AvatarFallback className="bg-amber-500/10 text-accent font-semibold text-base">
-                  {getInitials(barber.name)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex items-center gap-4 sm:gap-5 pl-2 sm:pl-3">
+                <Avatar
+                  className={cn(
+                    'h-16 w-16 shrink-0 rounded-lg border transition-all duration-micro',
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/25'
+                      : 'border-border group-hover:border-primary/40'
+                  )}
+                >
+                  {barber.photo ? (
+                    <AvatarImage src={barber.photo} alt={barber.name} className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="rounded-lg bg-primary/10 font-display text-lg font-semibold text-primary">
+                    {getInitials(barber.name)}
+                  </AvatarFallback>
+                </Avatar>
 
-              <div className="pr-6 min-w-0">
-                <h3 className="text-base font-semibold text-foreground truncate">{barber.name}</h3>
-                {barber.specialty && (
-                  <p className="text-xs text-accent/90 font-medium mt-0.5 truncate">
-                    {barber.specialty}
-                  </p>
-                )}
-                {match.overlap > 0 && (
-                  <span className="inline-flex items-center gap-1 mt-1.5 rounded bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
-                    <Award className="w-3 h-3" /> Specialty match
-                  </span>
-                )}
-                {barber.bio && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-tight">
-                    {barber.bio}
-                  </p>
-                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="font-display text-xl font-semibold tracking-tight text-foreground truncate">
+                      {barber.name}
+                    </h3>
+                    {match.overlap > 0 && (
+                      <span className="shrink-0 rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                        Specialty match
+                      </span>
+                    )}
+                    {isSelected && <Check className="h-4 w-4 shrink-0 text-primary stroke-[3]" aria-label="Selected" />}
+                  </div>
+                  {barber.specialty && (
+                    <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-primary">
+                      {barber.specialty}
+                    </p>
+                  )}
+                  {barber.bio && (
+                    <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {barber.bio}
+                    </p>
+                  )}
+                </div>
               </div>
-            </Card>
+            </button>
           )
         })}
       </div>

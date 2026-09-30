@@ -122,7 +122,7 @@ export function TimeStep({
   return (
     <div className="space-y-4">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Select a Time</h2>
+        <h2 className="display-heading text-display-3 text-foreground">Select a Time</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Available appointments for{' '}
           <strong className="text-accent">
@@ -139,15 +139,15 @@ export function TimeStep({
       )}
 
       {error && !loading && (
-        <Card className="p-8 bg-red-950/20 border-red-900/50 text-center space-y-3">
-          <AlertCircle className="w-10 h-10 mx-auto text-red-400" />
-          <p className="text-sm text-red-200">{error}</p>
+        <Card className="p-8 bg-destructive/10 border-destructive/40 text-center space-y-3">
+          <AlertCircle className="w-10 h-10 mx-auto text-destructive" />
+          <p className="text-sm text-destructive">{error}</p>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={fetchAvailability}
-            className="border-red-800 bg-red-950/40 text-red-200 hover:bg-red-900/50"
+            className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
@@ -181,7 +181,7 @@ export function TimeStep({
               className={cn(
                 'p-6 bg-card border-accent/50 cursor-pointer transition-all duration-200 hover:border-accent hover:bg-accent/20',
                 selectedTime === prominentSlot.time &&
-                  'border-amber-500 bg-accent/20 ring-1 ring-amber-500/50 shadow-lg shadow-amber-500/20'
+                  'border-primary bg-accent/20 ring-1 ring-ring/50 shadow-lg shadow-primary/20'
               )}
               onClick={() =>
                 onSelect(prominentSlot!.time, prominentSlot!.barberId)
@@ -189,7 +189,7 @@ export function TimeStep({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-accent/20 border border-amber-500/40 flex items-center justify-center text-accent shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-accent/20 border border-primary/40 flex items-center justify-center text-accent shrink-0">
                     <Clock className="w-7 h-7" />
                   </div>
                   <div>
@@ -228,16 +228,16 @@ export function TimeStep({
                       onClick={() => onSelect(slot.time, slot.barberId)}
                       aria-label={`Book at ${slot.time}${slot.barberName ? ` with ${slot.barberName}` : ''}`}
                       className={cn(
-                        'py-3 px-4 rounded-lg text-sm font-semibold transition-all flex flex-col items-center justify-center border focus:outline-none focus:ring-2 focus:ring-amber-500/50',
+                        'py-3 px-4 rounded-lg text-sm font-semibold transition-all flex flex-col items-center justify-center border focus:outline-none focus:ring-2 focus:ring-ring/50',
                         !isSelected &&
                           'bg-card border-border text-foreground/80 hover:border-accent/60 hover:text-accent hover:bg-secondary/80',
                         isSelected &&
-                          'bg-amber-500 border-amber-400 text-zinc-950 font-bold shadow-lg shadow-amber-500/20 scale-105'
+                          'bg-primary text-primary-foreground font-bold border-primary shadow-lg shadow-primary/20 scale-105'
                       )}
                     >
                       <span>{slot.time}</span>
                       {slot.barberName && (
-                        <span className={cn('text-[10px] mt-0.5 truncate max-w-full font-normal', isSelected ? 'text-zinc-900' : 'text-accent/80')}>
+                        <span className={cn('text-[10px] mt-0.5 truncate max-w-full font-normal', isSelected ? 'text-primary-foreground/80' : 'text-accent/80')}>
                           {slot.barberName}
                         </span>
                       )}
@@ -264,19 +264,19 @@ export function TimeStep({
                   disabled={!slot.available}
                   onClick={() => onSelect(slot.time, slot.barberId)}
                   className={cn(
-                    'py-3 px-4 rounded-lg text-sm font-semibold transition-all flex flex-col items-center justify-center border focus:outline-none focus:ring-2 focus:ring-amber-500/50',
+                    'py-3 px-4 rounded-lg text-sm font-semibold transition-all flex flex-col items-center justify-center border focus:outline-none focus:ring-2 focus:ring-ring/50',
                     !slot.available &&
                       'bg-background/50 border-border text-muted-foreground/70 cursor-not-allowed line-through',
                     slot.available &&
                       !isSelected &&
                       'bg-card border-border text-foreground/80 hover:border-accent/60 hover:text-accent hover:bg-secondary/80',
                     isSelected &&
-                      'bg-amber-500 border-amber-400 text-zinc-950 font-bold shadow-lg shadow-amber-500/20 scale-105'
+                      'bg-primary border-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 scale-105'
                   )}
                 >
                   <span>{slot.time}</span>
                   {slot.barberName && barberId === 'any' && (
-                    <span className={cn('text-[10px] mt-0.5 truncate max-w-full font-normal', isSelected ? 'text-zinc-900' : 'text-accent/80')}>
+                    <span className={cn('text-[10px] mt-0.5 truncate max-w-full font-normal', isSelected ? 'text-primary-foreground/80' : 'text-accent/80')}>
                       {slot.barberName}
                     </span>
                   )}

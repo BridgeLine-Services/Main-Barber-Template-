@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Star,
   MapPin,
+  Mail,
   Clock,
   ArrowRight,
   CheckCircle2,
@@ -293,35 +294,38 @@ export default async function HomePage() {
         </div>
 
         {services.length > 0 ? (
-          <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          /* Editorial service menu — hairline rows, large names, price right.
+             Book stays one tap away from every row. */
+          <Stagger className="border-t border-border/60">
             {services.slice(0, 6).map((service) => (
-              <StaggerItem key={service.id}>
-                <Card className="group flex h-full flex-col justify-between border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-                  <CardContent className="flex h-full flex-col p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="font-display text-xl font-semibold text-foreground">{service.name}</h3>
-                      <span className="shrink-0 text-lg font-bold text-accent">
-                        {formatPrice(service.price)}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <StaggerItem key={service.id} className="border-b border-border/60">
+                <div className="group flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                      {service.name}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2 max-w-2xl">
+                      {service.description || 'Full haircut service with lineup, neck shave, and styling.'}
+                    </p>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                       {formatDuration(service.duration)}
                     </p>
-                    <p className="mt-3 flex-1 text-sm leading-relaxed text-foreground/70">
-                      {service.description || 'Full haircut service with lineup, neck shave, and styling.'}
-                    </p>
-                    <div className="mt-6 border-t border-border/60 pt-4">
-                      <Button
-                        asChild
-                        className="w-full border border-border bg-secondary font-semibold text-secondary-foreground transition-colors duration-300 hover:border-accent/40 hover:bg-accent hover:text-accent-foreground"
-                        size="sm"
-                      >
-                        <Link href={`/book?serviceId=${service.id}`}>Book This Service</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="flex items-center justify-between gap-6 sm:shrink-0 sm:self-center">
+                    <span className="font-display text-lg font-bold text-foreground tabular-nums sm:text-xl">
+                      {formatPrice(service.price)}
+                    </span>
+                    <Link
+                      href={`/book?serviceId=${service.id}`}
+                      className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      aria-label={`Book ${service.name}`}
+                    >
+                      Book
+                      <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
               </StaggerItem>
             ))}
           </Stagger>
@@ -346,34 +350,38 @@ export default async function HomePage() {
         />
 
         {barbers.length > 0 ? (
-          <Stagger className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          /* Human editorial profiles — portrait-led rows, name/specialty/bio
+             beside the photo, book as a quiet text action. Two columns keep
+             the profiles large enough to feel like people, not records. */
+          <Stagger className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
-                <Card className="group flex h-full flex-col border-border/70 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-                  <div className="flex flex-1 flex-col items-center p-6 text-center">
-                    <Avatar className="h-24 w-24 border-2 border-accent/30 ring-4 ring-background transition-transform duration-300 group-hover:scale-[1.03]">
-                      <AvatarImage src={barber.photo || '/images/default-barber.svg'} alt={barber.name} />
-                      <AvatarFallback className="bg-secondary font-display text-xl font-bold text-accent">
-                        {getInitials(barber.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-display mt-4 text-xl font-semibold text-foreground">{barber.name}</h3>
+                <div className="group flex flex-col gap-5 sm:flex-row sm:gap-6">
+                  <Avatar className="h-28 w-28 shrink-0 rounded-lg border border-border/70 ring-2 ring-background transition-transform duration-ui group-hover:scale-[1.02] sm:h-32 sm:w-32">
+                    <AvatarImage src={barber.photo || '/images/default-barber.svg'} alt={barber.name} className="rounded-lg object-cover" />
+                    <AvatarFallback className="rounded-lg bg-secondary font-display text-2xl font-semibold text-primary">
+                      {getInitials(barber.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1 border-t border-border/60 pt-4 sm:border-t-0 sm:pt-1">
+                    <h3 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                      {barber.name}
+                    </h3>
                     {barber.specialty && (
-                      <p className="mt-1 text-xs font-medium uppercase tracking-wider text-accent">{barber.specialty}</p>
+                      <p className="eyebrow-accent mt-1.5">{barber.specialty}</p>
                     )}
-                    <p className="mt-3 line-clamp-3 flex-1 px-2 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                       {barber.bio || 'Expert in fades, tapers, razor line-ups, and luxury beard sculpting.'}
                     </p>
-                  </div>
-                  <div className="px-6 pb-6">
                     <Link
                       href={`/book?barberId=${barber.id}`}
-                      className="w-full rounded-md border border-accent/30 bg-accent/10 px-4 py-2.5 text-center text-sm font-semibold text-accent transition-all duration-300 hover:bg-accent hover:text-accent-foreground"
+                      className="group/book mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
                     >
                       Book with {barber.name.split(' ')[0]}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
                     </Link>
                   </div>
-                </Card>
+                </div>
               </StaggerItem>
             ))}
           </Stagger>
@@ -479,13 +487,15 @@ export default async function HomePage() {
               {shopPhoneDigits && (
                 <div className="border-t border-border/60 pt-4">
                   <h3 className="mb-3 text-base font-bold text-foreground">Contact</h3>
-                  <div className="flex flex-col gap-2">
-                    <a href={`tel:${shopPhoneDigits}`} className="text-sm text-accent hover:underline">
-                      📞 {shopPhone}
+                  <div className="flex flex-col gap-2.5">
+                    <a href={`tel:${shopPhoneDigits}`} className="inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring rounded-sm">
+                      <Phone className="h-4 w-4" aria-hidden="true" />
+                      {shopPhone}
                     </a>
                     {business?.email && (
-                      <a href={`mailto:${business.email}`} className="text-sm text-accent hover:underline">
-                        ✉️ {business.email}
+                      <a href={`mailto:${business.email}`} className="inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring rounded-sm">
+                        <Mail className="h-4 w-4" aria-hidden="true" />
+                        {business.email}
                       </a>
                     )}
                   </div>
@@ -524,14 +534,15 @@ export default async function HomePage() {
               'radial-gradient(ellipse 70% 80% at 50% 100%, hsl(var(--accent) / 0.12), transparent 65%)',
           }}
         />
-        <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28">
+        <div className="relative mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28">
           <Reveal>
-            <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            <p className="eyebrow-accent mb-5">Book Your Chair</p>
+            <h2 className="display-heading text-display-1 text-foreground">
               {content?.finalCtaTitle || 'Ready for Your Next Cut?'}
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
-            <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+            <p className="mt-5 max-w-xl text-large text-muted-foreground">
               {content?.finalCtaDescription ||
                 `Book online in under a minute. ${shopPhone ? `Prefer to talk? Call ${shopPhone}.` : 'See real-time availability and lock in your spot.'}`}
             </p>

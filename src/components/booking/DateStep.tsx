@@ -92,7 +92,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
   return (
     <div className="space-y-4 max-w-xl mx-auto">
       <div className="mb-6 text-center md:text-left">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Select a Date</h2>
+        <h2 className="display-heading text-display-3 text-foreground">Select a Date</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Dates with available slots are highlighted. Choose a day to see times.
         </p>
@@ -107,7 +107,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
               {format(currentMonth, 'MMMM yyyy')}
             </h3>
             {checking && (
-              <span className="w-3 h-3 rounded-full border-2 border-accent/30 border-t-amber-500 animate-spin ml-1" />
+              <span className="w-3 h-3 rounded-full border-2 border-accent/30 border-t-primary animate-spin ml-1" />
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -164,7 +164,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
                 onClick={() => onSelect(day)}
                 aria-label={`${format(day, 'EEEE, MMMM d')}${hasAvailability ? ', has available slots' : isFullyBooked ? ', fully booked' : ''}${isDisabled && isCurrentMonthDay ? ', unavailable' : ''}`}
                 className={cn(
-                  'h-11 rounded-lg text-sm font-medium transition-all flex flex-col items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-amber-500/50',
+                  'h-11 rounded-lg text-sm font-medium transition-all flex flex-col items-center justify-center relative focus:outline-none focus:ring-2 focus:ring-ring/50',
                   !isCurrentMonthDay && 'opacity-20 pointer-events-none',
                   isDisabled && isCurrentMonthDay && 'text-muted-foreground/70 bg-background/40 cursor-not-allowed',
                   !isDisabled &&
@@ -182,7 +182,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
                     !isFullyBooked &&
                     'text-foreground/80 bg-background/80 hover:bg-accent/20 hover:text-accent hover:border-accent/40 border border-border/80',
                   isSelected &&
-                    'bg-accent text-accent-foreground font-bold border-amber-400 shadow-md shadow-amber-500/20 scale-105'
+                    'bg-primary text-primary-foreground font-bold border-primary shadow-md shadow-primary/20 scale-105'
                 )}
               >
                 <span>{format(day, 'd')}</span>
@@ -206,7 +206,7 @@ export function DateStep({ selectedDate, onSelect, serviceId, barberId }: DateSt
             <span>Available</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-zinc-600" />
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/60" />
             <span>Limited or full</span>
           </div>
           <div className="flex items-center gap-1.5">

@@ -76,7 +76,7 @@ export function CustomerInfoStep({
   return (
     <div className="space-y-4 max-w-xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Your Details</h2>
+        <h2 className="display-heading text-display-3 text-foreground">Your Details</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Provide your contact details to complete your appointment booking.
         </p>
@@ -97,7 +97,7 @@ export function CustomerInfoStep({
                   placeholder="John"
                   value={customerInfo.firstName}
                   onChange={(e) => handleChange('firstName', e.target.value)}
-                  className="bg-background border-border text-foreground focus:border-amber-500 pr-8"
+                  className="bg-background border-border text-foreground focus:border-primary pr-8"
                   required
                 />
                 <User className="w-4 h-4 text-muted-foreground absolute right-3 top-3" />
@@ -116,7 +116,7 @@ export function CustomerInfoStep({
                   placeholder="Doe"
                   value={customerInfo.lastName}
                   onChange={(e) => handleChange('lastName', e.target.value)}
-                  className="bg-background border-border text-foreground focus:border-amber-500 pr-8"
+                  className="bg-background border-border text-foreground focus:border-primary pr-8"
                   required
                 />
                 <User className="w-4 h-4 text-muted-foreground absolute right-3 top-3" />
@@ -136,13 +136,13 @@ export function CustomerInfoStep({
                 placeholder="john.doe@example.com"
                 value={customerInfo.email}
                 onChange={(e) => handleChange('email', e.target.value)}
-                className="bg-background border-border text-foreground focus:border-amber-500 pr-8"
+                className="bg-background border-border text-foreground focus:border-primary pr-8"
                 required
               />
               <Mail className="w-4 h-4 text-muted-foreground absolute right-3 top-3" />
             </div>
             {customerInfo.email.trim() && !isEmailValid && (
-              <p className="text-[11px] text-red-400">Please enter a valid email address.</p>
+              <p className="text-[11px] text-destructive">Please enter a valid email address.</p>
             )}
           </div>
 
@@ -158,13 +158,13 @@ export function CustomerInfoStep({
                 placeholder="(555) 000-0000"
                 value={customerInfo.phone}
                 onChange={(e) => handleChange('phone', formatPhoneInput(e.target.value))}
-                className="bg-background border-border text-foreground focus:border-amber-500 pr-8"
+                className="bg-background border-border text-foreground focus:border-primary pr-8"
                 required
               />
               <Phone className="w-4 h-4 text-muted-foreground absolute right-3 top-3" />
             </div>
             {customerInfo.phone.trim() && !isPhoneValid && (
-              <p className="text-[11px] text-red-400">
+              <p className="text-[11px] text-destructive">
                 Please enter a valid 10-digit phone number.
               </p>
             )}
@@ -181,7 +181,7 @@ export function CustomerInfoStep({
                 placeholder="Any special requests, hair length details, or preferences..."
                 value={customerInfo.notes || ''}
                 onChange={(e) => handleChange('notes', e.target.value)}
-                className="bg-background border-border text-foreground focus:border-amber-500 min-h-[90px]"
+                className="bg-background border-border text-foreground focus:border-primary min-h-[90px]"
               />
             </div>
           </div>
@@ -208,7 +208,7 @@ export function CustomerInfoStep({
               id="smsConsent"
               checked={customerInfo.smsConsent ?? false}
               onChange={(e) => handleChange('smsConsent', e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-amber-500/50"
+              className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-ring/50"
             />
             <Label htmlFor="smsConsent" className="text-xs text-muted-foreground font-normal leading-relaxed cursor-pointer">
               I agree to receive appointment-related text messages from {shopName}. Message/data rates
@@ -221,7 +221,7 @@ export function CustomerInfoStep({
             <Button
               type="submit"
               disabled={!isValid}
-              className="w-full bg-amber-500 hover:brightness-110 text-zinc-950 font-bold h-12 text-base transition-all disabled:opacity-40"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base transition-all duration-micro focus-ring disabled:opacity-40"
             >
               <span>Continue to Confirmation</span>
               <ArrowRight className="w-4 h-4 ml-2" />

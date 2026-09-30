@@ -11,31 +11,40 @@ interface BookingProgressProps {
   onStepClick?: (step: number) => void
 }
 
+// Editorial appointment progression. The current stage is visually dominant
+// (accent, weight); completed stages quiet down to checks; upcoming stages
+// stay visible but subdued. Completed steps remain clickable for back
+// navigation, with visible focus states. No card chrome, no heavy track.
 export function BookingProgress({ currentStep, onStepClick }: BookingProgressProps) {
   return (
-    <div className="w-full py-4">
-      {/* Mobile progress indicator */}
+    <div className="w-full py-4" aria-label={`Step ${currentStep} of ${BOOKING_FLOW_STEPS.length}`}>
+      {/* Mobile: compact editorial progress — stage name + thin accent rule */}
       <div className="block md:hidden">
-        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground mb-2">
-          <span>
-            Step {currentStep} of {BOOKING_FLOW_STEPS.length}:{' '}
-            <strong className="text-accent">
+        <div className="flex items-baseline justify-between mb-2.5">
+          <p className="text-xs text-muted-foreground">
+            <span className="tabular-nums text-muted-foreground/70">
+              {String(currentStep).padStart(2, '0')} / {String(BOOKING_FLOW_STEPS.length).padStart(2, '0')}
+            </span>
+            {'  ·  '}
+            <strong className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-primary">
               {BOOKING_FLOW_STEPS[currentStep - 1]?.label}
             </strong>
+          </p>
+          <span className="text-[10px] font-medium tabular-nums text-muted-foreground/70">
+            {Math.round((currentStep / BOOKING_FLOW_STEPS.length) * 100)}%
           </span>
-          <span>{Math.round((currentStep / BOOKING_FLOW_STEPS.length) * 100)}%</span>
         </div>
-        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+        <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted" role="progressbar">
           <div
-            className="h-full bg-accent transition-all duration-300 ease-in-out"
+            className="h-full bg-primary transition-all duration-ui ease-editorial"
             style={{ width: `${(currentStep / BOOKING_FLOW_STEPS.length) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Desktop progress indicator */}
+      {/* Desktop: editorial stage list — dominant current, quiet completed */}
       <div className="hidden md:block">
-        <nav aria-label="Progress">
+        <nav aria-label="Appointment progress">
           <ol role="list" className="flex items-center justify-between w-full">
             {BOOKING_FLOW_STEPS.map((step, idx) => {
               const isCompleted = currentStep > step.id
@@ -46,16 +55,16 @@ export function BookingProgress({ currentStep, onStepClick }: BookingProgressPro
                 <li
                   key={step.id}
                   className={cn(
-                    'relative flex-1 flex flex-col items-center group',
+                    'relative flex-1 flex flex-col items-center',
                     idx !== BOOKING_FLOW_STEPS.length - 1 && 'pr-2'
                   )}
                 >
-                  {/* Connecting line */}
+                  {/* Hairline connector */}
                   {idx < BOOKING_FLOW_STEPS.length - 1 && (
                     <div
                       className={cn(
-                        'absolute top-4 left-[calc(50%+16px)] right-[calc(-50%+16px)] h-[2px] transition-colors',
-                        currentStep > step.id ? 'bg-accent' : 'bg-border'
+                        'absolute top-[7px] left-[calc(50%+22px)] right-[calc(-50%+22px)] h-px transition-colors duration-ui',
+                        currentStep > step.id ? 'bg-primary/50' : 'bg-border'
                       )}
                       aria-hidden="true"
                     />
@@ -65,35 +74,33 @@ export function BookingProgress({ currentStep, onStepClick }: BookingProgressPro
                     type="button"
                     disabled={!isClickable}
                     onClick={() => isClickable && onStepClick(step.id)}
+                    aria-current={isCurrent ? 'step' : undefined}
                     className={cn(
-                      'relative z-10 flex flex-col items-center focus:outline-none transition-transform',
+                      'relative z-10 flex flex-col items-center rounded-sm transition-transform duration-micro focus-ring',
                       isClickable && 'cursor-pointer hover:scale-105',
                       !isClickable && 'cursor-default'
                     )}
                   >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs border-2 transition-all',
-                        isCompleted && 'bg-accent border-accent text-accent-foreground',
-                        isCurrent &&
-                          'bg-background border-accent text-accent ring-4 ring-accent/20 shadow-md shadow-accent/10',
-                        !isCompleted &&
-                          !isCurrent &&
-                          'bg-card border-border text-muted-foreground'
-                      )}
-                    >
-                      {isCompleted ? (
-                        <Check className="w-4 h-4 stroke-[3]" />
-                      ) : (
-                        <span>{step.id}</span>
-                      )}
-                    </div>
+                    {/* Stage marker: current is a dominant accent dot;
+                        completed a quiet check; upcoming a hollow hairline */}
                     <span
                       className={cn(
-                        'mt-2 text-xs font-medium transition-colors text-center',
-                        isCurrent && 'text-accent font-semibold',
-                        isCompleted && 'text-foreground/70',
-                        !isCompleted && !isCurrent && 'text-muted-foreground'
+                        'flex items-center justify-center rounded-full border transition-all duration-ui',
+                        isCurrent && 'h-4 w-4 border-[3px] border-primary bg-background',
+                        isCompleted &&
+                          'h-4 w-4 border border-primary/60 bg-primary/15 text-primary',
+                        !isCompleted && !isCurrent && 'h-4 w-4 border border-border bg-transparent'
+                      )}
+                    >
+                      {isCompleted && <Check className="h-2.5 w-2.5 stroke-[4]" aria-hidden="true" />}
+                    </span>
+                    <span
+                      className={cn(
+                        'mt-2.5 text-center transition-colors duration-ui',
+                        isCurrent &&
+                          'font-display text-sm font-semibold uppercase tracking-[0.1em] text-primary',
+                        isCompleted && 'text-xs font-medium text-muted-foreground hover:text-foreground',
+                        !isCompleted && !isCurrent && 'text-xs font-medium text-muted-foreground/60'
                       )}
                     >
                       {step.label}

@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { BookingProgress } from '@/components/booking/BookingProgress'
 import { ServiceStep } from '@/components/booking/ServiceStep'
 import { BarberStep, type EarliestSlot } from '@/components/booking/BarberStep'
@@ -287,11 +286,11 @@ function BookingFlow() {
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5">Reserve Your Chair</span>
-          <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Book an Appointment</h1>
-          <p className="mt-2 text-muted-foreground">Pay in person — no online payment required.</p>
+        {/* Header — editorial, left-aligned, no badge box */}
+        <div className="mb-8">
+          <p className="eyebrow-accent mb-3">Reserve Your Chair</p>
+          <h1 className="display-heading text-display-2 text-foreground">Book an Appointment</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Pay in person — no online payment required.</p>
         </div>
 
         {/* Progress */}
@@ -299,9 +298,9 @@ function BookingFlow() {
 
         {/* Step content — animated transitions between steps.
             All step logic, preselection, and state handling is unchanged. */}
-        <div className="mt-8">
-          <Card className="border-border/70 bg-card shadow-xl shadow-black/20">
-            <CardContent className="p-6 sm:p-8">
+        {/* Step surface — editorial: hairline top, generous padding, no
+            card-in-card chrome. Steps carry their own internal structure. */}
+        <div className="mt-8 border-t-2 border-primary/60 pt-8 sm:pt-10">
               <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={step}
@@ -373,8 +372,6 @@ function BookingFlow() {
               )}
               </motion.div>
               </AnimatePresence>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Navigation */}
