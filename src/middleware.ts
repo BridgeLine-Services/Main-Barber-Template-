@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
 // ============================================================================
 // Middleware
@@ -27,6 +28,21 @@ function addSecurityHeaders(response: NextResponse) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  // Defense-in-depth: EVERY /api/dashboard route is business-staff-only.
+  // Middleware rejects CUSTOMER sessions before any route code runs, so the
+  // entire dashboard API surface is uniformly protected (page-level gate in
+  // src/lib/onboarding.ts + per-route DB-fresh session checks remain the
+  // authoritative guards — this layer catches gaps between them).
+  if (pathname.startsWith('/api/dashboard')) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+    if (!token) {
+      return addSecurityHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+    }
+    if (token.role === 'CUSTOMER') {
+      return addSecurityHeaders(NextResponse.json({ error: 'Staff access required' }, { status: 403 }))
+    }
+  }
 
   // Stamp the request path so server components (e.g. the dashboard access
   // gate in src/lib/onboarding.ts) know which route is being rendered and

@@ -544,8 +544,11 @@ export async function createAppointmentSafely(params: {
     policiesAcceptedAt?: Date | null
     policyVersion?: string | null
   }
+  /** When the booking is made by an authenticated CUSTOMER account, the
+   *  account→customer-record link is established here, server-side. */
+  customerUserId?: string
 }): Promise<{ success: boolean; appointment?: Prisma.AppointmentGetPayload<{ include: { service: true; barber: true } }>; error?: string; customerAccessToken?: string }> {
-  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData } = params
+  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId } = params
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -681,6 +684,28 @@ export async function createAppointmentSafely(params: {
           smsConsent: customerData.smsConsent ?? false,
         },
       })
+
+      // 6b. First booking by an authenticated CUSTOMER account: establish the
+      // server-side account → customer-record link (never overwrites an
+      // existing link; recorded in the audit log).
+      if (customerUserId) {
+        const linked = await tx.user.updateMany({
+          where: { id: customerUserId, role: 'CUSTOMER', customerId: null },
+          data: { customerId: customer.id },
+        })
+        if (linked.count > 0) {
+          await tx.auditLog.create({
+            data: {
+              businessId,
+              userId: customerUserId,
+              action: 'CUSTOMER_LINKED',
+              entityType: 'Customer',
+              entityId: customer.id,
+              newValues: { customerId: customer.id , description: 'Customer account linked to customer record on first booking' },
+            },
+          })
+        }
+      }
 
       // 7. Generate a unique confirmation number
       let confirmationNumber = generateConfirmationNumber()

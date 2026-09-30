@@ -5,27 +5,40 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { registrationConfig } from '@/lib/app-config'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 
 // ============================================================================
-// PUBLIC SIGNUP — creates a CUSTOMER account.
+// OWNER ONBOARDING SIGNUP — the ONLY public path that creates an OWNER.
 //
-// The role is determined SERVER-SIDE and is always CUSTOMER. Any role value
-// supplied by the browser is ignored (and rejected by the schema — this
-// endpoint accepts no role field at all). Staff accounts are created only
-// through the invitation lifecycle; owner accounts only through the gated
-// owner-onboarding endpoint (/api/auth/register-owner).
+// Gated by the deployment-level OWNER_REGISTRATION_MODE switch. This is the
+// "create your barbershop" entry: the new owner is sent into onboarding to
+// build their shop. A public request can never obtain OWNER through
+// /api/auth/register (customers) or the staff invitation lifecycle (staff).
 // ============================================================================
 
-const registerSchema = z.object({
+const registerOwnerSchema = z.object({
   email: z.string().trim().email().transform(normalizeEmail),
   password: passwordPolicySchema,
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-  // Deliberately NO role field: a public request can never select a role.
+  // No role field — role is OWNER by definition of this endpoint.
 })
 
 export async function POST(req: NextRequest) {
-  const rateLimitResult = checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: 3 })
+  if (registrationConfig.isDisabled) {
+    return NextResponse.json(
+      { error: 'Registration is currently unavailable. Please contact your administrator.', code: 'REGISTRATION_DISABLED' },
+      { status: 403 }
+    )
+  }
+  if (registrationConfig.isInviteOnly) {
+    return NextResponse.json(
+      { error: 'Accounts can only be created through an invitation. Please contact your administrator.', code: 'REGISTRATION_INVITE_ONLY' },
+      { status: 403 }
+    )
+  }
+
+  const rateLimitResult = checkRateLimit(req, 'register-owner', { windowMs: 60_000, maxRequests: 3 })
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many attempts. Please wait a minute and try again.' },
@@ -35,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => null)
-    const parsed = registerSchema.safeParse(body)
+    const parsed = registerOwnerSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parsed.error.flatten() },
@@ -55,25 +68,25 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Role is fixed server-side: a public signup is ALWAYS a customer.
-    const customer = await prisma.user.create({
+    // Create owner with no business — they'll set up their shop via onboarding
+    const owner = await prisma.user.create({
       data: {
         email,
         name,
         passwordHash,
-        role: 'CUSTOMER',
+        role: 'OWNER',
       },
       select: { id: true, email: true, name: true, role: true },
     })
 
     return NextResponse.json({
       success: true,
-      user: { id: customer.id, email: customer.email, name: customer.name, role: customer.role },
+      user: { id: owner.id, email: owner.email, name: owner.name, role: owner.role },
       message: 'Account created. You can now sign in.',
     }, { status: 201 })
 
   } catch (error) {
-    console.error('Customer registration error:', error)
+    console.error('Owner registration error:', error)
 
     if (error?.code === 'P1001' || error?.code === 'P1017') {
       return NextResponse.json(

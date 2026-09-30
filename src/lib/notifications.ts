@@ -432,9 +432,11 @@ export async function sendStaffInviteEmail(params: {
         ``,
         `You've been invited to the ${params.businessName} team.`,
         ``,
-        `Sign in here: ${params.loginUrl}`,
+        params.tempPassword
+          ? `Sign in here: ${params.loginUrl}`
+          : `Accept your invitation and set your password here: ${params.loginUrl}`,
         `Email: ${params.to}`,
-        `Temporary password: ${params.tempPassword}`,
+        ...(params.tempPassword ? [`Temporary password: ${params.tempPassword}`] : []),
         ``,
         `You'll be asked to set your own password the first time you sign in.`,
         ``,

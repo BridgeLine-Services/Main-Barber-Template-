@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { resolveBusiness } from '@/lib/tenant'
 import { CustomerPortal } from '@/components/customer/CustomerPortal'
+import { CustomerPortalAuthed } from '@/components/customer/CustomerPortalAuthed'
 import type { Business } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +27,15 @@ export default async function PortalPage({ searchParams }: PageProps) {
 
   const hours = business.hours as Record<string, { open?: string; close?: string; isOff?: boolean }> | null
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+  // Authenticated CUSTOMER session → session-based portal (the server
+  // resolves the customer from the session; the guest verification-token
+  // flow below remains for visitors without an account).
+  const session = await getServerSession(authOptions)
+  const sessionRole = (session?.user as { role?: string } | undefined)?.role
+  if (sessionRole === 'CUSTOMER') {
+    return <CustomerPortalAuthed businessName={business.name} />
+  }
 
   return (
     <>

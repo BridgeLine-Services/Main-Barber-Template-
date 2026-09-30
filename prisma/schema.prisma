@@ -68,6 +68,7 @@ model Business {
   deactivatedAt DateTime?
 
   users                        User[]
+  staffInvitations             StaffInvitation[]
   barbers                      Barber[]
   services                     Service[]
   customers                    Customer[]
@@ -111,10 +112,10 @@ model Business {
   customerRescheduleWindowDays     Int?
 
   // Booking rules (server-side enforced in src/lib/availability.ts)
-  minAdvanceBookingMinutes  Int  @default(0)   // customer must book at least N minutes ahead (0 = off)
-  maxBookingWindowDays      Int?               // appointments cannot start more than N days out (null = no limit)
-  bufferMinutes             Int  @default(0)    // buffer after each appointment (business default)
-  cancellationDeadlineHours Int  @default(2)    // customer cancellation cutoff before start (0 = no deadline)
+  minAdvanceBookingMinutes  Int  @default(0) // customer must book at least N minutes ahead (0 = off)
+  maxBookingWindowDays      Int? // appointments cannot start more than N days out (null = no limit)
+  bufferMinutes             Int  @default(0) // buffer after each appointment (business default)
+  cancellationDeadlineHours Int  @default(2) // customer cancellation cutoff before start (0 = no deadline)
 
   @@index([slug])
 }
@@ -126,19 +127,23 @@ enum UserRole {
   OWNER
   BUSINESS_ADMIN
   BARBER
+  CUSTOMER
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         UserRole  @default(BARBER)
-  businessId   String?
-  business     Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  barberId     String? // links to Barber profile when role = BARBER
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                   String            @id @default(cuid())
+  email                String            @unique
+  passwordHash         String
+  name                 String
+  role                 UserRole          @default(BARBER)
+  businessId           String?
+  business             Business?         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId             String? // links to Barber profile when role = BARBER
+  customerId           String?           @unique // links to the Customer record when role = CUSTOMER (established server-side only)
+  customer             Customer?         @relation(fields: [customerId], references: [id])
+  staffInvitationsSent StaffInvitation[] @relation("SentStaffInvitations")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   auditLogs                  AuditLog[]
   passwordResetToken         String?
@@ -249,7 +254,7 @@ model Service {
   price                            Float // default price — payment is in person
   recommendedRebookingIntervalDays Int?
   isActive                         Boolean  @default(true)
-  bufferMinutes                    Int?     // per-service buffer override; null = use business.bufferMinutes
+  bufferMinutes                    Int? // per-service buffer override; null = use business.bufferMinutes
   order                            Int      @default(0)
   createdAt                        DateTime @default(now())
   updatedAt                        DateTime @updatedAt
@@ -395,6 +400,7 @@ model Customer {
   cancellationRecords CancellationRecord[]
   notificationHistory NotificationLog[]       @relation("CustomerNotificationLogs")
   portalSessions      PortalSession[]
+  linkedUser          User?
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -647,6 +653,49 @@ enum AuditAction {
   DATA_EXPORTED
   CUSTOMER_ACCOUNT_DELETED
   SERVICE_DELETED
+  // ── Master-template event-matrix additions ──
+  LOGOUT
+  PASSWORD_RESET
+  APPOINTMENT_UPDATED
+  HOURS_UPDATED
+  POLICIES_UPDATED
+  FAQ_CREATED
+  FAQ_UPDATED
+  FAQ_DELETED
+  WEBSITE_CONTENT_UPDATED
+  MEDIA_UPDATED
+  STAFF_INVITED
+  STAFF_INVITATION_ACCEPTED
+  STAFF_INVITATION_REVOKED
+  STAFF_ACTIVATED
+  STAFF_DEACTIVATED
+  STAFF_ROLE_CHANGED
+  CUSTOMER_LINKED
+}
+
+// ─── Staff invitation lifecycle ──────────────────────────────────────────────
+// Secure, single-use, time-limited, business- and role-scoped invitations.
+// Only the SHA-256 hash of the invitation token is stored — the plaintext
+// token exists only in the invitation link sent to the invitee.
+model StaffInvitation {
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email       String
+  name        String
+  // Constrained to BUSINESS_ADMIN | BARBER at creation (never OWNER, never CUSTOMER)
+  role        UserRole
+  barberId    String? // optional Barber profile to link on acceptance
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  invitedById String
+  invitedBy   User      @relation("SentStaffInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([businessId, email])
+  @@index([businessId, createdAt])
 }
 
 model AuditLog {
@@ -660,6 +709,8 @@ model AuditLog {
   entityId   String?
   oldValues  Json?
   newValues  Json?
+  // Meaningful human-readable description of what happened
+  description String?
   ipAddress  String?
   userAgent  String?
   createdAt  DateTime    @default(now())

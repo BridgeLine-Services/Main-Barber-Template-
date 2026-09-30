@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolveBusinessId } from '@/lib/tenant'
 import { createAppointmentSafely, getAvailableSlots } from '@/lib/availability'
@@ -100,7 +102,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { barberId: reqBarberId, serviceId, date, time, customer } = parseResult.data
+    const { barberId: reqBarberId, serviceId, date, time } = parseResult.data
+    const customer = { ...parseResult.data.customer }
+
+    // Authenticated CUSTOMER booking: the ACCOUNT email is the identity —
+    // server-side override. A logged-in customer can never attach an
+    // appointment to a different customer record by submitting someone
+    // else's email, and the booking links to their account on first use.
+    let customerUserId: string | undefined
+    const session = await getServerSession(authOptions)
+    const sessionRole = (session?.user as { role?: string; id?: string; email?: string } | undefined)?.role
+    if (sessionRole === 'CUSTOMER' && session?.user?.email) {
+      customer.email = session.user.email
+      customerUserId = session.user.id
+    }
+
     const idempotencyKey = parseResult.data.idempotencyKey ||
       `${reqBarberId || 'any'}-${serviceId}-${date}-${time}-${customer.email}`
 
@@ -213,6 +229,7 @@ export async function POST(req: NextRequest) {
         policiesAcceptedAt: parseResult.data.policiesAcceptedAt ? new Date(parseResult.data.policiesAcceptedAt) : null,
         policyVersion: policiesRequired ? (businessPolicies?.updatedAt.toISOString() ?? null) : null,
       },
+      customerUserId,
     })
 
     if (!result.success || !result.appointment) {

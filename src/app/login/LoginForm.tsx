@@ -43,7 +43,9 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
     try {
       if (mode === 'register') {
         // Register new owner account
-        const res = await fetch('/api/auth/register', {
+        // Owner onboarding signup — gated server-side by OWNER_REGISTRATION_MODE.
+        // Customer accounts are created via /register instead.
+        const res = await fetch('/api/auth/register-owner', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password }),
@@ -59,10 +61,10 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
           email,
           password,
           redirect: false,
-          callbackUrl: '/dashboard',
+          callbackUrl: '/auth/redirect',
         })
         if (result?.ok) {
-          window.location.assign(result.url ?? '/dashboard')
+          window.location.assign(result.url ?? '/auth/redirect')
         } else {
           // Registration worked but auto-login failed — switch to login mode
           setMode('login')
@@ -71,11 +73,13 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
         }
       } else {
         // Login
+        // Unified login: the server routes by role at /auth/redirect
+        // (CUSTOMER → /portal, staff/owner → /dashboard or onboarding).
         const result = await signIn('credentials', {
           email,
           password,
           redirect: false,
-          callbackUrl: '/dashboard',
+          callbackUrl: '/auth/redirect',
         })
 
         if (result?.error) {
@@ -222,6 +226,16 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
               </Link>
             </div>
           )}
+
+          {/* Customer signup — always available; creates a CUSTOMER account */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/register"
+              className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
+            >
+              Booking with an account? Create your customer account
+            </Link>
+          </div>
 
           {/* Registration switch — adapts to OWNER_REGISTRATION_MODE */}
           {openRegistration ? (

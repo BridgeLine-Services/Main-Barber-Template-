@@ -141,7 +141,9 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({ name: 'Sneaky Owner', email: `sneaky-rb-${stamp}@test.com`, role: 'OWNER' }),
     }, adminLogin.sessionCookie)
-    assert(r.status === 403, `admin cannot mint an OWNER account (got ${r.status})`)
+    // Invitation lifecycle: OWNER can never be assigned via staff invite.
+    // (400 = rejected at validation by the invite schema's role enum.)
+    assert(r.status === 400 || r.status === 403, `admin cannot mint an OWNER account (got ${r.status})`)
     r = await api('/api/dashboard/onboarding', {}, adminLogin.sessionCookie)
     assert(r.status === 403, `admin blocked from onboarding (owner-only) (got ${r.status})`)
     r = await api('/api/dashboard/factory-launch', {}, adminLogin.sessionCookie)
@@ -156,7 +158,16 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({ name: 'Owner Two', email: `owner2-rb-${stamp}@test.com`, role: 'OWNER' }),
     }, ownerLogin.sessionCookie)
-    assert(r.status === 200 || r.status === 201, `owner can still invite another owner (got ${r.status})`)
+    // New security invariant: staff invitations can NEVER create OWNER
+    // accounts — not even for the owner themselves. Ownership changes go
+    // through the dedicated transfer-ownership flow instead.
+    r = await api('/api/dashboard/staff', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Owner Two', email: `owner2-rb-${stamp}@test.com`, role: 'OWNER' }),
+    }, ownerLogin.sessionCookie)
+    assert(r.status === 400 || r.status === 403, `owner cannot mint an OWNER account via staff invite either (got ${r.status})`)
+
+    r = await api('/api/dashboard/onboarding', {}, ownerLogin.sessionCookie)
     r = await api('/api/dashboard/onboarding', {}, ownerLogin.sessionCookie)
     assert(r.status === 200, `owner can still access onboarding (got ${r.status})`)
 

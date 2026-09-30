@@ -14,6 +14,11 @@ export async function GET(req: NextRequest) {
     const businessId = session.user?.businessId
     const role = session.user?.role
     const barberId = session.user?.barberId
+    // Staff-only endpoint: a CUSTOMER (or any non-staff session) can never
+    // read business customer data.
+    if (!['OWNER', 'BUSINESS_ADMIN', 'BARBER'].includes(role as string)) {
+      return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
+    }
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
     const limit = parseInt(searchParams.get('limit') || '50')

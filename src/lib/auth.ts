@@ -74,6 +74,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            customerId: user.customerId,
             // businessId may be null for owners who haven't completed onboarding yet
             businessId: user.businessId || '',
             businessName: user.business?.name || 'Barber Shop',
@@ -90,6 +91,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role as typeof token.role
+        token.customerId = (user as { customerId?: string | null }).customerId ?? null
         token.businessId = user.businessId as string | null
         token.businessName = user.businessName as string | undefined
         token.barberId = user.barberId as string | null
@@ -126,6 +128,7 @@ export const authOptions: NextAuthOptions = {
         // API routes can resolve the DB user authoritatively.
         ;session.user.id = token.sub
         ;session.user.role = token.role
+        ;session.user.customerId = token.customerId ?? null
         ;session.user.businessId = token.businessId
         ;session.user.businessName = token.businessName
         ;session.user.barberId = token.barberId
@@ -138,6 +141,47 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+  },
+  // AUTH AUDIT EVENTS — LOGIN / LOGOUT are recorded for every account type.
+  // Audit failures must never break authentication (best-effort writes).
+  events: {
+    async signIn({ user }) {
+      try {
+        const u = user as { id?: string; email?: string; businessId?: string | null; role?: string }
+        if (!u?.id) return
+        await prisma.auditLog.create({
+          data: {
+            businessId: u.businessId || null,
+            userId: u.id,
+            action: 'LOGIN_SUCCESS',
+            entityType: 'User',
+            entityId: u.id,
+            newValues: { email: u.email, role: u.role },
+            description: `Signed in (${u.role || 'unknown role'})`,
+          },
+        })
+      } catch (e) {
+        console.error('[auth] login audit failed', e instanceof Error ? e.message : 'unknown')
+      }
+    },
+    async signOut(message) {
+      try {
+        const token = (message as { token?: { sub?: string; email?: string; role?: string; businessId?: string | null } }).token
+        if (!token?.sub) return
+        await prisma.auditLog.create({
+          data: {
+            businessId: token.businessId || null,
+            userId: token.sub,
+            action: 'LOGOUT',
+            entityType: 'User',
+            entityId: token.sub,
+            newValues: { email: token.email , description: 'Signed out' },
+          },
+        })
+      } catch (e) {
+        console.error('[auth] logout audit failed', e instanceof Error ? e.message : 'unknown')
+      }
+    },
   },
   // Session secret. In production the app REFUSES to boot with a fallback —
   // a guessable secret would let anyone forge session JWTs.

@@ -18,7 +18,9 @@ export interface AuthResult {
     id: string
     email: string
     name: string
-    role: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER'
+    // Every UserRole can appear here — requireAuth resolves the user from
+    // the database, and public signups create CUSTOMER accounts.
+    role: 'PLATFORM_OWNER' | 'OWNER' | 'BUSINESS_ADMIN' | 'BARBER' | 'CUSTOMER'
     businessId: string | null
     barberId?: string | null
   }
@@ -144,6 +146,16 @@ export async function requireStaff(
 ): Promise<AuthResult | AuthError> {
   const auth = await requireAuth()
   if (!auth.success) return auth
+
+  // Staff APIs serve business staff only. A CUSTOMER session is rejected
+  // before any business logic runs — customer access to business data is
+  // IDOR by definition, so this is a hard 403 regardless of payload.
+  if (auth.user.role === 'CUSTOMER') {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'Staff access required' }, { status: 403 }),
+    }
+  }
 
   if (auth.user.role === 'BARBER' && options?.restrictToOwnBarber && !auth.user.barberId) {
     return {

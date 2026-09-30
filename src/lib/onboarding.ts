@@ -15,7 +15,7 @@
 
 import { prisma } from '@/lib/prisma'
 
-export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding' | 'platform-owner'
+export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding' | 'platform-owner' | 'customer'
 
 /**
  * Access decision for the dashboard gate.
@@ -115,6 +115,14 @@ export async function checkDashboardAccess(
 
   if (dbUser.mustChangePassword && !pathname.startsWith('/change-password')) {
     return { allowed: false, redirectTo: '/change-password', reason: 'password' }
+  }
+
+  // Customers never access management — their home is the customer
+  // portal. Enforced here for pages AND per-route in every dashboard API
+  // (each API independently rejects non-staff roles), so a customer session
+  // can never reach business data even with direct API calls.
+  if (dbUser.role === 'CUSTOMER') {
+    return { allowed: false, redirectTo: '/portal', reason: 'customer' }
   }
 
   // Platform owners administer businesses from the platform console, not

@@ -26,6 +26,8 @@ export default function StaffPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [tempCreds, setTempCreds] = useState<{ email: string; password: string } | null>(null)
+  const [inviteLink, setInviteLink] = useState<{ email: string; url: string } | null>(null)
+  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; name: string; role: string; expiresAt: string }>>([])
   const [copied, setCopied] = useState(false)
 
   const [form, setForm] = useState({ name: '', email: '', role: 'BARBER', barberId: '' })
@@ -47,6 +49,7 @@ export default function StaffPage() {
       const res = await fetch('/api/dashboard/staff')
       const data = await res.json()
       setStaff(data.staff || [])
+      setInvitations(data.invitations || [])
     } catch { setStaff([]) }
     finally { setLoading(false) }
   }
@@ -74,13 +77,28 @@ export default function StaffPage() {
         return
       }
 
-      setStaff([...staff, data.user])
-      setTempCreds({ email: data.user.email, password: data.tempPassword })
+      setInviteLink({ email: data.invitation.email, url: data.inviteUrl })
       setForm({ name: '', email: '', role: 'BARBER', barberId: '' })
       setShowForm(false)
+      fetchStaff()
     } catch {
       setError('Network error')
     } finally { setSubmitting(false) }
+  }
+
+  const handleRevokeInvite = async (id: string, email: string) => {
+    if (!confirm(`Revoke the invitation for ${email}? The link will stop working.`)) return
+    try {
+      const res = await fetch(`/api/dashboard/staff/invitations/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error || 'Failed to revoke invitation')
+        return
+      }
+      fetchStaff()
+    } catch {
+      setError('Network error')
+    }
   }
 
   const handleResetPassword = async (id: string, name: string) => {
@@ -253,6 +271,56 @@ export default function StaffPage() {
             <Button size="sm" onClick={copyCreds} variant="outline" className="border-zinc-700 text-zinc-300">
               {copied ? <><Check className="w-3.5 h-3.5 mr-1" /> Copied</> : <><Copy className="w-3.5 h-3.5 mr-1" /> Copy Credentials</>}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Invitation link display */}
+      {inviteLink && (
+        <Card className="bg-zinc-900 border-amber-500/30">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-amber-300">Invitation Sent — Share This Secure Link</p>
+              <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-zinc-400">
+              {inviteLink.email} sets their own password via this single-use link (expires in 7 days).
+            </p>
+            <div className="rounded-lg bg-zinc-800 p-3 font-mono text-xs break-all text-zinc-300">{inviteLink.url}</div>
+            <Button
+              size="sm" variant="outline" className="border-zinc-700 text-zinc-300"
+              onClick={() => {
+                navigator.clipboard.writeText(inviteLink.url)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }}
+            >
+              {copied ? <><Check className="w-3.5 h-3.5 mr-1" /> Copied</> : <><Copy className="w-3.5 h-3.5 mr-1" /> Copy Link</>}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending invitations */}
+      {invitations.length > 0 && (
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm font-medium text-zinc-200">Pending Invitations ({invitations.length})</p>
+            <div className="space-y-2">
+              {invitations.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between rounded-lg bg-zinc-800/60 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-zinc-200">{inv.name} <span className="text-zinc-500">({inv.email})</span></p>
+                    <p className="text-xs text-zinc-500">{inv.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Barber'} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="border-red-500/30 text-red-300 hover:bg-red-500/10" onClick={() => handleRevokeInvite(inv.id, inv.email)}>
+                    Revoke
+                  </Button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
