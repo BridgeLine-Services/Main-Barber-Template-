@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
 import { NoShowManagementClient } from './NoShowManagementClient'
+import type { NoShowData } from './NoShowManagementClient'
 
 export default async function NoShowManagementPage() {
   const session = await getServerSession(authOptions)
@@ -17,7 +18,7 @@ export default async function NoShowManagementPage() {
     redirect('/dashboard')
   }
 
-  let initialData: any = null
+  let initialData: NoShowData | null = null
 
   try {
     const noShows = await prisma.appointment.findMany({
@@ -52,20 +53,27 @@ export default async function NoShowManagementPage() {
     }
 
     const serializedNoShows = noShows.map(a => ({
-      ...a,
+      id: a.id,
+      confirmationNumber: a.confirmationNumber,
       startTime: a.startTime.toISOString(),
-      endTime: a.endTime.toISOString(),
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
       noShowCount: customerNoShowCounts.get(a.customerId) || 1,
+      noShowReason: a.noShowReason,
+      noShowAt: a.noShowAt ? a.noShowAt.toISOString() : null,
+      customer: a.customer,
+      barber: a.barber,
+      service: a.service,
     }))
 
     initialData = {
       noShows: serializedNoShows,
       policy: {
-        ...policy,
-        createdAt: policy.createdAt.toISOString(),
-        updatedAt: policy.updatedAt.toISOString(),
+        id: policy.id,
+        firstNoShow: policy.firstNoShow,
+        secondNoShow: policy.secondNoShow,
+        thirdNoShow: policy.thirdNoShow,
+        requireDeposit: policy.requireDeposit,
+        depositAmount: policy.depositAmount,
+        isActive: policy.isActive,
       },
       stats: {
         total: noShows.length,

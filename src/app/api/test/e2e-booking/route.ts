@@ -134,7 +134,7 @@ export async function POST(_req: NextRequest) {
           lastName: 'Test',
           phone: '(555) 555-0199',
           email: testCustomerEmail,
-          notes: 'Automated E2E test - safe to delete' as any,
+          notes: 'Automated E2E test - safe to delete',
         },
       })
 
@@ -230,7 +230,7 @@ export async function POST(_req: NextRequest) {
         lastName: 'Test',
         phone: '(555) 555-0199',
         email: testCustomerEmail,
-        notes: 'Automated E2E test - safe to delete' as any,
+        notes: 'Automated E2E test - safe to delete',
       },
     })
 

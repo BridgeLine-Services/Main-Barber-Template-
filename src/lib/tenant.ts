@@ -6,7 +6,7 @@ import { authOptions } from './auth'
 
 export async function getAuthenticatedBusinessId(): Promise<string | null> {
   const session = await getServerSession(authOptions)
-  return (session?.user as any)?.businessId ?? null
+  return session?.user.businessId ?? null
 }
 
 /**

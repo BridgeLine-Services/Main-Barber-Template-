@@ -54,7 +54,7 @@ export async function POST() {
 
     const snapshot: Record<string, unknown> = {}
     for (const field of PUBLISH_FIELDS) {
-      snapshot[field] = (draft as any)[field]
+      snapshot[field] = (draft as unknown as Record<string, unknown>)[field]
     }
 
     const updated = await prisma.websiteContent.update({
@@ -102,7 +102,7 @@ export async function GET() {
       if (draftRow) {
         const published: Record<string, unknown> = content.publishedContent as Record<string, unknown>
         hasUnpublishedChanges = PUBLISH_FIELDS.some(
-          (f) => JSON.stringify((draftRow as any)[f] ?? null) !== JSON.stringify(published[f] ?? null)
+          (f) => JSON.stringify((draftRow as unknown as Record<string, unknown>)[f] ?? null) !== JSON.stringify(published[f] ?? null)
         )
       }
     }

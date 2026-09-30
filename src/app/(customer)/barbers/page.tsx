@@ -6,6 +6,14 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { resolveBusiness } from '@/lib/tenant'
 import { getInitials } from '@/lib/utils'
+import type { Prisma } from '@prisma/client'
+
+type BarberWithRelations = Prisma.BarberGetPayload<{
+  include: {
+    services: { include: { service: true } }
+    reviews: { select: { rating: true } }
+  }
+}>
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -35,7 +43,7 @@ export default async function BarbersPage() {
     )
   }
 
-  const barbers = await prisma.barber.findMany({
+  const barbers: BarberWithRelations[] = await prisma.barber.findMany({
     where: { businessId: business.id, isActive: true },
     include: {
       services: {
@@ -113,7 +121,7 @@ export default async function BarbersPage() {
                           <Scissors className="h-3.5 w-3.5" /> Services Offered:
                         </p>
                         <div className="space-y-1">
-                          {barber.services.map((bs: any) => {
+                          {barber.services.map((bs) => {
                             const price = bs.priceOverride ?? bs.service?.price
                             const duration = bs.durationOverride ?? bs.service?.duration
                             return (

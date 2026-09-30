@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { MapPin, Phone, Mail, Clock } from 'lucide-react'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { Reveal } from '@/components/motion/reveal'
+import type { BusinessHours } from '@/lib/business-hours'
 
 export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata({
@@ -29,7 +30,7 @@ export default async function ContactPage() {
     .join(', ') || null
 
   const hoursList = business?.hours && typeof business.hours === 'object'
-    ? Object.entries(business.hours).map(([day, val]: [string, any]) => ({
+    ? Object.entries(business.hours as BusinessHours).map(([day, val]) => ({
         day: day.charAt(0).toUpperCase() + day.slice(1),
         hours: val?.isOff ? 'Closed' : `${val?.open || '09:00'} - ${val?.close || '18:00'}`,
       }))

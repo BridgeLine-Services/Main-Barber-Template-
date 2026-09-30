@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { LoyaltyClient } from './LoyaltyClient'
+import type { Tier } from './LoyaltyClient'
 
 export default async function LoyaltyPage() {
   const session = await getServerSession(authOptions)
@@ -20,7 +21,7 @@ export default async function LoyaltyPage() {
   }
 
   // Get current loyalty program
-  let program: any = null
+  let program: Awaited<ReturnType<typeof prisma.businessRewardProgram.findFirst>> = null
   try {
     program = await prisma.businessRewardProgram.findFirst({
       where: { businessId, isActive: true },
@@ -36,7 +37,7 @@ export default async function LoyaltyPage() {
         id: program.id,
         name: program.name,
         type: program.type,
-        tiers: program.config,
+        tiers: Array.isArray(program.config) ? (program.config as unknown as Tier[]) : [],
         pointsPerDollar: program.pointsPerDollar,
         isActive: program.isActive,
       } : null}

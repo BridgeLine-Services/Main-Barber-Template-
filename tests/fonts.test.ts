@@ -56,7 +56,7 @@ async function main() {
     const themeCss = generateThemeCSS({
       primaryColor: '#1a1a1a', accentColor: '#d4a853', secondaryColor: null,
       themeMode: 'dark', fontFamily: fam,
-    } as any)
+    })
     assert(themeCss.includes(`var(--font-${fam}`), `font choice '${fam}' renders via its CSS variable`)
   }
 
@@ -64,7 +64,7 @@ async function main() {
   const invalidCss = generateThemeCSS({
     primaryColor: '#1a1a1a', accentColor: '#d4a853', secondaryColor: null,
     themeMode: 'dark', fontFamily: 'not-a-real-font',
-  } as any)
+  })
   assert(!invalidCss.includes('var(--font-not-a-real-font'),
     'invalid font selection does not emit a dangling font variable')
 

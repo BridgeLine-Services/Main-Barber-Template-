@@ -16,7 +16,7 @@ interface ServiceFormProps {
     duration: number
     price: number
     isActive: boolean
-    barbers?: Array<{ barberId: string }> | Array<{ id: string }> | any
+    barbers?: Array<{ barberId?: string; id?: string; barber?: { id?: string } }>
   } | null
   barbers: Array<{
     id: string
@@ -32,7 +32,7 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
   const isEdit = Boolean(service?.id)
 
   const initialAssignedBarberIds = service?.barbers
-    ? service.barbers.map((b: any) => b.barberId || b.id || b.barber?.id).filter(Boolean)
+    ? service.barbers.map((b) => b.barberId || b.id || b.barber?.id).filter(Boolean)
     : barbers.map((b) => b.id)
 
   const [name, setName] = useState(service?.name || '')

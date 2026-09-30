@@ -24,7 +24,7 @@ interface RetentionMetrics {
   tomorrowAppointments: number
 }
 
-interface RebookingTask {
+export interface RebookingTask {
   customerId: string
   customerName: string
   customerPhone: string

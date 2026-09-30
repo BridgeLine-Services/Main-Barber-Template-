@@ -58,6 +58,55 @@ const DEFAULT_HOURS: Record<string, { open: string; close: string; isOff: boolea
   sunday: { open: '09:00', close: '16:00', isOff: true },
 }
 
+
+type DayHours = { open: string; close: string; isOff: boolean }
+
+// Business record as returned by GET /api/dashboard/settings. All fields are
+// optional so a partially-seeded business still renders with template defaults.
+type SettingsBusiness = {
+  name?: string | null
+  aboutText?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zipCode?: string | null
+  phone?: string | null
+  email?: string | null
+  logo?: string | null
+  primaryColor?: string | null
+  secondaryColor?: string | null
+  accentColor?: string | null
+  themeMode?: string | null
+  fontFamily?: string | null
+  teamSectionLabel?: string | null
+  teamSectionTitle?: string | null
+  teamSectionDescription?: string | null
+  googleBusinessProfile?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  tiktok?: string | null
+  youtube?: string | null
+  xTwitter?: string | null
+  google?: string | null
+  timezone?: string | null
+  hours?: Record<string, DayHours> | null
+}
+
+type SettingsSeo = {
+  siteTitle?: string | null
+  siteDescription?: string | null
+  keywords?: string | null
+  ogTitle?: string | null
+  ogDescription?: string | null
+  ogImage?: string | null
+  canonicalUrl?: string | null
+  robotsIndex?: boolean | null
+  robotsFollow?: boolean | null
+  googleVerification?: string | null
+}
+
+type WebsiteContentMap = Record<string, string | boolean>
+
 type Tab = 'business' | 'hours' | 'branding' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
 
 // Single source of truth for the selected tab: the ?tab= URL parameter.
@@ -70,9 +119,9 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [business, setBusiness] = useState<any>(null)
-  const [seo, setSeo] = useState<any>(null)
-  const [websiteContent, setWebsiteContent] = useState<any>({})
+  const [business, setBusiness] = useState<SettingsBusiness | null>(null)
+  const [seo, setSeo] = useState<SettingsSeo | null>(null)
+  const [websiteContent, setWebsiteContent] = useState<WebsiteContentMap>({})
   const [bookingQuestions, setBookingQuestions] = useState<BookingQuestion[]>([])
   const [newQuestion, setNewQuestion] = useState({ label: '', key: '', type: 'SHORT_TEXT', required: false })
   const searchParams = useSearchParams()
@@ -832,9 +881,9 @@ export default function SettingsPage() {
               <div key={key} className="flex flex-col gap-1">
                 <Label className="text-zinc-400">{label}</Label>
                 {key.toLowerCase().includes('description') ? (
-                  <Textarea value={websiteContent[key] || ''} onChange={e => setWebsiteContent({ ...websiteContent, [key]: e.target.value })} className="bg-zinc-800 border-zinc-700" />
+                  <Textarea value={String(websiteContent[key] ?? '')} onChange={e => setWebsiteContent({ ...websiteContent, [key]: e.target.value })} className="bg-zinc-800 border-zinc-700" />
                 ) : (
-                  <Input value={websiteContent[key] || ''} onChange={e => setWebsiteContent({ ...websiteContent, [key]: e.target.value })} className="bg-zinc-800 border-zinc-700" />
+                  <Input value={String(websiteContent[key] ?? '')} onChange={e => setWebsiteContent({ ...websiteContent, [key]: e.target.value })} className="bg-zinc-800 border-zinc-700" />
                 )}
               </div>
             ))}

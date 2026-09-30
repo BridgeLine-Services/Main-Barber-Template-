@@ -33,13 +33,11 @@ export default function StaffPage() {
   const [transferring, setTransferring] = useState<string | null>(null)
   const { data: session } = useSession()
 
-  useEffect(() => { fetchStaff() }, [])
-
   // Barber profiles for staff <-> barber linking (owner view)
   useEffect(() => {
     fetch('/api/dashboard/barbers')
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setBarbers(Array.isArray(data) ? data.map((b: any) => ({ id: b.id, name: b.name, isActive: b.isActive })) : []))
+      .then((data: unknown) => setBarbers(Array.isArray(data) ? (data as Array<{ id: string; name: string; isActive: boolean }>).map((b) => ({ id: b.id, name: b.name, isActive: b.isActive })) : []))
       .catch(() => setBarbers([]))
   }, [])
 
@@ -52,6 +50,8 @@ export default function StaffPage() {
     } catch { setStaff([]) }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { fetchStaff() }, [])
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -406,7 +406,7 @@ export default function StaffPage() {
                     className="text-zinc-400 hover:text-blue-400 hover:bg-blue-950/30">
                     {member.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                   </Button>
-                  {(session?.user as any)?.id !== member.id && (
+                  {session?.user?.id !== member.id && (
                     <Button
                       size="sm"
                       variant="ghost"

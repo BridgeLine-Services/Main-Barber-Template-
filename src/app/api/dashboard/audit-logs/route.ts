@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin } from '@/lib/auth-helpers'
 import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
+import { AuditAction } from '@prisma/client'
 
 /**
  * GET /api/dashboard/audit-logs
@@ -20,9 +22,10 @@ export async function GET(req: NextRequest) {
       const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
       const offset = parseInt(searchParams.get('offset') || '0')
       const action = searchParams.get('action')
-      const where: any = { businessId }
+      const where: Prisma.AuditLogWhereInput = { businessId }
       if (action) {
-        where.action = action
+        const a = action.toUpperCase() as AuditAction
+        if (Object.values(AuditAction).includes(a)) where.action = a
       }
       const [logs, total] = await Promise.all([
         prisma.auditLog.findMany({

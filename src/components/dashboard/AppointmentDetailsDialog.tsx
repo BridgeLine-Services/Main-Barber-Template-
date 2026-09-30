@@ -31,9 +31,10 @@ import {
   FileText,
   Hash,
 } from 'lucide-react'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface AppointmentDetailsDialogProps {
-  appointment: any | null
+  appointment: CalendarAppointment | null
   open: boolean
   onClose: () => void
   onUpdated?: () => void
@@ -255,7 +256,7 @@ export function AppointmentDetailsDialog({
                   <p className="text-xs italic text-zinc-300">{appointment.customerNotes}</p>
                 </div>
               )}
-              {appointment.intakeResponses?.map((response: any) => (
+              {appointment.intakeResponses?.map((response) => (
                 <div key={response.id || response.questionKey} className="border-t border-zinc-800 pt-2">
                   <div className="text-[11px] font-medium text-zinc-400">
                     {response.questionLabel}

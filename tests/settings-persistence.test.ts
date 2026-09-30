@@ -8,6 +8,7 @@
  */
 import { prisma } from '../src/lib/prisma'
 import { updateBusinessSchema } from '../src/lib/validation'
+import type { Prisma } from '@prisma/client'
 
 let passed = 0, failed = 0
 function assert(c: boolean, m: string) {
@@ -56,7 +57,7 @@ async function main() {
       assert(!dataKeys.includes(f), `schema strips server-owned field: ${f}`)
     }
 
-    await prisma.business.update({ where: { id: business.id }, data: parsed.data as any })
+    await prisma.business.update({ where: { id: business.id }, data: parsed.data as Prisma.BusinessUpdateInput })
 
     // Fresh read simulates: sign out, sign back in, GET /api/dashboard/settings
     const reloaded = await prisma.business.findUnique({ where: { id: business.id } })
@@ -66,7 +67,7 @@ async function main() {
     assert(reloaded?.primaryColor === '#d4af37' && reloaded?.themeMode === 'light', 'branding persists')
     assert(reloaded?.logo === 'https://cdn.example.com/logo.png', 'logo persists')
     assert(reloaded?.instagram === 'https://instagram.com/newhandle', 'social link persists')
-    assert((reloaded?.hours as any)?.monday?.open === '10:00', 'hours persist')
+    assert((reloaded?.hours as Record<string, { open: string }> | null)?.monday?.open === '10:00', 'hours persist')
     assert(reloaded?.cancellationPolicy === 'New cancellation policy text', 'policies persist')
     assert(reloaded?.walkInsWelcome === false, 'booking toggle persists')
     assert(reloaded?.minAdvanceBookingMinutes === 120 && reloaded?.maxBookingWindowDays === 45, 'booking rules persist')

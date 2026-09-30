@@ -22,6 +22,7 @@ import {
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
+import type { BusinessHours } from '@/lib/business-hours'
 
 
 // ─── Dynamic SEO Metadata ──────────────────────────────────────────────
@@ -141,7 +142,7 @@ export default async function HomePage() {
   const mapsLinkUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`
 
   const hoursList = business?.hours && typeof business.hours === 'object'
-    ? Object.entries(business.hours).map(([day, val]: [string, any]) => ({
+    ? Object.entries(business.hours as BusinessHours).map(([day, val]) => ({
         day: day.charAt(0).toUpperCase() + day.slice(1),
         hours: val?.isOff ? 'Closed' : `${val?.open || '09:00'} - ${val?.close || '18:00'}`,
       }))

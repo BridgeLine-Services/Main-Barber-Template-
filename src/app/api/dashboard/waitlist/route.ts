@@ -7,6 +7,8 @@ import { startOfDayUTC, resolveBusinessTimezone } from '@/lib/timezone'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
+import { WaitlistStatus } from '@prisma/client'
 
 /**
  * GET /api/dashboard/waitlist
@@ -28,8 +30,11 @@ export async function GET(req: NextRequest) {
       const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
       const { searchParams } = req.nextUrl
       const status = searchParams.get('status')
-      const where: any = { businessId }
-      if (status) where.status = status.toUpperCase()
+      const where: Prisma.WaitlistEntryWhereInput = { businessId }
+      if (status) {
+        const s = status.toUpperCase() as WaitlistStatus
+        if (Object.values(WaitlistStatus).includes(s)) where.status = s
+      }
       const entries = await prisma.waitlistEntry.findMany({
         where,
         include: {
@@ -94,7 +99,7 @@ export async function PATCH(req: NextRequest) {
           ...(normalizedStatus === 'NOTIFIED' ? { status: 'WAITING' } : {}),
         },
         data: {
-          status: normalizedStatus as any,
+          status: normalizedStatus as WaitlistStatus,
           notifiedAt: normalizedStatus === 'NOTIFIED' ? new Date() : entry.notifiedAt,
         },
       })

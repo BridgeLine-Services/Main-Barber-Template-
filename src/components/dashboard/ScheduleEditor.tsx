@@ -16,7 +16,13 @@ interface ScheduleItem {
 
 interface ScheduleEditorProps {
   barberId: string
-  initialSchedules: any[]
+  initialSchedules: Array<{
+    dayOfWeek: number
+    startTime?: string | null
+    endTime?: string | null
+    isOff?: boolean | null
+    breaks?: unknown
+  }>
 }
 
 export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorProps) {

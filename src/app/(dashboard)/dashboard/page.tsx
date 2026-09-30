@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { TodayAppointmentsView } from '@/components/dashboard/TodayAppointmentsView'
+import type { Prisma } from '@prisma/client'
 
 export default async function DashboardHomePage() {
   const session = await getServerSession(authOptions)
@@ -29,7 +30,7 @@ export default async function DashboardHomePage() {
   const todayDateStr = now.toISOString().split('T')[0]
 
   // Build where filter
-  const whereFilter: any = {
+  const whereFilter: Prisma.AppointmentWhereInput = {
     businessId,
     startTime: {
       gte: startOfDay,
@@ -42,7 +43,7 @@ export default async function DashboardHomePage() {
     whereFilter.barberId = barberId
   }
 
-  let appointments: any[] = []
+  let appointments: Prisma.AppointmentGetPayload<{ include: { customer: true; barber: true; service: true } }>[] = []
   try {
     appointments = await prisma.appointment.findMany({
       where: whereFilter,

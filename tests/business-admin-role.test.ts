@@ -52,12 +52,12 @@ function cookiePairs(setCookie: string): string {
     .join('; ')
 }
 
-async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: any }> {
+async function api(path: string, init: RequestInit = {}, cookie: string = ''): Promise<{ status: number; body: Record<string, unknown> | null }> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie: cookiePairs(cookie) } : {}), ...(init.headers || {}) },
   })
-  let body: any = null
+  let body: Record<string, unknown> | null = null
   try { body = await res.json() } catch { /* empty */ }
   return { status: res.status, body }
 }

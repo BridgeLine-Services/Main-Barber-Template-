@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Repeat, Loader2, CheckCircle2, AlertTriangle,Calendar } from 'lucide-react'
+import type { RecurringPreview } from '@/lib/recurring'
 
 interface RecurringDialogProps {
   open: boolean
@@ -43,7 +44,7 @@ export function RecurringDialog({
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
 
-  const [preview, setPreview] = useState<any>(null)
+  const [preview, setPreview] = useState<RecurringPreview | null>(null)
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -258,7 +259,7 @@ export function RecurringDialog({
                 </div>
 
                 <div className="space-y-1.5 max-h-48 overflow-y-auto bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
-                  {preview.occurrences.map((occ: any, i: number) => (
+                  {preview.occurrences.map((occ, i: number) => (
                     <div
                       key={i}
                       className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded-lg ${

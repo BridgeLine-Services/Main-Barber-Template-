@@ -32,7 +32,7 @@ async function api(path: string, init: RequestInit = {}, cookie: string = '') {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}), ...(init.headers || {}) },
   })
-  let body: any = null
+  let body: Record<string, unknown> | null = null
   try { body = await res.json() } catch { /* empty */ }
   return { status: res.status, body }
 }

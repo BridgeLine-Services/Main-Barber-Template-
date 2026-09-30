@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { requireStaff } from '@/lib/auth-helpers'
 import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
+import { NotificationStatus } from '@prisma/client'
 
 /**
  * GET /api/dashboard/notifications
@@ -19,9 +21,10 @@ export async function GET(req: NextRequest) {
       const searchParams = req.nextUrl.searchParams
       const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
       const status = searchParams.get('status')
-      const where: any = { businessId }
+      const where: Prisma.NotificationLogWhereInput = { businessId }
       if (status) {
-        where.status = status
+        const s = status.toUpperCase() as NotificationStatus
+        if (Object.values(NotificationStatus).includes(s)) where.status = s
       }
       const logs = await prisma.notificationLog.findMany({
         where,

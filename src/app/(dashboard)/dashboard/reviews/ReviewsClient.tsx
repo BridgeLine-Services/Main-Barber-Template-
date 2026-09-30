@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-interface Barber {
+export interface Barber {
   id: string
   name: string
   slug: string | null
 }
 
-interface Review {
+export interface Review {
   id: string
   authorName: string
   rating: number

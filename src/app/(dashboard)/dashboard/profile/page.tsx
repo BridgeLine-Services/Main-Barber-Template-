@@ -12,11 +12,26 @@ import {
   Instagram, Facebook, Music2, Link as LinkIcon
 } from 'lucide-react'
 
+interface BarberProfile {
+  id?: string
+  name: string
+  email?: string
+  bio?: string | null
+  photo?: string | null
+  slug?: string
+  specialty?: string | null
+  phone?: string | null
+  website?: string | null
+  facebook?: string | null
+  instagram?: string | null
+  tiktok?: string | null
+}
+
 export default function ProfilePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<BarberProfile | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 

@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createBlockedTimeSchema } from '@/lib/validation'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const queryBarberId = searchParams.get('barberId')
     const targetBarberId = role === 'BARBER' ? barberId : queryBarberId
-    const where: any = { businessId }
+    const where: Prisma.BlockedTimeWhereInput = { businessId }
     if (targetBarberId) where.barberId = targetBarberId
     const blockedTimes = await prisma.blockedTime.findMany({
       where,

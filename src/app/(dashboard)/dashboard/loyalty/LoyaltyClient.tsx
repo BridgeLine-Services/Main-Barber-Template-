@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Plus, Trash2, Gift, Save, Trophy } from 'lucide-react'
 
-interface Tier {
+export interface Tier {
   threshold: number
   reward: string
   rewardType: 'DISCOUNT' | 'FREE_SERVICE' | 'CUSTOM'
@@ -40,7 +40,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
     setTiers(tiers.filter((_, i) => i !== index))
   }
 
-  const updateTier = (index: number, field: keyof Tier, value: any) => {
+  const updateTier = (index: number, field: keyof Tier, value: Tier[keyof Tier]) => {
     const updated = [...tiers]
     updated[index] = { ...updated[index], [field]: value }
     setTiers(updated)

@@ -7,6 +7,7 @@ import { getBusinessIdForUser, logAudit } from '@/lib/auth-helpers'
 import { updateBusinessSchema } from '@/lib/validation'
 import { getClientIP } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 /**
  * GET /api/dashboard/settings
@@ -88,7 +89,7 @@ export async function PATCH(req: NextRequest) {
       // Update SEO if provided
       let updatedSeo = null
       if (seo && typeof seo === 'object') {
-        const seoData: any = {}
+        const seoData: Partial<Record<(typeof allowedSeoFields)[number], string | boolean>> = {}
         const allowedSeoFields = [
           'siteTitle', 'siteDescription', 'keywords', 'ogTitle', 'ogDescription',
           'ogImage', 'canonicalUrl', 'robotsIndex', 'robotsFollow', 'googleVerification'
@@ -99,8 +100,8 @@ export async function PATCH(req: NextRequest) {
         if (Object.keys(seoData).length > 0) {
           updatedSeo = await prisma.businessSEO.upsert({
             where: { businessId },
-            create: { businessId, ...seoData },
-            update: seoData,
+            create: { businessId, ...seoData } as Prisma.BusinessSEOUncheckedCreateInput,
+            update: seoData as Prisma.BusinessSEOUpdateInput,
           })
         }
       }

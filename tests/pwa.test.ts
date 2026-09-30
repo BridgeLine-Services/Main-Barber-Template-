@@ -26,7 +26,7 @@ async function main() {
   assert(/^#[0-9a-f]{6}$/i.test(manifest.theme_color || ''), `theme color present ("${manifest.theme_color}")`)
   assert(/^#[0-9a-f]{6}$/i.test(manifest.background_color || ''), 'background color present')
 
-  const iconSrcs: string[] = (manifest?.icons || []).map((i: any) => i.src)
+  const iconSrcs: string[] = (manifest?.icons || []).map((i: { src: string }) => i.src)
   assert(
     iconSrcs.some((s: string) => s.includes('maskable')),
     'manifest includes a maskable icon'

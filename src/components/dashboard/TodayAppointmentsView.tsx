@@ -14,9 +14,10 @@ import {
   Scissors,RefreshCw } from 'lucide-react'
 import { formatFullDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface TodayAppointmentsViewProps {
-  initialAppointments: any[]
+  initialAppointments: CalendarAppointment[]
   todayDateStr: string
   userName: string
   userRole: string

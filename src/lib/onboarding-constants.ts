@@ -120,9 +120,9 @@ export function detectTimezone(): string | null {
 /** Runtime IANA list; small curated fallback only if the runtime lacks the API. */
 function safeSupportedTimezones(): string[] {
   try {
-    const anyIntl = Intl as any
-    if (typeof anyIntl.supportedValuesOf === 'function') {
-      const zones = anyIntl.supportedValuesOf('timeZone') as string[]
+    const intlWithValues = Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }
+    if (typeof intlWithValues.supportedValuesOf === 'function') {
+      const zones = intlWithValues.supportedValuesOf('timeZone')
       if (Array.isArray(zones) && zones.length > 0) return zones
     }
   } catch {

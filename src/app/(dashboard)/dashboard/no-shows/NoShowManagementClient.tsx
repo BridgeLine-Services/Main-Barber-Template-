@@ -27,7 +27,7 @@ interface NoShowPolicy {
   isActive: boolean
 }
 
-interface NoShowData {
+export interface NoShowData {
   noShows: NoShowAppointment[]
   policy: NoShowPolicy
   stats: { total: number; uniqueCustomers: number; repeatOffenders: number }

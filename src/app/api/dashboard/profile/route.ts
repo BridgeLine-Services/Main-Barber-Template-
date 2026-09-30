@@ -6,6 +6,7 @@ import { requireAuth, logAudit } from '@/lib/auth-helpers'
 import { updateBarberProfileSchema } from '@/lib/validation'
 import { getClientIP } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 /**
  * GET /api/dashboard/profile
@@ -104,7 +105,7 @@ export async function PATCH(req: NextRequest) {
       const oldBarber = await prisma.barber.findUnique({ where: { id: barberId } })
       // updateData is the Zod-validated fields (no barberId in schema)
       const updateData = { ...parseResult.data }
-      const updatePayload: any = { ...updateData }
+      const updatePayload: Prisma.BarberUpdateInput = { ...updateData }
       // Handle slug: manual slug from barber takes priority, otherwise auto-generate from name
       if (updateData.slug) {
         // Barber manually set a slug — validate uniqueness (excluding self)

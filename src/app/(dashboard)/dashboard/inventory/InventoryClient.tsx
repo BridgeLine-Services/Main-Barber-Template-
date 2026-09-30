@@ -38,6 +38,18 @@ interface Barber {
   name: string
 }
 
+export interface InventoryItemFormData {
+  name: string
+  sku: string
+  stock: number
+  unit: string
+  threshold: number
+  cost: number | null
+  vendor: string
+  barberId: string | null
+  notes: string
+}
+
 interface InventoryClientProps {
   initialItems: InventoryItem[]
   barbers: Barber[]
@@ -62,7 +74,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
   const outOfStockCount = items.filter(i => !i.archivedAt && i.stock <= 0).length
   const archivedCount = items.filter(i => i.archivedAt).length
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: InventoryItemFormData) => {
     try {
       const url = editingItem
         ? `/api/dashboard/inventory/${editingItem.id}`
@@ -329,7 +341,7 @@ function InventoryForm({
 }: {
   item: InventoryItem | null
   barbers: Barber[]
-  onSave: (data: any) => void
+  onSave: (data: InventoryItemFormData) => void
   onClose: () => void
 }) {
   const [name, setName] = useState(item?.name || '')

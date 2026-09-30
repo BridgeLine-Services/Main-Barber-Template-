@@ -4,7 +4,7 @@ import StructuredData from './StructuredData'
 export interface JsonLdProps {
   scripts: Array<{
     type?: 'LocalBusiness' | 'Service' | 'FAQPage' | 'BreadcrumbList' | 'WebSite'
-    data: Record<string, any>
+    data: Record<string, unknown>
   }>
 }
 

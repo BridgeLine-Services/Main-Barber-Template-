@@ -16,7 +16,7 @@ import { AlertTriangle, RotateCcw, Loader2 } from 'lucide-react'
 export function ResetShopCard() {
   const [confirmText, setConfirmText] = useState('')
   const [resetting, setResetting] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<{ success?: boolean; summary?: string; warning?: string } | null>(null)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -48,7 +48,7 @@ export function ResetShopCard() {
   }
 
   if (result) {
-    const s = result.summary || {}
+    const s = (result.summary ?? {}) as Record<string, number>
     return (
       <Card className="border-red-900/50 bg-zinc-900">
         <CardHeader>

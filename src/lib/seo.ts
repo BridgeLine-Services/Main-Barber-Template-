@@ -1,3 +1,5 @@
+import type { BusinessHours } from '@/lib/business-hours'
+
 export interface BusinessData {
   name: string
   slug?: string
@@ -52,7 +54,7 @@ export function generateLocalBusinessSchema(business: BusinessData) {
       sunday: 'Sunday',
     }
 
-    for (const [dayKey, dayConfig] of Object.entries(business.hours as Record<string, any>)) {
+    for (const [dayKey, dayConfig] of Object.entries(business.hours as BusinessHours)) {
       if (dayConfig && !dayConfig.isOff && dayConfig.open && dayConfig.close) {
         const dayOfWeek = dayMap[dayKey.toLowerCase()] || dayKey
         openingHoursSpecification.push({
@@ -65,7 +67,7 @@ export function generateLocalBusinessSchema(business: BusinessData) {
     }
   }
 
-  const schema: Record<string, any> = {
+  const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'BarberShop',
     '@id': `${shopUrl}#barbershop`,

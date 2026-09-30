@@ -40,6 +40,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
+import type { LucideIcon } from 'lucide-react'
 
 interface SidebarProps {
   userName: string
@@ -50,7 +51,7 @@ interface SidebarProps {
 interface NavItem {
   name: string
   href: string
-  icon: any
+  icon: LucideIcon
 }
 
 interface NavSection {

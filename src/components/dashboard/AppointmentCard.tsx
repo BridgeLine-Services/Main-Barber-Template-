@@ -6,9 +6,10 @@ import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
 import { formatTime } from '@/lib/utils'
 import { Clock, User, Scissors, Phone } from 'lucide-react'
 import { AppointmentDetailsDialog } from '@/components/dashboard/AppointmentDetailsDialog'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface AppointmentCardProps {
-  appointment: any
+  appointment: CalendarAppointment
   onUpdated?: () => void
 }
 

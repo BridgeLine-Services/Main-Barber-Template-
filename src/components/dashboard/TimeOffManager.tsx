@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 
 interface TimeOffManagerProps {
   barberId: string
-  initialBlockedTimes: any[]
+  initialBlockedTimes: Array<{ id: string; startTime: string; endTime: string; reason?: string | null }>
 }
 
 export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManagerProps) {

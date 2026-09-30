@@ -13,6 +13,7 @@ import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import { ShieldCheck, Heart, Award } from 'lucide-react'
+import type { Barber } from '@prisma/client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata({
@@ -25,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPage() {
   let business = null
-  let barbers: any[] = []
+  let barbers: Barber[] = []
 
   try {
     business = await resolveBusiness()

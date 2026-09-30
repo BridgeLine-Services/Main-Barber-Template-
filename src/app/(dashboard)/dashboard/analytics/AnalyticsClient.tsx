@@ -12,6 +12,7 @@ import {
   Award,
   Users,
   Activity,
+  LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -375,7 +376,7 @@ function StatCard({
   subtext,
   color = 'amber',
 }: {
-  icon: any
+  icon: LucideIcon
   label: string
   value: string | number
   subtext: string

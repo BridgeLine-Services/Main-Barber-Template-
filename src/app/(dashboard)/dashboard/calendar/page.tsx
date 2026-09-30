@@ -5,6 +5,7 @@ import { CalendarDayView } from '@/components/dashboard/CalendarDayView'
 import { CalendarWeekView } from '@/components/dashboard/CalendarWeekView'
 import { CalendarMonthView } from '@/components/dashboard/CalendarMonthView'
 import { AppointmentDetailsDialog } from '@/components/dashboard/AppointmentDetailsDialog'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 import { AddAppointmentDialog } from '@/components/dashboard/AddAppointmentDialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -33,17 +34,6 @@ export default function CalendarPage() {
     }
   }, [])
   // Dashboard appointment row (matches the API's customer/barber/service includes)
-interface CalendarAppointment {
-  id: string
-  startTime: string
-  endTime: string
-  status: string
-  customerNotes?: string | null
-  customer: { id: string; firstName: string; lastName: string; phone: string; email: string }
-  barber: { id: string; name: string; specialty?: string | null }
-  service: { id: string; name: string; price: number; duration: number }
-}
-
 const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
   const [loading, setLoading] = useState(false)
 

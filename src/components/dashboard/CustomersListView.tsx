@@ -6,7 +6,15 @@ import { CustomerSearch } from '@/components/dashboard/CustomerSearch'
 import { Users, Phone, Mail, Calendar, ChevronRight } from 'lucide-react'
 
 interface CustomersListViewProps {
-  initialCustomers: any[]
+  initialCustomers: Array<{
+    id: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    phone?: string | null
+    appointments?: Array<{ startTime: string }>
+    _count?: { appointments: number }
+  }>
 }
 
 export function CustomersListView({ initialCustomers }: CustomersListViewProps) {

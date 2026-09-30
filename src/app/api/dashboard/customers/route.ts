@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     // default list view per the customer data lifecycle (see
     // docs/CUSTOMER-DATA-LIFECYCLE.md). Pass ?includeArchived=true for an
     // explicit archived view.
-    const where: any = { businessId, ...(includeArchived ? {} : { archivedAt: null }) }
+    const where: Prisma.CustomerWhereInput = { businessId, ...(includeArchived ? {} : { archivedAt: null }) }
     // BARBER role: only customers who have appointments with them
     if (role === 'BARBER' && barberId) {
       where.appointments = { some: { barberId } }

@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
-import { CancellationIntelligenceClient } from './CancellationIntelligenceClient'
+import { CancellationIntelligenceClient, type CancellationRecord, type Stats } from './CancellationIntelligenceClient'
 
 export default async function CancellationIntelligencePage() {
   const session = await getServerSession(authOptions)
@@ -17,8 +17,8 @@ export default async function CancellationIntelligencePage() {
     redirect('/dashboard')
   }
 
-  let records: any[] = []
-  let stats: any = { total: 0, byReason: {}, uniqueCustomers: 0 }
+  let records: CancellationRecord[] = []
+  let stats: Stats = { total: 0, byReason: {}, uniqueCustomers: 0 }
 
   try {
     const rawRecords = await prisma.cancellationRecord.findMany({

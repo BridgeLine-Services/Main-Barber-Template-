@@ -81,10 +81,10 @@ export async function GET(req: NextRequest) {
       )
       const accountsData = await accountsResponse.json()
       const accounts = accountsData.accounts || []
-      const accountNames = accounts.map((a: any) => ({
-        name: a.name,
-        displayName: a.accountName || a.name,
-        type: a.type,
+      const accountNames = accounts.map((a: Record<string, unknown>) => ({
+        name: String(a.name ?? ''),
+        displayName: String(a.accountName ?? a.name ?? ''),
+        type: String(a.type ?? ''),
       }))
       // Never place OAuth tokens in a redirect URL. URLs are copied to browser
       // history, analytics, proxy logs, and referrer headers. Persist these

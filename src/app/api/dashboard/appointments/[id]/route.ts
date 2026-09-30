@@ -8,6 +8,8 @@ import { validateSlot } from '@/lib/availability'
 import { updateAppointmentSchema, isValidTransition, isTerminalStatus } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
+import { AuditAction } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -111,7 +113,7 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
           )
         }
       }
-      const updateData: any = {}
+      const updateData: Prisma.AppointmentUpdateInput = {}
       if (status) {
         updateData.status = status
       }
@@ -126,8 +128,10 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         updateData.noShowMarkedBy = user.id
       }
       // RESCHEDULE: Use canonical validateSlot for full validation
+      let newStart: Date | undefined
+      let newEnd: Date | undefined
       if (newStartTimeIso) {
-        const newStart = new Date(newStartTimeIso)
+        newStart = new Date(newStartTimeIso)
         if (isNaN(newStart.getTime())) {
           return NextResponse.json({ error: 'Invalid start time' }, { status: 400 })
         }
@@ -149,8 +153,9 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
             { status: 409 }
           )
         }
+        newEnd = validation.endTime
         updateData.startTime = newStart
-        updateData.endTime = validation.endTime
+        updateData.endTime = newEnd
         if (!status) {
           updateData.status = 'RESCHEDULED'
         }
@@ -163,15 +168,15 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         cancellationReason: appointment.cancellationReason,
       }
       const updated = await prisma.$transaction(async (tx) => {
-        if (updateData.startTime && updateData.endTime) {
+        if (newStart && newEnd) {
           const conflict = await tx.appointment.findFirst({
             where: {
               businessId,
               barberId: appointment.barberId,
               id: { not: appointment.id },
               status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] },
-              startTime: { lt: updateData.endTime },
-              endTime: { gt: updateData.startTime },
+              startTime: { lt: newEnd },
+              endTime: { gt: newStart },
             },
           })
           if (conflict) throw new Error('SLOT_TAKEN')
@@ -183,13 +188,14 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         })
       }, { isolationLevel: 'Serializable' })
       // Log audit event
-      const actionMap: Record<string, any> = {
+      const actionMap: Partial<Record<string, AuditAction>> = {
         CANCELLED: 'APPOINTMENT_CANCELLED',
         COMPLETED: 'APPOINTMENT_COMPLETED',
         NO_SHOW: 'APPOINTMENT_NO_SHOW',
         RESCHEDULED: 'APPOINTMENT_RESCHEDULED',
       }
-      const auditAction = actionMap[updateData.status] || 'APPOINTMENT_RESCHEDULED'
+      const effectiveStatus = status ?? (newStartTimeIso ? 'RESCHEDULED' : undefined)
+      const auditAction = (effectiveStatus && actionMap[effectiveStatus]) || 'APPOINTMENT_RESCHEDULED'
       await logAudit({
         userId: user.id,
         businessId,
@@ -197,7 +203,13 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         entityType: 'Appointment',
         entityId: params.id,
         oldValues,
-        newValues: updateData,
+        newValues: {
+          status: effectiveStatus ?? appointment.status,
+          ...(newStart ? { startTime: newStart.toISOString() } : {}),
+          ...(newEnd ? { endTime: newEnd.toISOString() } : {}),
+          ...(cancellationReason !== undefined ? { cancellationReason } : {}),
+          ...(noShowReason !== undefined ? { noShowReason } : {}),
+        },
         ipAddress: getClientIP(req),
         userAgent: req.headers.get('user-agent') || undefined,
       })

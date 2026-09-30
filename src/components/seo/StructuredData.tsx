@@ -2,7 +2,7 @@ import React from 'react'
 
 export interface StructuredDataProps {
   type?: 'LocalBusiness' | 'Service' | 'FAQPage' | 'BreadcrumbList' | 'WebSite'
-  data: Record<string, any>
+  data: Record<string, unknown>
 }
 
 export function StructuredData({ data }: StructuredDataProps) {

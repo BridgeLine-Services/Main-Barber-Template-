@@ -5,8 +5,9 @@ import { AlertTriangle, TrendingDown, Users, CalendarX, Search, BellRing } from 
 import { cn } from '@/lib/utils'
 import { FillOpeningDialog } from './FillOpeningDialog'
 
-interface CancellationRecord {
+export interface CancellationRecord {
   id: string
+  customerId: string
   reason: string
   note: string | null
   createdAt: string
@@ -36,7 +37,7 @@ interface FillOpening {
   endTimeLabel: string
 }
 
-interface Stats {
+export interface Stats {
   total: number
   byReason: Record<string, number>
   uniqueCustomers: number

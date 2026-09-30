@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
 import { InventoryClient } from './InventoryClient'
+import type { Prisma } from '@prisma/client'
 
 export default async function InventoryPage() {
   const session = await getServerSession(authOptions)
@@ -17,8 +18,8 @@ export default async function InventoryPage() {
     redirect('/dashboard')
   }
 
-  let items: any[] = []
-  let barbers: any[] = []
+  let items: Prisma.InventoryItemGetPayload<{ include: { barber: { select: { name: true } } } }>[] = []
+  let barbers: Prisma.BarberGetPayload<{ select: { id: true; name: true } }>[] = []
 
   try {
     items = await prisma.inventoryItem.findMany({

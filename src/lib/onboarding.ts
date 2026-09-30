@@ -84,7 +84,7 @@ function isGateExemptPath(pathname: string): boolean {
  *                  or the onboarding wizard.
  */
 export async function checkDashboardAccess(
-  session: { user?: any } | null,
+  session: Session | null,
   pathname: string
 ): Promise<DashboardAccess> {
   // Priority 1 — authentication
@@ -154,6 +154,7 @@ export async function checkDashboardAccess(
 // ============================================================================
 
 import { validateSlug } from '@/lib/onboarding-constants'
+import type { Session } from 'next-auth'
 
 export interface OnboardingRequirement {
   /** Stable code, safe to match on. */

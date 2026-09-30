@@ -50,7 +50,7 @@ async function api(path: string, init: RequestInit = {}, cookie: string = '', ex
     headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie: cookiePairs(cookie) } : {}), ...extraHeaders, ...(init.headers || {}) },
   })
   const text = await res.text()
-  let body: any = null
+  let body: Record<string, unknown> | null = null
   try { body = JSON.parse(text) } catch { /* CSV etc. */ }
   return { status: res.status, body, text }
 }
@@ -158,7 +158,7 @@ async function main() {
     assert(exportRes.text.includes(apptC.confirmationNumber), 'export contains own appointment')
     assert(!exportRes.text.includes(`alpha-${stamp}@t.test`) && !exportRes.text.includes(`beta-${stamp}@t.test`), 'export never contains other customers')
     assert(!exportRes.text.includes('TestPass'), 'export contains no credentials')
-    assert((exportRes.body?.appointments ?? []).every((a: any) => a.confirmationNumber.startsWith('LIFE-')), 'export appointments scoped to own business')
+    assert(((exportRes.body?.appointments ?? []) as Record<string, string>[]).every(a => a.confirmationNumber.startsWith('LIFE-')), 'export appointments scoped to own business')
 
     // A portal session for Business A cannot read data under Business B's host.
     const wrongHost = await api('/api/public/portal/data-export', {}, portalCookie, { 'x-forwarded-host': `life-b-${stamp}` })

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { resolveBusiness } from '@/lib/tenant'
 import { CustomerPortal } from '@/components/customer/CustomerPortal'
+import type { Business } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ type PageProps = { searchParams: Promise<{ shop?: string }> }
 
 export default async function PortalPage({ searchParams }: PageProps) {
   const params = await searchParams
-  let business: any = null
+  let business: Business | null = null
   try {
     business = params.shop
       ? await prisma.business.findUnique({ where: { slug: params.shop } })

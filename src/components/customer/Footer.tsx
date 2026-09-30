@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Scissors, MapPin, Phone, Mail, Instagram, Facebook, Video, Youtube, Twitter, Lock } from 'lucide-react'
+import type { BusinessHours } from '@/lib/business-hours'
 
 interface FooterProps {
   business?: {
@@ -16,7 +17,7 @@ interface FooterProps {
     youtube?: string | null
     xTwitter?: string | null
     twitter?: string | null
-    hours?: any
+    hours?: BusinessHours
     aboutText?: string | null
     bookingPolicy?: string | null
     privacyPolicy?: string | null

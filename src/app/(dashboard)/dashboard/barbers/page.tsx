@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
 import { BarbersClient } from '@/components/dashboard/BarbersClient'
@@ -16,9 +17,9 @@ export default async function BarbersPage() {
     redirect('/dashboard')
   }
 
-  const businessId = (user as any).businessId
+  const businessId = user.businessId
 
-  let barbers: any[] = []
+  let barbers: Prisma.BarberGetPayload<{ include: { _count: { select: { appointments: true } } } }>[] = []
   try {
     barbers = await prisma.barber.findMany({
       where: { businessId },

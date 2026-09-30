@@ -6,8 +6,18 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+interface AuditLogEntry {
+  id: string
+  action: string
+  entityType?: string | null
+  entityId?: string | null
+  ipAddress?: string | null
+  createdAt: string
+  user?: { name: string | null; email: string | null } | null
+}
+
 export default function AuditLogPage() {
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<AuditLogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(false)

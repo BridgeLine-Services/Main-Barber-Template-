@@ -7,6 +7,7 @@ import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction } from '@prisma/client'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 // Validation schemas
 const createReviewSchema = z.object({
@@ -30,7 +31,7 @@ const updateReviewSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const owner = session?.user as any
+    const owner = session?.user
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid review data' }, { status: 400 })
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
     try {
       const { searchParams } = new URL(req.url)
       const barberId = searchParams.get('barberId')
-      const where: any = { businessId: user.businessId }
+      const where: Prisma.ReviewWhereInput = { businessId: user.businessId }
       if (barberId) {
         where.barberId = barberId
       }

@@ -15,7 +15,7 @@ export interface BarberItem {
   specialty?: string | null
   bio?: string | null
   isActive?: boolean
-  services?: Array<{ serviceId: string }> | Array<{ service?: { id: string } }>
+  services?: Array<{ serviceId?: string; service?: { id?: string } }>
 }
 
 export interface EarliestSlot {
@@ -70,7 +70,7 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
     if (!serviceId) return true
     if (!barber.services || barber.services.length === 0) return true
 
-    return barber.services.some((s: any) => {
+    return barber.services.some((s) => {
       if (typeof s.serviceId === 'string') return s.serviceId === serviceId
       if (s.service && typeof s.service.id === 'string') return s.service.id === serviceId
       return false

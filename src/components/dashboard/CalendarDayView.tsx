@@ -3,11 +3,12 @@
 import { formatTime } from '@/lib/utils'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { Clock, User, Scissors, Plus } from 'lucide-react'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface CalendarDayViewProps {
   date: Date
-  appointments: any[]
-  onSelectAppointment: (appt: any) => void
+  appointments: CalendarAppointment[]
+  onSelectAppointment: (appt: CalendarAppointment) => void
   onSelectSlot: (timeStr: string) => void
 }
 

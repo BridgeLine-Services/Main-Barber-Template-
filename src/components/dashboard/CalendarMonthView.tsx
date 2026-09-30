@@ -1,12 +1,13 @@
 'use client'
 
 import { formatTime } from '@/lib/utils'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface CalendarMonthViewProps {
   currentDate: Date
-  appointments: any[]
+  appointments: CalendarAppointment[]
   onSelectDay: (date: Date) => void
-  onSelectAppointment: (appt: any) => void
+  onSelectAppointment: (appt: CalendarAppointment) => void
 }
 
 export function CalendarMonthView({

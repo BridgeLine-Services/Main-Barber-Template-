@@ -80,7 +80,7 @@ export async function GET(_req: NextRequest) {
         ]
       })
       // Escape CSV values
-      const escapeCsv = (val: any) => {
+      const escapeCsv = (val: unknown) => {
         const str = String(val ?? '')
         if (str.includes(',') || str.includes('"') || str.includes('\n')) {
           return `"${str.replace(/"/g, '""')}"`

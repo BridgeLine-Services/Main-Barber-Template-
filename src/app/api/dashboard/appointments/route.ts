@@ -9,6 +9,8 @@ import { createManualAppointmentSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { localTimeToUTCFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
+import { AppointmentStatus } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
       const barberIdParam = searchParams.get('barberId')
       const statusParam = searchParams.get('status')
       const searchParam = searchParams.get('search')
-      const where: any = { businessId }
+      const where: Prisma.AppointmentWhereInput = { businessId }
       // ROLE ENFORCEMENT: Barbers can only see their own appointments
       if (isBarber && sessionBarberId) {
         where.barberId = sessionBarberId
@@ -36,7 +38,8 @@ export async function GET(req: NextRequest) {
         where.barberId = barberIdParam
       }
       if (statusParam) {
-        where.status = statusParam
+        const s = statusParam.toUpperCase() as AppointmentStatus
+        if (Object.values(AppointmentStatus).includes(s)) where.status = s
       }
       if (dateParam) {
         const d = new Date(dateParam)

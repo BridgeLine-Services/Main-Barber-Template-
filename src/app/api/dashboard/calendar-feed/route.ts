@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { generateICalFeed } from '@/lib/calendar-sync'
 import { handleApiError } from '@/lib/api-errors'
+import type { Prisma } from '@prisma/client'
 
 // GET /api/dashboard/calendar-feed.ics — iCal feed for owner/barber
 export async function GET(_request: Request) {
@@ -19,7 +20,7 @@ export async function GET(_request: Request) {
         where: { id: businessId },
         select: { name: true, timezone: true },
       })
-      const whereFilter: any = {
+      const whereFilter: Prisma.AppointmentWhereInput = {
         businessId,
         startTime: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // last 7 days + future
       }

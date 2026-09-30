@@ -34,7 +34,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
       const res = await fetch(`/api/dashboard/availability-overrides?barberId=${barberId}`)
       if (res.ok) {
         const data = await res.json()
-        setOverrides(data.map((o: any) => ({
+        setOverrides(data.map((o) => ({
           id: o.id,
           date: o.date,
           isAvailable: o.isAvailable,

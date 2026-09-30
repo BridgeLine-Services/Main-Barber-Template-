@@ -178,7 +178,7 @@ export function OnboardingWizard() {
 
   // Shared PATCH helper — returns the parsed JSON, or throws with the error.
   const patchOnboarding = useCallback(
-    async (body: Record<string, unknown>): Promise<any> => {
+    async (body: Record<string, unknown>): Promise<{ success?: boolean; business?: OnboardingBusiness; message?: string; error?: string }> => {
       const res = await fetch('/api/dashboard/onboarding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

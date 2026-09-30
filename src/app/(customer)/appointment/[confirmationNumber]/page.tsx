@@ -11,6 +11,7 @@ import Link from 'next/link'
 import CancelButton from './CancelButton'
 import RescheduleButton from './RescheduleButton'
 import { AddToCalendar } from '@/components/booking/AddToCalendar'
+import type { Prisma } from '@prisma/client'
 
 export default async function ConfirmationPage(
   props: {
@@ -20,7 +21,9 @@ export default async function ConfirmationPage(
 ) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  let appointment: any = null
+  let appointment: Prisma.AppointmentGetPayload<{
+    include: { barber: true; service: true; business: true }
+  }> | null = null
   let hasToken = false
 
   try {

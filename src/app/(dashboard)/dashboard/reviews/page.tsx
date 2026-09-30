@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
-import { ReviewsClient } from './ReviewsClient'
+import { ReviewsClient, type Barber, type Review } from './ReviewsClient'
 
 export default async function ReviewsPage() {
   const session = await getServerSession(authOptions)
@@ -17,8 +17,8 @@ export default async function ReviewsPage() {
     redirect('/dashboard')
   }
 
-  let reviews: any[] = []
-  let barbers: any[] = []
+  let reviews: Review[] = []
+  let barbers: Barber[] = []
   let avgRating = '0.0'
   let total = 0
 
@@ -42,6 +42,7 @@ export default async function ReviewsPage() {
       rating: r.rating,
       comment: r.comment,
       isFeatured: r.isFeatured,
+      isPublished: r.isPublished,
       isGoogleReview: r.isGoogleReview,
       barberId: r.barberId,
       barberName: r.barber?.name || null,

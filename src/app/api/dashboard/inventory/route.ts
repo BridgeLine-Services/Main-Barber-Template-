@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-errors'
 import { toAuditJson } from '@/lib/auth-helpers'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     const filter = (searchParams.get('filter') as 'all' | 'low_stock' | 'out_of_stock') || 'all'
     const includeArchived = searchParams.get('includeArchived') === 'true'
     try {
-      const where: any = { businessId: user.businessId, ...(includeArchived ? {} : { archivedAt: null }) }
+      const where: Prisma.InventoryItemWhereInput = { businessId: user.businessId, ...(includeArchived ? {} : { archivedAt: null }) }
       const items = await prisma.inventoryItem.findMany({
         where,
         include: { barber: { select: { name: true } } },

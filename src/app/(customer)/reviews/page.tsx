@@ -126,7 +126,7 @@ export default async function ReviewsPage() {
 
       {/* Reviews Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reviews.map((review: any) => (
+        {reviews.map((review) => (
           <Card key={review.id} className="bg-card/80 border-border p-6 flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -153,7 +153,7 @@ export default async function ReviewsPage() {
             </div>
 
             <div className="pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
-              <span className="font-bold text-foreground/80">{review.authorName || review.customerName}</span>
+              <span className="font-bold text-foreground/80">{review.authorName || 'Anonymous'}</span>
               <span>{review.createdAt ? formatFullDate(new Date(review.createdAt)) : 'Recent'}</span>
             </div>
           </Card>

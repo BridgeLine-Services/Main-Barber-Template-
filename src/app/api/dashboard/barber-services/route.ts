@@ -71,7 +71,7 @@ export async function PATCH(req: NextRequest) {
       barberId = sessionBarberId
     } else {
       // OWNER must pass barberId in body
-      const bodyBarberId = (body as any).barberId
+      const bodyBarberId = (body as { barberId?: string }).barberId
       if (!bodyBarberId) return NextResponse.json({ error: 'barberId required for owner' }, { status: 400 })
       // Verify barber belongs to this business
       const barber = await prisma.barber.findFirst({

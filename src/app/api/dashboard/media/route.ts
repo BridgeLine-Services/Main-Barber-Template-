@@ -10,6 +10,7 @@ import { AuditAction, MediaType } from '@prisma/client'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
 import { del } from '@vercel/blob'
+import type { Prisma } from '@prisma/client'
 
 const createMediaSchema = z.object({
   url: z.string().url(),
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type') as MediaType | null
     const urlBarberId = searchParams.get('barberId')
     const serviceId = searchParams.get('serviceId')
-    const where: any = { businessId }
+    const where: Prisma.MediaAssetWhereInput = { businessId }
     if (type) where.type = type
     if (serviceId) where.serviceId = serviceId
     if (role === 'BARBER') {

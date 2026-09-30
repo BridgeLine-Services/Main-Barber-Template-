@@ -48,7 +48,7 @@ export function CustomerInfoStep({
     fetch('/api/public/booking-questions').then((response) => response.ok ? response.json() : { questions: [] }).then((data) => setQuestions(data.questions || [])).catch(() => setQuestions([]))
   }, [])
 
-  const handleChange = (field: keyof CustomerInfo, value: any) => {
+  const handleChange = (field: keyof CustomerInfo, value: string | boolean | string[] | Record<string, string | boolean | string[]>) => {
     onChange({
       ...customerInfo,
       [field]: value,

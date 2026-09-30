@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getCustomerLoyalty } from '@/lib/loyalty'
 import { handleApiError } from '@/lib/api-errors'
+import type { RewardTier } from '@/lib/loyalty'
 
 // GET /api/dashboard/loyalty/customer?customerId=xxx
 // Returns loyalty info for a specific customer
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
     const programConfig = program ? {
       name: program.name,
       type: program.type as 'VISITS' | 'POINTS',
-      tiers: (program.config as any[]) || [],
+      tiers: Array.isArray(program.config) ? (program.config as unknown as RewardTier[]) : [],
       pointsPerDollar: program.pointsPerDollar || undefined,
     } : undefined
     const loyalty = await getCustomerLoyalty(customerId, businessId, programConfig)

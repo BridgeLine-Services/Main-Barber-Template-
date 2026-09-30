@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       }
     }
     // Prepare sync payload preview
-    let syncPreview: any = null
+    let syncPreview: Awaited<ReturnType<typeof prepareBusinessSyncPayload>> | null = null
     try {
       syncPreview = await prepareBusinessSyncPayload(user.businessId)
     } catch {

@@ -15,6 +15,7 @@ import {
   Plus,
   CalendarDays,Repeat } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 /** Serialized dashboard appointment (dates ISO strings) matching what
  * /dashboard/appointments passes down after its findMany + include. */
@@ -51,7 +52,7 @@ export function AppointmentsListView({
   const [, setRefreshing] = useState(false)
 
   // Dialogs
-  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [recurringOpen, setRecurringOpen] = useState(false)
@@ -302,7 +303,8 @@ export function AppointmentsListView({
                     <tr
                       key={appt.id}
                       onClick={() => {
-                        setSelectedAppointment(appt)
+                        // List rows are a subset of the full appointment the dialog renders.
+                        setSelectedAppointment(appt as unknown as CalendarAppointment)
                         setDetailsOpen(true)
                       }}
                       className="hover:bg-zinc-900/70 transition-colors cursor-pointer group"
