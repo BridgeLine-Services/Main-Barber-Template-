@@ -151,3 +151,57 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* ─── Editorial design system additions ─────────────────────────────────────
+   Shared visual grammar for the whole template: eyebrow labels, hairline
+   dividers, display headings, and a global reduced-motion guarantee. These
+   are additive — every existing class keeps working. Brand colors always
+   come from the theme tokens (never hardcoded), so every shop's branding
+   drives the voice while this file provides the grammar. */
+
+@layer components {
+  /* Small editorial eyebrow label — sits above display headings. */
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground;
+  }
+  .eyebrow-accent {
+    @apply text-xs font-medium uppercase tracking-[0.2em] text-primary;
+  }
+  /* Hairline rule used instead of heavy borders/card chrome. */
+  .hairline {
+    @apply border-t border-border/60;
+  }
+  /* Display/serif heading treatment — strong, tight, editorial. */
+  .display-heading {
+    font-family: var(--font-poppins), var(--font-inter), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  /* Oversized section index — "01 / 02 / 03" editorial signature. */
+  .section-index {
+    @apply font-display text-6xl md:text-7xl leading-none text-border tabular-nums select-none;
+  }
+}
+
+@layer utilities {
+  /* Consistent, restrained focus visibility across the whole template. */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* Global reduced-motion guarantee (W3C guidance): non-essential motion is
+   suppressed when the user asks for it. framer-motion already honors this
+   via MotionConfig in the customer layout; this covers CSS transitions,
+   Tailwind keyframe animations, and smooth scrolling everywhere else.
+   Content is never dependent on animation to become visible. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

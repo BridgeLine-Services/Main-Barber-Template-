@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-amber-500/20 mx-auto">
             <Mail className="h-8 w-8" />
           </div>
           <div>
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
               administrator for help with your account.
             </p>
           </div>
-          <Link href="/login" className="inline-flex items-center text-sm text-gray-400 hover:text-amber-400 transition-colors">
+          <Link href="/login" className="inline-flex items-center text-sm text-gray-400 hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to sign in
           </Link>
         </div>
@@ -84,18 +84,18 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
           {resetUrl && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-left">
+            <div className="rounded-lg border border-amber-500/20 bg-primary/5 p-4 text-left">
               <p className="text-xs text-amber-300 mb-2">Development only — your reset link:</p>
               <Link
                 href={resetUrl}
-                className="text-sm text-amber-400 hover:underline break-all"
+                className="text-sm text-primary hover:underline break-all"
               >
                 {resetUrl}
               </Link>
             </div>
           )}
           <Link href="/login">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+            <Button variant="outline" className="border-input text-foreground/80 hover:bg-secondary">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
             </Button>
           </Link>
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-amber-500/20 mx-auto mb-4">
             <Mail className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold">Forgot Password?</h1>
@@ -131,13 +131,13 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-amber-500"
+              className="bg-card border-input text-white placeholder-zinc-500 focus:border-ring"
             />
           </div>
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 text-black hover:bg-amber-400"
+            className="w-full bg-primary text-black hover:bg-primary/90"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Send Reset Link
@@ -145,7 +145,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <div className="text-center">
-          <Link href="/login" className="text-sm text-gray-500 hover:text-amber-500 transition-colors">
+          <Link href="/login" className="text-sm text-gray-500 hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 inline mr-1" /> Back to Login
           </Link>
         </div>

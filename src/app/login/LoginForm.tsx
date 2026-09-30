@@ -5,11 +5,18 @@
 //   onboarding  → full sign-up flow (default)
 //   invite_only → sign-up hidden, invitation notice shown
 //   disabled    → sign-up hidden entirely, existing users only
+//
+// Design: editorial split layout (Sections 8/9). The left panel carries the
+// shop's brand (name, display typography, accent, theme colors injected by
+// ThemeStyle in page.tsx); the right panel is the authentication surface.
+// Everything renders from theme tokens — background, foreground, card,
+// primary, muted, border — so each shop's branding provides the voice and
+// the template provides the grammar. All auth logic is unchanged.
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Scissors, Lock, Mail, AlertCircle, ArrowRight, User } from 'lucide-react'
+import { Lock, Mail, AlertCircle, ArrowRight, ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,9 +24,11 @@ import { Label } from '@/components/ui/label'
 
 export interface RegistrationModeProps {
   registrationMode: 'onboarding' | 'invite_only' | 'disabled'
+  /** Resolved shop name for the brand panel (server-provided). */
+  businessName?: string | null
 }
 
-export default function LoginForm({ registrationMode }: RegistrationModeProps) {
+export default function LoginForm({ registrationMode, businessName }: RegistrationModeProps) {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login') // register only reachable when openRegistration
   const [name, setName] = useState('')
@@ -103,47 +112,93 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
   }
 
   const openRegistration = registrationMode === 'onboarding'
+  const shopName = businessName?.trim() || 'The Barbershop'
 
   const switchMode = () => {
-    setMode(m => m === 'login' ? 'register' : 'login')
+    setMode(m => (m === 'login' ? 'register' : 'login'))
     setError(null)
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-4 text-zinc-100">
-      {/* Background Subtle Gradient */}
+    <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-[55%_45%]">
+      {/* ─── Brand panel (desktop) ────────────────────────────────────────
+           Photographic/editorial brand area. Uses theme colors only, so it
+           adapts to every shop's palette (dark luxury, light modern, gold,
+           warm neutral, colorful contemporary). Hidden on mobile, where a
+           compact brand intro renders above the form instead. */}
+      <aside className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden border-r border-border/60">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          {/* Subtle tonal texture built from theme tokens — no image dependency */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-accent/[0.05]" />
+          <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/[0.05] blur-3xl" />
+        </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Header Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 mb-4 shadow-lg shadow-amber-500/5">
-            <Scissors className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 font-serif">
-            Barber Dashboard
+        <Link href="/" className="relative z-10 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-micro">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to website
+        </Link>
+
+        <div className="relative z-10 max-w-md">
+          <p className="eyebrow-accent mb-5">Member access</p>
+          <h1 className="display-heading text-display-1 text-foreground">
+            The chair is waiting.
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            {mode === 'login' ? 'Sign in to manage your shop' : 'Create your owner account'}
+          <p className="mt-6 text-large text-muted-foreground leading-relaxed">
+            {mode === 'login'
+              ? `Sign in to manage bookings, schedules, and your storefront at ${shopName}.`
+              : `Create your owner account and set up ${shopName} in minutes.`}
           </p>
         </div>
 
-        {/* Card Form */}
-        <div className="bg-zinc-900/90 border border-zinc-800 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="relative z-10 hairline pt-6 text-xs text-muted-foreground">
+          {shopName} · Online booking, scheduling, and customer management
+        </div>
+      </aside>
+
+      {/* ─── Authentication panel ───────────────────────────────────────── */}
+      <main className="flex flex-col justify-center px-5 py-10 sm:px-10 lg:px-14">
+        {/* Compact brand intro for mobile */}
+        <div className="lg:hidden mb-10">
+          <p className="eyebrow-accent mb-3">Member access</p>
+          <h1 className="display-heading text-display-3 text-foreground">
+            {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {mode === 'login' ? `Sign in to manage ${shopName}.` : `Set up ${shopName} in minutes.`}
+          </p>
+        </div>
+
+        <div className="w-full max-w-md mx-auto lg:mx-0">
+          {/* Desktop heading (mobile has its own above) */}
+          <div className="hidden lg:block mb-8">
+            <h2 className="display-heading text-display-3 text-foreground">
+              {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {mode === 'login'
+                ? 'Sign in to your dashboard.'
+                : 'Registration takes less than a minute.'}
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-6 p-3.5 rounded-lg bg-red-950/50 border border-red-800/50 text-red-300 text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-400 mt-0.5" />
+            <div
+              role="alert"
+              className="mb-6 p-3.5 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm flex items-start gap-3"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
             {mode === 'register' && (
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-zinc-300 text-xs font-medium uppercase tracking-wider">
-                  Your Name
+                <Label htmlFor="name" className="eyebrow">
+                  Your name
                 </Label>
                 <div className="relative">
-                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <User className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70" aria-hidden="true" />
                   <Input
                     id="name"
                     type="text"
@@ -151,18 +206,19 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="pl-10 bg-zinc-950/60 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:ring-amber-500/20 h-11"
+                    autoComplete="name"
+                    className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring/30"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-zinc-300 text-sm font-medium">
+              <Label htmlFor="email" className="eyebrow">
                 Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" aria-hidden="true" />
                 <Input
                   id="email"
                   type="email"
@@ -170,108 +226,115 @@ export default function LoginForm({ registrationMode }: RegistrationModeProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-zinc-950/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500/50 focus:ring-amber-500/20 pl-10"
+                  autoComplete="email"
+                  className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring/30"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-zinc-300 text-xs font-medium uppercase tracking-wider">
-                Password
-              </Label>
+              <div className="flex items-baseline justify-between">
+                <Label htmlFor="password" className="eyebrow">
+                  Password
+                </Label>
+                {mode === 'login' && (
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors duration-micro"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" aria-hidden="true" />
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-zinc-950/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500/50 focus:ring-amber-500/20 pl-10"
+                  className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring/30"
                 />
               </div>
             </div>
 
-            {/* Submit */}
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-500 text-zinc-950 hover:bg-amber-400 font-bold py-2.5 text-base shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold transition-all duration-micro focus-ring disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" />
-                  Signing in...
+                  <span
+                    className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin"
+                    aria-hidden="true"
+                  />
+                  <span>{mode === 'login' ? 'Signing in…' : 'Creating account…'}</span>
                 </span>
               ) : (
                 <>
                   <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-micro group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
                 </>
               )}
             </Button>
           </form>
 
-          {/* Forgot password — only meaningful in login mode */}
+          {/* Customer signup — always available; creates a CUSTOMER account
+              via /register. Presented in the same token grammar as the rest
+              of the auth flow. */}
           {mode === 'login' && (
-            <div className="text-right">
+            <div className="mt-4 text-center">
               <Link
-                href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                href="/register"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro"
               >
-                Forgot your password?
+                Booking with an account? <span className="text-primary font-medium">Create your customer account</span>
               </Link>
             </div>
-          )}
-
-          {/* Customer signup — always available; creates a CUSTOMER account */}
-          <div className="mt-4 text-center">
-            <Link
-              href="/register"
-              className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
-            >
-              Booking with an account? Create your customer account
-            </Link>
-          </div>
-
+          )
           {/* Registration switch — adapts to OWNER_REGISTRATION_MODE */}
           {openRegistration ? (
-            <div className="mt-6 pt-5 border-t border-zinc-800/60 text-center">
+            <div className="mt-8 hairline pt-5 text-center">
               <button
                 onClick={switchMode}
-                className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
               >
-                {mode === 'login'
-                  ? "Don't have an account? Create one"
-                  : 'Already have an account? Sign in'}
+                {mode === 'login' ? (
+                  <>Don&apos;t have an account? <span className="text-primary font-medium">Create one</span></>
+                ) : (
+                  <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
+                )}
               </button>
             </div>
           ) : (
-            <div className="mt-6 pt-5 border-t border-zinc-800/60 text-center">
+            <div className="mt-8 hairline pt-5 text-center">
               {registrationMode === 'invite_only' ? (
-                <p className="text-xs text-zinc-500">
-                  New accounts are created by invitation only. Please contact your administrator
-                  for access.
+                <p className="text-sm text-muted-foreground">
+                  New accounts are created by invitation only. Contact your administrator for access.
                 </p>
               ) : (
-                <p className="text-xs text-zinc-500">
+                <p className="text-sm text-muted-foreground">
                   Registration is currently closed. Contact your administrator if you need access.
                 </p>
               )}
             </div>
           )}
-        </div>
 
-        {/* Footer info */}
-        <div className="text-center text-xs text-muted-foreground mt-8 space-y-2">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            ← Back to Website
-          </Link>
+          {/* Mobile-only return link (desktop has it in the brand panel) */}
+          <div className="mt-8 text-center lg:hidden">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro">
+              ← Back to website
+            </Link>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

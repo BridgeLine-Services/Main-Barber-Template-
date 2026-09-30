@@ -60,6 +60,24 @@ const config: Config = {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         display: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
       },
+      // Editorial type scale (Section 3): fluid clamps so hierarchy holds
+      // from mobile to large desktop without a size per breakpoint.
+      fontSize: {
+        'display-hero': ['clamp(3rem, 8vw, 5.5rem)', { lineHeight: '1.02', letterSpacing: '-0.03em', fontWeight: '700' }],
+        'display-1': ['clamp(2.5rem, 5.5vw, 4rem)', { lineHeight: '1.06', letterSpacing: '-0.02em', fontWeight: '700' }],
+        'display-2': ['clamp(1.75rem, 4vw, 2.5rem)', { lineHeight: '1.12', letterSpacing: '-0.015em', fontWeight: '600' }],
+        'display-3': ['clamp(1.375rem, 2.5vw, 1.625rem)', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '600' }],
+      },
+      // Motion vocabulary (Section 11): micro / UI / reveal durations.
+      transitionDuration: {
+        micro: '180ms',
+        ui: '300ms',
+        reveal: '550ms',
+        hero: '850ms',
+      },
+      transitionTimingFunction: {
+        editorial: 'cubic-bezier(0.21, 0.47, 0.32, 0.98)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },

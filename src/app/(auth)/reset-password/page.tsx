@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
             </p>
           </div>
           <Link href="/forgot-password">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+            <Button variant="outline" className="border-input text-foreground/80 hover:bg-secondary">
               Request New Link
             </Button>
           </Link>
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-amber-500/20 mx-auto mb-4">
             <Lock className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-bold">Set New Password</h1>
@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="New password (min 8 chars)"
-              className="bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-amber-500"
+              className="bg-card border-input text-white placeholder-zinc-500 focus:border-ring"
             />
           </div>
           <div>
@@ -133,13 +133,13 @@ export default function ResetPasswordPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
-              className="bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-amber-500"
+              className="bg-card border-input text-white placeholder-zinc-500 focus:border-ring"
             />
           </div>
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 text-black hover:bg-amber-400"
+            className="w-full bg-primary text-black hover:bg-primary/90"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Reset Password
@@ -147,7 +147,7 @@ export default function ResetPasswordPage() {
         </form>
 
         <div className="text-center">
-          <Link href="/login" className="text-sm text-gray-500 hover:text-amber-500 transition-colors">
+          <Link href="/login" className="text-sm text-gray-500 hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 inline mr-1" /> Back to Login
           </Link>
         </div>

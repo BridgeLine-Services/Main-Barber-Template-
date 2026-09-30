@@ -75,15 +75,15 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <Card className="bg-zinc-900/90 border-zinc-800 shadow-xl">
+        <Card className="bg-card/90 border-border shadow-xl">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-2">
-              <KeyRound className="w-6 h-6 text-amber-400" />
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 border border-amber-500/30 flex items-center justify-center mb-2">
+              <KeyRound className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle className="text-xl text-zinc-100">Change Your Password</CardTitle>
-            <p className="text-sm text-zinc-400 mt-1">
+            <CardTitle className="text-xl text-foreground">Change Your Password</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
               For security, you must set a new password before continuing
               {session?.user ? ` (signed in as ${session.user.email ?? 'your account'})` : ''}.
             </p>
@@ -91,47 +91,47 @@ export default function ChangePasswordPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword" className="text-zinc-200 text-xs font-semibold">
-                  Current Password <span className="text-amber-500">*</span>
+                <Label htmlFor="currentPassword" className="text-foreground text-xs font-semibold">
+                  Current Password <span className="text-primary">*</span>
                 </Label>
                 <Input
                   id="currentPassword"
                   type="password"
                   value={form.currentPassword}
                   onChange={(e) => handleChange('currentPassword', e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-background border-border text-foreground"
                   autoComplete="current-password"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword" className="text-zinc-200 text-xs font-semibold">
-                  New Password <span className="text-amber-500">*</span>
+                <Label htmlFor="newPassword" className="text-foreground text-xs font-semibold">
+                  New Password <span className="text-primary">*</span>
                 </Label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={form.newPassword}
                   onChange={(e) => handleChange('newPassword', e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-background border-border text-foreground"
                   autoComplete="new-password"
                   minLength={8}
                   required
                 />
-                <p className="text-[11px] text-zinc-500">Minimum 10 characters with an uppercase letter, a lowercase letter, and a number.</p>
+                <p className="text-[11px] text-muted-foreground">Minimum 10 characters with an uppercase letter, a lowercase letter, and a number.</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-zinc-200 text-xs font-semibold">
-                  Confirm New Password <span className="text-amber-500">*</span>
+                <Label htmlFor="confirmPassword" className="text-foreground text-xs font-semibold">
+                  Confirm New Password <span className="text-primary">*</span>
                 </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={form.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-background border-border text-foreground"
                   autoComplete="new-password"
                   required
                 />
@@ -147,7 +147,7 @@ export default function ChangePasswordPage() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold"
+                className="w-full bg-primary hover:bg-primary/90 text-zinc-950 font-semibold"
               >
                 {submitting ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</>
