@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CheckCircle2, UserX, XCircle, History, CalendarPlus, ChevronDown,
@@ -473,8 +473,7 @@ function AppointmentCard({
 export function BarberModeClient(props: BarberModeClientProps) {
   const router = useRouter()
   const [refreshing, setRefreshing] = useState(false)
-  const nowRef = useRef(new Date().toISOString())
-  const [, forceTick] = useState(0)
+  const [now, setNow] = useState(() => new Date().toISOString())
 
   // Auto-refresh the day every 60s (server re-derives current/next).
   useEffect(() => {
@@ -488,7 +487,7 @@ export function BarberModeClient(props: BarberModeClientProps) {
 
   // Keep the relative labels fresh without a server round-trip.
   useEffect(() => {
-    const id = setInterval(() => { nowRef.current = new Date().toISOString(); forceTick(t => t + 1) }, 30_000)
+    const id = setInterval(() => setNow(new Date().toISOString()), 30_000)
     return () => clearInterval(id)
   }, [])
 
@@ -514,12 +513,12 @@ export function BarberModeClient(props: BarberModeClientProps) {
       {/* Now */}
       {current ? (
         <section aria-label="Current appointment">
-          <AppointmentCard appt={current} variant="current" now={nowRef.current} />
+          <AppointmentCard appt={current} variant="current" now={now} />
         </section>
       ) : next ? (
         <section aria-label="Next appointment">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next up</p>
-          <AppointmentCard appt={next} variant="next" now={nowRef.current} />
+          <AppointmentCard appt={next} variant="next" now={now} />
         </section>
       ) : (
         <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
@@ -533,7 +532,7 @@ export function BarberModeClient(props: BarberModeClientProps) {
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Later today ({upcoming.length})
           </p>
-          {upcoming.map(a => <AppointmentCard key={a.id} appt={a} variant="row" now={nowRef.current} />)}
+          {upcoming.map(a => <AppointmentCard key={a.id} appt={a} variant="row" now={now} />)}
         </section>
       )}
 
