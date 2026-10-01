@@ -181,7 +181,41 @@
   .section-index {
     @apply font-display text-6xl md:text-7xl leading-none text-border tabular-nums select-none;
   }
+
+  /* The visual engine changes composition, not the underlying business data. */
+  .visual-style-black-label .visual-hero {
+    background: linear-gradient(120deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.82) 58%, hsl(var(--accent) / 0.08) 100%);
+  }
+  .visual-style-black-label .visual-services {
+    @apply max-w-4xl;
+  }
+  .visual-style-black-label .visual-team {
+    @apply max-w-5xl;
+  }
+  .visual-style-street-cut .visual-hero {
+    background: repeating-linear-gradient(135deg, hsl(var(--accent) / 0.08) 0 2px, transparent 2px 18px), hsl(var(--background));
+  }
+  .visual-style-street-cut .visual-services article {
+    @apply border-2 border-foreground/20 shadow-[6px_6px_0_hsl(var(--foreground)/0.12)];
+  }
+  .visual-style-street-cut .visual-team article {
+    @apply border-l-4 border-accent pl-5;
+  }
+  .visual-style-clean-club .visual-hero {
+    @apply bg-card;
+  }
+  .visual-style-clean-club .visual-services article,
+  .visual-style-clean-club .visual-team article {
+    @apply rounded-2xl;
+  }
+  .visual-style-clean-club .visual-services article {
+    @apply bg-card/70 p-5;
+  }
+  .visual-style-barber-heritage .visual-services article {
+    @apply border-accent/30;
+  }
 }
+
 
 @layer utilities {
   /* Consistent, restrained focus visibility across the whole template. */
