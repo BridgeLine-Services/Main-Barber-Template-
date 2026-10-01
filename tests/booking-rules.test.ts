@@ -159,6 +159,12 @@ async function testBufferTime() {
     // Existing appointment today at the next aligned hour, 60-min service
     const base = new Date(Date.now() + 4 * 3_600_000) // 4h out
     base.setUTCMinutes(0, 0, 0)
+    // The last validated slot is base+90min with a 60-min service, so it
+    // ends base+2.5h. If base lands at 22:00/23:00 UTC that slot ends past
+    // the test schedule's 23:45 day end and fails with OUTSIDE_HOURS.
+    // Roll base back to a safe 21:00 UTC so the suite passes at every
+    // time of day (base stays in the future: it was >= 22:00 - 4h out).
+    if (base.getUTCHours() >= 22) base.setUTCHours(21, 0, 0, 0)
     await prisma.appointment.create({
       data: {
         businessId: business.id, barberId: barber.id, serviceId: service.id, customerId: customer.id,
