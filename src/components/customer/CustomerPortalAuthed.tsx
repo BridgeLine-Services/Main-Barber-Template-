@@ -30,12 +30,12 @@ interface Me {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-amber-500/15 text-amber-400',
-  CONFIRMED: 'bg-emerald-500/15 text-emerald-400',
-  RESCHEDULED: 'bg-sky-500/15 text-sky-400',
-  CANCELLED: 'bg-red-500/15 text-red-400',
-  COMPLETED: 'bg-zinc-500/15 text-zinc-400',
-  NO_SHOW: 'bg-red-500/15 text-red-400',
+  PENDING: 'bg-primary/15 text-primary',
+  CONFIRMED: 'bg-emerald-600/15 text-emerald-600 dark:text-emerald-400',
+  RESCHEDULED: 'bg-sky-600/15 text-sky-600 dark:text-sky-400',
+  CANCELLED: 'bg-destructive/15 text-destructive',
+  COMPLETED: 'bg-muted text-muted-foreground',
+  NO_SHOW: 'bg-destructive/15 text-destructive',
 }
 
 function fmtDate(iso: string) {
@@ -98,7 +98,7 @@ export function CustomerPortalAuthed({ businessName }: { businessName: string })
   }
 
   if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>
+    return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
 
   const displayName = me?.customer ? `${me.customer.firstName} ${me.customer.lastName}` : (me?.user?.name || 'Welcome')
@@ -107,7 +107,8 @@ export function CustomerPortalAuthed({ businessName }: { businessName: string })
     <div className="mx-auto max-w-7xl px-4 py-12 lg:py-16 space-y-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">Your Account</h1>
+          <p className="eyebrow-accent mb-3">Your Account</p>
+          <h1 className="display-heading text-display-2 text-foreground">Your Account</h1>
           <p className="text-sm text-muted-foreground">
             {displayName}{me?.user?.email ? ` · ${me.user.email}` : ''} · {businessName}
           </p>

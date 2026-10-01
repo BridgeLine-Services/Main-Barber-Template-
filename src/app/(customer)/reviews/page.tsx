@@ -135,7 +135,7 @@ export default async function ReviewsPage() {
                     <Star
                       key={i}
                       className={`h-4 w-4 ${
-                        i < review.rating ? 'fill-accent text-accent' : 'text-zinc-800'
+                        i < review.rating ? 'fill-accent text-accent' : 'text-muted-foreground/30'
                       }`}
                     />
                   ))}

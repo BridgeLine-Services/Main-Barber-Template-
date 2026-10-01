@@ -49,7 +49,7 @@ export default async function ContactPage() {
         {/* Shop Info Card */}
         <Card className="bg-card/60 border-border/70 backdrop-blur-sm p-8 space-y-8">
           <div>
-            <h2 className="text-2xl font-bold text-foreground  mb-6">Location & Information</h2>
+            <h2 className="display-heading text-display-3 text-foreground mb-6">Location & Information</h2>
             <div className="space-y-6">
               {fullAddress && (
                 <div className="flex items-start gap-4">
@@ -116,7 +116,7 @@ export default async function ContactPage() {
         {/* Contact Form Card */}
         <Card className="bg-card/60 border-border/70 backdrop-blur-sm p-8 space-y-6">
           <div>
-            <h2 className="text-2xl font-bold text-foreground ">Send Us a Message</h2>
+            <h2 className="display-heading text-display-3 text-foreground">Send Us a Message</h2>
             <p className="text-xs text-muted-foreground mt-1">
               Fill out the form below and our team will get back to you within 24 hours.
             </p>

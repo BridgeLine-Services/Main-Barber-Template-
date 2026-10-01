@@ -30,7 +30,7 @@ export default async function GalleryPage(
   if (!business) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold">Gallery unavailable</h1>
+        <h1 className="display-heading text-display-3 text-foreground">Gallery unavailable</h1>
         <p className="mt-3 text-muted-foreground">This business has not been configured yet.</p>
       </div>
     )
@@ -49,7 +49,7 @@ export default async function GalleryPage(
     if (!service) {
       return (
         <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-          <h1 className="text-3xl font-bold">Examples unavailable</h1>
+          <h1 className="display-heading text-display-3 text-foreground">Examples unavailable</h1>
           <p className="mt-3 text-muted-foreground">
             This service does not have example work to show.
           </p>

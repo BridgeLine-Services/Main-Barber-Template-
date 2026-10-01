@@ -41,7 +41,7 @@ export default async function QueueStatusPage(props: { params: Promise<{ id: str
   if (!isToday && entry.status === 'WAITING') {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold">Queue entry ended</h1>
+        <h1 className="display-heading text-display-3 text-foreground">Queue entry ended</h1>
         <p className="mt-3 text-muted-foreground">
           This queue entry was for a different day. Join today&apos;s queue any time.
         </p>
@@ -109,7 +109,7 @@ export default async function QueueStatusPage(props: { params: Promise<{ id: str
         <p className="mt-4 text-sm font-medium uppercase tracking-wider text-muted-foreground">
           {business.name}
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-foreground">{copy.title}</h1>
+        <h1 className="mt-2 display-heading text-display-3 text-foreground">{copy.title}</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{copy.body}</p>
 
         <div className="mt-6 space-y-2 rounded-xl border border-border/60 bg-background/60 p-4 text-left text-sm">

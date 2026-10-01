@@ -149,7 +149,7 @@ export default async function ConfirmationPage(
         {/* Confirmation number */}
         <div className="mb-6 text-center">
           <p className="text-sm text-muted-foreground mb-1">Confirmation Number</p>
-          <p className="font-mono text-2xl font-bold text-accent tracking-wider">
+          <p className="font-mono text-xl font-bold text-primary tracking-wider">
             {appointment.confirmationNumber}
           </p>
         </div>

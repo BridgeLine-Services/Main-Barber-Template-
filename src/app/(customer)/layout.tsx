@@ -20,13 +20,13 @@ export default async function CustomerLayout({
   // instead of redirecting to /setup (which no longer exists)
   if (!business) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Shop Coming Soon</h1>
-          <p className="text-zinc-400">
+          <h1 className="display-heading text-display-3 text-foreground mb-4">Shop Coming Soon</h1>
+          <p className="text-muted-foreground">
             This barbershop hasn't been set up yet. The owner needs to log in and complete the setup.
           </p>
-          <a href="/login" className="inline-block mt-6 text-amber-400 hover:text-amber-300 transition-colors">
+          <a href="/login" className="inline-block mt-6 text-primary hover:brightness-125 transition-colors">
             Owner Login →
           </a>
         </div>

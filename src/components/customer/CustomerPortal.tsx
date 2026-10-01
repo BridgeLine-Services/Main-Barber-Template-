@@ -230,7 +230,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
           </div></>}
 
           {error && (
-            <p className="text-sm text-red-400 text-center">{error}</p>
+            <p className="text-sm text-destructive text-center">{error}</p>
           )}
 
           <button
@@ -313,7 +313,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
       {data.profile && (
         <div className="bg-card/50 border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide flex items-center gap-2">
+            <h2 className="text-sm font-semibold foreground uppercase tracking-wide flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-accent" /> My Preferences
             </h2>
             {!editingPrefs ? (
@@ -322,7 +322,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <button onClick={() => setEditingPrefs(false)} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+                <button onClick={() => setEditingPrefs(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
                 <button
                   onClick={savePreferences}
                   disabled={savingPrefs}
@@ -352,7 +352,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
                   />
                   <button
                     onClick={() => setPrefDraft(prev => prev.filter((_, idx) => idx !== i))}
-                    className="text-zinc-600 hover:text-red-400 text-sm px-1"
+                    className="text-muted-foreground/60 hover:text-destructive text-sm px-1"
                     aria-label="Remove"
                   >
                     <XCircle className="w-4 h-4" />
@@ -366,7 +366,7 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
                 + Add preference
               </button>
               {prefError && <p className="text-xs text-red-400">{prefError}</p>}
-              <p className="text-[11px] text-zinc-600">
+              <p className="text-[11px] text-muted-foreground/60">
                 Help your barber remember your usual cut — style, guard length, beard, side preference, anything.
               </p>
             </div>
@@ -374,23 +374,23 @@ export function CustomerPortal({ businessId, businessName }: { businessId: strin
             <div className="flex flex-wrap gap-2">
               {data.profile.preferences.map(p => (
                 <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-background/60 border border-border rounded-full px-3 py-1.5">
-                  <span className="text-zinc-500">{p.label}</span>
-                  <span className="text-zinc-200 font-medium">{p.value}</span>
+                  <span className="text-muted-foreground">{p.label}</span>
+                  <span className="text-foreground/90 font-medium">{p.value}</span>
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-zinc-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               No saved preferences yet. Add your usual style, guard length, or side preference so your barber knows your cut.
             </p>
           ))}
 
           {data.profile.preferredBarber && (
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-800/60 text-sm">
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/60 text-sm">
               <User className="w-4 h-4 text-accent" />
-              <span className="text-zinc-400">Preferred barber:</span>
-              <span className="text-zinc-100 font-medium">{data.profile.preferredBarber.barberName}</span>
-              <span className="text-xs text-zinc-600">({data.profile.preferredBarber.completedVisits} completed visits)</span>
+              <span className="text-muted-foreground">Preferred barber:</span>
+              <span className="text-foreground font-medium">{data.profile.preferredBarber.barberName}</span>
+              <span className="text-xs text-muted-foreground/60">({data.profile.preferredBarber.completedVisits} completed visits)</span>
             </div>
           )}
         </div>

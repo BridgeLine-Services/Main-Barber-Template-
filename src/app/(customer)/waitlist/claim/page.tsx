@@ -53,7 +53,7 @@ function ClaimContent() {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <CheckCircle2 className="w-14 h-14 text-emerald-400" />
-        <h2 className="text-2xl font-bold text-foreground font-poppins">You're booked!</h2>
+        <h2 className="display-heading text-display-3 text-foreground">You're booked!</h2>
         <p className="text-sm text-muted-foreground max-w-sm">
           The open slot is yours. We've sent you a confirmation
           {confirmationNumber ? (
@@ -78,7 +78,7 @@ function ClaimContent() {
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <XCircle className="w-14 h-14 text-red-400" />
-      <h2 className="text-2xl font-bold text-foreground font-poppins flex items-center gap-2">
+      <h2 className="display-heading text-display-3 text-foreground flex items-center gap-2">
         <CalendarCheck className="w-6 h-6 text-red-400" /> Slot no longer available
       </h2>
       <p className="text-sm text-muted-foreground max-w-sm">{message}</p>

@@ -110,7 +110,7 @@ export default async function AboutPage() {
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
               <Card className="bg-card/60 border-border/70 backdrop-blur-sm p-6 text-center space-y-4 transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-                <Avatar className="h-24 w-24 mx-auto border-2 border-accent/40 ring-4 ring-zinc-950">
+                <Avatar className="h-24 w-24 mx-auto border-2 border-accent/40 ring-4 ring-background">
                   {barber.photo && <AvatarImage src={barber.photo} alt={barber.name} />}
                   <AvatarFallback className="bg-secondary text-accent font-bold text-xl">
                     {getInitials(barber.name)}
@@ -144,7 +144,7 @@ export default async function AboutPage() {
       {/* CTA */}
       <Reveal className="mt-16 lg:mt-24">
         <section className="rounded-2xl bg-card/60 border border-border/70 backdrop-blur-sm p-8 sm:p-12 text-center space-y-6">
-          <h2 className="text-3xl font-bold text-foreground">Experience the Difference</h2>
+          <h2 className="display-heading text-display-2 text-foreground">Experience the Difference</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
             Join hundreds of satisfied clients who trust us for their grooming needs. Reserve your appointment today.
           </p>

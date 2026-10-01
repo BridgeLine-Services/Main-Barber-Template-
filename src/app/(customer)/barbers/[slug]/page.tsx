@@ -8,7 +8,7 @@ import { getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
+import { ArrowLeft, Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
 import PortfolioGallery from '@/components/customer/PortfolioGallery'
 
 interface PageProps {
@@ -87,8 +87,9 @@ export default async function BarberProfilePage(props: PageProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
       {/* Back link */}
-      <Link href="/barbers" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
-        ← All Barbers
+      <Link href="/barbers" className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-micro mb-6 focus-ring rounded-sm px-1 py-1">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        All Barbers
       </Link>
 
       {/* Profile Header */}
@@ -101,11 +102,9 @@ export default async function BarberProfilePage(props: PageProps) {
         </Avatar>
 
         <div className="flex-1 text-center md:text-left">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">{barber.name}</h1>
+          <h1 className="display-heading text-display-2 text-foreground mb-2">{barber.name}</h1>
           {barber.specialty && (
-            <p className="text-lg font-semibold mb-3" style={{ color: business.accentColor }}>
-              {barber.specialty}
-            </p>
+            <p className="eyebrow-accent mb-3">{barber.specialty}</p>
           )}
 
           {/* Auto-calculated reputation */}
@@ -169,27 +168,27 @@ export default async function BarberProfilePage(props: PageProps) {
       {/* Services with per-barber pricing */}
       {barber.services.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <Scissors className="h-6 w-6" style={{ color: business.accentColor }} />
+          <h2 className="display-heading text-display-3 text-foreground mb-6 flex items-center gap-2.5">
+            <Scissors className="h-5 w-5 text-primary" aria-hidden="true" />
             Services & Pricing
           </h2>
-          <div className="grid gap-4">
+          <div className="border-t border-border/60">
             {barber.services.map((bs) => {
               const price = bs.priceOverride ?? bs.service?.price
               const duration = bs.durationOverride ?? bs.service?.duration
               return (
-                <Card key={bs.serviceId}>
-                  <CardContent className="flex justify-between items-center py-4">
-                    <div>
-                      <h3 className="font-semibold">{bs.service?.name}</h3>
-                      {bs.service?.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{bs.service.description}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">{duration} min</p>
-                    </div>
-                    <div className="text-xl font-bold">{price != null ? `$${price}` : ''}</div>
-                  </CardContent>
-                </Card>
+                <div key={bs.serviceId} className="flex items-baseline justify-between gap-6 border-b border-border/60 py-4">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-lg font-semibold text-foreground">{bs.service?.name}</h3>
+                    {bs.service?.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{bs.service.description}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-display text-lg font-bold text-foreground tabular-nums">{price != null ? `$${price}` : ''}</div>
+                    <p className="text-xs text-muted-foreground">{duration} min</p>
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -210,7 +209,7 @@ export default async function BarberProfilePage(props: PageProps) {
           }))
         return portfolioAssets.length > 0 ? (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">View Work</h2>
+            <h2 className="display-heading text-display-3 text-foreground mb-6">View Work</h2>
             <PortfolioGallery assets={portfolioAssets} altFallback={barber.name} />
           </section>
         ) : null
@@ -219,46 +218,52 @@ export default async function BarberProfilePage(props: PageProps) {
       {/* Recent Reviews */}
       {barber.reviews.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Recent Reviews</h2>
-          <div className="grid gap-4">
+          <h2 className="display-heading text-display-3 text-foreground mb-6">Recent Reviews</h2>
+          <div className="border-t border-border/60">
             {barber.reviews.map((review) => (
-              <Card key={review.id}>
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold">{review.authorName}</span>
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= review.rating ? 'fill-current' : 'fill-none'}`}
-                          style={{ color: star <= review.rating ? business.accentColor : undefined }}
-                        />
-                      ))}
-                    </div>
+              <blockquote key={review.id} className="border-b border-border/60 py-5">
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <span className="font-semibold text-foreground">{review.authorName}</span>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${star <= review.rating ? 'fill-current' : 'fill-none'}`}
+                        style={{ color: star <= review.rating ? business.accentColor : undefined }}
+                        aria-hidden="true"
+                      />
+                    ))}
                   </div>
-                  {review.comment && (
-                    <p className="text-muted-foreground text-sm">{review.comment}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </CardContent>
-              </Card>
+                </div>
+                {review.comment && (
+                  <p className="text-muted-foreground text-sm leading-relaxed">{review.comment}</p>
+                )}
+                <footer className="text-xs text-muted-foreground/70 mt-2">
+                  {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </footer>
+              </blockquote>
             ))}
           </div>
         </section>
       )}
 
-      {/* Booking CTA */}
-      <div className="text-center py-8 border-t">
-        <h2 className="text-2xl font-bold mb-2">Ready to book?</h2>
-        <p className="text-muted-foreground mb-6">Schedule your next appointment with {barber.name}.</p>
-        <Button asChild size="lg" className="font-bold" style={{ backgroundColor: business.accentColor }}>
-          <Link href={`/book?barberId=${barber.id}`}>
-            <Calendar className="mr-2 h-5 w-5" />
-            Book Appointment
-          </Link>
-        </Button>
+      {/* Booking CTA — editorial ending */}
+      <div className="hairline-t py-12">
+        <p className="eyebrow-accent mb-4">Book Your Chair</p>
+        <h2 className="display-heading text-display-1 text-foreground">
+          Ready to book?
+        </h2>
+        <p className="mt-3 text-large text-muted-foreground">
+          Schedule your next appointment with {barber.name}.
+        </p>
+        <div className="mt-8">
+          <Button asChild size="lg" className="font-bold" style={{ backgroundColor: business.accentColor }}>
+            <Link href={`/book?barberId=${barber.id}`}>
+              <Calendar className="mr-2 h-5 w-5" />
+              Book Appointment
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

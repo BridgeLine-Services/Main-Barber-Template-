@@ -21,7 +21,7 @@ export default async function QueuePage() {
   if (!business || business.walkInsWelcome !== true) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold">Walk-in queue unavailable</h1>
+        <h1 className="display-heading text-display-3 text-foreground">Walk-in queue unavailable</h1>
         <p className="mt-3 text-muted-foreground">
           This shop isn&apos;t accepting online walk-in queue joins right now.
         </p>
@@ -45,7 +45,7 @@ export default async function QueuePage() {
   if (services.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold">Walk-in queue unavailable</h1>
+        <h1 className="display-heading text-display-3 text-foreground">Walk-in queue unavailable</h1>
         <p className="mt-3 text-muted-foreground">This shop hasn&apos;t set up services yet.</p>
       </div>
     )

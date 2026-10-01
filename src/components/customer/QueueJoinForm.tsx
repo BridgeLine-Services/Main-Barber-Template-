@@ -82,7 +82,7 @@ export default function QueueJoinForm({
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-accent/15 text-accent">
           <Users className="size-7" aria-hidden="true" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-foreground">
+        <h2 className="mt-4 display-heading text-display-3 text-foreground">
           You&apos;re #{result.position} in line
         </h2>
         {typeof result.estimatedWaitMinutes === 'number' ? (

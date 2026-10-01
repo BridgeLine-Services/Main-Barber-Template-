@@ -14,12 +14,10 @@ type BarberWithRelations = Prisma.BarberGetPayload<{
     reviews: { select: { rating: true } }
   }
 }>
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import {Stagger, StaggerItem } from '@/components/motion/reveal'
-import { Scissors, Calendar } from 'lucide-react'
+import { ArrowRight, Scissors, Calendar } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata({
@@ -37,7 +35,7 @@ export default async function BarbersPage() {
   if (!business) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold mb-4">No business configured</h1>
+        <h1 className="display-heading text-display-3 text-foreground mb-4">No business configured</h1>
         <p className="text-muted-foreground">Please run the setup wizard to configure your shop.</p>
       </div>
     )
@@ -73,7 +71,11 @@ export default async function BarbersPage() {
           <p className="text-muted-foreground">No barbers have been added yet. Add barbers in the Dashboard under Team.</p>
         </div>
       ) : (
-        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        /* Portrait-led editorial profiles — the same grammar as the landing
+           team section: photo left, name/specialty/bio beside it, services
+           as quiet hairline rows, book as a text action. Review stats and
+           per-barber pricing remain data-driven. */
+        <Stagger className="grid grid-cols-1 gap-x-12 gap-y-12 md:grid-cols-2">
           {barbers.map((barber) => {
             // Calculate barber's review stats from actual records
             const barberReviews: Array<{ rating: number }> = barber.reviews || []
@@ -84,50 +86,49 @@ export default async function BarbersPage() {
 
             return (
               <StaggerItem key={barber.id} className="h-full">
-              <Card className="flex h-full flex-col justify-between overflow-hidden border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-                <div>
-                  <CardHeader className="text-center pt-8 pb-4">
-                    <div className="mx-auto mb-4 relative">
-                      <Avatar className="h-28 w-28" style={{ borderWidth: '2px', borderColor: business.accentColor }}>
-                        {barber.photo && <AvatarImage src={barber.photo} alt={barber.name} />}
-                        <AvatarFallback className="font-bold text-2xl">
-                          {getInitials(barber.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <CardTitle className="text-2xl font-bold">{barber.name}</CardTitle>
-                    {barber.specialty && (
-                      <p className="text-xs font-semibold mt-1 uppercase tracking-wider" style={{ color: business.accentColor }}>
-                        {barber.specialty}
-                      </p>
-                    )}
-                    {/* Auto-calculated review stats */}
-                    {avgRating && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </CardHeader>
+                <div className="group flex flex-col gap-6 sm:flex-row sm:gap-8">
+                  <Avatar
+                    className="h-28 w-28 shrink-0 rounded-lg ring-2 ring-background sm:h-32 sm:w-32"
+                    style={{ borderWidth: '2px', borderColor: business.accentColor }}
+                  >
+                    {barber.photo && <AvatarImage src={barber.photo} alt={barber.name} className="rounded-lg object-cover" />}
+                    <AvatarFallback className="rounded-lg font-display text-2xl font-semibold text-primary">
+                      {getInitials(barber.name)}
+                    </AvatarFallback>
+                  </Avatar>
 
-                  <CardContent className="px-6 space-y-4 text-sm">
-                    <p className="leading-relaxed text-center italic text-muted-foreground">
+                  <div className="min-w-0 flex-1 hairline-t pt-4 sm:hairline-t-0 sm:pt-1">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                        {barber.name}
+                      </h2>
+                      {avgRating && (
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    {barber.specialty && (
+                      <p className="eyebrow-accent mt-1.5">{barber.specialty}</p>
+                    )}
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       &ldquo;{barber.bio || 'Dedicated to precision craftsmanship, clean line-ups, and legendary customer care.'}&rdquo;
                     </p>
 
-                    {/* Services Offered with per-barber pricing */}
+                    {/* Services Offered with per-barber pricing — hairline rows */}
                     {barber.services && barber.services.length > 0 && (
-                      <div className="pt-4 border-t space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-muted-foreground">
-                          <Scissors className="h-3.5 w-3.5" /> Services Offered:
+                      <div className="mt-4 border-t border-border/60">
+                        <p className="eyebrow mt-3 mb-1.5 flex items-center gap-1.5">
+                          <Scissors className="h-3.5 w-3.5" aria-hidden="true" /> Services
                         </p>
-                        <div className="space-y-1">
+                        <div className="divide-y divide-border/40">
                           {barber.services.map((bs) => {
                             const price = bs.priceOverride ?? bs.service?.price
                             const duration = bs.durationOverride ?? bs.service?.duration
                             return (
-                              <div key={bs.serviceId} className="flex justify-between text-sm">
-                                <span>{bs.service?.name || 'Service'}</span>
-                                <span className="text-muted-foreground">
+                              <div key={bs.serviceId} className="flex justify-between gap-4 py-1.5 text-sm">
+                                <span className="text-foreground/80 truncate">{bs.service?.name || 'Service'}</span>
+                                <span className="text-muted-foreground shrink-0 tabular-nums">
                                   {price != null && `$${price}`}
                                   {duration != null && ` · ${duration}min`}
                                 </span>
@@ -140,52 +141,53 @@ export default async function BarbersPage() {
 
                     {/* Barber social links */}
                     {(barber.instagram || barber.facebook || barber.tiktok || barber.website) && (
-                      <div className="flex gap-3 justify-center pt-2 text-xs">
+                      <div className="mt-4 flex flex-wrap gap-4 text-xs">
                         {barber.instagram && (
                           <a href={barber.instagram.startsWith('http') ? barber.instagram : `https://instagram.com/${barber.instagram}`}
-                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                             Instagram
                           </a>
                         )}
                         {barber.facebook && (
                           <a href={barber.facebook.startsWith('http') ? barber.facebook : `https://facebook.com/${barber.facebook}`}
-                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                             Facebook
                           </a>
                         )}
                         {barber.tiktok && (
                           <a href={barber.tiktok.startsWith('http') ? barber.tiktok : `https://tiktok.com/@${barber.tiktok}`}
-                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                             target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                             TikTok
                           </a>
                         )}
                         {barber.website && (
-                          <a href={barber.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                          <a href={barber.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                             Website
                           </a>
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </div>
 
-                <CardFooter className="pt-6 pb-6 px-6 border-t mt-4">
-                  <Button asChild className="w-full font-bold transition" style={{ backgroundColor: business.accentColor }}>
-                    <Link href={`/book?barberId=${barber.id}`}>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Book with {barber.name.split(' ')[0]}
-                    </Link>
-                  </Button>
-                  {barber.slug && (
-                    <Link
-                      href={`/barbers/${barber.slug}`}
-                      className="text-xs text-muted-foreground hover:text-foreground mt-2 mx-auto"
-                    >
-                      View full profile →
-                    </Link>
-                  )}
-                </CardFooter>
-              </Card>
+                    <div className="mt-5 flex items-center gap-5">
+                      <Link
+                        href={`/book?barberId=${barber.id}`}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      >
+                        <Calendar className="h-4 w-4" aria-hidden="true" />
+                        Book with {barber.name.split(' ')[0]}
+                      </Link>
+                      {barber.slug && (
+                        <Link
+                          href={`/barbers/${barber.slug}`}
+                          className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground"
+                        >
+                          Full profile
+                          <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </StaggerItem>
             )
           })}

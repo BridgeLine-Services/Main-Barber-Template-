@@ -26,7 +26,7 @@ export function MobileBottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-accent px-4 py-1.5 text-accent-foreground font-semibold shadow-md shadow-amber-500/20 active:scale-95 transition"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-accent px-4 py-1.5 text-accent-foreground font-semibold shadow-md shadow-accent/20 active:scale-95 transition"
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
