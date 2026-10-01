@@ -20,9 +20,8 @@ test('guest can complete a full booking and see a confirmation', async ({ page }
   await page.goto('/book')
   await expect(page.getByRole('heading', { name: /select a service/i })).toBeVisible()
 
-  // 3. Select the first service card
-  const serviceCard = page.locator('[role="button"]').filter({ has: page.locator('h3') }).first()
-  await serviceCard.click()
+  // 3. Select the first service (service list renders as a listbox of options)
+  await page.getByRole('option').first().click()
   await expect(page.getByRole('heading', { name: /select a barber/i })).toBeVisible()
 
   // 4. Choose "First Available"

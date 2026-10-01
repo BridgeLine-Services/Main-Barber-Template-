@@ -4,7 +4,6 @@ import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { resolveBusiness } from '@/lib/tenant'
 import { formatDuration, formatPrice, getInitials } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -416,7 +415,7 @@ export default async function HomePage() {
             <StaggerItem key={review.id}>
               <Card className={`h-full border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 ${visual.style === 'street-cut' ? 'rounded-none shadow-[5px_5px_0_hsl(var(--accent)/0.18)]' : visual.style === 'clean-club' ? 'rounded-2xl' : ''}`}>
                 <CardContent className="space-y-3 p-6">
-                  <div className="flex items-center gap-1" aria-label={`${review.rating} out of 5 stars`}>
+                  <div className="flex items-center gap-1" role="img" aria-label={`${review.rating} out of 5 stars`}>
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
