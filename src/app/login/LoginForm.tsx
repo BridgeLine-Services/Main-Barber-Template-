@@ -145,7 +145,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
           </h1>
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
             {mode === 'login'
-              ? `Sign in to manage bookings, schedules, and your storefront at ${shopName}.`
+              ? 'Sign in to continue.'
               : `Create your owner account and set up ${shopName} in minutes.`}
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
             {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === 'login' ? `Sign in to manage ${shopName}.` : `Set up ${shopName} in minutes.`}
+            {mode === 'login' ? 'Sign in to continue.' : `Set up ${shopName} in minutes.`}
           </p>
         </div>
 
@@ -176,7 +176,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {mode === 'login'
-                ? 'Sign in to your dashboard.'
+                ? 'Sign in to continue.'
                 : 'Registration takes less than a minute.'}
             </p>
           </div>
@@ -222,7 +222,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
                 <Input
                   id="email"
                   type="email"
-                  placeholder="owner@shop.com"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

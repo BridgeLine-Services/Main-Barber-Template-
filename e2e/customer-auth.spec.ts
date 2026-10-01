@@ -45,7 +45,7 @@ test('existing customer can sign in and is routed to /portal', async ({ page }) 
   expect(res.ok()).toBeTruthy()
 
   await page.goto('/login')
-  await page.getByPlaceholder('owner@shop.com').fill(email)
+  await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(PASSWORD)
   await page.getByRole('button', { name: /sign in|log in/i }).click()
 
@@ -60,7 +60,7 @@ test('signed-in customer is denied management pages and APIs', async ({ page }) 
   })
 
   await page.goto('/login')
-  await page.getByPlaceholder('owner@shop.com').fill(email)
+  await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(PASSWORD)
   await page.getByRole('button', { name: /sign in|log in/i }).click()
   await page.waitForURL(/\/portal/, { timeout: 30_000 })

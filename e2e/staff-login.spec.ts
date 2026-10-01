@@ -14,7 +14,7 @@ const OWNER_PASSWORD = process.env.E2E_OWNER_PASSWORD || 'E2eOwner!Passw0rd'
 
 test('staff can log in and reach the dashboard', async ({ page }) => {
   await page.goto('/login')
-  await page.getByPlaceholder('owner@shop.com').fill(OWNER_EMAIL)
+  await page.getByPlaceholder('you@example.com').fill(OWNER_EMAIL)
   await page.getByPlaceholder('••••••••').fill(OWNER_PASSWORD)
   await page.getByRole('button', { name: /sign in|log in/i }).click()
 
