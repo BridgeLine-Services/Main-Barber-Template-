@@ -24,6 +24,7 @@ import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 import type { BusinessHours } from '@/lib/business-hours'
+import { getVisualStyleConfig, visualStyleClass, buttonStyleClass, imageStyleClass } from '@/lib/visual-style'
 
 
 // ─── Dynamic SEO Metadata ──────────────────────────────────────────────
@@ -157,6 +158,11 @@ export default async function HomePage() {
     business?.aboutText ||
     `Experience top-tier craftsmanship at ${shopName}. From classic razor fades to precision beard styling, walk out looking and feeling sharp.`
   const heroImage = content?.heroImageUrl || null
+  const visualStyle = (content as { visualStyle?: unknown } | null)?.visualStyle
+  const visual = getVisualStyleConfig(visualStyle)
+  const styleClass = visualStyleClass(visualStyle)
+  const buttonShape = buttonStyleClass(visualStyle)
+  const imageShape = imageStyleClass(visualStyle)
 
   const showServices = content?.showServices ?? true
   const showTeam = content?.showTeam ?? true
@@ -172,9 +178,10 @@ export default async function HomePage() {
   ]
 
   return (
-    <div className="pb-12">
-      {/* ─── Cinematic Hero ──────────────────────────────────────────────── */}
-      <section className="relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60">
+    <div className={`pb-12 ${styleClass}`} data-visual-style={visual.style}>
+      {/* ─── Style-aware hero ─────────────────────────────────────────────── */}
+      <section className={`relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.hero === 'split' ? 'lg:min-h-[78svh]' : ''} ${visual.hero === 'poster' ? 'items-end justify-start' : ''}`}>
+
         {/* Background: owner-configured hero image, or an elegant accent-lit
             gradient when none is set. Never a permanently hard-coded photo. */}
         {heroImage ? (
@@ -185,7 +192,7 @@ export default async function HomePage() {
             priority
             sizes="100vw"
             quality={80}
-            className="img-cinematic object-cover"
+            className={`img-cinematic object-cover ${imageShape} ${visual.hero === 'poster' ? 'scale-105' : ''}`}
           />
         ) : (
           <div
@@ -215,7 +222,7 @@ export default async function HomePage() {
 
           {/* SEO-optimized H1: includes shop name + city for local search */}
           <HeroReveal delay={0.12} className="mt-6">
-            <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className={`font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl ${visual.hero === 'poster' ? 'max-w-3xl text-left text-6xl uppercase leading-[0.88] sm:text-8xl lg:text-[clamp(5rem,13vw,10rem)]' : ''}`}>
               {heroTitle}
               {locationStr && !content?.heroTitle ? (
                 <span className="text-accent"> — Barbershop in {locationStr}</span>
@@ -233,7 +240,7 @@ export default async function HomePage() {
             <BookButton
               href={content?.heroPrimaryCtaHref || '/book'}
               label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
-              className="w-full sm:w-auto"
+              className={`w-full sm:w-auto ${buttonShape}`}
             />
             <div className="flex w-full items-center justify-center gap-3 sm:w-auto">
               {shopPhoneDigits && (
