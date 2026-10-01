@@ -11,6 +11,8 @@ import Link from 'next/link'
 import CancelButton from './CancelButton'
 import RescheduleButton from './RescheduleButton'
 import { AddToCalendar } from '@/components/booking/AddToCalendar'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import type { Prisma } from '@prisma/client'
 
 export default async function ConfirmationPage(
@@ -25,6 +27,9 @@ export default async function ConfirmationPage(
     include: { barber: true; service: true; business: true }
   }> | null = null
   let hasToken = false
+  // Suppress the optional-account prompt when the viewer is already signed in.
+  const session = await getServerSession(authOptions)
+
 
   try {
     // Require a valid customer access token to view appointment details.
@@ -266,6 +271,20 @@ export default async function ConfirmationPage(
               confirmationNumber={appointment.confirmationNumber}
               token={searchParams.token!}
             />
+          </div>
+        )}
+
+        {/* Optional account creation — never a requirement. Guests keep
+            full token-secured access without an account; an account just
+            makes future bookings easier to manage (bookings are matched to
+            the account by email). */}
+        {hasToken && !session?.user && (
+          <div className="mb-6 text-center text-sm text-muted-foreground">
+            Want to manage your appointments more easily?{' '}
+            <Link href="/register" className="text-accent font-medium hover:underline">
+              Create an account
+            </Link>{' '}
+            with the same email and your bookings appear here automatically.
           </div>
         )}
 

@@ -196,10 +196,10 @@ export function Footer({ business }: FooterProps) {
             <Link
               href="/login"
               className="flex items-center gap-1.5 text-muted-foreground hover:text-accent transition"
-              aria-label="Staff Login"
+              aria-label="Login / Sign-Up"
             >
               <Lock className="h-3 w-3" />
-              <span>Staff Login</span>
+              <span>Login / Sign-Up</span>
             </Link>
           </div>
         </div>

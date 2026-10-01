@@ -112,7 +112,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-accent"
           >
             <UserRound className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-            Sign In
+            Login / Sign-Up
           </Link>
           <Link
             href="/book"
@@ -189,7 +189,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
                 }
               >
                 <UserRound className="h-4 w-4 text-accent" aria-hidden="true" />
-                Sign In / Sign Up
+                Login / Sign-Up
               </Link>
               {phone && (
                 <div className="mt-3 border-t border-border/60 px-3 pt-3">

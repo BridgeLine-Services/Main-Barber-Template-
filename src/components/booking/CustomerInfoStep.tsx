@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { isValidEmail, isValidPhone, formatPhoneInput } from '@/lib/utils'
-import { User, Mail, Phone,ArrowRight } from 'lucide-react'
+import { User, Mail, Phone, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 export interface CustomerInfo {
   firstName: string
@@ -79,6 +80,14 @@ export function CustomerInfoStep({
         <h2 className="display-heading text-display-3 text-foreground">Your Details</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Provide your contact details to complete your appointment booking.
+        </p>
+        {/* Optional auth: guests never hit a login wall. An account is a
+            convenience for managing bookings, never a requirement. */}
+        <p className="text-xs text-muted-foreground mt-2">
+          Booking as a guest.{' '}
+          <Link href="/login" className="text-accent hover:underline">
+            Already have an account? Log in
+          </Link>
         </p>
       </div>
 
