@@ -180,7 +180,7 @@ export default async function HomePage() {
   return (
     <div className={`pb-12 ${styleClass}`} data-visual-style={visual.style}>
       {/* ─── Style-aware hero ─────────────────────────────────────────────── */}
-      <section className={`relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.hero === 'split' ? 'lg:min-h-[78svh]' : ''} ${visual.hero === 'poster' ? 'items-end justify-start' : ''}`}>
+      <section className={`visual-hero relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.hero === 'split' ? 'lg:min-h-[78svh]' : ''} ${visual.hero === 'poster' ? 'items-end justify-start' : ''}`}>
 
         {/* Background: owner-configured hero image, or an elegant accent-lit
             gradient when none is set. Never a permanently hard-coded photo. */}
@@ -303,7 +303,7 @@ export default async function HomePage() {
         {services.length > 0 ? (
           /* Editorial service menu — hairline rows, large names, price right.
              Book stays one tap away from every row. */
-          <Stagger className={`border-t border-border/60 ${visual.services === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.services === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
+          <Stagger className={`visual-services border-t border-border/60 ${visual.services === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.services === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
             {services.slice(0, 6).map((service) => (
               <StaggerItem key={service.id} className={visual.services === 'cards' ? 'rounded-xl border border-border/70 bg-card p-5 shadow-sm' : 'border-b border-border/60'}>
                 <div className={`group flex flex-col gap-3 ${visual.services === 'cards' ? '' : 'py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7'}`}>
@@ -360,7 +360,7 @@ export default async function HomePage() {
           /* Human editorial profiles — portrait-led rows, name/specialty/bio
              beside the photo, book as a quiet text action. Two columns keep
              the profiles large enough to feel like people, not records. */
-          <Stagger className={`grid grid-cols-1 gap-x-12 gap-y-10 ${visual.team === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
+          <Stagger className={`visual-team grid grid-cols-1 gap-x-12 gap-y-10 ${visual.team === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
                 <div className="group flex flex-col gap-5 sm:flex-row sm:gap-6">
