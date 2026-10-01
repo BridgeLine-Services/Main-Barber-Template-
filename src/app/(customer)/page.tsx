@@ -303,10 +303,10 @@ export default async function HomePage() {
         {services.length > 0 ? (
           /* Editorial service menu — hairline rows, large names, price right.
              Book stays one tap away from every row. */
-          <Stagger className="border-t border-border/60">
+          <Stagger className={`border-t border-border/60 ${visual.services === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.services === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
             {services.slice(0, 6).map((service) => (
-              <StaggerItem key={service.id} className="border-b border-border/60">
-                <div className="group flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7">
+              <StaggerItem key={service.id} className={visual.services === 'cards' ? 'rounded-xl border border-border/70 bg-card p-5 shadow-sm' : 'border-b border-border/60'}>
+                <div className={`group flex flex-col gap-3 ${visual.services === 'cards' ? '' : 'py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7'}`}>
                   <div className="min-w-0">
                     <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                       {service.name}
@@ -360,7 +360,7 @@ export default async function HomePage() {
           /* Human editorial profiles — portrait-led rows, name/specialty/bio
              beside the photo, book as a quiet text action. Two columns keep
              the profiles large enough to feel like people, not records. */
-          <Stagger className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
+          <Stagger className={`grid grid-cols-1 gap-x-12 gap-y-10 ${visual.team === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
                 <div className="group flex flex-col gap-5 sm:flex-row sm:gap-6">
@@ -555,7 +555,7 @@ export default async function HomePage() {
             </p>
           </Reveal>
           <Reveal delay={0.2} className="mt-10">
-            <BookButton label="Book Your Appointment" className="w-full sm:w-auto" />
+            <BookButton label="Book Your Appointment" className={`w-full sm:w-auto ${buttonShape}`} />
           </Reveal>
         </div>
       </section>

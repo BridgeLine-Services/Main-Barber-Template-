@@ -36,6 +36,10 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
+
   return (
     <header
       className={
