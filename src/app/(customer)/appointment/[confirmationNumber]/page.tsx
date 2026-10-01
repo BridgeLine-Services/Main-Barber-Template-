@@ -281,7 +281,7 @@ export default async function ConfirmationPage(
         {hasToken && !session?.user && (
           <div className="mb-6 text-center text-sm text-muted-foreground">
             Want to manage your appointments more easily?{' '}
-            <Link href="/register" className="text-accent font-medium hover:underline">
+            <Link href="/login" className="text-accent font-medium hover:underline">
               Create an account
             </Link>{' '}
             with the same email and your bookings appear here automatically.

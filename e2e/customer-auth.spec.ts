@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test'
  * Customer authentication E2E (shared Login / Sign-Up entry point).
  *
  * Covers the customer halves of the unified auth contract:
- *   B — public Sign-Up through /register creates a CUSTOMER, auto-signs-in,
+ *   B — public Sign-Up through the unified /login entry point creates a
  *        and the server role router lands the session on /portal.
  *   C — an existing customer signs in through /login and reaches /portal
  *        (never /dashboard).
@@ -19,11 +19,11 @@ const PASSWORD = 'E2eCustomer!123' // satisfies passwordPolicySchema (10+, upper
 test('customer can sign up from the public entry point and lands on /portal', async ({ page }) => {
   const email = `e2e-signup-${Date.now()}@example.com`
 
-  await page.goto('/register')
+  await page.goto('/login')
+  await page.getByRole('button', { name: /create one/i }).click()
   await page.locator('#name').fill('E2E Signup')
   await page.locator('#email').fill(email)
   await page.locator('#password').fill(PASSWORD)
-  await page.locator('#confirmPassword').fill(PASSWORD)
   await page.getByRole('button', { name: /create account/i }).click()
 
   // Auto-login → /auth/redirect → server router sends CUSTOMER to /portal

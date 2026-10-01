@@ -1,23 +1,9 @@
-import type { Metadata } from 'next'
-import { resolveBusiness } from '@/lib/tenant'
-import { ThemeStyle } from '@/components/customer/ThemeStyle'
-import { RegisterForm } from './RegisterForm'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Create your account',
-  robots: { index: false, follow: false },
-}
-
-// Same tenant-aware theme injection as /login: the signup page resolves the
-// configured business and injects its ThemeStyle, so customer signup and
-// owner login render as two states of one themed authentication experience.
-export default async function RegisterPage() {
-  const business = await resolveBusiness().catch(() => null)
-
-  return (
-    <>
-      {business && <ThemeStyle business={business} />}
-      <RegisterForm businessName={business?.name ?? null} />
-    </>
-  )
+// /login is the single public Login / Sign-Up entry point. Ordinary signup
+// happens on /login and the server assigns the role: CUSTOMER for public
+// sign-up, the invited role for invitation sign-ups, OWNER only through the
+// controlled onboarding mode (OWNER_REGISTRATION_MODE=onboarding).
+export default function RegisterPage() {
+  redirect('/login')
 }
