@@ -5,8 +5,10 @@ import { getToken } from 'next-auth/jwt'
 // ============================================================================
 // Middleware
 // 1. Security headers on ALL responses
-// 2. Auth for /dashboard and /api/dashboard is handled at the route/page level
-//    via getServerSession(authOptions) — NextAuth JWT validation.
+// 2. Defense-in-depth staff guard for every /api/dashboard route
+//    (the authoritative gates live at the route/page level via
+//    getServerSession(authOptions) + DB-fresh role checks — see
+//    src/lib/onboarding.ts)
 // ============================================================================
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -34,9 +36,6 @@ export async function proxy(req: NextRequest) {
   // entire dashboard API surface is uniformly protected (page-level gate in
   // src/lib/onboarding.ts + per-route DB-fresh session checks remain the
   // authoritative guards — this layer catches gaps between them).
-  if (pathname === '/login') {
-    return addSecurityHeaders(NextResponse.json({ error: 'blocked' }, { status: 451 }))
-  }
   if (pathname.startsWith('/api/dashboard')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
