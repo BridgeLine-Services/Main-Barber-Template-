@@ -85,4 +85,10 @@ test('guest can complete a full booking and see a confirmation', async ({ page }
   // 8. Confirmation page with a confirmation number
   await expect(page.getByText(/confirmation/i).first()).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('body')).toContainText(/E2E|booked|appointment/i)
+
+  // 9. Guest management flow: the wizard routes to the token-secured
+  //    appointment page (/appointment/<number>?token=<secure token>), so a
+  //    guest can look up and manage their booking WITHOUT an account.
+  await page.waitForURL(/\/appointment\/[^/]+\?token=/, { timeout: 15_000 })
+  await expect(page.getByRole('button', { name: /reschedule|cancel/i }).first()).toBeVisible()
 })
