@@ -25,6 +25,23 @@ function futureSlot(hoursAhead: number): Date {
   const d = new Date(Date.now() + hoursAhead * 3_600_000)
   // snap to quarter hour so slot alignment matches the 15-min grid
   d.setUTCMinutes(Math.round(d.getUTCMinutes() / 15) * 15, 0, 0)
+  // A 60-minute service cannot fit inside the test schedule's 00:00-23:45
+  // UTC day when the slot lands at 23:xx (it would end past scheduleEnd).
+  // Roll such slots to a safe 10:00 UTC on the following day so the suite
+  // passes at every time of day it may run. Offsets stay >= hoursAhead, so
+  // advance-notice and booking-window semantics are preserved.
+  if (d.getUTCHours() === 23) {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 10, 0, 0))
+  }
+  return d
+}
+
+// Slot used by TOO_SOON assertions: kept close to "now" (never rolled past
+// the 23:00 UTC boundary) because validateSlot checks the advance-notice
+// rule before the schedule fit, and the assertion requires that gap itself.
+function imminentSlot(minutesAhead: number): Date {
+  const d = new Date(Date.now() + minutesAhead * 60_000)
+  d.setUTCMinutes(Math.round(d.getUTCMinutes() / 15) * 15, 0, 0)
   return d
 }
 
@@ -91,7 +108,7 @@ async function testMinimumAdvance() {
   try {
     const r1 = await validateSlot({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
-      startTime: futureSlot(1), // only 1 hour out → TOO_SOON
+      startTime: imminentSlot(60), // only 1 hour out → TOO_SOON
     })
     assert(r1.valid === false && r1.error === 'TOO_SOON', 'booking 1h out rejected as TOO_SOON (120-min rule)')
 
@@ -103,7 +120,7 @@ async function testMinimumAdvance() {
 
     const created = await createAppointmentSafely({
       businessId: business.id, barberId: barber.id, serviceId: service.id,
-      startTime: futureSlot(1),
+      startTime: imminentSlot(60),
       customerData: { firstName: 'Min', lastName: 'Advance', phone: '5550001111', email: `min${Date.now()}@example.com` },
     })
     assert(created.success === false && created.error === 'TOO_SOON', 'direct POST path enforces advance rule inside transaction')
