@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Scissors, Menu, X, Calendar, Phone } from 'lucide-react'
+import { Scissors, Menu, X, Calendar, Phone, UserRound } from 'lucide-react'
 
 interface NavbarProps {
   businessName?: string
@@ -91,7 +91,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
           })}
         </nav>
 
-        {/* Desktop CTA & Phone */}
+        {/* Desktop CTA, Sign In & Phone */}
         <div className="hidden md:flex items-center gap-4">
           {phone && (
             <a
@@ -102,6 +102,18 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
               <span>{phone}</span>
             </a>
           )}
+          {/* Shared Login / Sign-Up entry point: one themed /login page for
+              customers, invited staff, and owners. The server decides where
+              a session belongs after sign-in (customers never see owner
+              onboarding here — registration stays customer-first via the
+              /register link on the login page). */}
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-accent"
+          >
+            <UserRound className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+            Sign In
+          </Link>
           <Link
             href="/book"
             className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm shadow-accent/20 transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5"
@@ -164,6 +176,21 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
                   </Link>
                 )
               })}
+              {/* Shared Login / Sign-Up entry point — same /login page as
+                  desktop, presented as a first-class nav item on mobile */}
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className={
+                  'flex items-center gap-2 rounded-md px-3 py-2.5 text-base font-medium transition ' +
+                  (pathname === '/login'
+                    ? 'border border-accent/30 bg-accent/10 text-accent'
+                    : 'text-foreground/80 hover:bg-card hover:text-foreground')
+                }
+              >
+                <UserRound className="h-4 w-4 text-accent" aria-hidden="true" />
+                Sign In / Sign Up
+              </Link>
               {phone && (
                 <div className="mt-3 border-t border-border/60 px-3 pt-3">
                   <a
