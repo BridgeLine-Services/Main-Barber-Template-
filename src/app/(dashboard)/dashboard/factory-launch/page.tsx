@@ -6,11 +6,11 @@ import { requireOwner } from '@/lib/auth-helpers'
 import { verifyFactoryLaunch } from '@/lib/factory-launch'
 
 const statusStyles = {
-  PASS: 'text-emerald-400',
+  PASS: 'text-[var(--dash-ok)]',
   DISABLED: 'text-muted-foreground',
-  WARNING: 'text-amber-400',
-  MANUAL: 'text-blue-400',
-  BLOCKED: 'text-red-400',
+  WARNING: 'text-[var(--dash-warn)]',
+  MANUAL: 'text-[var(--dash-info)]',
+  BLOCKED: 'text-[var(--dash-danger)]',
   NOT_STARTED: 'text-muted-foreground',
 } as const
 

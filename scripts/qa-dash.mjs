@@ -20,6 +20,9 @@ const PAGES = [
   ['/dashboard', 'overview'],
   ['/dashboard/appointments', 'appointments'],
   ['/dashboard/settings', 'settings'],
+  ['/dashboard/inventory', 'inventory'],
+  ['/dashboard/factory-launch', 'factory-launch'],
+  ['/dashboard/audit-log', 'audit-log'],
 ]
 const WIDTHS = [320, 390, 768, 1280]
 

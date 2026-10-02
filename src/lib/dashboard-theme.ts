@@ -169,6 +169,11 @@ ${selector} {
   --dash-brand-foreground: ${hexToHsl(p.accentFg)};
   --dash-brand-soft: ${p.accent}1a;
   --dash-brand-border: ${p.accent}40;
+  /* status colors, lightness-tuned per theme so they read on dark AND light presets */
+  --dash-ok: ${p.dark ? '#34d399' : '#047857'};
+  --dash-warn: ${p.dark ? '#fbbf24' : '#b45309'};
+  --dash-info: ${p.dark ? '#60a5fa' : '#1d4ed8'};
+  --dash-danger: ${p.dark ? '#f87171' : '#b91c1c'};
   --dash-display-font: ${p.displayFont};
 }
 `
