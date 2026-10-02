@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Check, Monitor, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -12,10 +11,10 @@ import {
 } from '@/lib/visual-style'
 import {
   VISUAL_FIELD_OPTIONS,
-  HERO_LAYOUTS,
   type VisualOverrideKey,
   resolveVisualConfig,
 } from '@/lib/visual-config'
+import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Website Appearance tab — owner-facing visual identity configuration.
@@ -28,7 +27,7 @@ import {
 // Website card below makes it live (existing draft→publish architecture).
 // ─────────────────────────────────────────────────────────────────────────────
 
-type WebsiteContentMap = Record<string, string | boolean | Record<string, string>>
+type WebsiteContentMap = Record<string, unknown>
 
 const PRESET_META: Record<VisualStyle, { blurb: string; swatches: string[]; type: string }> = {
   'black-label': {
@@ -259,6 +258,60 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
               )
             })}
           </div>
+        </div>
+
+        {/* ── Typography ─────────────────────────────────────────────── */}
+        <div>
+          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Typography</h3>
+          <p className="mb-4 text-xs text-zinc-500">
+            Optionally override the preset&apos;s fonts. The heading font applies to display
+            headings; the body font applies to paragraphs, buttons, and forms.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-zinc-300">Heading font</span>
+              <select
+                value={overrides.headingFont ?? ''}
+                onChange={(e) => setOverride('headingFont' as VisualOverrideKey, e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              >
+                <option value="">Preset default</option>
+                {FONT_FAMILY_OPTIONS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label} — {f.description}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-zinc-300">Body font</span>
+              <select
+                value={overrides.bodyFont ?? ''}
+                onChange={(e) => setOverride('bodyFont' as VisualOverrideKey, e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              >
+                <option value="">Preset default</option>
+                {FONT_FAMILY_OPTIONS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label} — {f.description}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {(resolved.headingFont || resolved.bodyFont) && (
+            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-4" aria-hidden="true">
+              <p className="text-xs uppercase tracking-widest text-zinc-500">Font preview</p>
+              <p
+                className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100"
+                style={{ fontFamily: resolved.headingFont ? mapFontFamily(resolved.headingFont) : undefined }}
+              >
+                Sharp looks, honest craft.
+              </p>
+              <p
+                className="mt-2 text-sm text-zinc-400"
+                style={{ fontFamily: resolved.bodyFont ? mapFontFamily(resolved.bodyFont) : undefined }}
+              >
+                Fades, beard work, and classic cuts — done right, every visit.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">

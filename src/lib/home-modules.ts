@@ -210,10 +210,15 @@ export function resolveHomeModules(content: unknown): ResolvedHomeModules {
 
   if (!storedList) {
     // Never configured: derive everything from the legacy toggles.
-    return {
-      modules: HOME_MODULE_IDS.map(defaultFor),
-      fromLegacyDefaults: true,
+    const derived = HOME_MODULE_IDS.map(defaultFor)
+    // Hero is structural in BOTH paths: always on, always first.
+    const derivedHero = derived.find((m) => m.id === 'hero')
+    if (derivedHero) {
+      derivedHero.enabled = true
+      derived.splice(derived.indexOf(derivedHero), 1)
+      derived.unshift(derivedHero)
     }
+    return { modules: derived, fromLegacyDefaults: true }
   }
 
   // Normalize the stored list: valid modules in stored order…

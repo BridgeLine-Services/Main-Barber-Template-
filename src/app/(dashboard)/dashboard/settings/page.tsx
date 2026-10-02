@@ -20,6 +20,7 @@ import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
 import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
+import { HomeModulesCard } from '@/components/dashboard/HomeModulesCard'
 import { resolveBusinessTimezone } from '@/lib/timezone'
 
 const TIMEZONES = [
@@ -106,7 +107,7 @@ type SettingsSeo = {
   googleVerification?: string | null
 }
 
-type WebsiteContentMap = Record<string, string | boolean | Record<string, string>>
+type WebsiteContentMap = Record<string, unknown>
 
 type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
 
@@ -871,7 +872,10 @@ export default function SettingsPage() {
   {activeTab === 'faq' && <FaqManager />}
 
       {activeTab === 'appearance' && (
-        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+        <>
+          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+          <HomeModulesCard websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+        </>
       )}
 
       {activeTab === 'website' && (
