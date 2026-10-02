@@ -1,16 +1,38 @@
 'use client'
 
+// Mobile bottom navigation with three owner-selectable center actions:
+//  - appointment: prominent "Book" CTA (default)
+//  - walk-in:     "Walk In" action joining the live queue (only offered when
+//                 the business actually welcomes walk-ins)
+//  - barber:      "Barbers" action leading to team profiles
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Scissors, Calendar, Phone } from 'lucide-react'
+import { Home, Scissors, Calendar, Phone, Users, User } from 'lucide-react'
+import type { MobileNavMode } from '@/lib/visual-config'
 
-export function MobileBottomNav() {
+export function MobileBottomNav({
+  mode = 'appointment',
+  walkInsWelcome = true,
+}: {
+  mode?: MobileNavMode
+  walkInsWelcome?: boolean
+}) {
   const pathname = usePathname()
 
-  const items = [
+  // Center action follows the owner's chosen mobile nav mode; walk-in only
+  // appears when the queue is actually open to walk-ins.
+  const centerAction: { href: string; label: string; icon: typeof Home } =
+    mode === 'walk-in' && walkInsWelcome
+      ? { href: '/queue', label: 'Walk In', icon: Users }
+      : mode === 'barber'
+        ? { href: '/barbers', label: 'Barbers', icon: User }
+        : { href: '/book', label: 'Book', icon: Calendar }
+
+  type NavItem = { href: string; label: string; icon: typeof Home; highlight?: boolean }
+  const items: NavItem[] = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/services', label: 'Services', icon: Scissors },
-    { href: '/book', label: 'Book', icon: Calendar, highlight: true },
+    { ...centerAction, highlight: true },
     { href: '/contact', label: 'Contact', icon: Phone },
   ]
 

@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import { generatePageMetadata } from '@/lib/generate-page-metadata'
-import Link from 'next/link'
 import { Images } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { resolveBusiness } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton } from '@/components/customer/Cta'
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
+import { Reveal } from '@/components/motion/reveal'
+import { visualConfigFromContent } from '@/lib/visual-config'
+import { GalleryGrid } from '@/components/customer/GalleryGrid'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,15 @@ export default async function GalleryPage(
       </div>
     )
   }
+
+  // Tenant visual identity (published snapshot → composition).
+  const rawContent = await prisma.websiteContent.findUnique({
+    where: { businessId: business.id },
+  }).catch(() => null)
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
+  const visual = visualConfigFromContent(content)
 
   // ── Service examples view (?service=<id>) ─────────────────────────────────
   // Landing destination for "See examples of this service": shows published
@@ -65,7 +75,7 @@ export default async function GalleryPage(
         type: { in: ['BARBER_PORTFOLIO', 'SERVICE_PHOTO'] },
         OR: [{ barberId: null }, { barber: { isActive: true } }],
       },
-      include: { barber: { select: { name: true, slug: true } } },
+      include: { barber: { select: { name: true, slug: true } }, service: { select: { id: true, name: true } } },
       orderBy: { sortOrder: 'asc' },
       take: 48, // keep the payload light — no huge image sets by default
     }).catch(() => [])
@@ -92,35 +102,20 @@ export default async function GalleryPage(
             </CardContent>
           </Card>
         ) : (
-          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {examples.map((image) => (
-              <StaggerItem key={image.id}>
-              <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-                <div className="aspect-[4/3] bg-muted">
-                  { }
-                  <img
-                    src={image.url}
-                    alt={image.altText || `${service.name} example${image.barber ? ` by ${image.barber.name}` : ''}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full object-cover"
-                  />
-                </div>
-                <figcaption className="px-4 py-3 text-sm leading-6 text-muted-foreground">
-                  {image.caption && <span>{image.caption}</span>}
-                  {image.barber?.slug && (
-                    <Link
-                      href={`/barbers/${image.barber.slug}`}
-                      className="mt-1 inline-block text-xs font-semibold text-accent hover:underline"
-                    >
-                      View {image.barber.name}&apos;s work
-                    </Link>
-                  )}
-                </figcaption>
-              </figure>
-              </StaggerItem>
-            ))}
-          </Stagger>
+          <Reveal>
+            <GalleryGrid
+              images={examples.map((image) => ({
+                id: image.id,
+                url: image.url,
+                altText: image.altText || `${service.name} example${image.barber ? ` by ${image.barber.name}` : ''}`,
+                caption: image.caption,
+                barber: image.barber,
+                service: image.service,
+              }))}
+              layout={visual.galleryLayout}
+              contextLabel={`${business.name} ${service.name}`}
+            />
+          </Reveal>
         )}
 
         <Reveal className="mt-14 flex justify-center">
@@ -133,6 +128,10 @@ export default async function GalleryPage(
   // ── Default shop gallery ──────────────────────────────────────────────────
   const images = await prisma.mediaAsset.findMany({
     where: { businessId: business.id, type: 'GALLERY', isPublished: true, barberId: null },
+    include: {
+      barber: { select: { name: true, slug: true } },
+      service: { select: { id: true, name: true } },
+    },
     orderBy: { sortOrder: 'asc' },
   }).catch(() => [])
 
@@ -156,19 +155,20 @@ export default async function GalleryPage(
           </CardContent>
         </Card>
       ) : (
-        <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {images.map((image) => (
-            <StaggerItem key={image.id}>
-            <figure className="group overflow-hidden rounded-xl border border-border/70 bg-card/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl hover:shadow-black/20">
-              <div className="aspect-[4/3] bg-muted">
-                { }
-                <img src={image.url} alt={image.altText || `${business.name} gallery photo`} className="size-full object-cover" />
-              </div>
-              {image.caption && <figcaption className="px-4 py-3 text-sm leading-6 text-muted-foreground">{image.caption}</figcaption>}
-            </figure>
-            </StaggerItem>
-          ))}
-        </Stagger>
+        <Reveal>
+          <GalleryGrid
+            images={images.map((image) => ({
+              id: image.id,
+              url: image.url,
+              altText: image.altText || `${business.name} gallery photo`,
+              caption: image.caption,
+              barber: image.barber,
+              service: image.service,
+            }))}
+            layout={visual.galleryLayout}
+            contextLabel={business.name}
+          />
+        </Reveal>
       )}
 
       {images.length > 0 && (

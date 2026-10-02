@@ -192,7 +192,7 @@ export default async function HomePage() {
   ]
 
   return (
-    <div className={`pb-12 ${styleClass}`} data-visual-style={visual.preset} data-motion={visual.motionLevel}>
+    <div className={`pb-12 ${styleClass}`}>
       {/* ─── Hero — three genuinely distinct owner-selectable compositions ── */}
       {visual.heroLayout === 'split' && (
         /* SPLIT: real two-column — editorial text region beside an image
@@ -760,7 +760,34 @@ export default async function HomePage() {
           title={content?.reviewsTitle || 'What Our Clients Say'}
           description={content?.reviewsDescription || undefined}
         />
-        <Stagger className={`visual-reviews grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${visual.preset === 'black-label' ? 'lg:gap-8' : ''}`}>
+        /* EDITORIAL — quote-led: large serif-feeling pull quotes in an
+           asymmetric two-column flow. */
+        {visual.reviewPresentation === 'editorial' && (
+        <Stagger className="visual-reviews grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-x-14">
+          {reviews.map((review, idx) => (
+            <StaggerItem key={review.id} className={idx === 0 ? 'md:col-span-2 md:mx-auto md:max-w-3xl' : ''}>
+              <blockquote className={idx === 0 ? 'text-center' : ''}>
+                <div className="flex items-center justify-center gap-1" role="img" aria-label={`${review.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} aria-hidden="true" />
+                  ))}
+                </div>
+                <p className={`mt-4 font-display font-medium leading-snug tracking-tight text-foreground ${idx === 0 ? 'text-2xl sm:text-3xl' : 'text-xl'}`}>
+                  &ldquo;{review.comment}&rdquo;
+                </p>
+                <footer className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-px w-8 bg-accent/50" aria-hidden="true" />
+                  {review.authorName}
+                </footer>
+              </blockquote>
+            </StaggerItem>
+          ))}
+        </Stagger>
+        )}
+
+        /* CARDS — compact panels for scannable browsing (default). */
+        {visual.reviewPresentation === 'cards' && (
+        <Stagger className="visual-reviews grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
             <StaggerItem key={review.id}>
               <Card className={`h-full border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 ${visual.preset === 'street-cut' ? 'rounded-none shadow-[5px_5px_0_hsl(var(--accent)/0.18)]' : visual.preset === 'clean-club' ? 'rounded-2xl' : ''}`}>
@@ -785,6 +812,30 @@ export default async function HomePage() {
             </StaggerItem>
           ))}
         </Stagger>
+        )}
+
+        /* STRIP — horizontal scrolling row of compact quotes. */
+        {visual.reviewPresentation === 'strip' && (
+        <Stagger className="visual-reviews -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+          {reviews.map((review) => (
+            <StaggerItem key={review.id} className="w-72 shrink-0 snap-center sm:w-80">
+              <Card className="h-full border-border/70 bg-card/60 p-5 backdrop-blur-sm">
+                <div className="flex items-center gap-1" role="img" aria-label={`${review.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} aria-hidden="true" />
+                  ))}
+                </div>
+                <p className="mt-3 line-clamp-5 text-sm leading-relaxed text-foreground/80">
+                  &ldquo;{review.comment}&rdquo;
+                </p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  — {review.authorName}
+                </p>
+              </Card>
+            </StaggerItem>
+          ))}
+        </Stagger>
+        )}
       </Section>
       )}
 

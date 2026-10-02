@@ -10,9 +10,14 @@
 //    animation below automatically respect the OS "reduce motion" setting —
 //    transforms are dropped, opacity changes become instant.
 //  - Durations are short (0.5–0.7s) with a gentle ease-out curve. Nothing bounces.
+//  - The tenant's published motion level (via MotionProvider) is enforced
+//    here: 'off' renders static, 'subtle' reduces to opacity fades, and
+//    'expressive' uses the full language below. OS reduced-motion (via
+//    MotionConfig) still overrides everything to static.
 
 import React from 'react'
 import { motion, type Variants } from 'framer-motion'
+import { useMotionLevel } from '@/components/motion/MotionProvider'
 
 const EASE = [0.21, 0.47, 0.32, 0.98] as const
 
@@ -47,15 +52,29 @@ export function Reveal({
   className,
   once = true,
 }: RevealProps) {
+  const level = useMotionLevel()
   const offset = OFFSETS[direction]
   const MotionTag = motion[as as keyof typeof motion] as typeof motion.div
+
+  // Owner chose no motion: render at rest, fully visible.
+  if (level === 'off') {
+    const Tag = as as React.ElementType
+    return <Tag className={className}>{children}</Tag>
+  }
+
+  // Owner chose subtle: opacity fade with a minimal drift only.
+  const initial =
+    level === 'subtle'
+      ? { opacity: 0, y: 8 }
+      : { opacity: 0, x: offset.x, y: offset.y }
+
   return (
     <MotionTag
       className={className}
-      initial={{ opacity: 0, x: offset.x, y: offset.y }}
+      initial={initial}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once, amount: 0.2, margin: '0px 0px -40px 0px' }}
-      transition={{ duration, delay, ease: EASE }}
+      transition={{ duration: level === 'subtle' ? 0.35 : duration, delay, ease: EASE }}
     >
       {children}
     </MotionTag>
@@ -81,10 +100,16 @@ const itemVariants: Variants = {
 }
 
 export function Stagger({ children, className }: { children: React.ReactNode; className?: string }) {
+  const level = useMotionLevel()
+  if (level === 'off') return <div className={className}>{children}</div>
+  const stagger =
+    level === 'subtle'
+      ? { hidden: {}, visible: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } } }
+      : containerVariants
   return (
     <motion.div
       className={className}
-      variants={containerVariants}
+      variants={stagger}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.15, margin: '0px 0px -40px 0px' }}
@@ -95,11 +120,16 @@ export function Stagger({ children, className }: { children: React.ReactNode; cl
 }
 
 export function StaggerItem({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <motion.div className={className} variants={itemVariants}>
-      {children}
-    </motion.div>
-  )
+  const level = useMotionLevel()
+  if (level === 'off') return <div className={className}>{children}</div>
+  const variants =
+    level === 'subtle'
+      ? {
+          hidden: { opacity: 0, y: 6 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } },
+        }
+      : itemVariants
+  return <motion.div className={className} variants={variants}>{children}</motion.div>
 }
 
 // ─── Hero entrance ──────────────────────────────────────────────────────────
@@ -113,12 +143,14 @@ export function HeroReveal({
   delay?: number
   className?: string
 }) {
+  const level = useMotionLevel()
+  if (level === 'off') return <div className={className}>{children}</div>
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: level === 'subtle' ? 8 : 22 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay, ease: EASE }}
+      transition={{ duration: level === 'subtle' ? 0.4 : 0.7, delay, ease: EASE }}
     >
       {children}
     </motion.div>
@@ -127,6 +159,8 @@ export function HeroReveal({
 
 // Subtle looping scroll indicator for the hero (breathing opacity only).
 export function ScrollHint({ className, children }: { className?: string; children?: React.ReactNode }) {
+  const level = useMotionLevel()
+  if (level !== 'expressive') return <div className={className} aria-hidden="true">{children}</div>
   return (
     <motion.div
       className={className}

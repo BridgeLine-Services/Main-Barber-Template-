@@ -8,6 +8,7 @@ import { MobileBottomNav } from '@/components/customer/MobileBottomNav'
 import { SEO } from '@/components/customer/SEO'
 import { ThemeStyle } from '@/components/customer/ThemeStyle'
 import { MotionProvider } from '@/components/motion/MotionProvider'
+import { visualConfigFromContent } from '@/lib/visual-config'
 
 export default async function CustomerLayout({
   children,
@@ -39,6 +40,16 @@ export default async function CustomerLayout({
     where: { businessId: business.id },
   }).catch(() => null)
 
+  // Tenant visual identity: motion level enforced site-wide via MotionProvider,
+  // preset + motion emitted as data attributes for CSS-level styling.
+  const rawContent = await prisma.websiteContent.findUnique({
+    where: { businessId: business.id },
+  }).catch(() => null)
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
+  const visual = visualConfigFromContent(content)
+
   // The .brand-theme class (styled by ThemeStyle/generateThemeCSS) owns the
   // entire surface: --background, --foreground, --card, --accent, etc. The
   // wrapper must consume those variables, NOT hardcoded zinc/white classes,
@@ -46,8 +57,12 @@ export default async function CustomerLayout({
   // render. Never inline a raw hex here — Tailwind maps bg-accent etc. to
   // hsl(var(--accent)), and a hex value inside hsl() is invalid CSS.
   return (
-    <MotionProvider>
-      <div className="brand-theme min-h-screen bg-background text-foreground flex flex-col pb-16 md:pb-0">
+    <MotionProvider level={visual.motionLevel}>
+      <div
+        className="brand-theme min-h-screen bg-background text-foreground flex flex-col pb-16 md:pb-0"
+        data-visual-style={visual.preset}
+        data-motion={visual.motionLevel}
+      >
         <ThemeStyle business={business} />
         <SEO business={business} seo={seo} />
         <Navbar
@@ -58,7 +73,10 @@ export default async function CustomerLayout({
         />
         <main className="flex-1">{children}</main>
         <Footer business={business} />
-        <MobileBottomNav />
+        <MobileBottomNav
+          mode={visual.mobileNavMode}
+          walkInsWelcome={business.walkInsWelcome !== false}
+        />
       </div>
     </MotionProvider>
   )
