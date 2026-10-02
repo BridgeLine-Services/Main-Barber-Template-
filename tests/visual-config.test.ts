@@ -208,6 +208,10 @@ check(
     'street-cut uppercase CTA treatment is scoped to customer pages',
     css.includes(`[data-visual-style='street-cut'] main button`)
   )
+  check(
+    'customer pages wrap long unbroken words (320px overflow guard)',
+    css.includes('[data-visual-style] main {\n    overflow-wrap: break-word;')
+  )
 }
 
 // Review presentation resolution used by /reviews (Req 12): all three

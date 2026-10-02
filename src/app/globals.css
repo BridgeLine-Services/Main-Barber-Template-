@@ -215,6 +215,13 @@
     @apply border-accent/30;
   }
 
+  /* Mobile-overflow guard (Req: 320px rendering): unbroken tokens
+     (long URLs pasted into reviews, etc.) wrap instead of widening the
+     viewport. Applies to every customer page via the layout wrapper. */
+  [data-visual-style] main {
+    overflow-wrap: break-word;
+  }
+
   /* ──────────────────────────────────────────────────────────────
      PRESET IDENTITY, SITWIDE (Req 3) — the selectors above only fire
      on the homepage (the .visual-style-* class lives there). The
