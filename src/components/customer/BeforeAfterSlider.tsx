@@ -97,7 +97,7 @@ export function BeforeAfterSlider({ pair, contextLabel, bookHref, bookLabel = 'B
       >
         {/* Both images share the frame (identical crop box), so they stay
             perfectly aligned; only the reveal window differs. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img
           src={pair.after.url}
           alt={afterAlt}
@@ -107,7 +107,7 @@ export function BeforeAfterSlider({ pair, contextLabel, bookHref, bookLabel = 'B
         />
         {/* BEFORE image clipped to the left of the divider */}
         <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <img
             src={pair.before.url}
             alt={beforeAlt}

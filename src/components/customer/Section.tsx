@@ -1,5 +1,6 @@
 import React from 'react'
 import { Reveal } from '@/components/motion/reveal'
+import type { HeadingScale } from '@/lib/visual-config'
 
 // ─── Section primitives (server-safe) ──────────────────────────────────────
 // Consistent premium rhythm for the customer site: generous vertical
@@ -41,6 +42,8 @@ interface SectionHeadingProps {
   /** Center = editorial hero-of-section; left = supporting sections */
   align?: 'center' | 'left'
   as?: 'h2' | 'h3'
+  /** Owner heading-scale override: concrete size tokens per level. */
+  scale?: HeadingScale
   className?: string
 }
 
@@ -50,6 +53,7 @@ export function SectionHeading({
   description,
   align = 'center',
   as: Tag = 'h2',
+  scale = 'standard',
   className,
 }: SectionHeadingProps) {
   const centered = align === 'center'
@@ -61,7 +65,15 @@ export function SectionHeading({
         </Reveal>
       )}
       <Reveal delay={0.05}>
-        <Tag className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-[1.15]">
+        <Tag
+          className={`font-display ${
+            scale === 'compact'
+              ? 'text-2xl sm:text-3xl'
+              : scale === 'grand'
+                ? 'text-4xl sm:text-5xl'
+                : 'text-3xl sm:text-4xl'
+          } font-semibold tracking-tight text-foreground leading-[1.15]`}
+        >
           {title}
         </Tag>
       </Reveal>

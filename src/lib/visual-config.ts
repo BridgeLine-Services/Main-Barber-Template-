@@ -39,6 +39,26 @@ export type ButtonStyle = (typeof BUTTON_STYLES)[number]
 export type ImageShape = (typeof IMAGE_SHAPES)[number]
 export type HeadingScale = (typeof HEADING_SCALES)[number]
 
+/**
+ * Owner override wins over the preset default (gap 6). The owner's
+ * buttonStyle/imageShape choice replaces the preset mapping when set.
+ */
+export function resolvedButtonShapeClass(visual: VisualConfig): string {
+  return visual.buttonStyle === 'pill'
+    ? 'rounded-full'
+    : visual.buttonStyle === 'soft'
+      ? 'rounded-lg'
+      : 'rounded-sm'
+}
+
+export function resolvedImageShapeClass(visual: VisualConfig): string {
+  return visual.imageShape === 'rounded'
+    ? 'rounded-2xl'
+    : visual.imageShape === 'square' || visual.imageShape === 'full-bleed'
+      ? 'rounded-none'
+      : 'rounded-md'
+}
+
 export interface VisualConfig {
   preset: VisualStyle
   presetLabel: string

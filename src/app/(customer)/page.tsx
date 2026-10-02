@@ -24,8 +24,16 @@ import { ShopStatus } from '@/components/customer/ShopStatus'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 import type { BusinessHours } from '@/lib/business-hours'
-import { buttonStyleClass, imageStyleClass } from '@/lib/visual-style'
 import { visualConfigFromContent } from '@/lib/visual-config'
+import { resolveHomeModules, type HomeModuleId } from '@/lib/home-modules'
+import { resolvedButtonShapeClass, resolvedImageShapeClass } from '@/lib/visual-config'
+import { mapFontFamily } from '@/lib/theme'
+import { Fragment } from 'react'
+import { FeaturedWorkSection } from '@/components/customer/home/FeaturedWorkSection'
+import { BeforeAfterSection } from '@/components/customer/home/BeforeAfterSection'
+import { SocialGallerySection } from '@/components/customer/home/SocialGallerySection'
+import { ShopExperienceSection } from '@/components/customer/home/ShopExperienceSection'
+import type { BeforeAfterData } from '@/components/customer/BeforeAfterSlider'
 
 
 // ─── Dynamic SEO Metadata ──────────────────────────────────────────────
@@ -112,6 +120,14 @@ export default async function HomePage() {
     : rawContent
 
   const visual = visualConfigFromContent(content)
+
+  // Homepage module system: ordered, owner-configured sections. Derived
+  // from legacy show* toggles until the owner saves a module config.
+  const home = resolveHomeModules(content)
+  const moduleFor = (id: HomeModuleId) => home.modules.find((m) => m.id === id)
+  const isModuleEnabled = (id: HomeModuleId) => moduleFor(id)?.enabled ?? false
+  const moduleSettings = (id: HomeModuleId) => moduleFor(id)?.settings
+
   const [barbers, services, reviews, servicePhotoRows] = await Promise.all([
     prisma.barber.findMany({
       where: { businessId: business.id, isActive: true },
@@ -139,6 +155,42 @@ export default async function HomePage() {
   const servicePhotoByServiceId = new Map(
     servicePhotoRows.filter((a) => a.serviceId).map((a) => [a.serviceId as string, a])
   )
+
+  // Module-dependent data — only loaded when the module is enabled.
+  const [featuredRows, shopPhotoRows, beforeAfterPairRows] = await Promise.all([
+    isModuleEnabled('featuredWork') || isModuleEnabled('socialGallery')
+      ? prisma.mediaAsset.findMany({
+          where: { businessId: business.id, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] }, isPublished: true },
+          orderBy: { sortOrder: 'asc' },
+          take: Math.max(
+            moduleSettings('featuredWork')?.count ?? 6,
+            moduleSettings('socialGallery')?.social?.count ?? 6
+          ),
+          select: { id: true, url: true, altText: true, caption: true },
+        })
+      : Promise.resolve([]),
+    isModuleEnabled('shopExperience')
+      ? prisma.mediaAsset.findMany({
+          where: { businessId: business.id, type: 'SHOP_PHOTO', isPublished: true },
+          orderBy: { sortOrder: 'asc' },
+          take: moduleSettings('shopExperience')?.count ?? 4,
+          select: { id: true, url: true, altText: true },
+        })
+      : Promise.resolve([]),
+    isModuleEnabled('beforeAfter')
+      ? prisma.beforeAfterPair.findMany({
+          where: { businessId: business.id, isPublished: true },
+          orderBy: { sortOrder: 'asc' },
+          take: moduleSettings('beforeAfter')?.count ?? 3,
+          include: {
+            beforeAsset: { select: { url: true, altText: true } },
+            afterAsset: { select: { url: true, altText: true } },
+            barber: { select: { id: true, name: true } },
+            service: { select: { id: true, name: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ])
 
   const shopName = business?.name || 'Barber Shop'
   const shopPhone = business?.phone || ''
@@ -176,14 +228,10 @@ export default async function HomePage() {
   // snapshot (draft → publish → this). Single source of truth:
   // resolveVisualConfig handles defaults, invalid values, and legacy keys.
   const styleClass = `visual-style-${visual.preset}`
-  const buttonShape = buttonStyleClass(visual.preset)
-  const imageShape = imageStyleClass(visual.preset)
+  // Owner override wins over the preset default (gap 6).
+  const buttonShape = resolvedButtonShapeClass(visual)
+  const imageShape = resolvedImageShapeClass(visual)
 
-  const showServices = content?.showServices ?? true
-  const showTeam = content?.showTeam ?? true
-  const showReviews = content?.showReviews ?? true
-  const showVisit = content?.showVisit ?? true
-  const showFinalCta = content?.showFinalCta ?? true
 
   // Trust highlights driven by real business configuration — never fake claims
   const highlights = [
@@ -192,8 +240,15 @@ export default async function HomePage() {
     ...(business?.walkInsWelcome ? [{ icon: Clock, label: 'Walk-Ins Welcome' }] : []),
   ]
 
-  return (
-    <div className={`pb-12 ${styleClass}`}>
+
+  // Heading scale — swaps concrete size tokens on editorial hero h1s
+  // (the poster hero is intentionally display-size and keeps its scale).
+  const heroH1Size = (standard: string, compact: string, grand: string) =>
+    visual.headingScale === 'compact' ? compact : visual.headingScale === 'grand' ? grand : standard
+
+  // ─── Section nodes — data-dependent modules render null when empty ─────
+  const heroNode = (
+    <>
       {/* ─── Hero — three genuinely distinct owner-selectable compositions ── */}
       {visual.heroLayout === 'split' && (
         /* SPLIT: real two-column — editorial text region beside an image
@@ -429,12 +484,33 @@ export default async function HomePage() {
           </ScrollHint>
         </section>
       )}
+    </>
+  )
 
-      {/* ─── Services ────────────────────────────────────────────────────── */}
-      {showServices && (
+  const shopStatusNode = (
+    <Section tone="muted">
+      <div className="flex justify-center">
+        <ShopStatus />
+      </div>
+    </Section>
+  )
+
+  const featuredSettings = moduleSettings('featuredWork')
+  const featuredWorkNode = featuredRows.length > 0 ? (
+    <FeaturedWorkSection
+      images={featuredRows.slice(0, featuredSettings?.count ?? 6)}
+      heading={featuredSettings?.heading}
+      blurb={featuredSettings?.blurb}
+      shopName={shopName}
+      buttonShape={buttonShape}
+    />
+  ) : null
+
+  const servicesNode = (
       <Section>
         <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end lg:mb-14">
           <SectionHeading
+        scale={visual.headingScale}
             align={visual.serviceLayout === 'editorial' ? 'left' : undefined}
             eyebrow={content?.servicesTitle ? undefined : 'Our Services'}
             title={content?.servicesTitle || 'Crafted Cuts & Barbering Services'}
@@ -598,12 +674,12 @@ export default async function HomePage() {
           </Reveal>
         )}
       </Section>
-      )}
+  )
 
-      {/* ─── Meet the Barbers ─────────────────────────────────────────────── */}
-      {showTeam && (
+  const teamNode = (
       <Section tone="muted" bleed>
         <SectionHeading
+        scale={visual.headingScale}
           eyebrow={content?.teamTitle ? undefined : 'The Team'}
           title={content?.teamTitle || 'Meet Our Master Barbers'}
           description={content?.teamDescription || 'Skilled professionals dedicated to giving you the exact look you want.'}
@@ -749,12 +825,34 @@ export default async function HomePage() {
           </Reveal>
         )}
       </Section>
-      )}
+  )
 
-      {/* ─── Reviews ──────────────────────────────────────────────────────── */}
-      {showReviews && reviews.length > 0 && (
+  const baSettings = moduleSettings('beforeAfter')
+  const beforeAfterData: BeforeAfterData[] = beforeAfterPairRows.map((pair) => ({
+    id: pair.id,
+    before: { url: pair.beforeAsset.url, alt: pair.beforeAsset.altText || '' },
+    after: { url: pair.afterAsset.url, alt: pair.afterAsset.altText || '' },
+    caption: pair.caption,
+    details: pair.details,
+    barberName: pair.barber?.name ?? null,
+    barberId: pair.barberId,
+    serviceName: pair.service?.name ?? null,
+    serviceId: pair.serviceId,
+  }))
+  const beforeAfterNode = beforeAfterData.length > 0 ? (
+    <BeforeAfterSection
+      pairs={beforeAfterData.slice(0, baSettings?.count ?? 3)}
+      heading={baSettings?.heading}
+      blurb={baSettings?.blurb}
+      shopName={shopName}
+      buttonShape={buttonShape}
+    />
+  ) : null
+
+  const reviewsNode = reviews.length > 0 ? (
       <Section>
         <SectionHeading
+        scale={visual.headingScale}
           eyebrow={content?.reviewsTitle ? undefined : 'Reviews'}
           title={content?.reviewsTitle || 'What Our Clients Say'}
           description={content?.reviewsDescription || undefined}
@@ -836,12 +934,35 @@ export default async function HomePage() {
         </Stagger>
         )}
       </Section>
-      )}
+  ) : null
 
-      {/* ─── Location & Hours ─────────────────────────────────────────────── */}
-      {showVisit && (
+  const socialSettings = moduleSettings('socialGallery')?.social
+  const socialGalleryNode =
+    socialSettings && featuredRows.length > 0 ? (
+      <SocialGallerySection
+        images={featuredRows
+          .slice(0, socialSettings.count)
+          .map((img) => ({ id: img.id, url: img.url, altText: img.altText }))}
+        settings={socialSettings}
+        shopName={shopName}
+        buttonShape={buttonShape}
+      />
+    ) : null
+
+  const experienceSettings = moduleSettings('shopExperience')
+  const shopExperienceNode = shopPhotoRows.length > 0 ? (
+    <ShopExperienceSection
+      photos={shopPhotoRows}
+      heading={experienceSettings?.heading}
+      blurb={experienceSettings?.blurb}
+      shopName={shopName}
+    />
+  ) : null
+
+  const visitNode = (
       <Section tone="muted" bleed>
         <SectionHeading
+        scale={visual.headingScale}
           eyebrow={content?.visitTitle ? undefined : 'Visit Us'}
           title={content?.visitTitle || `Find ${shopName}`}
           description={content?.visitDescription || undefined}
@@ -933,10 +1054,9 @@ export default async function HomePage() {
           </StaggerItem>
         </Stagger>
       </Section>
-      )}
+  )
 
-      {/* ─── Final CTA ────────────────────────────────────────────────────── */}
-      {showFinalCta && (
+  const finalCtaNode = (
       <section className="relative overflow-hidden">
         <div
           aria-hidden="true"
@@ -964,7 +1084,41 @@ export default async function HomePage() {
           </Reveal>
         </div>
       </section>
-      )}
+  )
+
+  // Ordered render — the module system decides which sections appear and in
+  // what order (hero is structural and always first).
+  const moduleNode: Partial<Record<HomeModuleId, React.ReactNode>> = {
+    hero: heroNode,
+    shopStatus: shopStatusNode,
+    featuredWork: featuredWorkNode,
+    services: servicesNode,
+    team: teamNode,
+    beforeAfter: beforeAfterNode,
+    reviews: reviewsNode,
+    socialGallery: socialGalleryNode,
+    shopExperience: shopExperienceNode,
+    visit: visitNode,
+    finalCta: finalCtaNode,
+  }
+
+  // Typography: heading font override scopes --font-display (used by
+  // .font-display headings); body font override cascades from the root.
+  const pageFontStyle = {
+    ...(visual.headingFont ? { '--font-display': mapFontFamily(visual.headingFont) } : undefined),
+    ...(visual.bodyFont ? { fontFamily: mapFontFamily(visual.bodyFont) } : undefined),
+  } as React.CSSProperties
+
+  return (
+    <div
+      className={`pb-12 ${styleClass} heading-scale-${visual.headingScale}`}
+      style={pageFontStyle}
+    >
+      {home.modules
+        .filter((m) => m.enabled && moduleNode[m.id] != null)
+        .map((m) => (
+          <Fragment key={m.id}>{moduleNode[m.id]}</Fragment>
+        ))}
     </div>
   )
 }

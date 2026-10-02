@@ -62,7 +62,7 @@ export function SocialGallerySection({ images, settings, shopName, buttonShape }
               className="group relative block overflow-hidden rounded-sm bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label={image.altText || `${shopName} portfolio photo — open gallery`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src={image.url}
                 alt={image.altText || `${shopName} portfolio`}

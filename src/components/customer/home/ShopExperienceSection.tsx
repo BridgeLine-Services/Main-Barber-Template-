@@ -31,7 +31,7 @@ export function ShopExperienceSection({ photos, heading, blurb, shopName }: Prop
       <Stagger className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2">
         {photos.map((photo, i) => (
           <StaggerItem key={photo.id} className={i === 0 ? 'sm:col-span-2' : undefined}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={photo.url}
               alt={photo.altText || `${shopName} interior`}

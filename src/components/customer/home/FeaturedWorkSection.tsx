@@ -24,7 +24,7 @@ type Props = {
   buttonShape: string
 }
 
-export function FeaturedWorkSection({ images, heading, blurb, shopName, buttonShape }: Props) {
+export function FeaturedWorkSection({ images, heading, blurb, shopName }: Props) {
   if (images.length === 0) return null
 
   return (
@@ -56,7 +56,7 @@ export function FeaturedWorkSection({ images, heading, blurb, shopName, buttonSh
               className="group relative block overflow-hidden rounded-lg border border-border/60 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label={image.caption || image.altText || `${shopName} portfolio photo`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src={image.url}
                 alt={image.altText || `${shopName} — featured work`}
