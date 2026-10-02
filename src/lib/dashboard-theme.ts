@@ -130,8 +130,15 @@ export function generateDashboardThemeCSS(input: DashboardBrandInput, scope = '.
   const { button } = getVisualStyleConfig(style)
   const radius = button === 'pill' ? '10px' : button === 'soft' ? '8px' : '5px'
 
+  // Portal content (dialogs, dropdown menus, selects, toasts) is teleported
+  // to <body>, escaping the scoped subtree. Mirror the tokens onto <body>
+  // while the dashboard is mounted so portals inherit them. Gated to the
+  // LIVE dashboard scope only — the draft preview (.dash-preview) must
+  // never leak tokens to the document.
+  const selector = scope === '.dash-theme' ? '.dash-theme, body:has(.dash-theme)' : scope
+
   return `
-${scope} {
+${selector} {
   /* shadcn semantic tokens — theme every dashboard primitive at once */
   --background: ${hexToHsl(p.bg)};
   --foreground: ${hexToHsl(p.text)};
