@@ -61,6 +61,23 @@ under the same business rules.
   customer's appointment indistinguishable from a nonexistent one (404).
 - All portal actions are rate-limited and audit-logged.
 
+## Password recovery (account path)
+
+Customers reset their own passwords via `/api/auth/forgot-password` +
+`/api/auth/reset-password`:
+
+- **Enumeration-safe**: the request response is identical whether or not the
+  email exists (including malformed input). Production without SMTP fails
+  honestly with the same generic message — it never pretends a mail was sent.
+- **Token hygiene**: 32-byte random token, stored only as its SHA-256 hash,
+  1-hour expiry, single active token per user, single use (cleared on
+  completion). Failed attempts never mutate the password.
+- **Shared policy**: the new password passes the same strength policy as
+  registration; a completed reset stamps `passwordChangedAt` and clears
+  `mustChangePassword`.
+- **Audit**: both `PASSWORD_RESET_REQUESTED` and `PASSWORD_RESET_COMPLETED`
+  are recorded; both endpoints sit behind the stricter 3/min/IP rate limit.
+
 ## Verification
 
 `tests/customer-auth-security.test.ts` (run against a live server:
@@ -69,3 +86,9 @@ signup role, gated owner onboarding, dashboard lockout, session-forced booking
 identity, IDOR protection (view/cancel/reschedule), cross-business isolation,
 reschedule rule enforcement, expired/invalid credential rejection, and the
 login/logout audit trail.
+
+`tests/customer-password-reset.test.ts` (also live; both suites run with
+`npm run test:auth`) proves the recovery flow end-to-end: enumeration
+safety, hash-only token storage, expiry and single-use enforcement, the
+shared password policy, old-password invalidation, re-login with the new
+password, rate limiting, and the reset audit trail.

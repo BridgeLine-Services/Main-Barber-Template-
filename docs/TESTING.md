@@ -25,7 +25,9 @@ These exercise HTTP endpoints and/or session authentication end to end
 app, hence the dev server:
 
 business-admin-role, business-deactivation, cross-tenant-matrix,
-customer-data-lifecycle, feature-flags (HTTP part), fonts,
+customer-data-lifecycle, customer-auth-security,
+customer-password-reset (customer identity matrix + token-based password
+recovery), feature-flags (HTTP part), fonts,
 notification-resilience, ownership-transfer, platform-owner, pwa,
 website-publish, rls-enforcement.
 

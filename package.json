@@ -31,6 +31,7 @@
     "test:notifications": "npx tsx tests/notification-resilience.test.ts",
     "test:business-admin": "npx tsx tests/business-admin-role.test.ts",
     "test:booking": "npx tsx tests/booking.test.ts",
+    "test:auth": "npx tsx tests/customer-auth-security.test.ts && npx tsx tests/customer-password-reset.test.ts",
     "test:permissions": "npx tsx tests/role-permissions.test.ts",
     "test:platform": "npx tsx tests/platform-owner.test.ts",
     "test:reliability": "npx tsx tests/reliability.test.ts",
