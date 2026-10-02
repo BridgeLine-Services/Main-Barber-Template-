@@ -656,7 +656,6 @@ export default async function HomePage() {
                 <Link href={`/barbers/${barber.slug || barber.id}`} className="group block focus-ring rounded-lg">
                   <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border/70">
                     {barber.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={barber.photo}
                         alt={barber.name}
@@ -697,7 +696,6 @@ export default async function HomePage() {
                 <div className="group grid gap-8 border-t border-border/60 pt-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
                   <div className="relative aspect-[4/5] max-h-[30rem] overflow-hidden rounded-lg border border-border/70 sm:aspect-[16/10] lg:aspect-[4/5]">
                     {barber.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={barber.photo}
                         alt={barber.name}
@@ -761,8 +759,8 @@ export default async function HomePage() {
           title={content?.reviewsTitle || 'What Our Clients Say'}
           description={content?.reviewsDescription || undefined}
         />
-        /* EDITORIAL — quote-led: large serif-feeling pull quotes in an
-           asymmetric two-column flow. */
+        {/* EDITORIAL — quote-led: large serif-feeling pull quotes in an
+            asymmetric two-column flow. */}
         {visual.reviewPresentation === 'editorial' && (
         <Stagger className="visual-reviews grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-x-14">
           {reviews.map((review, idx) => (
@@ -786,7 +784,7 @@ export default async function HomePage() {
         </Stagger>
         )}
 
-        /* CARDS — compact panels for scannable browsing (default). */
+        {/* CARDS — compact panels for scannable browsing (default). */}
         {visual.reviewPresentation === 'cards' && (
         <Stagger className="visual-reviews grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => (
@@ -815,7 +813,7 @@ export default async function HomePage() {
         </Stagger>
         )}
 
-        /* STRIP — horizontal scrolling row of compact quotes. */
+        {/* STRIP — horizontal scrolling row of compact quotes. */}
         {visual.reviewPresentation === 'strip' && (
         <Stagger className="visual-reviews -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
           {reviews.map((review) => (
