@@ -126,3 +126,28 @@ Verified against the live code, with a seeded temporary barber-service link
 5. **Appearance preview vs draft/published — previously verified**
    (mini-site preview in settings, commit 00f4927; publish snapshot keys
    include visualPreset/visualConfig; draft-only changes stay private).
+
+## Release-readiness audit (2026-10-01, third pass — full instruction)
+
+All sections of the latest master audit instruction verified:
+
+- **Preset distinctness (§2)**: composition defaults differ per preset
+  (hero: cinematic/poster/split; services: editorial/visual-menu/cards;
+  team: editorial/portrait-grid/large-profile; image shape; button shape;
+  motion level) in `VISUAL_STYLE_CONFIG`, on top of the sitewide identity
+  CSS (radius tokens, type treatment, surface washes, article frames).
+  All five presets live-verified on every customer route (home, services,
+  barbers, gallery, reviews, contact, book).
+- **Owner workflow errors (§4)**: draft save failures and publish failures
+  both surface destructive toasts with server error text
+  (`settings/page.tsx` handleSave; `PublishWebsiteCard`). Legacy tenants
+  resolve to modern-classic (re-verified live after the five-preset pass).
+- **Accessibility (§6)**: gallery lightbox is keyboard-operable (Escape,
+  arrow navigation, aria-labelled controls, alt fallback); BeforeAfterSlider
+  implements role=slider with value text and keyboard handle control;
+  focus-ring utility used across customer pages; reduced-motion enforced
+  via [data-motion] CSS in addition to framer-motion gating.
+
+No code changes were required by this pass — the audit confirmed the
+implementation. The only fixes this round were in the previous commits
+(overflow guard, barber service-row deep links).
