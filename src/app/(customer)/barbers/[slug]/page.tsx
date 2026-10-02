@@ -175,10 +175,16 @@ export default async function BarberProfilePage(props: PageProps) {
             {barber.services.map((bs) => {
               const price = bs.priceOverride ?? bs.service?.price
               const duration = bs.durationOverride ?? bs.service?.duration
+              // Each service row deep-links into booking with BOTH the
+              // service and this barber preselected (Phase 4.2).
               return (
-                <div key={bs.serviceId} className="flex items-baseline justify-between gap-6 border-b border-border/60 py-4">
+                <Link
+                  key={bs.serviceId}
+                  href={`/book?serviceId=${bs.serviceId}&barberId=${barber.id}`}
+                  className="group flex items-baseline justify-between gap-6 border-b border-border/60 py-4 focus-ring rounded-sm transition-colors hover:border-accent/50"
+                >
                   <div className="min-w-0">
-                    <h3 className="font-display text-lg font-semibold text-foreground">{bs.service?.name}</h3>
+                    <h3 className="font-display text-lg font-semibold text-foreground group-hover:text-accent transition-colors">{bs.service?.name}</h3>
                     {bs.service?.description && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{bs.service.description}</p>
                     )}
@@ -187,7 +193,7 @@ export default async function BarberProfilePage(props: PageProps) {
                     <div className="font-display text-lg font-bold text-foreground tabular-nums">{price != null ? `$${price}` : ''}</div>
                     <p className="text-xs text-muted-foreground">{duration} min</p>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

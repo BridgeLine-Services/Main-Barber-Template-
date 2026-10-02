@@ -99,3 +99,30 @@ shops report closed); the social gallery is real managed media with an
 owner-configured validated profile link (never a live-feed claim); the
 publish snapshot includes visualPreset/visualConfig; legacy sites with no
 stored config resolve to modern-classic with editorial reviews.
+
+## Phase 4 functional-gap audit (2026-10-01, night session)
+
+Verified against the live code, with a seeded temporary barber-service link
+(removed after testing):
+
+1. **Next-available indicator — already implemented.** The booking wizard's
+   barber step fetches `/api/availability/earliest?serviceId=…` (real
+   `getEarliestAvailableSlot` over the next 30 days, rate-limited,
+   tenant-scoped) and surfaces the genuine earliest slot. When the owner
+   disables "First available", the API fails closed and the UI hides the
+   option. No availability is ever invented.
+2. **Barber profile → booking/services/portfolio — verified + hardened.**
+   Profile links to `/book?barberId=…`, the barber's real portfolio
+   (`PortfolioGallery` over their `mediaAssets`), and their services. NEW:
+   each service row on the profile now deep-links to
+   `/book?serviceId=…&barberId=…` (both preselected), verified live.
+3. **Portfolio category filters — verified honest.** `buildPortfolioFilters`
+   derives chips only from real asset→service links; unlinked assets appear
+   only under "All work"; chips render only when there is a real choice.
+4. **Location page — no separate route exists; /contact serves the role.**
+   It presents real address, hours, phone/email and direction info, and
+   inherits preset identity sitewide via the `data-visual-style` CSS. Adding
+   a map embed would require an API key and is intentionally out of scope.
+5. **Appearance preview vs draft/published — previously verified**
+   (mini-site preview in settings, commit 00f4927; publish snapshot keys
+   include visualPreset/visualConfig; draft-only changes stay private).
