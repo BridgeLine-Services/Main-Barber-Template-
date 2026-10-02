@@ -27,7 +27,7 @@ Baseline (2026-10-01): tsc 0 errors, production build green, test:ci 18/18 green
 | 10 | Mobile nav modes | Missing | MobileBottomNav.tsx |
 | 11 | Live shop status | Missing | new lib + component |
 | 12 | Review presentations | Missing | reviews/page.tsx, page.tsx |
-| 13 | Owner settings + preview | Missing | settings/page.tsx, api |
+| 13 | Owner settings + preview | Done | dashboard/AppearanceTab.tsx (hero + mini-site preview, per-field overrides), api |
 | 14 | Config pipeline persistence | Missing column/snapshot | schema.prisma, publish route |
 
 ## Build order

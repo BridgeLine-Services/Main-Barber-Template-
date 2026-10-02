@@ -12,6 +12,7 @@ import {
 import {
   VISUAL_FIELD_OPTIONS,
   type VisualOverrideKey,
+  type VisualConfig,
   resolveVisualConfig,
 } from '@/lib/visual-config'
 import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
@@ -144,6 +145,142 @@ function HeroPreview({ heroLayout, preset }: { heroLayout: string; preset: Visua
   )
 }
 
+/** Mini-site preview: hero + service/team/gallery strips + CTA, all driven by
+ * the RESOLVED draft (preset defaults + overrides) — what publish will render. */
+function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset: VisualStyle }) {
+  const meta = PRESET_META[preset]
+  const [bg, accent, surface, light] = meta.swatches
+  const headingFont = resolved.headingFont ? mapFontFamily(resolved.headingFont) : undefined
+  const bodyFont = resolved.bodyFont ? mapFontFamily(resolved.bodyFont) : undefined
+  const hSize = resolved.headingScale === 'grand' ? 'text-[13px]' : resolved.headingScale === 'compact' ? 'text-[9px]' : 'text-[11px]'
+  const radius = resolved.buttonStyle === 'pill' ? 'rounded-full' : resolved.buttonStyle === 'soft' ? 'rounded-md' : 'rounded-none'
+  const imgRadius = resolved.imageShape === 'rounded' ? 'rounded-md' : resolved.imageShape === 'full-bleed' ? 'rounded-none' : 'rounded-sm'
+  const label = 'mb-1.5 text-[7px] font-semibold uppercase tracking-widest text-zinc-500'
+
+  const services =
+    resolved.serviceLayout === 'visual-menu' ? (
+      <div className="grid grid-cols-3 gap-1">
+        {['Cut', 'Fade', 'Shave'].map((n, i) => (
+          <div key={n} className="overflow-hidden">
+            <div className={cn('aspect-[4/3]', imgRadius)} style={{ background: i === 0 ? accent : i === 1 ? `${accent}66` : `${bg}55` }} />
+            <p className="mt-0.5 text-[6px] font-medium" style={{ color: light }}>{n}</p>
+          </div>
+        ))}
+      </div>
+    ) : resolved.serviceLayout === 'cards' ? (
+      <div className="grid grid-cols-2 gap-1">
+        {['Cut — $30', 'Fade — $35', 'Shave — $25', 'Beard — $20'].map((n) => (
+          <div key={n} className={cn('p-1 text-[6px]', imgRadius)} style={{ background: surface, color: light }}>{n}</div>
+        ))}
+      </div>
+    ) : (
+      <div className="flex flex-col gap-0.5">
+        {['Cut — $30', 'Fade — $35', 'Shave — $25'].map((n, i) => (
+          <div key={n} className="flex items-baseline justify-between gap-2">
+            <span className="text-[6px] font-medium" style={{ color: light }}>{n.split(' — ')[0]}</span>
+            <span className="h-px flex-1" style={{ background: `${bg}44` }} />
+            <span className="text-[6px]" style={{ color: accent }}>{i === 1 ? '$35' : i === 2 ? '$25' : '$30'}</span>
+          </div>
+        ))}
+      </div>
+    )
+
+  const team =
+    resolved.barberLayout === 'portrait-grid' ? (
+      <div className="grid grid-cols-3 gap-1">
+        {['A', 'B', 'C'].map((n, i) => (
+          <div key={n}>
+            <div className={cn('aspect-[3/4]', imgRadius)} style={{ background: i === 1 ? `${accent}55` : `${bg}44` }} />
+            <p className="mt-0.5 text-[6px] text-center" style={{ color: light }}>Barber {n}</p>
+          </div>
+        ))}
+      </div>
+    ) : resolved.barberLayout === 'large-profile' ? (
+      <div className="flex gap-1.5">
+        <div className={cn('aspect-[3/4] w-1/3 shrink-0', imgRadius)} style={{ background: `${accent}55` }} />
+        <div className="flex flex-col justify-center gap-1">
+          <span className={cn(hSize, 'font-bold leading-none')} style={{ color: light }}>Marcus D.</span>
+          <span className="text-[6px]" style={{ color: accent }}>Master barber — 12 yrs</span>
+          <span className="text-[6px]" style={{ color: `${light}99` }}>Fades · Beards</span>
+        </div>
+      </div>
+    ) : (
+      <div className="flex gap-1">
+        {['A', 'B', 'C'].map((n, i) => (
+          <div key={n} className="flex items-center gap-1.5 p-1" style={{ background: surface }}>
+            <div className={cn('h-7 w-7 shrink-0', imgRadius)} style={{ background: i === 0 ? `${accent}66` : `${bg}44` }} />
+            <div>
+              <p className="text-[6px] font-semibold" style={{ color: light }}>Barber {n}</p>
+              <p className="text-[5px]" style={{ color: accent }}>Specialty</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+
+  const gallery =
+    resolved.galleryLayout === 'masonry' ? (
+      <div className="flex gap-1">
+        <div className="flex w-1/3 flex-col gap-1"><div className="h-8" style={{ background: `${bg}66` }} /><div className="h-5" style={{ background: `${accent}44` }} /></div>
+        <div className="flex w-1/3 flex-col gap-1"><div className="h-5" style={{ background: `${accent}44` }} /><div className="h-8" style={{ background: `${bg}55` }} /></div>
+        <div className="flex w-1/3 flex-col gap-1"><div className="h-6" style={{ background: `${bg}44` }} /><div className="h-7" style={{ background: `${accent}33` }} /></div>
+      </div>
+    ) : resolved.galleryLayout === 'filmstrip' ? (
+      <div className="flex gap-1 overflow-hidden">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={cn('h-9 w-8 shrink-0', imgRadius)} style={{ background: i % 2 ? `${accent}33` : `${bg}55` }} />
+        ))}
+      </div>
+    ) : resolved.galleryLayout === 'editorial' ? (
+      <div className="flex gap-1">
+        <div className={cn('h-9 w-1/2', imgRadius)} style={{ background: `${bg}55` }} />
+        <div className="flex w-1/2 flex-col gap-1">
+          <div className="h-4" style={{ background: `${accent}33` }} />
+          <div className="h-4" style={{ background: `${bg}44` }} />
+        </div>
+      </div>
+    ) : (
+      <div className="grid grid-cols-4 gap-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-square" style={{ background: i % 2 ? `${accent}33` : `${bg}55` }} />
+        ))}
+      </div>
+    )
+
+  return (
+    <div className="overflow-hidden rounded-md border border-zinc-700" style={{ background: `${bg}11` }} aria-hidden="true">
+      <div className="border-b border-zinc-700 p-2.5" style={{ background: bg }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: light }}>The Shop</span>
+          <span className={cn('px-2 py-0.5 text-[6px] font-semibold text-white', radius)} style={{ background: accent }}>Book</span>
+        </div>
+      </div>
+      <div className="space-y-2.5 p-2.5" style={{ fontFamily: bodyFont }}>
+        <div>
+          <p className={label} style={{ color: accent }}>Services — {resolved.serviceLayout}</p>
+          {services}
+        </div>
+        <div>
+          <p className={label} style={{ color: accent }}>Team — {resolved.barberLayout}</p>
+          <span style={{ fontFamily: headingFont }}>
+            <span className={cn(hSize, 'block font-bold leading-tight')} style={{ color: light }}>The chairs behind the craft</span>
+          </span>
+          <div className="mt-1">{team}</div>
+        </div>
+        <div>
+          <p className={label} style={{ color: accent }}>Gallery — {resolved.galleryLayout}</p>
+          {gallery}
+        </div>
+        <div className="flex justify-center border-t border-zinc-700 pt-2.5">
+          <span className={cn('px-3 py-1 text-[7px] font-semibold text-white', radius)} style={{ background: accent }}>
+            Book your chair
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 interface AppearanceTabProps {
   websiteContent: WebsiteContentMap
   setWebsiteContent: (next: WebsiteContentMap) => void
@@ -223,11 +360,16 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
           </div>
         </div>
 
-        {/* ── Hero preview ──────────────────────────────────────────── */}
+        {/* ── Mini-site preview (hero + sections, from the resolved draft) ── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Hero preview</h3>
-          <p className="mb-3 text-xs text-zinc-500">A simplified mock of how your homepage hero will compose.</p>
-          <HeroPreview heroLayout={resolved.heroLayout} preset={selectedPreset} />
+          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Site preview</h3>
+          <p className="mb-3 text-xs text-zinc-500">
+            A simplified mock of your homepage as this draft resolves it — hero, services, team, gallery, and buttons follow your choices below.
+          </p>
+          <div className="space-y-2">
+            <HeroPreview heroLayout={resolved.heroLayout} preset={selectedPreset} />
+            <MiniSitePreview resolved={resolved} preset={selectedPreset} />
+          </div>
         </div>
 
         {/* ── Independent layout overrides ──────────────────────────── */}
