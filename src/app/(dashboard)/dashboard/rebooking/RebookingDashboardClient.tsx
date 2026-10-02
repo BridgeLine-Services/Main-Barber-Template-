@@ -89,11 +89,11 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-amber-500" />
             Rebooking Engine
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {tasks.length} customer{tasks.length !== 1 ? 's' : ''} due for rebooking
           </p>
         </div>
@@ -101,7 +101,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
           onClick={handleRefresh}
           variant="outline"
           size="sm"
-          className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+          className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)]"
         >
           {refreshing ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -115,25 +115,25 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
       {/* Summary Stats */}
       {tasks.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
-            <p className="text-xs text-zinc-400 font-medium">Total Due</p>
+          <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground font-medium">Total Due</p>
             <p className="text-2xl font-bold font-mono text-amber-400 mt-1">{tasks.length}</p>
           </div>
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
-            <p className="text-xs text-zinc-400 font-medium">Overdue 30+ Days</p>
+          <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground font-medium">Overdue 30+ Days</p>
             <p className="text-2xl font-bold font-mono text-red-400 mt-1">
               {tasks.filter(t => t.daysOverdue >= 30).length}
             </p>
           </div>
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
-            <p className="text-xs text-zinc-400 font-medium">Overdue 14+ Days</p>
+          <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground font-medium">Overdue 14+ Days</p>
             <p className="text-2xl font-bold font-mono text-orange-400 mt-1">
               {tasks.filter(t => t.daysOverdue >= 14).length}
             </p>
           </div>
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
-            <p className="text-xs text-zinc-400 font-medium">Avg Interval</p>
-            <p className="text-2xl font-bold font-mono text-zinc-100 mt-1">
+          <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground font-medium">Avg Interval</p>
+            <p className="text-2xl font-bold font-mono text-foreground mt-1">
               {Math.round(tasks.reduce((acc, t) => acc + t.averageIntervalDays, 0) / tasks.length)}d
             </p>
           </div>
@@ -148,8 +148,8 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
   ['At risk', metrics.atRisk, 'text-red-400'],
   ['Today', metrics.todayAppointments, 'text-emerald-400'],
   ].map(([label, value, color]) => (
-  <Link key={label} href="#retention-tasks" className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 hover:border-amber-500/40 transition-colors">
-  <p className="text-xs text-zinc-400 font-medium">{label}</p>
+  <Link key={label} href="#retention-tasks" className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 hover:border-amber-500/40 transition-colors">
+  <p className="text-xs text-muted-foreground font-medium">{label}</p>
   <p className={`text-2xl font-bold font-mono mt-1 ${color}`}>{value}</p>
   </Link>
   ))}
@@ -158,10 +158,10 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
 
   {/* Tasks List */}
       {tasks.length === 0 ? (
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-12 text-center">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center">
           <Calendar className="w-10 h-10 mx-auto text-zinc-700 mb-3" />
-          <p className="text-sm text-zinc-400 font-medium">No customers due for rebooking</p>
-          <p className="text-xs text-zinc-500 mt-1">All caught up! Customers will appear here when they're due.</p>
+          <p className="text-sm text-muted-foreground font-medium">No customers due for rebooking</p>
+          <p className="text-xs text-muted-foreground mt-1">All caught up! Customers will appear here when they're due.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -175,7 +175,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
             return (
               <div
                 key={task.customerId}
-                className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 space-y-4"
+                className="bg-[var(--dash-surface)] border border-border rounded-2xl p-5 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -185,7 +185,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
                     <div>
                       <Link
                         href={`/dashboard/customers/${task.customerId}`}
-                        className="text-sm font-semibold text-zinc-100 hover:text-amber-400 transition-colors"
+                        className="text-sm font-semibold text-foreground hover:text-amber-400 transition-colors"
                       >
                         {task.customerName}
                       </Link>
@@ -193,7 +193,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${overdueColor}`}>
                           {task.daysOverdue > 0 ? `${task.daysOverdue}d overdue` : 'Due today'}
                         </span>
-                        <span className="text-[10px] text-zinc-500">
+                        <span className="text-[10px] text-muted-foreground">
                           {task.intelligence.visitCount} visits · ${task.intelligence.lifetimeValue} LTV
                         </span>
                       </div>
@@ -224,38 +224,38 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
 
                 {/* Intelligence Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-2.5">
+                  <div className="flex items-center gap-2 bg-card/60 border border-border/60 rounded-lg p-2.5">
                     <User className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-zinc-500">Fav. Barber</p>
-                      <p className="text-xs font-medium text-zinc-200">{task.intelligence.favoriteBarberName || 'N/A'}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Fav. Barber</p>
+                      <p className="text-xs font-medium text-foreground">{task.intelligence.favoriteBarberName || 'N/A'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-2.5">
+                  <div className="flex items-center gap-2 bg-card/60 border border-border/60 rounded-lg p-2.5">
                     <Scissors className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-zinc-500">Fav. Service</p>
-                      <p className="text-xs font-medium text-zinc-200">{task.intelligence.favoriteServiceName || 'N/A'}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Fav. Service</p>
+                      <p className="text-xs font-medium text-foreground">{task.intelligence.favoriteServiceName || 'N/A'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-2.5">
+                  <div className="flex items-center gap-2 bg-card/60 border border-border/60 rounded-lg p-2.5">
                     <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-zinc-500">Interval</p>
-                      <p className="text-xs font-medium text-zinc-200">{task.averageIntervalDays} days</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Interval</p>
+                      <p className="text-xs font-medium text-foreground">{task.averageIntervalDays} days</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/60 rounded-lg p-2.5">
+                  <div className="flex items-center gap-2 bg-card/60 border border-border/60 rounded-lg p-2.5">
                     <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-zinc-500">Last Visit</p>
-                      <p className="text-xs font-medium text-zinc-200">{formatDate(task.lastVisit)}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Last Visit</p>
+                      <p className="text-xs font-medium text-foreground">{formatDate(task.lastVisit)}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Predicted date */}
-                <div className="flex items-center gap-2 text-xs text-zinc-400 pt-1 border-t border-zinc-800/60">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/60">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                   <span>
                     Expected: <span className="text-amber-400 font-medium">{formatDate(task.predictedNextDate)}</span>

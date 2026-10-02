@@ -124,7 +124,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-zinc-400">Loading profile...</p>
+        <p className="text-muted-foreground">Loading profile...</p>
       </div>
     )
   }
@@ -133,7 +133,7 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <p className="text-zinc-400">No profile found.</p>
+          <p className="text-muted-foreground">No profile found.</p>
         </div>
       </div>
     )
@@ -144,7 +144,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">My Profile</h1>
-          <p className="text-sm text-zinc-400 mt-1">Update your information that customers see.</p>
+          <p className="text-sm text-muted-foreground mt-1">Update your information that customers see.</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-amber-500 text-black hover:bg-amber-400">
           <Save className="mr-2 h-4 w-4" />
@@ -153,7 +153,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Photo */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Camera className="h-5 w-5 text-amber-500" />
@@ -168,11 +168,11 @@ export default function ProfilePage() {
                 <img
                   src={profile.photo}
                   alt={profile.name}
-                  className="h-24 w-24 rounded-full object-cover border-2 border-zinc-700"
+                  className="h-24 w-24 rounded-full object-cover border-2 border-input"
                 />
               ) : (
-                <div className="h-24 w-24 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center">
-                  <User className="h-10 w-10 text-zinc-600" />
+                <div className="h-24 w-24 rounded-full bg-muted border-2 border-input flex items-center justify-center">
+                  <User className="h-10 w-10 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -181,7 +181,7 @@ export default function ProfilePage() {
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
                 variant="outline"
-                className="border-zinc-700 text-zinc-300"
+                className="border-input text-foreground/85"
               >
                 <Upload className="mr-2 h-4 w-4" />
                 {uploading ? 'Uploading...' : 'Upload Photo'}
@@ -193,14 +193,14 @@ export default function ProfilePage() {
                 onChange={handlePhotoUpload}
                 className="hidden"
               />
-              <p className="text-xs text-zinc-500 mt-2">JPG, PNG, or WebP. Max 5MB.</p>
+              <p className="text-xs text-muted-foreground mt-2">JPG, PNG, or WebP. Max 5MB.</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Basic Info */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <User className="h-5 w-5 text-amber-500" />
@@ -209,43 +209,43 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-zinc-400">Display Name</Label>
+            <Label className="text-muted-foreground">Display Name</Label>
             <Input
               value={profile.name || ''}
               onChange={e => setProfile({ ...profile, name: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
             />
           </div>
           <div>
-            <Label className="text-zinc-400">Specialty</Label>
+            <Label className="text-muted-foreground">Specialty</Label>
             <Input
               value={profile.specialty || ''}
               onChange={e => setProfile({ ...profile, specialty: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="e.g., Fades, Beard Sculpting, Hot Towel Shaves"
             />
           </div>
           <div>
-            <Label className="text-zinc-400">Bio</Label>
+            <Label className="text-muted-foreground">Bio</Label>
             <Textarea
               value={profile.bio || ''}
               onChange={e => setProfile({ ...profile, bio: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1 min-h-[120px]"
+              className="bg-muted border-input mt-1 min-h-[120px]"
               placeholder="Tell clients about your experience and style..."
             />
           </div>
           <div>
-            <Label className="text-zinc-400">URL Slug</Label>
+            <Label className="text-muted-foreground">URL Slug</Label>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-zinc-500 whitespace-nowrap">/barbers/</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">/barbers/</span>
               <Input
                 value={profile.slug || ''}
                 onChange={e => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-                className="bg-zinc-800 border-zinc-700 flex-1"
+                className="bg-muted border-input flex-1"
                 placeholder="your-name"
               />
             </div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Your public profile URL. Use lowercase letters, numbers, and hyphens only.
             </p>
           </div>
@@ -253,7 +253,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Contact (barber-specific, not shop) */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Phone className="h-5 w-5 text-amber-500" />
@@ -263,21 +263,21 @@ export default function ProfilePage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label className="text-zinc-400">Phone</Label>
+              <Label className="text-muted-foreground">Phone</Label>
               <Input
                 value={profile.phone || ''}
                 onChange={e => setProfile({ ...profile, phone: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 mt-1"
+                className="bg-muted border-input mt-1"
                 placeholder="(555) 555-0199"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Email</Label>
+              <Label className="text-muted-foreground">Email</Label>
               <Input
                 type="email"
                 value={profile.email || ''}
                 onChange={e => setProfile({ ...profile, email: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 mt-1"
+                className="bg-muted border-input mt-1"
                 placeholder="your@email.com"
               />
             </div>
@@ -286,7 +286,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Social Links */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Globe className="h-5 w-5 text-amber-500" />
@@ -295,46 +295,46 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-zinc-400 flex items-center gap-1.5">
+            <Label className="text-muted-foreground flex items-center gap-1.5">
               <Instagram className="h-4 w-4" /> Instagram
             </Label>
             <Input
               value={profile.instagram || ''}
               onChange={e => setProfile({ ...profile, instagram: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="@yourhandle"
             />
           </div>
           <div>
-            <Label className="text-zinc-400 flex items-center gap-1.5">
+            <Label className="text-muted-foreground flex items-center gap-1.5">
               <Facebook className="h-4 w-4" /> Facebook
             </Label>
             <Input
               value={profile.facebook || ''}
               onChange={e => setProfile({ ...profile, facebook: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="facebook.com/yourpage"
             />
           </div>
           <div>
-            <Label className="text-zinc-400 flex items-center gap-1.5">
+            <Label className="text-muted-foreground flex items-center gap-1.5">
               <Music2 className="h-4 w-4" /> TikTok
             </Label>
             <Input
               value={profile.tiktok || ''}
               onChange={e => setProfile({ ...profile, tiktok: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="@yourhandle"
             />
           </div>
           <div>
-            <Label className="text-zinc-400 flex items-center gap-1.5">
+            <Label className="text-muted-foreground flex items-center gap-1.5">
               <LinkIcon className="h-4 w-4" /> Website
             </Label>
             <Input
               value={profile.website || ''}
               onChange={e => setProfile({ ...profile, website: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="https://yourwebsite.com"
             />
           </div>

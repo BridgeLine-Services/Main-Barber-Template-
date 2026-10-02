@@ -50,7 +50,7 @@ export function ResetShopCard() {
   if (result) {
     const s = (result.summary ?? {}) as Record<string, number>
     return (
-      <Card className="border-red-900/50 bg-zinc-900">
+      <Card className="border-red-900/50 bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg text-red-400">
             <RotateCcw className="h-5 w-5" /> Shop Reset Complete
@@ -59,24 +59,24 @@ export function ResetShopCard() {
             Taking you to the onboarding wizard… You can configure services, barbers and branding from scratch now.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2 text-sm text-zinc-400">
+        <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
           <div className="grid gap-1 sm:grid-cols-2">
-            <span>Barbers deleted: <strong className="text-zinc-200">{s.barbersDeleted ?? 0}</strong></span>
-            <span>Barbers deactivated (had history): <strong className="text-zinc-200">{s.barbersDeactivated ?? 0}</strong></span>
-            <span>Services deleted: <strong className="text-zinc-200">{s.servicesDeleted ?? 0}</strong></span>
-            <span>Services deactivated (had history): <strong className="text-zinc-200">{s.servicesDeactivated ?? 0}</strong></span>
-            <span>Gallery images removed: <strong className="text-zinc-200">{s.mediaDeleted ?? 0}</strong></span>
-            <span>Reviews deleted: <strong className="text-zinc-200">{s.reviewsDeleted ?? 0}</strong></span>
+            <span>Barbers deleted: <strong className="text-foreground">{s.barbersDeleted ?? 0}</strong></span>
+            <span>Barbers deactivated (had history): <strong className="text-foreground">{s.barbersDeactivated ?? 0}</strong></span>
+            <span>Services deleted: <strong className="text-foreground">{s.servicesDeleted ?? 0}</strong></span>
+            <span>Services deactivated (had history): <strong className="text-foreground">{s.servicesDeactivated ?? 0}</strong></span>
+            <span>Gallery images removed: <strong className="text-foreground">{s.mediaDeleted ?? 0}</strong></span>
+            <span>Reviews deleted: <strong className="text-foreground">{s.reviewsDeleted ?? 0}</strong></span>
           </div>
           {result.warning && <p className="text-amber-400">{result.warning}</p>}
-          <p className="text-xs text-zinc-500">Customers, appointments, financial records and login accounts were preserved.</p>
+          <p className="text-xs text-muted-foreground">Customers, appointments, financial records and login accounts were preserved.</p>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="border-red-900/50 bg-zinc-900">
+    <Card className="border-red-900/50 bg-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg text-red-400">
           <AlertTriangle className="h-5 w-5" /> Danger Zone: Reset Shop Configuration
@@ -88,16 +88,16 @@ export function ResetShopCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400">
-          <p className="mb-2 font-medium text-zinc-300">This will keep:</p>
+        <div className="rounded-lg border border-border bg-[var(--dash-surface)] p-4 text-sm text-muted-foreground">
+          <p className="mb-2 font-medium text-foreground/85">This will keep:</p>
           <ul className="mb-3 list-inside list-disc space-y-1">
             <li>Customers and their appointment history</li>
             <li>Financial records, sales reports and audit logs</li>
             <li>Login accounts (owners and staff)</li>
             <li>The database schema itself</li>
           </ul>
-          <p className="mb-2 font-medium text-zinc-300">Barbers or services with past appointments are deactivated, not deleted, so history stays intact.</p>
-          <p className="text-xs text-zinc-500">This action cannot be undone. It is recorded in the audit log.</p>
+          <p className="mb-2 font-medium text-foreground/85">Barbers or services with past appointments are deactivated, not deleted, so history stays intact.</p>
+          <p className="text-xs text-muted-foreground">This action cannot be undone. It is recorded in the audit log.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Input

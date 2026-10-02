@@ -177,7 +177,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
     }
   }
 
-  const selectClass = 'w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none'
+  const selectClass = 'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none'
 
   const assetLabel = (m: MediaOption) => {
     const typeLabel = m.type.replace(/_/g, ' ').toLowerCase()
@@ -186,7 +186,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
 
   return (
     <div className="space-y-6">
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <ArrowLeftRight className="h-5 w-5 text-amber-500" aria-hidden="true" />
@@ -194,7 +194,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Curate real transformation pairs from your uploaded photos. Published pairs appear in
             the Before &amp; After section of your homepage (enable it under Settings → Appearance →
             Homepage Sections).
@@ -209,16 +209,16 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
               <Plus className="h-4 w-4 mr-1" aria-hidden="true" /> New pair
             </Button>
           ) : (
-            <div className="rounded-lg border border-zinc-700 bg-zinc-950/50 p-4 space-y-4">
+            <div className="rounded-lg border border-input bg-[var(--dash-surface)]/50 p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-100">
+                <h3 className="text-sm font-semibold text-foreground">
                   {editingId ? 'Edit pair' : 'New pair'}
                 </h3>
                 <button
                   type="button"
                   onClick={resetForm}
                   aria-label="Close form"
-                  className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--dash-hover)] hover:text-foreground"
                 >
                   <X className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -226,7 +226,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <Label className="text-zinc-300 mb-1 block">Before photo</Label>
+                  <Label className="text-foreground/85 mb-1 block">Before photo</Label>
                   <select
                     value={form.beforeAssetId}
                     onChange={(e) => setForm({ ...form, beforeAssetId: e.target.value })}
@@ -243,7 +243,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                   )}
                 </div>
                 <div>
-                  <Label className="text-zinc-300 mb-1 block">After photo</Label>
+                  <Label className="text-foreground/85 mb-1 block">After photo</Label>
                   <select
                     value={form.afterAssetId}
                     onChange={(e) => setForm({ ...form, afterAssetId: e.target.value })}
@@ -263,7 +263,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <Label className="text-zinc-300 mb-1 block">Barber <span className="text-zinc-500">(optional)</span></Label>
+                  <Label className="text-foreground/85 mb-1 block">Barber <span className="text-muted-foreground">(optional)</span></Label>
                   <select
                     value={form.barberId}
                     onChange={(e) => setForm({ ...form, barberId: e.target.value })}
@@ -277,7 +277,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                   </select>
                 </div>
                 <div>
-                  <Label className="text-zinc-300 mb-1 block">Service <span className="text-zinc-500">(optional — powers the booking link)</span></Label>
+                  <Label className="text-foreground/85 mb-1 block">Service <span className="text-muted-foreground">(optional — powers the booking link)</span></Label>
                   <select
                     value={form.serviceId}
                     onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
@@ -293,29 +293,29 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
               </div>
 
               <div>
-                <Label className="text-zinc-300 mb-1 block">Caption <span className="text-zinc-500">(optional, short)</span></Label>
+                <Label className="text-foreground/85 mb-1 block">Caption <span className="text-muted-foreground">(optional, short)</span></Label>
                 <Input
                   value={form.caption}
                   maxLength={120}
                   onChange={(e) => setForm({ ...form, caption: e.target.value })}
-                  className="bg-zinc-950 border-zinc-700"
+                  className="bg-[var(--dash-surface)] border-input"
                   placeholder="Skin fade + beard reshape"
                 />
               </div>
               <div>
-                <Label className="text-zinc-300 mb-1 block">Details <span className="text-zinc-500">(optional)</span></Label>
+                <Label className="text-foreground/85 mb-1 block">Details <span className="text-muted-foreground">(optional)</span></Label>
                 <Textarea
                   value={form.details}
                   maxLength={1000}
                   rows={2}
                   onChange={(e) => setForm({ ...form, details: e.target.value })}
-                  className="bg-zinc-950 border-zinc-700"
+                  className="bg-[var(--dash-surface)] border-input"
                   placeholder="What was done, products used, time it took…"
                 />
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetForm} className="border-zinc-700 text-zinc-300">Cancel</Button>
+                <Button variant="outline" onClick={resetForm} className="border-input text-foreground/85">Cancel</Button>
                 <Button
                   onClick={savePair}
                   disabled={saving || !form.beforeAssetId || !form.afterAssetId}
@@ -328,7 +328,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
           )}
 
           {media.length < 2 && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Upload at least two photos under{' '}
               <a href="/dashboard/media" className="text-amber-500 underline">Photos</a>{' '}
               to create a pair.
@@ -336,9 +336,9 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
           )}
 
           {pairs.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-zinc-800 p-8 text-center">
-              <ImageIcon className="mx-auto h-8 w-8 text-zinc-600" aria-hidden="true" />
-              <p className="mt-2 text-sm text-zinc-400">No before/after pairs yet.</p>
+            <div className="rounded-lg border border-dashed border-border p-8 text-center">
+              <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
+              <p className="mt-2 text-sm text-muted-foreground">No before/after pairs yet.</p>
             </div>
           ) : (
             <ol className="space-y-3" aria-label="Before/after pairs">
@@ -346,47 +346,47 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                 <li
                   key={pair.id}
                   className={cn(
-                    'rounded-lg border bg-zinc-950/50',
-                    pair.isPublished ? 'border-zinc-700' : 'border-zinc-800 opacity-70'
+                    'rounded-lg border bg-[var(--dash-surface)]/50',
+                    pair.isPublished ? 'border-input' : 'border-border opacity-70'
                   )}
                 >
                   <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-1 self-start sm:self-center">
-                      <GripVertical className="h-4 w-4 text-zinc-600" aria-hidden="true" />
+                      <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       <div className="flex flex-col">
                         <button
                           type="button"
                           onClick={() => movePair(pair, -1)}
                           disabled={index === 0}
                           aria-label="Move pair up"
-                          className="text-zinc-400 hover:text-zinc-100 disabled:opacity-25"
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-25"
                         >▲</button>
                         <button
                           type="button"
                           onClick={() => movePair(pair, 1)}
                           disabled={index === pairs.length - 1}
                           aria-label="Move pair down"
-                          className="text-zinc-400 hover:text-zinc-100 disabled:opacity-25"
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-25"
                         >▼</button>
                       </div>
                     </div>
 
                     <div className="flex flex-1 gap-2">
-                      <div className="relative w-1/2 overflow-hidden rounded-md bg-zinc-800">
+                      <div className="relative w-1/2 overflow-hidden rounded-md bg-muted">
                         <img src={pair.beforeAsset.url} alt={pair.beforeAsset.altText || 'Before'} className="h-24 w-full object-cover" />
-                        <span className="absolute left-1 top-1 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-200">Before</span>
+                        <span className="absolute left-1 top-1 rounded bg-[var(--dash-surface)]/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground">Before</span>
                       </div>
-                      <div className="relative w-1/2 overflow-hidden rounded-md bg-zinc-800">
+                      <div className="relative w-1/2 overflow-hidden rounded-md bg-muted">
                         <img src={pair.afterAsset.url} alt={pair.afterAsset.altText || 'After'} className="h-24 w-full object-cover" />
                         <span className="absolute left-1 top-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-950">After</span>
                       </div>
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-100">
+                      <p className="truncate text-sm font-medium text-foreground">
                         {pair.caption || 'Untitled pair'}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">
+                      <p className="truncate text-xs text-muted-foreground">
                         {[pair.barberName, pair.serviceName].filter(Boolean).join(' · ') || 'No attribution'}
                       </p>
                     </div>
@@ -397,12 +397,12 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                           type="button"
                           onClick={() => togglePublish(pair)}
                           aria-label={pair.isPublished ? 'Hide from website' : 'Publish to website'}
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--dash-hover)] hover:text-foreground"
                         >
                           {pair.isPublished ? <Eye className="h-4 w-4" aria-hidden="true" /> : <EyeOff className="h-4 w-4" aria-hidden="true" />}
                         </button>
                       )}
-                      <Button variant="outline" size="sm" onClick={() => startEdit(pair)} className="border-zinc-700 text-zinc-300">
+                      <Button variant="outline" size="sm" onClick={() => startEdit(pair)} className="border-input text-foreground/85">
                         Edit
                       </Button>
                       {canManage && (
@@ -410,7 +410,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                           type="button"
                           onClick={() => deletePair(pair)}
                           aria-label="Delete pair"
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-950/50 hover:text-red-400"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-950/50 hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
@@ -430,7 +430,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
 function Thumb({ url }: { url?: string }) {
   if (!url) return null
   return (
-    <div className="mt-2 overflow-hidden rounded-md border border-zinc-800">
+    <div className="mt-2 overflow-hidden rounded-md border border-border">
       <img src={url} alt="" className="h-20 w-full object-cover" aria-hidden="true" />
     </div>
   )

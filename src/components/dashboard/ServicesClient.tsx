@@ -109,11 +109,11 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Scissors className="w-6 h-6 text-amber-500" />
             <span>Service Catalog</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Manage haircuts, treatments, pricing, and assigned barbers
           </p>
         </div>
@@ -127,10 +127,10 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
       </div>
 
       {/* Services Table */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-zinc-900/80 uppercase font-semibold text-zinc-400 border-b border-zinc-800">
+          <table className="w-full text-left text-xs text-foreground/85">
+            <thead className="bg-card/80 uppercase font-semibold text-muted-foreground border-b border-border">
               <tr>
                 <th className="p-3.5 pl-4">Service Name</th>
                 <th className="p-3.5">Duration</th>
@@ -140,10 +140,10 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                 <th className="p-3.5 pr-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-border/60">
               {initialServices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-zinc-500">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     No services found. Click "Add Service" to create your first offering.
                   </td>
                 </tr>
@@ -153,19 +153,19 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                   const barberNames = service.barbers?.map((b) => b.barberName).filter(Boolean).join(', ')
 
                   return (
-                    <tr key={service.id} className="hover:bg-zinc-900/70 transition-colors">
+                    <tr key={service.id} className="hover:bg-card/70 transition-colors">
                       <td className="p-3.5 pl-4">
-                        <div className="font-bold text-zinc-100">{service.name}</div>
+                        <div className="font-bold text-foreground">{service.name}</div>
                         {service.description && (
-                          <div className="text-[11px] text-zinc-400 line-clamp-1 max-w-xs mt-0.5">
+                          <div className="text-[11px] text-muted-foreground line-clamp-1 max-w-xs mt-0.5">
                             {service.description}
                           </div>
                         )}
                       </td>
 
-                      <td className="p-3.5 font-mono text-zinc-300">
+                      <td className="p-3.5 font-mono text-foreground/85">
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-zinc-500" />
+                          <Clock className="w-3 h-3 text-muted-foreground" />
                           {formatDuration(service.duration)}
                         </span>
                       </td>
@@ -186,15 +186,15 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                               <CheckCircle2 className="w-3 h-3" /> Active
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full hover:bg-zinc-800 transition-colors">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-card border border-border px-2.5 py-0.5 rounded-full hover:bg-[var(--dash-hover)] transition-colors">
                               <XCircle className="w-3 h-3" /> Inactive
                             </span>
                           )}
                         </button>
                       </td>
 
-                      <td className="p-3.5 text-zinc-400">
-                        <span className="inline-flex items-center gap-1 font-medium text-zinc-300" title={barberNames}>
+                      <td className="p-3.5 text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 font-medium text-foreground/85" title={barberNames}>
                           <Users className="w-3 h-3 text-amber-500" />
                           {barbersCount} {barbersCount === 1 ? 'barber' : 'barbers'}
                         </span>
@@ -206,7 +206,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenEdit(service)}
-                            className="h-8 w-8 text-zinc-400 hover:text-amber-400 hover:bg-zinc-900"
+                            className="h-8 w-8 text-muted-foreground hover:text-amber-400 hover:bg-card"
                             title="Edit Service"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -216,7 +216,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                             size="icon"
                             onClick={() => handleDelete(service)}
                             disabled={loadingId === service.id}
-                            className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-950/30"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
                             title="Delete Service"
                           >
                             {loadingId === service.id ? (

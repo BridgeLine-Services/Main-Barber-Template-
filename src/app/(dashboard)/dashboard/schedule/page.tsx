@@ -46,9 +46,9 @@ export default async function SchedulePage(props: SchedulePageProps) {
 
   if (!targetBarberId) {
     return (
-      <div className="max-w-4xl mx-auto p-8 text-center text-zinc-400 bg-zinc-950 border border-zinc-800 rounded-2xl">
+      <div className="max-w-4xl mx-auto p-8 text-center text-muted-foreground bg-[var(--dash-surface)] border border-border rounded-2xl">
         <p className="text-base font-semibold">No active barber profiles found for this business.</p>
-        <p className="text-xs text-zinc-500 mt-1">Please create a barber profile first under Barbers management.</p>
+        <p className="text-xs text-muted-foreground mt-1">Please create a barber profile first under Barbers management.</p>
       </div>
     )
   }
@@ -95,20 +95,20 @@ export default async function SchedulePage(props: SchedulePageProps) {
       {/* Header & Barber Selector if Owner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Clock className="w-6 h-6 text-amber-500" />
             <span>Barber Schedule & Time Off</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Managing availability for{' '}
             <span className="text-amber-400 font-semibold">{selectedBarber?.name || 'Barber'}</span>
           </p>
         </div>
 
         {isOwner && allBarbers.length > 1 && (
-          <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 p-2 rounded-xl">
+          <div className="flex items-center gap-2 bg-[var(--dash-surface)] border border-border p-2 rounded-xl">
             <UserCircle className="w-4 h-4 text-amber-500" />
-            <span className="text-xs text-zinc-400 font-medium">Select Barber:</span>
+            <span className="text-xs text-muted-foreground font-medium">Select Barber:</span>
             <div className="flex gap-1 overflow-x-auto">
               {allBarbers.map((b) => (
                 <Link
@@ -117,7 +117,7 @@ export default async function SchedulePage(props: SchedulePageProps) {
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                     b.id === targetBarberId
                       ? 'bg-amber-500 text-zinc-950'
-                      : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800'
+                      : 'bg-card text-foreground/85 hover:bg-[var(--dash-hover)]'
                   }`}
                 >
                   {b.name}

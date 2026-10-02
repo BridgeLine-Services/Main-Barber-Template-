@@ -102,13 +102,13 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-950 border border-zinc-800 text-zinc-100 max-w-lg">
+      <DialogContent className="bg-[var(--dash-surface)] border border-border text-foreground max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
             <BellRing className="w-5 h-5" />
             <span>Appointment Opened</span>
           </DialogTitle>
-          <DialogDescription className="text-zinc-400 text-xs">
+          <DialogDescription className="text-muted-foreground text-xs">
             Offer this released slot to a waitlist customer. They receive a claim link held for {holdMinutes ?? 15} minutes — the slot is re-checked when they book.
           </DialogDescription>
         </DialogHeader>
@@ -117,18 +117,18 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-2">
           <div className="flex items-center gap-2.5 text-sm">
             <Scissors className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-zinc-400 text-xs w-16">Service</span>
-            <span className="text-zinc-100 font-medium">{opening.serviceName}</span>
+            <span className="text-muted-foreground text-xs w-16">Service</span>
+            <span className="text-foreground font-medium">{opening.serviceName}</span>
           </div>
           <div className="flex items-center gap-2.5 text-sm">
             <User className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-zinc-400 text-xs w-16">Barber</span>
-            <span className="text-zinc-100 font-medium">{opening.barberName}</span>
+            <span className="text-muted-foreground text-xs w-16">Barber</span>
+            <span className="text-foreground font-medium">{opening.barberName}</span>
           </div>
           <div className="flex items-center gap-2.5 text-sm">
             <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-zinc-400 text-xs w-16">Time</span>
-            <span className="text-zinc-100 font-medium">{opening.startTimeLabel} – {opening.endTimeLabel}</span>
+            <span className="text-muted-foreground text-xs w-16">Time</span>
+            <span className="text-foreground font-medium">{opening.startTimeLabel} – {opening.endTimeLabel}</span>
           </div>
         </div>
 
@@ -155,33 +155,33 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
 
         {/* Candidates */}
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-sm text-zinc-400">
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" /> Finding eligible waitlist customers…
           </div>
         ) : !notAvailable && (
           <div className="space-y-2 max-h-72 overflow-y-auto">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 uppercase tracking-wide">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <Users className="w-3.5 h-3.5" />
               Eligible waitlist candidates
-              <span className="text-zinc-600 normal-case font-normal">({candidates.length})</span>
+              <span className="text-muted-foreground normal-case font-normal">({candidates.length})</span>
             </div>
             {candidates.length === 0 ? (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center text-sm text-zinc-500">
+              <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
                 No eligible waitlist entries for this service and barber. You can still book the slot manually from the Calendar.
               </div>
             ) : (
               candidates.map((c, i) => (
-                <div key={c.entryId} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3.5">
+                <div key={c.entryId} className="rounded-xl border border-border bg-card/50 p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-zinc-600">#{i + 1}</span>
-                        <span className="text-sm font-medium text-zinc-100 truncate">{c.name}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">#{i + 1}</span>
+                        <span className="text-sm font-medium text-foreground truncate">{c.name}</span>
                       </div>
-                      <div className="text-xs text-zinc-500 mt-0.5">{c.phone}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{c.phone}</div>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {c.matchReasons.map(reason => (
-                          <span key={reason} className="text-[10px] text-zinc-400 bg-zinc-800/70 border border-zinc-700/60 rounded-full px-2 py-0.5">
+                          <span key={reason} className="text-[10px] text-muted-foreground bg-muted/70 border border-input/60 rounded-full px-2 py-0.5">
                             {reason}
                           </span>
                         ))}

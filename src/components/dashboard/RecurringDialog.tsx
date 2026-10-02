@@ -133,13 +133,13 @@ export function RecurringDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg">
+      <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
             <Repeat className="w-5 h-5" />
             Recurring Appointment
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-muted-foreground">
             Create a series of appointments with conflict detection
           </DialogDescription>
         </DialogHeader>
@@ -147,19 +147,19 @@ export function RecurringDialog({
         {success ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <CheckCircle2 className="w-12 h-12 text-emerald-400 mb-3" />
-            <p className="text-lg font-semibold text-zinc-100">Recurring Appointments Created!</p>
-            <p className="text-sm text-zinc-400 mt-1">The appointment series has been scheduled.</p>
+            <p className="text-lg font-semibold text-foreground">Recurring Appointments Created!</p>
+            <p className="text-sm text-muted-foreground mt-1">The appointment series has been scheduled.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Configuration */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5">Barber</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5">Barber</Label>
                 <select
                   value={barberId}
                   onChange={(e) => setBarberId(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
                 >
                   <option value="">Select barber...</option>
                   {barbers.map((b) => (
@@ -168,11 +168,11 @@ export function RecurringDialog({
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5">Service</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5">Service</Label>
                 <select
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
                 >
                   <option value="">Select service...</option>
                   {services.map((s) => (
@@ -181,29 +181,29 @@ export function RecurringDialog({
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5">Start Date</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5">Start Date</Label>
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                  className="bg-card border-border text-foreground"
                 />
               </div>
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5">Preferred Time</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5">Preferred Time</Label>
                 <Input
                   type="time"
                   value={preferredTime}
                   onChange={(e) => setPreferredTime(e.target.value)}
-                  className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                  className="bg-card border-border text-foreground"
                 />
               </div>
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5">Repeat Every</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5">Repeat Every</Label>
                 <select
                   value={intervalWeeks}
                   onChange={(e) => setIntervalWeeks(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
                 >
                   <option value={2}>2 weeks</option>
                   <option value={3}>3 weeks</option>
@@ -211,11 +211,11 @@ export function RecurringDialog({
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-zinc-400 mb-1.5"># of Occurrences</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5"># of Occurrences</Label>
                 <select
                   value={totalOccurrences}
                   onChange={(e) => setTotalOccurrences(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
                 >
                   {[3, 4, 6, 8, 10, 12].map((n) => (
                     <option key={n} value={n}>{n} appointments</option>
@@ -229,7 +229,7 @@ export function RecurringDialog({
               onClick={handlePreview}
               disabled={loading || !barberId || !serviceId || !startDate || !preferredTime}
               variant="outline"
-              className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+              className="w-full bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)]"
             >
               {loading ? (
                 <>
@@ -258,7 +258,7 @@ export function RecurringDialog({
                   )}
                 </div>
 
-                <div className="space-y-1.5 max-h-48 overflow-y-auto bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto bg-card/60 border border-border/60 rounded-xl p-3">
                   {preview.occurrences.map((occ, i: number) => (
                     <div
                       key={i}
@@ -273,7 +273,7 @@ export function RecurringDialog({
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                       )}
-                      <span className="text-zinc-200 font-medium">{occ.dateLabel}</span>
+                      <span className="text-foreground font-medium">{occ.dateLabel}</span>
                       {!occ.available && occ.reason && (
                         <span className="text-amber-400/80 text-[10px] ml-auto">
                           {occ.reason}
@@ -284,20 +284,20 @@ export function RecurringDialog({
                 </div>
 
                 {/* Customer Info for creating */}
-                <div className="space-y-2 pt-2 border-t border-zinc-800">
-                  <Label className="text-xs text-zinc-400">Customer Information</Label>
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <Label className="text-xs text-muted-foreground">Customer Information</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       placeholder="Full name"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="bg-zinc-900 border-zinc-800 text-zinc-200 text-sm"
+                      className="bg-card border-border text-foreground text-sm"
                     />
                     <Input
                       placeholder="Phone"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="bg-zinc-900 border-zinc-800 text-zinc-200 text-sm"
+                      className="bg-card border-border text-foreground text-sm"
                     />
                   </div>
                   <Input
@@ -305,7 +305,7 @@ export function RecurringDialog({
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800 text-zinc-200 text-sm"
+                    className="bg-card border-border text-foreground text-sm"
                   />
                 </div>
               </div>
@@ -324,7 +324,7 @@ export function RecurringDialog({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+              className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)]"
             >
               Cancel
             </Button>

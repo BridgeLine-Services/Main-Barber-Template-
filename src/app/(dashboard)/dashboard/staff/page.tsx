@@ -231,8 +231,8 @@ export default function StaffPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Staff Management</h1>
-          <p className="text-sm text-zinc-400 mt-1">Invite team members and manage their access.</p>
+          <h1 className="text-2xl font-bold text-foreground">Staff Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Invite team members and manage their access.</p>
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)} className="bg-amber-500 text-black hover:bg-amber-400">
@@ -250,25 +250,25 @@ export default function StaffPage() {
 
       {/* Temp credentials display */}
       {tempCreds && (
-        <Card className="bg-zinc-900 border-amber-500/30">
+        <Card className="bg-card border-amber-500/30">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-amber-300">Temporary Credentials — Share Securely</p>
-              <Button size="sm" variant="ghost" onClick={() => setTempCreds(null)} className="text-zinc-400 hover:text-zinc-200">
+              <Button size="sm" variant="ghost" onClick={() => setTempCreds(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <div className="rounded-lg bg-zinc-800 p-3 font-mono text-sm space-y-1">
+            <div className="rounded-lg bg-muted p-3 font-mono text-sm space-y-1">
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-zinc-300">{tempCreds.email}</span>
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-foreground/85">{tempCreds.email}</span>
               </div>
               <div className="flex items-center gap-2">
-                <KeyRound className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-zinc-300">{tempCreds.password}</span>
+                <KeyRound className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-foreground/85">{tempCreds.password}</span>
               </div>
             </div>
-            <Button size="sm" onClick={copyCreds} variant="outline" className="border-zinc-700 text-zinc-300">
+            <Button size="sm" onClick={copyCreds} variant="outline" className="border-input text-foreground/85">
               {copied ? <><Check className="w-3.5 h-3.5 mr-1" /> Copied</> : <><Copy className="w-3.5 h-3.5 mr-1" /> Copy Credentials</>}
             </Button>
           </CardContent>
@@ -277,20 +277,20 @@ export default function StaffPage() {
 
       {/* Invitation link display */}
       {inviteLink && (
-        <Card className="bg-zinc-900 border-amber-500/30">
+        <Card className="bg-card border-amber-500/30">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-amber-300">Invitation Sent — Share This Secure Link</p>
-              <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)} className="text-zinc-400 hover:text-zinc-200">
+              <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               {inviteLink.email} sets their own password via this single-use link (expires in 7 days).
             </p>
-            <div className="rounded-lg bg-zinc-800 p-3 font-mono text-xs break-all text-zinc-300">{inviteLink.url}</div>
+            <div className="rounded-lg bg-muted p-3 font-mono text-xs break-all text-foreground/85">{inviteLink.url}</div>
             <Button
-              size="sm" variant="outline" className="border-zinc-700 text-zinc-300"
+              size="sm" variant="outline" className="border-input text-foreground/85"
               onClick={() => {
                 navigator.clipboard.writeText(inviteLink.url)
                 setCopied(true)
@@ -305,15 +305,15 @@ export default function StaffPage() {
 
       {/* Pending invitations */}
       {invitations.length > 0 && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium text-zinc-200">Pending Invitations ({invitations.length})</p>
+            <p className="text-sm font-medium text-foreground">Pending Invitations ({invitations.length})</p>
             <div className="space-y-2">
               {invitations.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between rounded-lg bg-zinc-800/60 px-3 py-2">
+                <div key={inv.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
                   <div>
-                    <p className="text-sm text-zinc-200">{inv.name} <span className="text-zinc-500">({inv.email})</span></p>
-                    <p className="text-xs text-zinc-500">{inv.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Barber'} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
+                    <p className="text-sm text-foreground">{inv.name} <span className="text-muted-foreground">({inv.email})</span></p>
+                    <p className="text-xs text-muted-foreground">{inv.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Barber'} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
                   </div>
                   <Button size="sm" variant="outline" className="border-red-500/30 text-red-300 hover:bg-red-500/10" onClick={() => handleRevokeInvite(inv.id, inv.email)}>
                     Revoke
@@ -327,75 +327,75 @@ export default function StaffPage() {
 
       {/* Invite form */}
       {showForm && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <form onSubmit={handleInvite} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-foreground/85 mb-1">Name</label>
                   <input
                     type="text" required value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="John Doe"
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-foreground/85 mb-1">Email</label>
                   <input
                     type="email" required value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="john@barbershop.com"
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Role</label>
+                <label className="block text-sm font-medium text-foreground/85 mb-1">Role</label>
                 <div className="flex gap-3">
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'BARBER' ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-600'
+                    form.role === 'BARBER' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="BARBER" checked={form.role === 'BARBER'}
                       onChange={() => setForm({ ...form, role: 'BARBER' })}
                       className="sr-only" />
-                    <Scissors className="w-4 h-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-200">Barber</span>
+                    <Scissors className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Barber</span>
                   </label>
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'BUSINESS_ADMIN' ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-600'
+                    form.role === 'BUSINESS_ADMIN' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="BUSINESS_ADMIN" checked={form.role === 'BUSINESS_ADMIN'}
                       onChange={() => setForm({ ...form, role: 'BUSINESS_ADMIN' })}
                       className="sr-only" />
-                    <ShieldCheck className="w-4 h-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-200">Business Admin (no ownership actions)</span>
+                    <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Business Admin (no ownership actions)</span>
                   </label>
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'OWNER' ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-600'
+                    form.role === 'OWNER' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="OWNER" checked={form.role === 'OWNER'}
                       onChange={() => setForm({ ...form, role: 'OWNER' })}
                       className="sr-only" />
-                    <Crown className="w-4 h-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-200">Owner (full access)</span>
+                    <Crown className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Owner (full access)</span>
                   </label>
                 </div>
               </div>
               {form.role === 'BARBER' && (
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Linked Barber Profile</label>
+                  <label className="block text-sm font-medium text-foreground/85 mb-1">Linked Barber Profile</label>
                   <select
                     value={form.barberId}
                     onChange={(e) => setForm({ ...form, barberId: e.target.value })}
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
                   >
                     <option value="">No link — they'll only see their own profile once linked</option>
                     {barbers.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}{b.isActive ? '' : ' (inactive)'}</option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Links this login to a barber profile so their appointments, schedule, and public
                     page line up. You can change this later.
                   </p>
@@ -407,7 +407,7 @@ export default function StaffPage() {
                   Send Invite
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}
-                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                  className="border-input text-foreground/85 hover:bg-[var(--dash-hover)]">
                   Cancel
                 </Button>
               </div>
@@ -419,13 +419,13 @@ export default function StaffPage() {
       {/* Staff list */}
       <div className="space-y-3">
         {staff.length === 0 && !showForm ? (
-          <Card className="bg-zinc-900 border-zinc-800 p-12 text-center">
-            <UserPlus className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
-            <p className="text-zinc-400">No staff members yet. Invite your first team member.</p>
+          <Card className="bg-card border-border p-12 text-center">
+            <UserPlus className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No staff members yet. Invite your first team member.</p>
           </Card>
         ) : (
           staff.map((member) => (
-            <Card key={member.id} className="bg-zinc-900 border-zinc-800">
+            <Card key={member.id} className="bg-card border-border">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -434,15 +434,15 @@ export default function StaffPage() {
                     {member.role === 'OWNER' ? <Crown className="w-5 h-5" /> : <Scissors className="w-5 h-5" />}
                   </div>
                   <div>
-                    <p className="font-semibold text-zinc-100">{member.name}</p>
-                    <p className="text-sm text-zinc-400">{member.email}</p>
+                    <p className="font-semibold text-foreground">{member.name}</p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
                     {member.role === 'BARBER' && (
                       <div className="mt-1.5 flex items-center gap-2">
-                        <span className="text-xs text-zinc-500">Barber profile:</span>
+                        <span className="text-xs text-muted-foreground">Barber profile:</span>
                         <select
                           value={member.barberId || ''}
                           onChange={(e) => handleLinkBarber(member.id, e.target.value)}
-                          className="rounded-md bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-zinc-200 focus:border-amber-500 focus:outline-none"
+                          className="rounded-md bg-muted border border-input px-2 py-1 text-xs text-foreground focus:border-amber-500 focus:outline-none"
                         >
                           <option value="">Not linked</option>
                           {barbers.map((b) => (
@@ -466,12 +466,12 @@ export default function StaffPage() {
                       Active
                     </span>
                   ) : (
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border bg-zinc-700/30 text-zinc-400 border-zinc-600/40">
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border bg-zinc-700/30 text-muted-foreground border-zinc-600/40">
                       Deactivated
                     </span>
                   )}
                   <Button size="sm" variant="ghost" title={member.isActive ? 'Deactivate (blocks sign-in)' : 'Reactivate account'} onClick={() => handleToggleActive(member.id, member.name, member.isActive)}
-                    className="text-zinc-400 hover:text-blue-400 hover:bg-blue-950/30">
+                    className="text-muted-foreground hover:text-blue-400 hover:bg-blue-950/30">
                     {member.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                   </Button>
                   {session?.user?.id !== member.id && (
@@ -481,17 +481,17 @@ export default function StaffPage() {
                       title="Transfer business ownership to this member"
                       disabled={transferring !== null}
                       onClick={() => handleTransferOwnership(member.id, member.name)}
-                      className="text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30"
+                      className="text-muted-foreground hover:text-amber-400 hover:bg-amber-950/30"
                     >
                       {transferring === member.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" onClick={() => handleResetPassword(member.id, member.name)}
-                    className="text-zinc-400 hover:text-amber-400 hover:bg-amber-950/30">
+                    className="text-muted-foreground hover:text-amber-400 hover:bg-amber-950/30">
                     <KeyRound className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleRemove(member.id, member.name)}
-                    className="text-zinc-400 hover:text-red-400 hover:bg-red-950/30">
+                    className="text-muted-foreground hover:text-red-400 hover:bg-red-950/30">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>

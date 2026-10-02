@@ -34,7 +34,7 @@ export default async function WebsitePreviewPage() {
   ]
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+    <main className="min-h-screen bg-[var(--dash-surface)] text-foreground">
       <div className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
         DRAFT PREVIEW — only visible to signed-in staff. This is exactly what your homepage will
         show once you press &quot;Publish website&quot; in Settings.
@@ -42,18 +42,18 @@ export default async function WebsitePreviewPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <p className="text-sm uppercase tracking-widest text-amber-400">{d?.heroEyebrow || 'Premium Barbershop'}</p>
         <h1 className="mt-2 text-4xl font-bold">{d?.heroTitle || name}</h1>
-        <p className="mt-3 max-w-2xl text-zinc-400">{d?.heroDescription || `Experience top-tier craftsmanship at ${name}.`}</p>
+        <p className="mt-3 max-w-2xl text-muted-foreground">{d?.heroDescription || `Experience top-tier craftsmanship at ${name}.`}</p>
         <div className="mt-8 space-y-6">
           {sections.map((s) =>
             s.on ? (
-              <section key={s.title} className="rounded-lg border border-zinc-800 p-4">
+              <section key={s.title} className="rounded-lg border border-border p-4">
                 <h2 className="text-lg font-semibold">{s.title}</h2>
-                {s.desc && <p className="mt-1 text-sm text-zinc-400">{s.desc}</p>}
+                {s.desc && <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>}
               </section>
             ) : null
           )}
         </div>
-        <p className="mt-8 text-xs text-zinc-500">
+        <p className="mt-8 text-xs text-muted-foreground">
           Preview reflects draft content only; the live customer site shows the last published snapshot.
         </p>
       </div>

@@ -113,55 +113,55 @@ export function FaqManager() {
   }
 
   if (loading) {
-    return <p className="text-zinc-400 text-sm">Loading FAQs...</p>
+    return <p className="text-muted-foreground text-sm">Loading FAQs...</p>
   }
 
   return (
     <div className="space-y-6">
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <HelpCircle className="h-5 w-5 text-amber-500" />
             Frequently Asked Questions
           </CardTitle>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Manage the FAQs shown on your public FAQ page. Group by category — customers see them exactly as ordered here.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {faqs.length === 0 && (
-            <p className="text-sm text-zinc-500">No custom FAQs yet — your site is showing default placeholder FAQs. Add your own below.</p>
+            <p className="text-sm text-muted-foreground">No custom FAQs yet — your site is showing default placeholder FAQs. Add your own below.</p>
           )}
 
           {faqs.map(faq => (
-            <div key={faq.id} className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 space-y-3">
+            <div key={faq.id} className="rounded-lg border border-border bg-[var(--dash-surface)] p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <GripVertical className="h-4 w-4 text-zinc-600 mt-2 shrink-0" />
+                <GripVertical className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
                 <div className="flex-1 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-1">
-                      <Label className="text-zinc-400 text-xs">Category</Label>
+                      <Label className="text-muted-foreground text-xs">Category</Label>
                       <Input
                         value={faq.category}
                         onChange={e => updateField(faq.id, 'category', e.target.value)}
-                        className="bg-zinc-800 border-zinc-700 mt-1"
+                        className="bg-muted border-input mt-1"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <Label className="text-zinc-400 text-xs">Question</Label>
+                      <Label className="text-muted-foreground text-xs">Question</Label>
                       <Input
                         value={faq.question}
                         onChange={e => updateField(faq.id, 'question', e.target.value)}
-                        className="bg-zinc-800 border-zinc-700 mt-1"
+                        className="bg-muted border-input mt-1"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-zinc-400 text-xs">Answer</Label>
+                    <Label className="text-muted-foreground text-xs">Answer</Label>
                     <Textarea
                       value={faq.answer}
                       onChange={e => updateField(faq.id, 'answer', e.target.value)}
-                      className="bg-zinc-800 border-zinc-700 mt-1 min-h-[70px]"
+                      className="bg-muted border-input mt-1 min-h-[70px]"
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -170,13 +170,13 @@ export function FaqManager() {
                         checked={faq.isActive}
                         onCheckedChange={v => updateField(faq.id, 'isActive', v)}
                       />
-                      <span className="text-xs text-zinc-400">{faq.isActive ? 'Visible on site' : 'Hidden'}</span>
+                      <span className="text-xs text-muted-foreground">{faq.isActive ? 'Visible on site' : 'Hidden'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-zinc-700 text-zinc-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40"
+                        className="border-input text-foreground/85 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40"
                         onClick={() => handleDelete(faq.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -198,7 +198,7 @@ export function FaqManager() {
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Plus className="h-5 w-5 text-amber-500" />
@@ -208,30 +208,30 @@ export function FaqManager() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-1">
-              <Label className="text-zinc-400 text-xs">Category</Label>
+              <Label className="text-muted-foreground text-xs">Category</Label>
               <Input
                 value={newFaq.category}
                 onChange={e => setNewFaq({ ...newFaq, category: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 mt-1"
+                className="bg-muted border-input mt-1"
                 placeholder="Booking & Appointments"
               />
             </div>
             <div className="sm:col-span-2">
-              <Label className="text-zinc-400 text-xs">Question</Label>
+              <Label className="text-muted-foreground text-xs">Question</Label>
               <Input
                 value={newFaq.question}
                 onChange={e => setNewFaq({ ...newFaq, question: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 mt-1"
+                className="bg-muted border-input mt-1"
                 placeholder="How do I book an appointment?"
               />
             </div>
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Answer</Label>
+            <Label className="text-muted-foreground text-xs">Answer</Label>
             <Textarea
               value={newFaq.answer}
               onChange={e => setNewFaq({ ...newFaq, answer: e.target.value })}
-              className="bg-zinc-800 border-zinc-700 mt-1 min-h-[70px]"
+              className="bg-muted border-input mt-1 min-h-[70px]"
               placeholder="You can book online in under 60 seconds..."
             />
           </div>

@@ -182,15 +182,15 @@ export function ReviewsClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 font-serif">Reviews</h1>
-          <p className="text-sm text-zinc-400 mt-1">Manage customer reviews and assign to barbers</p>
+          <h1 className="text-2xl font-bold text-foreground font-serif">Reviews</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage customer reviews and assign to barbers</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-2.5">
+          <div className="flex items-center gap-3 bg-card/50 border border-border rounded-xl px-4 py-2.5">
             <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
             <div>
-              <p className="text-2xl font-bold text-zinc-100 leading-none">{avgRating}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{total} reviews</p>
+              <p className="text-2xl font-bold text-foreground leading-none">{avgRating}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{total} reviews</p>
             </div>
           </div>
           <Button
@@ -205,30 +205,30 @@ export function ReviewsClient({
 
       {/* Add Review Form */}
       {showAddForm && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-200">Add a Review Manually</h3>
-            <button onClick={() => setShowAddForm(false)} className="text-zinc-500 hover:text-zinc-300">
+            <h3 className="text-sm font-semibold text-foreground">Add a Review Manually</h3>
+            <button onClick={() => setShowAddForm(false)} className="text-muted-foreground hover:text-foreground/85">
               <X className="w-4 h-4" />
             </button>
           </div>
           {formError && <p className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{formError}</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Customer Name</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Customer Name</label>
               <Input
                 value={newAuthor}
                 onChange={e => setNewAuthor(e.target.value)}
                 placeholder="John Doe"
-                className="bg-zinc-800 border-zinc-700"
+                className="bg-muted border-input"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Assign to Barber (optional)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Assign to Barber (optional)</label>
               <select
                 value={newBarberId}
                 onChange={e => setNewBarberId(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white text-sm"
+                className="w-full px-3 py-2 bg-muted border border-input rounded-md text-white text-sm"
               >
                 <option value="">Shop review (no specific barber)</option>
                 {barbers.map(b => (
@@ -238,7 +238,7 @@ export function ReviewsClient({
             </div>
           </div>
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">Rating</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Rating</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(s => (
                 <button
@@ -249,7 +249,7 @@ export function ReviewsClient({
                   <Star
                     className={cn(
                       'w-6 h-6 transition-colors',
-                      s <= newRating ? 'text-amber-400 fill-amber-400' : 'text-zinc-700 hover:text-zinc-500'
+                      s <= newRating ? 'text-amber-400 fill-amber-400' : 'text-zinc-700 hover:text-muted-foreground'
                     )}
                   />
                 </button>
@@ -257,19 +257,19 @@ export function ReviewsClient({
             </div>
           </div>
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">Comment (optional)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Comment (optional)</label>
             <Textarea
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               placeholder="Great haircut, highly recommend!"
-              className="bg-zinc-800 border-zinc-700 min-h-[80px]"
+              className="bg-muted border-input min-h-[80px]"
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button
               onClick={() => setShowAddForm(false)}
               variant="outline"
-              className="border-zinc-700 text-zinc-400 hover:text-zinc-200"
+              className="border-input text-muted-foreground hover:text-foreground"
             >
               Cancel
             </Button>
@@ -293,7 +293,7 @@ export function ReviewsClient({
               'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               filter === 'all'
                 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                : 'bg-card text-muted-foreground border-border hover:text-foreground'
             )}
           >
             All ({reviews.length})
@@ -304,7 +304,7 @@ export function ReviewsClient({
               'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               filter === 'unassigned'
                 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                : 'bg-card text-muted-foreground border-border hover:text-foreground'
             )}
           >
             Unassigned ({reviews.filter(r => !r.barberId).length})
@@ -320,7 +320,7 @@ export function ReviewsClient({
                   'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                   filter === b.id
                     ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground'
                 )}
               >
                 {b.name} ({count})
@@ -334,7 +334,7 @@ export function ReviewsClient({
       {filteredReviews.length === 0 ? (
         <div className="text-center py-16">
           <Quote className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             {reviews.length === 0
               ? 'No reviews yet. Add one manually or wait for customers to submit reviews.'
               : 'No reviews match this filter.'}
@@ -346,18 +346,18 @@ export function ReviewsClient({
             <div
               key={r.id}
               className={cn(
-                'bg-zinc-900/50 border rounded-xl p-5',
-                r.isFeatured ? 'border-amber-500/30' : 'border-zinc-800'
+                'bg-card/50 border rounded-xl p-5',
+                r.isFeatured ? 'border-amber-500/30' : 'border-border'
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 font-semibold shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground/85 font-semibold shrink-0">
                     {r.authorName[0]?.toUpperCase() || '?'}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-zinc-200">{r.authorName}</span>
+                      <span className="text-sm font-medium text-foreground">{r.authorName}</span>
                       {r.isFeatured && (
                         <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
                           Featured
@@ -369,7 +369,7 @@ export function ReviewsClient({
                         </span>
                       )}
                       {r.barberName && (
-                        <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-medium flex items-center gap-1">
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground border border-input font-medium flex items-center gap-1">
                           <Scissors className="w-3 h-3" />
                           {r.barberName}
                         </span>
@@ -385,23 +385,23 @@ export function ReviewsClient({
                           )}
                         />
                       ))}
-                      <span className="text-xs text-zinc-500 ml-2">
+                      <span className="text-xs text-muted-foreground ml-2">
                         {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
                     {r.comment && (
-                      <p className="text-sm text-zinc-400 mt-2 italic">"{r.comment}"</p>
+                      <p className="text-sm text-muted-foreground mt-2 italic">"{r.comment}"</p>
                     )}
 
                     {/* Barber assignment dropdown */}
                     {barbers.length > 0 && (
                       <div className="mt-3 flex items-center gap-2">
-                        <span className="text-xs text-zinc-500">Barber:</span>
+                        <span className="text-xs text-muted-foreground">Barber:</span>
                         <select
                           value={r.barberId || ''}
                           onChange={e => assignBarber(r.id, e.target.value)}
                           disabled={assigningId === r.id}
-                          className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-300 disabled:opacity-50"
+                          className="text-xs px-2 py-1 bg-muted border border-input rounded-md text-foreground/85 disabled:opacity-50"
                         >
                           <option value="">Unassigned (shop review)</option>
                           {barbers.map(b => (
@@ -419,7 +419,7 @@ export function ReviewsClient({
                       'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
                       r.isFeatured
                         ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                        : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                        : 'bg-muted text-muted-foreground border-input hover:text-foreground'
                     )}
                   >
                     {r.isFeatured ? 'Unfeature' : 'Feature'}
@@ -429,7 +429,7 @@ export function ReviewsClient({
                     className={cn(
                       'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
                       r.isPublished
-                        ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                        ? 'bg-muted text-muted-foreground border-input hover:text-foreground'
                         : 'bg-green-500/10 text-green-400 border-green-500/30'
                     )}
                     title={r.isPublished ? 'Published on the website — click to unpublish' : 'Hidden from the website — click to publish'}
@@ -438,7 +438,7 @@ export function ReviewsClient({
                   </button>
                   <button
                     onClick={() => handleDelete(r.id)}
-                    className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors"
+                    className="w-7 h-7 rounded-md bg-muted hover:bg-red-950/40 text-muted-foreground hover:text-red-400 flex items-center justify-center transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

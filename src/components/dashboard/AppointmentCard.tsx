@@ -35,7 +35,7 @@ export function AppointmentCard({ appointment, onUpdated }: AppointmentCardProps
     <>
       <div
         onClick={() => setDetailsOpen(true)}
-        className={`bg-zinc-950 border border-zinc-800 border-l-4 ${borderClass} rounded-xl p-4 hover:border-zinc-700 hover:shadow-lg transition-all cursor-pointer group`}
+        className={`bg-[var(--dash-surface)] border border-border border-l-4 ${borderClass} rounded-xl p-4 hover:border-input hover:shadow-lg transition-all cursor-pointer group`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 font-mono text-sm text-amber-400 font-semibold">
@@ -47,35 +47,35 @@ export function AppointmentCard({ appointment, onUpdated }: AppointmentCardProps
 
           <Badge
             variant="outline"
-            className={`${STATUS_COLORS[appointment.status] || 'bg-zinc-800 text-zinc-300'} text-[11px] font-medium w-fit`}
+            className={`${STATUS_COLORS[appointment.status] || 'bg-muted text-foreground/85'} text-[11px] font-medium w-fit`}
           >
             {STATUS_LABELS[appointment.status] || appointment.status}
           </Badge>
         </div>
 
         <div className="space-y-1.5">
-          <div className="font-semibold text-base text-zinc-100 group-hover:text-amber-400 transition-colors flex items-center gap-2">
-            <User className="w-4 h-4 text-zinc-500" />
+          <div className="font-semibold text-base text-foreground group-hover:text-amber-400 transition-colors flex items-center gap-2">
+            <User className="w-4 h-4 text-muted-foreground" />
             {appointment.customer
               ? `${appointment.customer.firstName} ${appointment.customer.lastName}`
               : 'Unknown Customer'}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-            <span className="flex items-center gap-1.5 text-zinc-300">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-foreground/85">
               <Scissors className="w-3.5 h-3.5 text-amber-500" />
               {appointment.service?.name || 'Service'}
             </span>
 
             {appointment.barber?.name && (
-              <span className="flex items-center gap-1 text-zinc-400">
-                • Barber: <strong className="text-zinc-300">{appointment.barber.name}</strong>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                • Barber: <strong className="text-foreground/85">{appointment.barber.name}</strong>
               </span>
             )}
 
             {appointment.customer?.phone && (
-              <span className="flex items-center gap-1 text-zinc-400">
-                • <Phone className="w-3 h-3 text-zinc-500" />
+              <span className="flex items-center gap-1 text-muted-foreground">
+                • <Phone className="w-3 h-3 text-muted-foreground" />
                 {appointment.customer.phone}
               </span>
             )}

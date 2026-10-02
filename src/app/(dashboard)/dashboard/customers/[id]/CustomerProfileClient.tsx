@@ -52,7 +52,7 @@ export function CustomerProfileClient({ customerId }: { customerId: string }) {
         asChild
         variant="outline"
         size="sm"
-        className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 gap-2"
+        className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] gap-2"
       >
         <a href={`/dashboard/appointments?customer=${customerId}`}>
           <CalendarPlus className="w-4 h-4" />
@@ -62,7 +62,7 @@ export function CustomerProfileClient({ customerId }: { customerId: string }) {
       <Button
         variant="outline"
         size="sm"
-        className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 gap-2"
+        className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] gap-2"
         onClick={addNote}
         disabled={saving}
       >
@@ -72,7 +72,7 @@ export function CustomerProfileClient({ customerId }: { customerId: string }) {
       <Button
         variant="outline"
         size="sm"
-        className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 gap-2"
+        className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] gap-2"
         onClick={toggleVip}
         disabled={saving}
       >

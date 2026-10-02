@@ -50,15 +50,15 @@ export default function E2ETestPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-100">E2E Booking Test</h1>
-        <p className="text-sm text-zinc-400 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">E2E Booking Test</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Runs a full booking lifecycle test against the production database. Creates a test appointment, verifies it, cancels it, and cleans up.
         </p>
       </div>
 
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-zinc-100">Test Runner</CardTitle>
+          <CardTitle className="text-foreground">Test Runner</CardTitle>
         </CardHeader>
         <CardContent>
           <Button
@@ -89,15 +89,15 @@ export default function E2ETestPage() {
       </Card>
 
       {results.length > 0 && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-zinc-100">Results</CardTitle>
+            <CardTitle className="text-foreground">Results</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {results.map((r, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 p-3 rounded-lg bg-zinc-950/50 border border-zinc-800"
+                className="flex items-start gap-3 p-3 rounded-lg bg-[var(--dash-surface)]/50 border border-border"
               >
                 {r.status === 'pass' ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
@@ -106,7 +106,7 @@ export default function E2ETestPage() {
                 )}
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-200">
+                    <span className="text-sm font-semibold text-foreground">
                       {stepLabels[r.step] || r.step}
                     </span>
                     <Badge
@@ -116,7 +116,7 @@ export default function E2ETestPage() {
                       {r.status.toUpperCase()}
                     </Badge>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1">{r.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{r.message}</p>
                 </div>
               </div>
             ))}

@@ -184,21 +184,21 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800 text-zinc-100 sticky top-0 z-40">
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[var(--dash-surface)] border-b border-border text-foreground sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] text-[var(--dash-brand)] flex items-center justify-center">
             <Scissors className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100 leading-tight">{businessName}</h2>
-            <p className="text-[10px] text-zinc-400 capitalize">{userRole.toLowerCase()} portal</p>
+            <h2 className="text-sm font-semibold text-foreground leading-tight">{businessName}</h2>
+            <p className="text-[10px] text-muted-foreground capitalize">{userRole.toLowerCase()} portal</p>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+          className="text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)]"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
@@ -215,26 +215,26 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0',
+          'fixed top-0 bottom-0 left-0 z-50 w-64 bg-[var(--dash-surface)] border-r border-border flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/10">
+            <div className="w-10 h-10 rounded-xl bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] text-[var(--dash-brand)] flex items-center justify-center shrink-0 shadow-sm">
               <Scissors className="w-5 h-5" />
             </div>
             <div className="overflow-hidden">
-              <h1 className="text-sm font-semibold tracking-tight text-zinc-100 truncate">{businessName}</h1>
-              <p className="text-xs text-amber-500/90 font-medium">
+              <h1 className="text-sm font-semibold tracking-tight text-foreground truncate [font-family:var(--dash-display-font)]">{businessName}</h1>
+              <p className="text-xs text-[var(--dash-brand)] font-medium">
                 {isOwner ? 'Owner Dashboard' : 'Barber Portal'}
               </p>
             </div>
           </div>
           <button
             onClick={closeMobile}
-            className="lg:hidden text-zinc-500 hover:text-zinc-300"
+            className="lg:hidden text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -253,7 +253,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
                 {/* Section Header */}
                 <button
                   onClick={() => toggleSection(section.label, hasActive)}
-                  className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ChevronDown
                     className={cn('w-3 h-3 transition-transform', show ? '' : '-rotate-90')}
@@ -275,21 +275,21 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
                           className={cn(
                             'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative border',
                             isActive
-                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/20 shadow-sm shadow-amber-500/5'
-                              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 border-transparent'
+                              ? 'bg-[var(--dash-brand-soft)] text-foreground border-[var(--dash-brand-border)] shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)] border-transparent'
                           )}
                         >
                           <Icon
                             className={cn(
                               'w-4 h-4 shrink-0',
-                              isActive ? 'text-amber-400' : 'text-zinc-500 group-hover:text-zinc-300'
+                              isActive ? 'text-[var(--dash-brand)]' : 'text-muted-foreground group-hover:text-foreground'
                             )}
                           />
                           <span className="flex-1">{item.name}</span>
                           {isActive && (
                             <>
-                              <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-amber-400" />
-                              <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                              <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[var(--dash-brand)]" />
+                              <ChevronRight className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
                             </>
                           )}
                         </Link>
@@ -303,20 +303,20 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         </nav>
 
         {/* User Info & Logout Footer */}
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950/60">
+        <div className="p-4 border-t border-border bg-[var(--dash-surface-2)]">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 text-sm font-semibold">
+            <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center text-foreground text-sm font-semibold">
               {userName ? userName[0].toUpperCase() : 'U'}
             </div>
             <div className="flex-1 overflow-hidden">
-              <div className="text-sm font-medium text-zinc-200 truncate">{userName}</div>
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+              <div className="text-sm font-medium text-foreground truncate">{userName}</div>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 {isOwner ? (
-                  <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
+                  <span className="inline-flex items-center gap-1 text-[var(--dash-brand)] font-medium">
                     <Shield className="w-3 h-3" /> Owner
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-zinc-400">
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <User className="w-3 h-3" /> Barber
                   </span>
                 )}
@@ -327,9 +327,9 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           <Button
             variant="outline"
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="w-full bg-zinc-900 hover:bg-red-950/30 text-zinc-300 hover:text-red-400 border-zinc-800 hover:border-red-900/50 justify-start gap-2 h-9 text-xs transition-colors"
+            className="w-full bg-muted hover:bg-red-950/30 text-foreground hover:text-red-400 border-border hover:border-red-900/50 justify-start gap-2 h-9 text-xs transition-colors"
           >
-            <LogOut className="w-3.5 h-3.5 text-zinc-500 hover:text-red-400" />
+            <LogOut className="w-3.5 h-3.5 text-muted-foreground hover:text-red-400" />
             <span>Sign Out</span>
           </Button>
         </div>

@@ -77,8 +77,8 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <UserX className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-          <p className="text-zinc-400 text-sm">Loading no-show data...</p>
+          <UserX className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Loading no-show data...</p>
         </div>
       </div>
     )
@@ -88,40 +88,40 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-zinc-100 font-serif">No-Show Management</h1>
-        <p className="text-sm text-zinc-400 mt-1">Track no-shows and configure escalation policies</p>
+        <h1 className="text-2xl font-bold text-foreground font-serif">No-Show Management</h1>
+        <p className="text-sm text-muted-foreground mt-1">Track no-shows and configure escalation policies</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="rounded-xl border border-border bg-card/50 p-4">
           <div className="flex items-center gap-2 mb-2">
             <UserX className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Total No-Shows</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total No-Shows</span>
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{stats.total}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.total}</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="rounded-xl border border-border bg-card/50 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 text-orange-400" />
-            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Unique Customers</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Unique Customers</span>
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{stats.uniqueCustomers}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.uniqueCustomers}</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+        <div className="rounded-xl border border-border bg-card/50 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Repeat Offenders</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Repeat Offenders</span>
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{stats.repeatOffenders}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.repeatOffenders}</p>
         </div>
       </div>
 
       {/* Policy Configuration */}
       {policy && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 space-y-4">
+        <div className="bg-card/50 border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground/85 uppercase tracking-wide flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-500" />
               Escalation Policy
             </h2>
@@ -138,13 +138,13 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(['firstNoShow', 'secondNoShow', 'thirdNoShow'] as const).map((field, idx) => (
               <div key={field}>
-                <label className="block text-sm text-zinc-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   {idx === 0 ? '1st No-Show' : idx === 1 ? '2nd No-Show' : '3rd No-Show'}
                 </label>
                 <select
                   value={policy[field]}
                   onChange={e => setPolicy({ ...policy, [field]: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
                 >
                   {Object.entries(ESCALATION_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -154,26 +154,26 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
             ))}
           </div>
 
-          <div className="flex items-center gap-6 pt-2 border-t border-zinc-800/50">
+          <div className="flex items-center gap-6 pt-2 border-t border-border/50">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={policy.requireDeposit}
                 onChange={e => setPolicy({ ...policy, requireDeposit: e.target.checked })}
-                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500/50"
+                className="w-4 h-4 rounded border-input bg-card text-amber-500 focus:ring-amber-500/50"
               />
-              <span className="text-sm text-zinc-300">Require deposit for flagged customers</span>
+              <span className="text-sm text-foreground/85">Require deposit for flagged customers</span>
             </label>
             {policy.requireDeposit && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-400">Amount:</span>
+                <span className="text-sm text-muted-foreground">Amount:</span>
                 <input
                   type="number"
                   step="0.01"
                   value={policy.depositAmount || ''}
                   onChange={e => setPolicy({ ...policy, depositAmount: parseFloat(e.target.value) || null })}
                   placeholder="0.00"
-                  className="w-24 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm focus:outline-none focus:border-amber-500/50"
+                  className="w-24 px-2 py-1 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
                 />
               </div>
             )}
@@ -185,14 +185,14 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
       {noShows.length === 0 ? (
         <div className="text-center py-16">
           <UserX className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500 text-sm">No no-show records yet.</p>
+          <p className="text-muted-foreground text-sm">No no-show records yet.</p>
         </div>
       ) : (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-card/50 border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-zinc-500 text-xs uppercase border-b border-zinc-800">
+                <tr className="text-muted-foreground text-xs uppercase border-b border-border">
                   <th className="text-left py-3 px-4 font-medium">Customer</th>
                   <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Barber</th>
                   <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Service</th>
@@ -204,13 +204,13 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
               </thead>
               <tbody>
                 {noShows.map(a => (
-                  <tr key={a.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                  <tr key={a.id} className="border-b border-border/50 hover:bg-[var(--dash-hover)]">
                     <td className="py-3 px-4">
-                      <div className="text-zinc-200 font-medium">{a.customer.firstName} {a.customer.lastName}</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">{a.customer.phone}</div>
+                      <div className="text-foreground font-medium">{a.customer.firstName} {a.customer.lastName}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{a.customer.phone}</div>
                     </td>
-                    <td className="py-3 px-4 hidden md:table-cell text-zinc-400">{a.barber?.name || '—'}</td>
-                    <td className="py-3 px-4 hidden lg:table-cell text-zinc-400">{a.service?.name || '—'}</td>
+                    <td className="py-3 px-4 hidden md:table-cell text-muted-foreground">{a.barber?.name || '—'}</td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">{a.service?.name || '—'}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={cn(
                         'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border',
@@ -224,15 +224,15 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
                         'inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium',
                         a.reliability?.band === 'HIGH_RISK' ? 'text-red-400 bg-red-500/10 border-red-500/20' :
                           a.reliability?.band === 'WATCH' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                            'text-zinc-300 bg-zinc-800/60 border-zinc-700'
+                            'text-foreground/85 bg-muted border-input'
                       )}>
                         {a.reliability?.label || 'Watch'}{a.reliability ? ` · ${a.reliability.noShowPercentage}%` : ''}
                       </span>
                     </td>
-                    <td className="py-3 px-4 hidden lg:table-cell text-zinc-400 max-w-48 truncate">
+                    <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground max-w-48 truncate">
                       {a.noShowReason || 'Not recorded'}
                     </td>
-                    <td className="py-3 px-4 text-right text-zinc-500 text-xs">
+                    <td className="py-3 px-4 text-right text-muted-foreground text-xs">
                       {new Date(a.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                   </tr>

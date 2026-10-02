@@ -106,11 +106,11 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-amber-500" />
             <span>Master Calendar</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {view === 'day' && formatFullDate(currentDate)}
             {view === 'week' && `Week of ${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
             {view === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -120,7 +120,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
         <div className="flex flex-wrap items-center gap-3">
           {/* View Switcher Tabs */}
           <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week' | 'month')} className="w-auto">
-            <TabsList className="bg-zinc-950 border border-zinc-800 text-zinc-400 p-1 h-9">
+            <TabsList className="bg-[var(--dash-surface)] border border-border text-muted-foreground p-1 h-9">
               <TabsTrigger value="day" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 text-xs px-3 py-1">
                 Day
               </TabsTrigger>
@@ -134,12 +134,12 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           </Tabs>
 
           {/* Navigation Controls */}
-          <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[var(--dash-surface)] border border-border rounded-lg p-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={handlePrev}
-              className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -147,7 +147,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
               variant="ghost"
               size="sm"
               onClick={handleToday}
-              className="h-7 text-xs text-zinc-300 hover:text-amber-400 px-2.5 font-medium"
+              className="h-7 text-xs text-foreground/85 hover:text-amber-400 px-2.5 font-medium"
             >
               Today
             </Button>
@@ -155,7 +155,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
               variant="ghost"
               size="icon"
               onClick={handleNext}
-              className="h-7 w-7 text-zinc-400 hover:text-zinc-100"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -166,7 +166,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
             type="date"
             value={currentDate.toISOString().split('T')[0]}
             onChange={handleDateChange}
-            className="w-36 bg-zinc-950 border-zinc-800 text-xs text-zinc-100 h-9"
+            className="w-36 bg-[var(--dash-surface)] border-border text-xs text-foreground h-9"
           />
 
           <Button
@@ -182,7 +182,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
 
       {/* Main View Render */}
       {loading ? (
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-12 text-center text-zinc-500 text-xs flex items-center justify-center gap-2">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
           <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
           Loading calendar appointments...
         </div>

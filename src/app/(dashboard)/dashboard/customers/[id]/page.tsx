@@ -90,7 +90,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       <div>
         <Link
           href="/dashboard/customers"
-          className="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-amber-400 transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-amber-400 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Customers
@@ -98,18 +98,18 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       </div>
 
       {/* Profile Header & Info */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xl font-serif">
               {customer.firstName[0]}
               {customer.lastName[0]}
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-serif text-zinc-100">
+              <h1 className="text-2xl font-bold font-serif text-foreground">
                 {customer.firstName} {customer.lastName}
               </h1>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Customer since {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
               {intelligence.isDueForRebook && (
@@ -121,13 +121,13 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400 font-medium">SMS Notifications:</span>
+            <span className="text-xs text-muted-foreground font-medium">SMS Notifications:</span>
             {customer.smsConsent ? (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Consented
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-full font-medium">
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-card border border-border px-2.5 py-1 rounded-full font-medium">
                 <XCircle className="w-3.5 h-3.5" /> Opted Out
               </span>
             )}
@@ -136,34 +136,34 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
 
         {/* Contact Info & Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-3 bg-zinc-900/60 border border-zinc-800/60 p-4 rounded-xl">
+          <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5" /> Phone Number
             </span>
-            <p className="text-sm font-mono text-zinc-200">
+            <p className="text-sm font-mono text-foreground">
               <a href={`tel:${customer.phone?.replace(/\D/g, "")}`} className="hover:text-amber-400 transition-colors">
                 {customer.phone}
               </a>
             </p>
           </div>
 
-          <div className="space-y-3 bg-zinc-900/60 border border-zinc-800/60 p-4 rounded-xl">
+          <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> Email Address
             </span>
-            <p className="text-sm text-zinc-200 truncate">
+            <p className="text-sm text-foreground truncate">
               <a href={`mailto:${customer.email}`} className="hover:text-amber-400 transition-colors">
                 {customer.email}
               </a>
             </p>
           </div>
 
-          <div className="space-y-3 bg-zinc-900/60 border border-zinc-800/60 p-4 rounded-xl">
+          <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Customer Notes
-              <span className="ml-1 text-[9px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded-full px-1.5 py-0.5">STAFF ONLY</span>
+              <span className="ml-1 text-[9px] font-medium text-muted-foreground bg-muted border border-input rounded-full px-1.5 py-0.5">STAFF ONLY</span>
             </span>
-            <p className="text-xs text-zinc-300 italic">
+            <p className="text-xs text-foreground/85 italic">
               {customer.notes ? customer.notes : 'No custom notes provided for this customer.'}
             </p>
           </div>
@@ -176,56 +176,56 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       </div>
 
       {/* Customer Intelligence Section */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <h2 className="text-lg font-bold font-serif text-zinc-100 flex items-center gap-2">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
           <TrendingDown className="w-5 h-5 text-amber-500" />
           <span>Customer Intelligence</span>
         </h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {/* Visits */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-amber-500" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Visits</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Visits</span>
             </div>
-            <p className="text-2xl font-bold font-mono text-zinc-100">{intelligence.visitCount}</p>
+            <p className="text-2xl font-bold font-mono text-foreground">{intelligence.visitCount}</p>
           </div>
 
           {/* Last Visit */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 text-blue-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Last Visit</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Last Visit</span>
             </div>
-            <p className="text-sm font-semibold text-zinc-200 mt-1">
+            <p className="text-sm font-semibold text-foreground mt-1">
               {lastVisit ? new Date(lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
             </p>
           </div>
 
           {/* Favorite Barber */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <User className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Fav. Barber</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Fav. Barber</span>
             </div>
-            <p className="text-sm font-semibold text-zinc-200">{intelligence.favoriteBarber?.name || 'N/A'}</p>
+            <p className="text-sm font-semibold text-foreground">{intelligence.favoriteBarber?.name || 'N/A'}</p>
           </div>
 
           {/* Favorite Service */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Scissors className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Fav. Service</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Fav. Service</span>
             </div>
-            <p className="text-sm font-semibold text-zinc-200">{intelligence.favoriteService?.name || 'N/A'}</p>
+            <p className="text-sm font-semibold text-foreground">{intelligence.favoriteService?.name || 'N/A'}</p>
           </div>
 
           {/* Average Ticket */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="w-4 h-4 text-amber-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Avg Ticket</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Ticket</span>
             </div>
             <p className="text-2xl font-bold font-mono text-emerald-400">
               {intelligence.averageTicket !== null ? formatPrice(intelligence.averageTicket) : 'N/A'}
@@ -233,33 +233,33 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           </div>
 
           {/* Average Interval */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 text-indigo-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Avg Interval</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Interval</span>
             </div>
-            <p className="text-2xl font-bold font-mono text-zinc-100">
+            <p className="text-2xl font-bold font-mono text-foreground">
               {intelligence.averageIntervalDays ? `${intelligence.averageIntervalDays}d` : 'N/A'}
             </p>
           </div>
 
           {/* Lifetime Value */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Lifetime Value</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Lifetime Value</span>
             </div>
             <p className="text-2xl font-bold font-mono text-emerald-400">{formatPrice(intelligence.lifetimeValue)}</p>
           </div>
 
           {/* Cancellations */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <XCircle className="w-4 h-4 text-red-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Cancellations</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Cancellations</span>
             </div>
-            <p className="text-2xl font-bold font-mono text-zinc-100">{intelligence.cancellationCount}</p>
-            <p className="text-[10px] text-zinc-500 mt-0.5">
+            <p className="text-2xl font-bold font-mono text-foreground">{intelligence.cancellationCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               {intelligence.lastCancellationDate
                 ? `Last: ${new Date(intelligence.lastCancellationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                 : 'Never'}
@@ -267,21 +267,21 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           </div>
 
           {/* No-shows */}
-          <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-orange-400" />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">No-shows</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">No-shows</span>
             </div>
-            <p className="text-2xl font-bold font-mono text-zinc-100">{intelligence.noShowCount}</p>
+            <p className="text-2xl font-bold font-mono text-foreground">{intelligence.noShowCount}</p>
           </div>
 
           {/* Next Predicted */}
-          <div className={`rounded-xl p-4 border ${intelligence.isDueForRebook ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-900/60 border-zinc-800/60'}`}>
+          <div className={`rounded-xl p-4 border ${intelligence.isDueForRebook ? 'bg-amber-500/10 border-amber-500/30' : 'bg-card/60 border-border/60'}`}>
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className={`w-4 h-4 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-zinc-400'}`} />
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500">Next Expected</span>
+              <Calendar className={`w-4 h-4 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-muted-foreground'}`} />
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Next Expected</span>
             </div>
-            <p className={`text-sm font-semibold mt-1 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-zinc-200'}`}>
+            <p className={`text-sm font-semibold mt-1 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-foreground'}`}>
               {predictedDateStr || 'N/A'}
             </p>
             {intelligence.isDueForRebook && (
@@ -293,45 +293,45 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-zinc-400 font-medium">Total Appointments</p>
-            <p className="text-xl font-bold font-mono text-zinc-100">{totalAppointments}</p>
+            <p className="text-xs text-muted-foreground font-medium">Total Appointments</p>
+            <p className="text-xl font-bold font-mono text-foreground">{totalAppointments}</p>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-zinc-400 font-medium">Total Revenue</p>
+            <p className="text-xs text-muted-foreground font-medium">Total Revenue</p>
             <p className="text-xl font-bold font-mono text-emerald-400">{formatPrice(totalSpent)}</p>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-zinc-400 font-medium">First Visit</p>
-            <p className="text-xs font-semibold text-zinc-200 mt-1">
+            <p className="text-xs text-muted-foreground font-medium">First Visit</p>
+            <p className="text-xs font-semibold text-foreground mt-1">
               {firstVisit ? new Date(firstVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
             </p>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-zinc-400 font-medium">Last Visit</p>
-            <p className="text-xs font-semibold text-zinc-200 mt-1">
+            <p className="text-xs text-muted-foreground font-medium">Last Visit</p>
+            <p className="text-xs font-semibold text-foreground mt-1">
               {lastVisit ? new Date(lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
             </p>
           </div>
@@ -339,9 +339,9 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       </div>
 
       {/* Haircut History & Preferences */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
             <Scissors className="w-5 h-5 text-amber-500" />
             <span>Haircut History &amp; Preferences</span>
           </h2>
@@ -356,18 +356,18 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
         {(() => {
           const preferred = computePreferredBarber(appointments)
           return (
-            <div className="flex items-center gap-3 text-sm bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+            <div className="flex items-center gap-3 text-sm bg-card/60 border border-border/60 rounded-xl p-4">
               <User className="w-4 h-4 text-amber-500 shrink-0" />
-              <span className="text-zinc-400 text-xs uppercase tracking-wide">Preferred Barber</span>
-              <span className="text-zinc-100 font-medium">
+              <span className="text-muted-foreground text-xs uppercase tracking-wide">Preferred Barber</span>
+              <span className="text-foreground font-medium">
                 {preferred ? preferred.barberName : 'N/A'}
               </span>
               {preferred && (
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px] text-muted-foreground">
                   {preferred.completedVisits} completed visit{preferred.completedVisits === 1 ? '' : 's'}
                 </span>
               )}
-              <span className="ml-auto text-[10px] text-zinc-600">derived from completed visits</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">derived from completed visits</span>
             </div>
           )
         })()}
@@ -376,20 +376,20 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
         <div>
           <div className="flex items-center gap-2 mb-2.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">Saved Preferences</span>
-            <span className="text-[9px] font-medium text-zinc-500 bg-zinc-800 border border-zinc-700 rounded-full px-1.5 py-0.5">CUSTOMER VISIBLE</span>
+            <span className="text-[9px] font-medium text-muted-foreground bg-muted border border-input rounded-full px-1.5 py-0.5">CUSTOMER VISIBLE</span>
           </div>
           {(() => {
             const prefs = formatPreferencesForDisplay(customer.preferences)
             return prefs.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">
+              <p className="text-xs text-muted-foreground italic">
                 No saved preferences. Customers can add their own from the customer portal, or staff can record them here.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {prefs.map(p => (
-                  <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-zinc-900/60 border border-zinc-800 rounded-full px-3 py-1.5">
-                    <span className="text-zinc-500">{p.label}</span>
-                    <span className="text-zinc-200 font-medium">{p.value}</span>
+                  <span key={p.key} className="inline-flex items-baseline gap-1.5 text-xs bg-card/60 border border-border rounded-full px-3 py-1.5">
+                    <span className="text-muted-foreground">{p.label}</span>
+                    <span className="text-foreground font-medium">{p.value}</span>
                   </span>
                 ))}
               </div>
@@ -399,27 +399,27 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
 
         {/* Rebooking interval (if configured) */}
         {intelligence.averageIntervalDays && (
-          <div className="flex items-center gap-3 text-sm bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4">
+          <div className="flex items-center gap-3 text-sm bg-card/60 border border-border/60 rounded-xl p-4">
             <Clock className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="text-zinc-400 text-xs uppercase tracking-wide">Typical Rebooking Interval</span>
-            <span className="text-zinc-100 font-medium">{intelligence.averageIntervalDays} days</span>
+            <span className="text-muted-foreground text-xs uppercase tracking-wide">Typical Rebooking Interval</span>
+            <span className="text-foreground font-medium">{intelligence.averageIntervalDays} days</span>
             {predictedDateStr && (
-              <span className="ml-auto text-[10px] text-zinc-600">predicted next visit ~ {predictedDateStr}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">predicted next visit ~ {predictedDateStr}</span>
             )}
           </div>
         )}
       </div>
 
       {/* Appointment History Table */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <h2 className="text-lg font-bold font-serif text-zinc-100 flex items-center gap-2">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
           <Scissors className="w-5 h-5 text-amber-500" />
           <span>Appointment History</span>
         </h2>
 
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-zinc-900/80 uppercase font-semibold text-zinc-400 border-b border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-left text-xs text-foreground/85">
+            <thead className="bg-card/80 uppercase font-semibold text-muted-foreground border-b border-border">
               <tr>
                 <th className="p-3.5 pl-4">Confirmation #</th>
                 <th className="p-3.5">Date & Time</th>
@@ -429,10 +429,10 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
                 <th className="p-3.5 pr-4 text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-border/60">
               {appointments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-zinc-500">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     No appointment history found for this customer.
                   </td>
                 </tr>
@@ -440,21 +440,21 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
                 appointments.map((appt) => {
                   const dateStr = formatFullDate(new Date(appt.startTime))
                   const timeStr = `${formatTime(new Date(appt.startTime))} - ${formatTime(new Date(appt.endTime))}`
-                  const statusColor = STATUS_COLORS[appt.status] || 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                  const statusColor = STATUS_COLORS[appt.status] || 'bg-muted text-foreground/85 border-input'
                   const statusLabel = STATUS_LABELS[appt.status] || appt.status
 
                   return (
-                    <tr key={appt.id} className="hover:bg-zinc-900/70 transition-colors">
+                    <tr key={appt.id} className="hover:bg-card/70 transition-colors">
                       <td className="p-3.5 pl-4 font-mono text-amber-400 text-[11px]">
                         {appt.confirmationNumber}
                       </td>
                       <td className="p-3.5">
-                        <div className="font-medium text-zinc-200">{dateStr}</div>
-                        <div className="text-[10px] text-zinc-500">{timeStr}</div>
+                        <div className="font-medium text-foreground">{dateStr}</div>
+                        <div className="text-[10px] text-muted-foreground">{timeStr}</div>
                       </td>
                       <td className="p-3.5">{appt.service?.name || 'N/A'}</td>
                       <td className="p-3.5">{appt.barber?.name || 'N/A'}</td>
-                      <td className="p-3.5 font-mono text-zinc-200">{formatPrice(appt.service?.price || 0)}</td>
+                      <td className="p-3.5 font-mono text-foreground">{formatPrice(appt.service?.price || 0)}</td>
                       <td className="p-3.5 pr-4 text-right">
                         <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusColor}`}>
                           {statusLabel}

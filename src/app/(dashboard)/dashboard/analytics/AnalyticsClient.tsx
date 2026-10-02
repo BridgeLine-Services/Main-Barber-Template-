@@ -101,8 +101,8 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Activity className="w-10 h-10 text-zinc-600 mx-auto mb-3 animate-pulse" />
-          <p className="text-zinc-400 text-sm">Loading analytics...</p>
+          <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3 animate-pulse" />
+          <p className="text-muted-foreground text-sm">Loading analytics...</p>
         </div>
       </div>
     )
@@ -115,8 +115,8 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 font-serif">Analytics</h1>
-          <p className="text-sm text-zinc-400 mt-1">Business intelligence & performance insights</p>
+          <h1 className="text-2xl font-bold text-foreground font-serif">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-1">Business intelligence & performance insights</p>
         </div>
         <div className="flex gap-2">
           {[7, 30, 90].map((days) => (
@@ -127,7 +127,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors border',
                 rangeDays === days
                   ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700'
+                  : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-input'
               )}
             >
               {days === 7 ? '7 days' : days === 30 ? '30 days' : '90 days'}
@@ -138,7 +138,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
 
       {/* Today's Stats */}
       <div>
-        <h2 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">Today</h2>
+        <h2 className="text-sm font-semibold text-foreground/85 mb-3 uppercase tracking-wide">Today</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={Calendar}
@@ -173,7 +173,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
 
       {/* Business Performance */}
       <div>
-        <h2 className="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">
+        <h2 className="text-sm font-semibold text-foreground/85 mb-3 uppercase tracking-wide">
           Business Performance · Last {rangeDays} days
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -239,13 +239,13 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
       {/* Two column: Barber Performance + Peak Hours */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Barber Performance */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-300 mb-4 uppercase tracking-wide flex items-center gap-2">
+        <div className="bg-card/50 border border-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
             <Award className="w-4 h-4 text-amber-500" />
             Barber Performance
           </h2>
           {barberPerformance.length === 0 ? (
-            <p className="text-zinc-500 text-sm py-8 text-center">No data for this period</p>
+            <p className="text-muted-foreground text-sm py-8 text-center">No data for this period</p>
           ) : (
             <div className="space-y-3">
               {barberPerformance.map((b, i) => {
@@ -254,8 +254,8 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                   <div key={i}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-zinc-200 text-sm font-medium">{b.barberName}</span>
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-foreground text-sm font-medium">{b.barberName}</span>
+                        <span className="text-xs text-muted-foreground">
                           {b.appointments} appts · {b.cancellations} canc · {b.noShows} NS
                         </span>
                       </div>
@@ -263,7 +263,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                         ${b.revenue.toFixed(0)}
                       </span>
                     </div>
-                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-500/60 rounded-full transition-all"
                         style={{ width: `${(b.revenue / maxRevenue) * 100}%` }}
@@ -277,13 +277,13 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
         </div>
 
         {/* Peak Hours */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-zinc-300 mb-4 uppercase tracking-wide flex items-center gap-2">
+        <div className="bg-card/50 border border-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-500" />
             Peak Hours
           </h2>
           {peakHours.length === 0 ? (
-            <p className="text-zinc-500 text-sm py-8 text-center">No data for this period</p>
+            <p className="text-muted-foreground text-sm py-8 text-center">No data for this period</p>
           ) : (
             <div className="space-y-2.5">
               {peakHours.map((ph, i) => {
@@ -291,12 +291,12 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                 return (
                   <div key={i}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-zinc-300">
+                      <span className="text-sm text-foreground/85">
                         {ph.dayOfWeek} · {ph.hour}
                       </span>
-                      <span className="text-xs font-medium text-zinc-400">{ph.count} visits</span>
+                      <span className="text-xs font-medium text-muted-foreground">{ph.count} visits</span>
                     </div>
-                    <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-500/60 rounded-full"
                         style={{ width: `${(ph.count / maxCount) * 100}%` }}
@@ -311,18 +311,18 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
       </div>
 
       {/* Services Per Barber */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-zinc-300 mb-4 uppercase tracking-wide flex items-center gap-2">
+      <div className="bg-card/50 border border-border rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
           <Calendar className="w-4 h-4 text-amber-500" />
           Services Breakdown by Barber
         </h2>
         {servicesPerBarber.length === 0 ? (
-          <p className="text-zinc-500 text-sm py-8 text-center">No data for this period</p>
+          <p className="text-muted-foreground text-sm py-8 text-center">No data for this period</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-zinc-500 text-xs uppercase border-b border-zinc-800">
+                <tr className="text-muted-foreground text-xs uppercase border-b border-border">
                   <th className="text-left py-2 px-3 font-medium">Service</th>
                   <th className="text-right py-2 px-3 font-medium">Total</th>
                   <th className="text-left py-2 px-3 font-medium">Barber Breakdown</th>
@@ -331,8 +331,8 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
               <tbody>
                 {servicesPerBarber.map((s, i) => {
                   return (
-                    <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
-                      <td className="py-3 px-3 text-zinc-200 font-medium">{s.serviceName}</td>
+                    <tr key={i} className="border-b border-border/50 hover:bg-[var(--dash-hover)]">
+                      <td className="py-3 px-3 text-foreground font-medium">{s.serviceName}</td>
                       <td className="py-3 px-3 text-right">
                         <span className="text-amber-400 font-semibold">{s.totalCount}</span>
                       </td>
@@ -341,9 +341,9 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                           {s.barberBreakdown.map((b, j) => (
                             <span
                               key={j}
-                              className="text-xs px-2 py-1 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/50"
+                              className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground border border-input/50"
                             >
-                              {b.barberName}: <span className="text-zinc-200 font-medium">{b.count}</span>
+                              {b.barberName}: <span className="text-foreground font-medium">{b.count}</span>
                             </span>
                           ))}
                         </div>
@@ -384,15 +384,15 @@ function StatCard({
 }) {
   const c = colorClasses[color] || colorClasses.amber
   return (
-    <div className={cn('rounded-xl border p-4 bg-zinc-900/50', c.border)}>
+    <div className={cn('rounded-xl border p-4 bg-card/50', c.border)}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
         <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', c.bg, c.text)}>
           <Icon className="w-3.5 h-3.5" />
         </div>
       </div>
-      <p className="text-2xl font-bold text-zinc-100">{value}</p>
-      <p className="text-xs text-zinc-500 mt-1">{subtext}</p>
+      <p className="text-2xl font-bold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
     </div>
   )
 }

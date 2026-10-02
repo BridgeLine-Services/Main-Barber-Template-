@@ -125,24 +125,24 @@ export function AppointmentDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg p-6">
+      <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg p-6">
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-zinc-400 flex items-center gap-1">
+            <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
               <Hash className="w-3.5 h-3.5 text-amber-500" />
               {appointment.confirmationNumber}
             </span>
             <Badge
               variant="outline"
-              className={STATUS_COLORS[appointment.status] || 'bg-zinc-800 text-zinc-300'}
+              className={STATUS_COLORS[appointment.status] || 'bg-muted text-foreground/85'}
             >
               {STATUS_LABELS[appointment.status] || appointment.status}
             </Badge>
           </div>
-          <DialogTitle className="text-xl font-bold font-serif text-zinc-100">
+          <DialogTitle className="text-xl font-bold font-serif text-foreground">
             Appointment Details
           </DialogTitle>
-          <DialogDescription className="text-zinc-400 text-xs">
+          <DialogDescription className="text-muted-foreground text-xs">
             Created via {appointment.createdBy || 'System'} on{' '}
             {formatFullDate(new Date(appointment.createdAt))}
           </DialogDescription>
@@ -156,22 +156,22 @@ export function AppointmentDetailsDialog({
 
         <div className="space-y-4 my-2 text-sm">
           {/* Customer Info */}
-          <div className="p-3.5 rounded-lg bg-zinc-900 border border-zinc-800 space-y-2">
+          <div className="p-3.5 rounded-lg bg-card border border-border space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" /> Customer Info
             </div>
-            <div className="text-base font-bold text-zinc-100">
+            <div className="text-base font-bold text-foreground">
               {appointment.customer
                 ? `${appointment.customer.firstName} ${appointment.customer.lastName}`
                 : 'Customer'}
             </div>
-            <div className="flex flex-wrap gap-4 text-xs text-zinc-300">
+            <div className="flex flex-wrap gap-4 text-xs text-foreground/85">
               {appointment.customer?.phone && (
                 <a
                   href={`tel:${appointment.customer.phone?.replace(/\D/g, "")}`}
                   className="flex items-center gap-1 hover:text-amber-400 transition-colors"
                 >
-                  <Phone className="w-3.5 h-3.5 text-zinc-500" />
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   {appointment.customer.phone}
                 </a>
               )}
@@ -180,7 +180,7 @@ export function AppointmentDetailsDialog({
                   href={`mailto:${appointment.customer.email}`}
                   className="flex items-center gap-1 hover:text-amber-400 transition-colors"
                 >
-                  <Mail className="w-3.5 h-3.5 text-zinc-500" />
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground" />
                   {appointment.customer.email}
                 </a>
               )}
@@ -189,14 +189,14 @@ export function AppointmentDetailsDialog({
 
           {/* Service & Barber */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
+            <div className="p-3 rounded-lg bg-card border border-border space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
                 <Scissors className="w-3 h-3 text-amber-400" /> Service
               </span>
-              <div className="font-semibold text-zinc-100">
+              <div className="font-semibold text-foreground">
                 {appointment.service?.name || 'Service'}
               </div>
-              <div className="text-xs text-zinc-400">
+              <div className="text-xs text-muted-foreground">
                 {appointment.service?.duration
                   ? formatDuration(appointment.service.duration)
                   : ''}{' '}
@@ -207,23 +207,23 @@ export function AppointmentDetailsDialog({
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
+            <div className="p-3 rounded-lg bg-card border border-border space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
                 <User className="w-3 h-3 text-amber-400" /> Barber
               </span>
-              <div className="font-semibold text-zinc-100">
+              <div className="font-semibold text-foreground">
                 {appointment.barber?.name || 'Barber'}
               </div>
-              <div className="text-xs text-zinc-400">
+              <div className="text-xs text-muted-foreground">
                 {appointment.barber?.specialty || 'Staff'}
               </div>
             </div>
           </div>
 
           {/* Date & Time */}
-          <div className="p-3.5 rounded-lg bg-zinc-900 border border-zinc-800 space-y-2">
-            <div className="flex items-center justify-between text-xs text-zinc-300">
-              <span className="flex items-center gap-1.5 font-medium text-zinc-200">
+          <div className="p-3.5 rounded-lg bg-card border border-border space-y-2">
+            <div className="flex items-center justify-between text-xs text-foreground/85">
+              <span className="flex items-center gap-1.5 font-medium text-foreground">
                 <Calendar className="w-3.5 h-3.5 text-amber-400" />
                 {formatFullDate(startDate)}
               </span>
@@ -236,32 +236,32 @@ export function AppointmentDetailsDialog({
 
           {/* Customer Notes */}
           {appointment.customerNotes && (
-            <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800 space-y-1">
-              <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
-                <FileText className="w-3 h-3 text-zinc-500" /> Customer Notes
+            <div className="p-3 rounded-lg bg-card/60 border border-border space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                <FileText className="w-3 h-3 text-muted-foreground" /> Customer Notes
               </span>
-              <p className="text-xs text-zinc-300 italic">{appointment.customerNotes}</p>
+              <p className="text-xs text-foreground/85 italic">{appointment.customerNotes}</p>
             </div>
           )}
 
           {/* Appointment Notes & Intake */}
           {(appointment.customerNotes || appointment.intakeResponses?.length > 0) && (
-            <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3.5">
+            <div className="space-y-3 rounded-lg border border-border bg-card p-3.5">
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">
                 <FileText className="h-3.5 w-3.5" /> Appointment Notes &amp; Intake
               </div>
               {appointment.customerNotes && (
                 <div>
-                  <div className="text-[11px] font-medium text-zinc-400">Customer notes</div>
-                  <p className="text-xs italic text-zinc-300">{appointment.customerNotes}</p>
+                  <div className="text-[11px] font-medium text-muted-foreground">Customer notes</div>
+                  <p className="text-xs italic text-foreground/85">{appointment.customerNotes}</p>
                 </div>
               )}
               {appointment.intakeResponses?.map((response) => (
-                <div key={response.id || response.questionKey} className="border-t border-zinc-800 pt-2">
-                  <div className="text-[11px] font-medium text-zinc-400">
+                <div key={response.id || response.questionKey} className="border-t border-border pt-2">
+                  <div className="text-[11px] font-medium text-muted-foreground">
                     {response.questionLabel}
                   </div>
-                  <p className="whitespace-pre-wrap text-xs text-zinc-200">
+                  <p className="whitespace-pre-wrap text-xs text-foreground">
                     {Array.isArray(response.answer) ? response.answer.join(', ') : String(response.answer ?? '—')}
                   </p>
                 </div>
@@ -288,14 +288,14 @@ export function AppointmentDetailsDialog({
                 placeholder="e.g. Client called to cancel"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100"
+                className="bg-[var(--dash-surface)] border-border text-xs text-foreground"
               />
               <div className="flex justify-end gap-2">
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => setShowCancelReasonInput(false)}
-                  className="text-xs text-zinc-400"
+                  className="text-xs text-muted-foreground"
                 >
                   Back
                 </Button>
@@ -314,27 +314,27 @@ export function AppointmentDetailsDialog({
 
           {/* Reschedule inline form */}
           {isRescheduling && (
-            <div className="p-3.5 rounded-lg bg-zinc-900 border border-amber-500/30 space-y-3">
+            <div className="p-3.5 rounded-lg bg-card border border-amber-500/30 space-y-3">
               <div className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
                 <CalendarClock className="w-4 h-4" /> Reschedule Appointment
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[11px] text-zinc-400">New Date</Label>
+                  <Label className="text-[11px] text-muted-foreground">New Date</Label>
                   <Input
                     type="date"
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100"
+                    className="bg-[var(--dash-surface)] border-border text-xs text-foreground"
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] text-zinc-400">New Time</Label>
+                  <Label className="text-[11px] text-muted-foreground">New Time</Label>
                   <Input
                     type="time"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100"
+                    className="bg-[var(--dash-surface)] border-border text-xs text-foreground"
                   />
                 </div>
               </div>
@@ -343,7 +343,7 @@ export function AppointmentDetailsDialog({
                   size="sm"
                   variant="ghost"
                   onClick={() => setIsRescheduling(false)}
-                  className="text-xs text-zinc-400"
+                  className="text-xs text-muted-foreground"
                 >
                   Cancel
                 </Button>
@@ -360,7 +360,7 @@ export function AppointmentDetailsDialog({
           )}
         </div>
 
-        <Separator className="bg-zinc-800 my-2" />
+        <Separator className="bg-muted my-2" />
 
         {/* Action Buttons Footer */}
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
@@ -414,7 +414,7 @@ export function AppointmentDetailsDialog({
                     variant="outline"
                     disabled={loading}
                     onClick={() => handleStatusChange('NO_SHOW')}
-                    className="bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-zinc-200 text-xs"
+                    className="bg-card border-input text-muted-foreground hover:text-foreground text-xs"
                   >
                     <AlertOctagon className="w-3.5 h-3.5 mr-1" />
                     No-Show

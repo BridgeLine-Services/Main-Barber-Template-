@@ -94,11 +94,11 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <UserCircle className="w-6 h-6 text-amber-500" />
             <span>Barbers Directory</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Manage shop barbers, staff accounts, profiles, and schedules
           </p>
         </div>
@@ -114,7 +114,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
       {/* Barbers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {initialBarbers.length === 0 ? (
-          <div className="col-span-full p-8 text-center text-zinc-500 bg-zinc-950 border border-zinc-800 rounded-2xl">
+          <div className="col-span-full p-8 text-center text-muted-foreground bg-[var(--dash-surface)] border border-border rounded-2xl">
             No barbers found. Click "Add Barber" to set up your team.
           </div>
         ) : (
@@ -124,7 +124,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
             return (
               <div
                 key={barber.id}
-                className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-zinc-700 transition-colors group"
+                className="bg-[var(--dash-surface)] border border-border rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-input transition-colors group"
               >
                 <div className="space-y-4">
                   {/* Avatar & Status */}
@@ -142,7 +142,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                         </div>
                       )}
                       <div>
-                        <h2 className="text-base font-bold font-serif text-zinc-100 group-hover:text-amber-400 transition-colors">
+                        <h2 className="text-base font-bold font-serif text-foreground group-hover:text-amber-400 transition-colors">
                           {barber.name}
                         </h2>
                         <p className="text-xs text-amber-500/90 font-medium">
@@ -162,7 +162,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                           <CheckCircle2 className="w-3 h-3" /> Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full hover:bg-zinc-800 transition-colors">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-card border border-border px-2 py-0.5 rounded-full hover:bg-[var(--dash-hover)] transition-colors">
                           <XCircle className="w-3 h-3" /> Inactive
                         </span>
                       )}
@@ -171,23 +171,23 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
 
                   {/* Bio */}
                   {barber.bio && (
-                    <p className="text-xs text-zinc-400 line-clamp-2 italic">
+                    <p className="text-xs text-muted-foreground line-clamp-2 italic">
                       "{barber.bio}"
                     </p>
                   )}
 
                   {/* Stats */}
-                  <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl text-xs">
-                    <span className="text-zinc-400">Total Bookings</span>
+                  <div className="flex items-center justify-between p-3 bg-card/60 border border-border/80 rounded-xl text-xs">
+                    <span className="text-muted-foreground">Total Bookings</span>
                     <span className="font-mono font-bold text-amber-400">{apptCount}</span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                <div className="pt-2 border-t border-border/80 flex items-center justify-between gap-2">
                   <Link
                     href={`/dashboard/schedule?barberId=${barber.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-amber-400 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/85 hover:text-amber-400 transition-colors"
                   >
                     <Clock className="w-3.5 h-3.5 text-amber-500" /> Manage Schedule
                   </Link>
@@ -197,7 +197,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleOpenEdit(barber)}
-                      className="h-8 text-xs text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 gap-1"
+                      className="h-8 text-xs text-muted-foreground hover:text-amber-400 hover:bg-card gap-1"
                     >
                       <Edit2 className="w-3.5 h-3.5" /> Edit Profile
                     </Button>
@@ -216,7 +216,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => setConfirmDelete(null)}
-                          className="h-8 text-xs text-zinc-400"
+                          className="h-8 text-xs text-muted-foreground"
                         >
                           Cancel
                         </Button>
@@ -226,7 +226,7 @@ export function BarbersClient({ initialBarbers }: BarbersClientProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setConfirmDelete(barber)}
-                        className="h-8 text-xs text-zinc-500 hover:text-red-400 hover:bg-zinc-900 gap-1"
+                        className="h-8 text-xs text-muted-foreground hover:text-red-400 hover:bg-card gap-1"
                         title="Delete or deactivate this barber"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete

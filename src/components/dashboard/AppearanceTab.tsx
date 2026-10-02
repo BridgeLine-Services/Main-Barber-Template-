@@ -109,7 +109,7 @@ function optionLabel(value: string): string {
 function HeroPreview({ heroLayout, preset }: { heroLayout: string; preset: VisualStyle }) {
   const meta = PRESET_META[preset]
   const [bg, accent, surface, light] = meta.swatches
-  const base = 'relative flex h-28 w-full overflow-hidden rounded-md border border-zinc-700'
+  const base = 'relative flex h-28 w-full overflow-hidden rounded-md border border-input'
   const text = 'font-bold tracking-tight'
   if (heroLayout === 'split') {
     return (
@@ -156,7 +156,7 @@ function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset:
   const hSize = resolved.headingScale === 'grand' ? 'text-[13px]' : resolved.headingScale === 'compact' ? 'text-[9px]' : 'text-[11px]'
   const radius = resolved.buttonStyle === 'pill' ? 'rounded-full' : resolved.buttonStyle === 'soft' ? 'rounded-md' : 'rounded-none'
   const imgRadius = resolved.imageShape === 'rounded' ? 'rounded-md' : resolved.imageShape === 'full-bleed' ? 'rounded-none' : 'rounded-sm'
-  const label = 'mb-1.5 text-[7px] font-semibold uppercase tracking-widest text-zinc-500'
+  const label = 'mb-1.5 text-[7px] font-semibold uppercase tracking-widest text-muted-foreground'
 
   const services =
     resolved.serviceLayout === 'visual-menu' ? (
@@ -249,8 +249,8 @@ function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset:
     )
 
   return (
-    <div className="overflow-hidden rounded-md border border-zinc-700" style={{ background: `${bg}11` }} aria-hidden="true">
-      <div className="border-b border-zinc-700 p-2.5" style={{ background: bg }}>
+    <div className="overflow-hidden rounded-md border border-input" style={{ background: `${bg}11` }} aria-hidden="true">
+      <div className="border-b border-input p-2.5" style={{ background: bg }}>
         <div className="flex items-center justify-between">
           <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: light }}>The Shop</span>
           <span className={cn('px-2 py-0.5 text-[6px] font-semibold text-white', radius)} style={{ background: accent }}>Book</span>
@@ -272,7 +272,7 @@ function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset:
           <p className={label} style={{ color: accent }}>Gallery — {OPTION_LABELS[resolved.galleryLayout] ?? resolved.galleryLayout}</p>
           {gallery}
         </div>
-        <div className="flex justify-center border-t border-zinc-700 pt-2.5">
+        <div className="flex justify-center border-t border-input pt-2.5">
           <span className={cn('px-3 py-1 text-[7px] font-semibold text-white', radius)} style={{ background: accent }}>
             Book your chair
           </span>
@@ -308,7 +308,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
   }
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Monitor className="h-5 w-5 text-amber-500" />
@@ -316,16 +316,16 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Choose the visual identity customers see on your public website. Changes save as a{' '}
-          <span className="font-semibold text-zinc-200">draft</span> and go live when you{' '}
-          <span className="font-semibold text-zinc-200">publish</span> (Publish Website card below).
+          <span className="font-semibold text-foreground">draft</span> and go live when you{' '}
+          <span className="font-semibold text-foreground">publish</span> (Publish Website card below).
         </p>
 
         {/* ── Preset picker ─────────────────────────────────────────── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Visual preset</h3>
-          <p className="mb-4 text-xs text-zinc-500">
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Visual preset</h3>
+          <p className="mb-4 text-xs text-muted-foreground">
             Each preset is a complete design identity — typography, spacing, surfaces, image treatment, and motion.
           </p>
           <div role="radiogroup" aria-label="Visual preset" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -341,20 +341,20 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
                   onClick={() => setPreset(style)}
                   className={cn(
                     'rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
-                    isSelected ? 'border-amber-500 bg-amber-500/10' : 'border-zinc-700 hover:border-zinc-500'
+                    isSelected ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-500'
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-zinc-100">{VISUAL_STYLE_CONFIG[style].label}</span>
+                    <span className="text-sm font-semibold text-foreground">{VISUAL_STYLE_CONFIG[style].label}</span>
                     {isSelected && <Check className="h-4 w-4 text-amber-500" aria-label="Selected" />}
                   </div>
                   <div className="mt-2 flex gap-1" aria-hidden="true">
                     {meta.swatches.map((c) => (
-                      <span key={c} className="h-5 w-5 rounded-full border border-zinc-700" style={{ background: c }} />
+                      <span key={c} className="h-5 w-5 rounded-full border border-input" style={{ background: c }} />
                     ))}
                   </div>
-                  <p className="mt-2 text-[11px] leading-snug text-zinc-400">{meta.blurb}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">{meta.type}</p>
+                  <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{meta.blurb}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{meta.type}</p>
                 </button>
               )
             })}
@@ -363,8 +363,8 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
 
         {/* ── Mini-site preview (hero + sections, from the resolved draft) ── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Site preview</h3>
-          <p className="mb-3 text-xs text-zinc-500">
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Site preview</h3>
+          <p className="mb-3 text-xs text-muted-foreground">
             A simplified mock of your homepage as this draft resolves it — hero, services, team, gallery, and buttons follow your choices below.
           </p>
           <div className="space-y-2">
@@ -378,8 +378,8 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
 
         {/* ── Independent layout overrides ──────────────────────────── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Layout & behavior</h3>
-          <p className="mb-4 text-xs text-zinc-500">
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Layout & behavior</h3>
+          <p className="mb-4 text-xs text-muted-foreground">
             Every option defaults to the preset&apos;s built-in choice. Override only what you want to differ.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -389,11 +389,11 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
               const currentValue = overrides[key] ?? ''
               return (
                 <label key={key} className="block">
-                  <span className="mb-1 block text-xs font-medium text-zinc-300">{FIELD_LABELS[key]}</span>
+                  <span className="mb-1 block text-xs font-medium text-foreground/85">{FIELD_LABELS[key]}</span>
                   <select
                     value={currentValue}
                     onChange={(e) => setOverride(key, e.target.value)}
-                    className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
                   >
                     <option value="">Preset default — {optionLabel(presetDefault)}</option>
                     {options.map((opt) => (
@@ -408,18 +408,18 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
 
         {/* ── Typography ─────────────────────────────────────────────── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-zinc-200">Typography</h3>
-          <p className="mb-4 text-xs text-zinc-500">
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Typography</h3>
+          <p className="mb-4 text-xs text-muted-foreground">
             Optionally override the preset&apos;s fonts. The heading font applies to display
             headings; the body font applies to paragraphs, buttons, and forms.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-300">Heading font</span>
+              <span className="mb-1 block text-xs font-medium text-foreground/85">Heading font</span>
               <select
                 value={overrides.headingFont ?? ''}
                 onChange={(e) => setOverride('headingFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
               >
                 <option value="">Preset default</option>
                 {FONT_FAMILY_OPTIONS.map((f) => (
@@ -428,11 +428,11 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-300">Body font</span>
+              <span className="mb-1 block text-xs font-medium text-foreground/85">Body font</span>
               <select
                 value={overrides.bodyFont ?? ''}
                 onChange={(e) => setOverride('bodyFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
               >
                 <option value="">Preset default</option>
                 {FONT_FAMILY_OPTIONS.map((f) => (
@@ -442,16 +442,16 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
             </label>
           </div>
           {(resolved.headingFont || resolved.bodyFont) && (
-            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-4" aria-hidden="true">
-              <p className="text-xs uppercase tracking-widest text-zinc-500">Font preview</p>
+            <div className="mt-4 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-4" aria-hidden="true">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Font preview</p>
               <p
-                className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100"
+                className="mt-1 text-2xl font-semibold tracking-tight text-foreground"
                 style={{ fontFamily: resolved.headingFont ? mapFontFamily(resolved.headingFont) : undefined }}
               >
                 Sharp looks, honest craft.
               </p>
               <p
-                className="mt-2 text-sm text-zinc-400"
+                className="mt-2 text-sm text-muted-foreground"
                 style={{ fontFamily: resolved.bodyFont ? mapFontFamily(resolved.bodyFont) : undefined }}
               >
                 Fades, beard work, and classic cuts — done right, every visit.
@@ -460,9 +460,9 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
           )}
         </div>
 
-        <div className="flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
-          <p className="text-xs leading-relaxed text-zinc-400">
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Walk-in navigation focus appears on the public site only when your shop supports walk-ins
             (Business Info → walk-ins welcome). Motion respects each visitor&apos;s reduced-motion preference
             regardless of the level chosen here.

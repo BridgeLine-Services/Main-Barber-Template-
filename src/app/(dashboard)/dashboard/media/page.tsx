@@ -196,7 +196,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{title}</h1>
-          <p className="text-sm text-zinc-400 mt-1">{description}</p>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         </div>
         <Button
           onClick={() => fileRef.current?.click()}
@@ -224,7 +224,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeType === t.value
                 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent'
+                : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)] border border-transparent'
             }`}
           >
             {t.label}
@@ -234,12 +234,12 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
 
       {/* Media Grid */}
       {loading ? (
-        <p className="text-zinc-400">Loading...</p>
+        <p className="text-muted-foreground">Loading...</p>
       ) : media.length === 0 ? (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardContent className="py-12 text-center">
             <ImageIcon className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
-            <p className="text-zinc-400">No images in this category yet.</p>
+            <p className="text-muted-foreground">No images in this category yet.</p>
             <Button
               onClick={() => fileRef.current?.click()}
               className="mt-4 bg-amber-500 text-black hover:bg-amber-400"
@@ -252,8 +252,8 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {media.map(asset => (
-            <Card key={asset.id} className="bg-zinc-900 border-zinc-800 overflow-hidden group">
-              <div className="relative aspect-square bg-zinc-800">
+            <Card key={asset.id} className="bg-card border-border overflow-hidden group">
+              <div className="relative aspect-square bg-muted">
                 { }
                 <img
                   src={asset.url}
@@ -295,7 +295,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                 )}
               </div>
               <div className="p-3 space-y-1">
-                <p className="text-xs text-zinc-400 truncate">{asset.altText || 'No description'}</p>
+                <p className="text-xs text-muted-foreground truncate">{asset.altText || 'No description'}</p>
                 {asset.serviceId && services.some(svc => svc.id === asset.serviceId) && (
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90 truncate">
                     {services.find(svc => svc.id === asset.serviceId)?.name}
@@ -310,7 +310,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       {/* Edit Modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setEditing(null)}>
-          <Card className="bg-zinc-900 border-zinc-800 max-w-md w-full" onClick={e => e.stopPropagation()}>
+          <Card className="bg-card border-border max-w-md w-full" onClick={e => e.stopPropagation()}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Edit Image</CardTitle>
@@ -325,7 +325,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative rounded-lg overflow-hidden border border-zinc-700 bg-zinc-950">
+              <div className="relative rounded-lg overflow-hidden border border-input bg-[var(--dash-surface)]">
                 <button
                   type="button"
                   className="block w-full cursor-crosshair"
@@ -361,9 +361,9 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                 </button>
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-400">Focal point (how the image is cropped)</Label>
+                <Label className="text-muted-foreground">Focal point (how the image is cropped)</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-500 w-6">X</span>
+                  <span className="text-[11px] text-muted-foreground w-6">X</span>
                   <input
                     type="range"
                     min={0}
@@ -373,10 +373,10 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                     className="flex-1 accent-amber-500"
                     aria-label="Focal point horizontal position"
                   />
-                  <span className="text-[11px] text-zinc-500 w-8 text-right">{editing.focalX ?? 50}%</span>
+                  <span className="text-[11px] text-muted-foreground w-8 text-right">{editing.focalX ?? 50}%</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-500 w-6">Y</span>
+                  <span className="text-[11px] text-muted-foreground w-6">Y</span>
                   <input
                     type="range"
                     min={0}
@@ -386,45 +386,45 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                     className="flex-1 accent-amber-500"
                     aria-label="Focal point vertical position"
                   />
-                  <span className="text-[11px] text-zinc-500 w-8 text-right">{editing.focalY ?? 50}%</span>
+                  <span className="text-[11px] text-muted-foreground w-8 text-right">{editing.focalY ?? 50}%</span>
                 </div>
                 {(editing.focalX !== null && editing.focalX !== undefined) || (editing.focalY !== null && editing.focalY !== undefined) ? (
                   <button
                     type="button"
                     onClick={() => setEditing({ ...editing, focalX: null, focalY: null })}
-                    className="text-[11px] text-zinc-400 underline hover:text-zinc-200"
+                    className="text-[11px] text-muted-foreground underline hover:text-foreground"
                   >
                     Reset to center
                   </button>
                 ) : (
-                  <p className="text-[11px] text-zinc-500">Click the image or drag the sliders to choose what stays visible when the site crops this photo.</p>
+                  <p className="text-[11px] text-muted-foreground">Click the image or drag the sliders to choose what stays visible when the site crops this photo.</p>
                 )}
               </div>
               <div>
-                <Label className="text-zinc-400">Alt Text</Label>
+                <Label className="text-muted-foreground">Alt Text</Label>
                 <Input
                   value={editing.altText || ''}
                   onChange={e => setEditing({ ...editing, altText: e.target.value })}
-                  className="bg-zinc-800 border-zinc-700 mt-1"
+                  className="bg-muted border-input mt-1"
                   placeholder="Describe the image for accessibility"
                 />
               </div>
               <div>
-                <Label className="text-zinc-400">Caption</Label>
+                <Label className="text-muted-foreground">Caption</Label>
                 <Textarea
                   value={editing.caption || ''}
                   onChange={e => setEditing({ ...editing, caption: e.target.value })}
-                  className="bg-zinc-800 border-zinc-700 mt-1 min-h-[60px]"
+                  className="bg-muted border-input mt-1 min-h-[60px]"
                   placeholder="Optional caption"
                 />
               </div>
               {(editing.type === 'BARBER_PORTFOLIO' || editing.type === 'SERVICE_PHOTO') && (
                 <div>
-                  <Label className="text-zinc-400">Linked Service (optional)</Label>
+                  <Label className="text-muted-foreground">Linked Service (optional)</Label>
                   <select
                     value={editing.serviceId || ''}
                     onChange={e => setEditing({ ...editing, serviceId: e.target.value || null })}
-                    className="w-full mt-1 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200"
+                    className="w-full mt-1 rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground"
                     aria-label="Linked service"
                   >
                     <option value="">Not linked to a service</option>
@@ -432,22 +432,22 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                       <option key={svc.id} value={svc.id}>{svc.name}</option>
                     ))}
                   </select>
-                  <p className="text-[11px] text-zinc-500 mt-1">
+                  <p className="text-[11px] text-muted-foreground mt-1">
                     Links this work to a service — customers can filter portfolio by service.
                   </p>
                 </div>
               )}
               <div>
-                <Label className="text-zinc-400">Sort Order</Label>
+                <Label className="text-muted-foreground">Sort Order</Label>
                 <Input
                   type="number"
                   value={editing.sortOrder}
                   onChange={e => setEditing({ ...editing, sortOrder: parseInt(e.target.value) || 0 })}
-                  className="bg-zinc-800 border-zinc-700 mt-1"
+                  className="bg-muted border-input mt-1"
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-zinc-200">Published</Label>
+                <Label className="text-foreground">Published</Label>
                 <input
                   type="checkbox"
                   checked={editing.isPublished}

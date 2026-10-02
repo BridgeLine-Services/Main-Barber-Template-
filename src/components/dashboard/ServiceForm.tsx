@@ -108,7 +108,7 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg">
+      <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-serif text-amber-400 flex items-center gap-2">
             <Scissors className="w-5 h-5 text-amber-500" />
@@ -124,58 +124,58 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Service Name *</Label>
+            <Label className="text-xs text-foreground/85">Service Name *</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Classic Haircut, Beard Trim"
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500"
+              className="bg-card border-border text-xs focus:border-amber-500"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Description</Label>
+            <Label className="text-xs text-foreground/85">Description</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief summary of what this service includes..."
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 min-h-[70px]"
+              className="bg-card border-border text-xs focus:border-amber-500 min-h-[70px]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Duration (Minutes) *</Label>
+              <Label className="text-xs text-foreground/85">Duration (Minutes) *</Label>
               <Input
                 type="number"
                 min="5"
                 step="5"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 font-mono"
+                className="bg-card border-border text-xs focus:border-amber-500 font-mono"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Price ($) *</Label>
+              <Label className="text-xs text-foreground/85">Price ($) *</Label>
               <Input
                 type="number"
                 min="0"
                 step="1"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 font-mono"
+                className="bg-card border-border text-xs focus:border-amber-500 font-mono"
                 required
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
+          <div className="flex items-center justify-between p-3 bg-card/60 border border-border/80 rounded-xl">
             <div>
-              <p className="text-xs font-semibold text-zinc-200">Active Service</p>
-              <p className="text-[11px] text-zinc-400">Available for online client booking</p>
+              <p className="text-xs font-semibold text-foreground">Active Service</p>
+              <p className="text-[11px] text-muted-foreground">Available for online client booking</p>
             </div>
             <button
               type="button"
@@ -193,10 +193,10 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
           </div>
 
           <div className="space-y-2 pt-2">
-            <Label className="text-xs text-zinc-300">Assign Barbers who offer this service</Label>
-            <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-3 space-y-2 max-h-40 overflow-y-auto">
+            <Label className="text-xs text-foreground/85">Assign Barbers who offer this service</Label>
+            <div className="bg-card/60 border border-border/80 rounded-xl p-3 space-y-2 max-h-40 overflow-y-auto">
               {barbers.length === 0 ? (
-                <p className="text-xs text-zinc-500">No active barbers available.</p>
+                <p className="text-xs text-muted-foreground">No active barbers available.</p>
               ) : (
                 barbers.map((barber) => {
                   const checked = selectedBarberIds.includes(barber.id)
@@ -204,14 +204,14 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
                     <label
                       key={barber.id}
                       onClick={() => handleBarberToggle(barber.id)}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-800/50 cursor-pointer text-xs transition-colors"
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--dash-hover)] cursor-pointer text-xs transition-colors"
                     >
-                      <span className="font-medium text-zinc-200">{barber.name}</span>
+                      <span className="font-medium text-foreground">{barber.name}</span>
                       <div
                         className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                           checked
                             ? 'bg-amber-500 border-amber-500 text-zinc-950'
-                            : 'border-zinc-700 bg-zinc-900'
+                            : 'border-input bg-card'
                         }`}
                       >
                         {checked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -223,12 +223,12 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
             </div>
           </div>
 
-          <DialogFooter className="pt-4 border-t border-zinc-800/80">
+          <DialogFooter className="pt-4 border-t border-border/80">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 text-xs"
+              className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] text-xs"
             >
               Cancel
             </Button>

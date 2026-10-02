@@ -98,19 +98,19 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
   }
 
   return (
-    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+    <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-6">
       <div>
-        <h2 className="text-lg font-bold font-serif text-zinc-100 flex items-center gap-2">
+        <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
           <Calendar className="w-5 h-5 text-amber-500" />
           <span>Time Off & Blocked Hours</span>
         </h2>
-        <p className="text-xs text-zinc-400 mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Schedule vacations, personal days, or blocked time slots
         </p>
       </div>
 
       {/* Add Form */}
-      <form onSubmit={handleAddBlockedTime} className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 space-y-4">
+      <form onSubmit={handleAddBlockedTime} className="bg-card/60 border border-border/80 rounded-xl p-4 space-y-4">
         <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
           Schedule New Time Off
         </p>
@@ -124,40 +124,40 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Start Date & Time</Label>
+            <Label className="text-xs text-foreground/85">Start Date & Time</Label>
             <div className="flex gap-2">
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 focus:border-amber-500"
+                className="bg-[var(--dash-surface)] border-border text-xs text-foreground focus:border-amber-500"
                 required
               />
               <Input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 w-28 font-mono focus:border-amber-500"
+                className="bg-[var(--dash-surface)] border-border text-xs text-foreground w-28 font-mono focus:border-amber-500"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">End Date & Time</Label>
+            <Label className="text-xs text-foreground/85">End Date & Time</Label>
             <div className="flex gap-2">
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 focus:border-amber-500"
+                className="bg-[var(--dash-surface)] border-border text-xs text-foreground focus:border-amber-500"
                 required
               />
               <Input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 w-28 font-mono focus:border-amber-500"
+                className="bg-[var(--dash-surface)] border-border text-xs text-foreground w-28 font-mono focus:border-amber-500"
                 required
               />
             </div>
@@ -165,12 +165,12 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-300">Reason / Title</Label>
+          <Label className="text-xs text-foreground/85">Reason / Title</Label>
           <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Vacation, Doctor Appointment, Shop Maintenance"
-            className="bg-zinc-950 border-zinc-800 text-xs text-zinc-100 focus:border-amber-500"
+            className="bg-[var(--dash-surface)] border-border text-xs text-foreground focus:border-amber-500"
           />
         </div>
 
@@ -188,16 +188,16 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
 
       {/* Blocked Times List */}
       <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Upcoming Blocked Periods ({initialBlockedTimes.length})
         </h3>
 
         {initialBlockedTimes.length === 0 ? (
-          <div className="p-6 text-center text-xs text-zinc-500 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+          <div className="p-6 text-center text-xs text-muted-foreground bg-card/30 border border-border/50 rounded-xl">
             No blocked time off scheduled.
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800/60 border border-zinc-800/80 rounded-xl bg-zinc-900/40 overflow-hidden">
+          <div className="divide-y divide-border/60 border border-border/80 rounded-xl bg-card/40 overflow-hidden">
             {initialBlockedTimes.map((item) => {
               const start = new Date(item.startTime)
               const end = new Date(item.endTime)
@@ -218,11 +218,11 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
               })
 
               return (
-                <div key={item.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-zinc-900/80 transition-colors">
+                <div key={item.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-card/80 transition-colors">
                   <div>
-                    <p className="text-xs font-bold text-zinc-100">{item.reason || 'Blocked Time'}</p>
+                    <p className="text-xs font-bold text-foreground">{item.reason || 'Blocked Time'}</p>
                     <p className="text-[11px] font-mono text-amber-400/90 mt-0.5 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-zinc-500" />
+                      <Clock className="w-3 h-3 text-muted-foreground" />
                       {startStr} — {endStr}
                     </p>
                   </div>
@@ -232,7 +232,7 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
                     size="icon"
                     onClick={() => handleDelete(item.id)}
                     disabled={deletingId === item.id}
-                    className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-950/30 shrink-0"
+                    className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30 shrink-0"
                     title="Delete Block"
                   >
                     {deletingId === item.id ? (

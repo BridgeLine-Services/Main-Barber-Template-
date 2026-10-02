@@ -133,7 +133,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg">
+      <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-serif text-amber-400 flex items-center gap-2">
             <UserCircle className="w-5 h-5 text-amber-500" />
@@ -149,34 +149,34 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Barber Name *</Label>
+            <Label className="text-xs text-foreground/85">Barber Name *</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Marcus Vance"
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500"
+              className="bg-card border-border text-xs focus:border-amber-500"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Specialty / Title</Label>
+            <Label className="text-xs text-foreground/85">Specialty / Title</Label>
             <Input
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
               placeholder="e.g. Master Barber • Skin Fades & Hot Towel Shaves"
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500"
+              className="bg-card border-border text-xs focus:border-amber-500"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Photo</Label>
+            <Label className="text-xs text-foreground/85">Photo</Label>
             <div className="flex gap-2">
               <Input
                 value={photo}
                 onChange={(e) => setPhoto(e.target.value)}
                 placeholder="https://… or upload a file"
-                className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 font-mono"
+                className="bg-card border-border text-xs focus:border-amber-500 font-mono"
               />
               <input
                 ref={photoInputRef}
@@ -189,7 +189,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                 type="button"
                 variant="outline"
                 size="sm"
-                className="shrink-0 border-zinc-700 text-zinc-300"
+                className="shrink-0 border-input text-foreground/85"
                 disabled={photoUploading || loading}
                 onClick={() => photoInputRef.current?.click()}
               >
@@ -199,46 +199,46 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
             {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
             {photo && (
                
-              <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-zinc-700" />
+              <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-input" />
             )}
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300">Bio / About</Label>
+            <Label className="text-xs text-foreground/85">Bio / About</Label>
             <Textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Short bio for client booking page..."
-              className="bg-zinc-900 border-zinc-800 text-xs focus:border-amber-500 min-h-[70px]"
+              className="bg-card border-border text-xs focus:border-amber-500 min-h-[70px]"
             />
           </div>
 
           {!isEdit && (
-            <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-3">
+            <div className="p-3 bg-card/80 border border-border rounded-xl space-y-3">
               <p className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" /> Login Credentials for Barber
               </p>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-zinc-300">Email Address *</Label>
+                <Label className="text-xs text-foreground/85">Email Address *</Label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="barber@barbershop.com"
-                  className="bg-zinc-950 border-zinc-800 text-xs focus:border-amber-500"
+                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-amber-500"
                   required={!isEdit}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-zinc-300">Initial Password *</Label>
+                <Label className="text-xs text-foreground/85">Initial Password *</Label>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="bg-zinc-950 border-zinc-800 text-xs focus:border-amber-500"
+                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-amber-500"
                   required={!isEdit}
                 />
               </div>
@@ -246,10 +246,10 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           )}
 
           {isEdit && (
-            <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
+            <div className="flex items-center justify-between p-3 bg-card/60 border border-border/80 rounded-xl">
               <div>
-                <p className="text-xs font-semibold text-zinc-200">Active Status</p>
-                <p className="text-[11px] text-zinc-400">Allows booking appointments with this barber</p>
+                <p className="text-xs font-semibold text-foreground">Active Status</p>
+                <p className="text-[11px] text-muted-foreground">Allows booking appointments with this barber</p>
               </div>
               <button
                 type="button"
@@ -267,12 +267,12 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
             </div>
           )}
 
-          <DialogFooter className="pt-4 border-t border-zinc-800/80">
+          <DialogFooter className="pt-4 border-t border-border/80">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 text-xs"
+              className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] text-xs"
             >
               Cancel
             </Button>

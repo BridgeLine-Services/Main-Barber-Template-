@@ -140,10 +140,10 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
   }
 
   const inputClass =
-    'w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none'
+    'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none'
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <LayoutGrid className="h-5 w-5 text-amber-500" aria-hidden="true" />
@@ -151,11 +151,11 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Choose which sections appear on your homepage and in what order. Changes save as a{' '}
-          <span className="font-semibold text-zinc-200">draft</span> and go live when you publish.
+          <span className="font-semibold text-foreground">draft</span> and go live when you publish.
           {!dirty && (
-            <span className="mt-1 block text-xs text-zinc-500">
+            <span className="mt-1 block text-xs text-muted-foreground">
               You are currently viewing your site&apos;s existing configuration (derived from the
               legacy section toggles). Any change here replaces it with an explicit section layout.
             </span>
@@ -172,24 +172,24 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
               <li
                 key={m.id}
                 className={cn(
-                  'rounded-lg border bg-zinc-950/50',
-                  m.enabled ? 'border-zinc-700' : 'border-zinc-800 opacity-70'
+                  'rounded-lg border bg-[var(--dash-surface)]/50',
+                  m.enabled ? 'border-input' : 'border-border opacity-70'
                 )}
               >
                 <div className="flex items-center gap-3 p-3">
-                  <span className="w-6 text-center text-xs tabular-nums text-zinc-500" aria-hidden="true">
+                  <span className="w-6 text-center text-xs tabular-nums text-muted-foreground" aria-hidden="true">
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium text-zinc-100">{meta.label}</span>
+                      <span className="truncate text-sm font-medium text-foreground">{meta.label}</span>
                       {locked && (
-                        <span className="rounded-full border border-zinc-700 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-500">
+                        <span className="rounded-full border border-input px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                           Always on
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-xs text-zinc-500">{meta.description}</p>
+                    <p className="truncate text-xs text-muted-foreground">{meta.description}</p>
                   </div>
                   {canExpand && (
                     <button
@@ -197,7 +197,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => setExpanded(isOpen ? null : m.id)}
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${meta.label} settings`}
-                      className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--dash-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
                       <Settings2 className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -208,7 +208,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => move(index, -1)}
                       disabled={index <= 1}
                       aria-label={`Move ${meta.label} up`}
-                      className="rounded-sm p-0.5 text-zinc-400 transition-colors hover:text-zinc-100 disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
                       <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -217,7 +217,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => move(index, 1)}
                       disabled={index >= modules.length - 1}
                       aria-label={`Move ${meta.label} down`}
-                      className="rounded-sm p-0.5 text-zinc-400 transition-colors hover:text-zinc-100 disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
                       <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -231,10 +231,10 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                 </div>
 
                 {canExpand && isOpen && (
-                  <div className="space-y-3 border-t border-zinc-800 p-3">
+                  <div className="space-y-3 border-t border-border p-3">
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium text-zinc-300">
-                        Heading <span className="text-zinc-500">(optional — leave blank for the default)</span>
+                      <span className="mb-1 block text-xs font-medium text-foreground/85">
+                        Heading <span className="text-muted-foreground">(optional — leave blank for the default)</span>
                       </span>
                       <Input
                         value={m.settings.heading}
@@ -245,8 +245,8 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium text-zinc-300">
-                        Description <span className="text-zinc-500">(optional)</span>
+                      <span className="mb-1 block text-xs font-medium text-foreground/85">
+                        Description <span className="text-muted-foreground">(optional)</span>
                       </span>
                       <Textarea
                         value={m.settings.blurb}
@@ -258,7 +258,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       />
                     </label>
                     <label className="block max-w-[12rem]">
-                      <span className="mb-1 block text-xs font-medium text-zinc-300">
+                      <span className="mb-1 block text-xs font-medium text-foreground/85">
                         Items to show
                       </span>
                       <Input
@@ -272,12 +272,12 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                     </label>
 
                     {m.id === 'socialGallery' && m.settings.social && (
-                      <div className="space-y-3 rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                      <div className="space-y-3 rounded-md border border-border bg-card/60 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           Gallery strip options
                         </p>
                         <label className="block">
-                          <span className="mb-1 block text-xs font-medium text-zinc-300">
+                          <span className="mb-1 block text-xs font-medium text-foreground/85">
                             Display name / handle
                           </span>
                           <Input
@@ -289,8 +289,8 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                           />
                         </label>
                         <label className="block">
-                          <span className="mb-1 block text-xs font-medium text-zinc-300">
-                            Profile link <span className="text-zinc-500">(https://… — blank hides the link)</span>
+                          <span className="mb-1 block text-xs font-medium text-foreground/85">
+                            Profile link <span className="text-muted-foreground">(https://… — blank hides the link)</span>
                           </span>
                           <Input
                             type="url"
@@ -316,7 +316,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                             onCheckedChange={(checked) => setSocial({ followEnabled: checked })}
                             aria-label="Show profile link button"
                           />
-                          <span className="text-xs text-zinc-300">Show the &quot;View profile&quot; link</span>
+                          <span className="text-xs text-foreground/85">Show the &quot;View profile&quot; link</span>
                         </div>
                       </div>
                     )}
@@ -327,9 +327,9 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
           })}
         </ol>
 
-        <div className="flex items-start gap-2 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
-          <p className="text-xs leading-relaxed text-zinc-400">
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Sections render only when they have content: portfolio sections stay hidden
             until you upload photos (Upload Media), and Before/After needs pairs from the
             Content tab. Reviews show only your featured reviews.

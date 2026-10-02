@@ -170,11 +170,11 @@ export function AppointmentsListView({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <CalendarDays className="w-6 h-6 text-amber-500" />
             <span>All Appointments</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Search, filter, manage, and export shop bookings.
           </p>
         </div>
@@ -184,7 +184,7 @@ export function AppointmentsListView({
             variant="outline"
             size="sm"
             onClick={exportToCSV}
-            className="bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-900 text-xs h-9 gap-1.5"
+            className="bg-[var(--dash-surface)] border-border text-foreground/85 hover:bg-card text-xs h-9 gap-1.5"
           >
             <Download className="w-3.5 h-3.5 text-amber-400" />
             Export CSV
@@ -202,7 +202,7 @@ export function AppointmentsListView({
             size="sm"
             onClick={() => setRecurringOpen(true)}
             variant="outline"
-            className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 font-semibold text-xs h-9 gap-1.5"
+            className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] font-semibold text-xs h-9 gap-1.5"
           >
             <Repeat className="w-4 h-4 text-amber-400" />
             Recurring
@@ -211,25 +211,25 @@ export function AppointmentsListView({
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-4 space-y-3">
         <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {/* Search Input */}
           <div className="relative lg:col-span-2">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search customer, phone, confirmation #..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
+              className="pl-9 bg-card border-border text-xs text-foreground h-9"
             />
           </div>
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9">
+            <SelectTrigger className="bg-card border-border text-xs text-foreground h-9">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+            <SelectContent className="bg-card border-border text-foreground">
               <SelectItem value="ALL" className="text-xs">All Statuses</SelectItem>
               <SelectItem value="CONFIRMED" className="text-xs">Confirmed</SelectItem>
               <SelectItem value="PENDING" className="text-xs">Pending</SelectItem>
@@ -242,10 +242,10 @@ export function AppointmentsListView({
           {/* Barber Filter (if owner) */}
           {isOwner && (
             <Select value={barberFilter} onValueChange={setBarberFilter}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9">
+              <SelectTrigger className="bg-card border-border text-xs text-foreground h-9">
                 <SelectValue placeholder="Barber" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+              <SelectContent className="bg-card border-border text-foreground">
                 <SelectItem value="ALL" className="text-xs">All Barbers</SelectItem>
                 {barbers.map((b) => (
                   <SelectItem key={b.id} value={b.id} className="text-xs">
@@ -262,23 +262,23 @@ export function AppointmentsListView({
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             aria-label="Start date"
-            className="min-w-0 bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
+            className="min-w-0 bg-card border-border text-xs text-foreground h-9"
           />
           <Input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             aria-label="End date"
-            className="min-w-0 bg-zinc-900 border-zinc-800 text-xs text-zinc-100 h-9"
+            className="min-w-0 bg-card border-border text-xs text-foreground h-9"
           />
         </div>
       </div>
 
       {/* Appointments Table */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-zinc-900/80 uppercase font-semibold text-zinc-400 border-b border-zinc-800">
+          <table className="w-full text-left text-xs text-foreground/85">
+            <thead className="bg-card/80 uppercase font-semibold text-muted-foreground border-b border-border">
               <tr>
                 <th className="p-3.5 pl-4">Confirmation</th>
                 <th className="p-3.5">Date & Time</th>
@@ -289,10 +289,10 @@ export function AppointmentsListView({
                 <th className="p-3.5 pr-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-border/60">
               {filteredAppointments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-zinc-500">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     No appointments match your search criteria.
                   </td>
                 </tr>
@@ -307,38 +307,38 @@ export function AppointmentsListView({
                         setSelectedAppointment(appt as unknown as CalendarAppointment)
                         setDetailsOpen(true)
                       }}
-                      className="hover:bg-zinc-900/70 transition-colors cursor-pointer group"
+                      className="hover:bg-card/70 transition-colors cursor-pointer group"
                     >
                       <td className="p-3.5 pl-4 font-mono text-amber-400 font-semibold">
                         {appt.confirmationNumber}
                       </td>
                       <td className="p-3.5">
-                        <div className="font-medium text-zinc-100">
+                        <div className="font-medium text-foreground">
                           {st.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
-                        <div className="text-[11px] text-zinc-500">{formatTime(st)}</div>
+                        <div className="text-[11px] text-muted-foreground">{formatTime(st)}</div>
                       </td>
                       <td className="p-3.5">
-                        <div className="font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors">
+                        <div className="font-semibold text-foreground group-hover:text-amber-400 transition-colors">
                           {appt.customer
                             ? `${appt.customer.firstName} ${appt.customer.lastName}`
                             : 'Unknown'}
                         </div>
-                        <div className="text-[11px] text-zinc-500">{appt.customer?.phone}</div>
+                        <div className="text-[11px] text-muted-foreground">{appt.customer?.phone}</div>
                       </td>
-                      <td className="p-3.5 font-medium text-zinc-200">
+                      <td className="p-3.5 font-medium text-foreground">
                         {appt.service?.name}
                       </td>
-                      <td className="p-3.5 text-zinc-400">
+                      <td className="p-3.5 text-muted-foreground">
                         {appt.barber?.name || 'Unassigned'}
                       </td>
-                      <td className="p-3.5 font-mono text-zinc-300">
+                      <td className="p-3.5 font-mono text-foreground/85">
                         {formatPrice(appt.service?.price || 0)}
                       </td>
                       <td className="p-3.5 pr-4">
                         <Badge
                           variant="outline"
-                          className={`${STATUS_COLORS[appt.status] || 'bg-zinc-800 text-zinc-300'} text-[10px]`}
+                          className={`${STATUS_COLORS[appt.status] || 'bg-muted text-foreground/85'} text-[10px]`}
                         >
                           {STATUS_LABELS[appt.status] || appt.status}
                         </Badge>

@@ -218,12 +218,12 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg p-6">
+      <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <DialogTitle className="text-xl font-bold font-serif text-foreground flex items-center gap-2">
             <Plus className="w-5 h-5 text-amber-500" /> Manual Appointment
           </DialogTitle>
-          <DialogDescription className="text-zinc-400 text-xs">
+          <DialogDescription className="text-muted-foreground text-xs">
             Add an appointment directly into the shop schedule.
           </DialogDescription>
         </DialogHeader>
@@ -238,12 +238,12 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
           {/* Barber & Service */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Barber</Label>
+              <Label className="text-xs text-foreground/85">Barber</Label>
               <Select value={selectedBarberId} onValueChange={setSelectedBarberId}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-zinc-100 text-xs">
+                <SelectTrigger className="bg-card border-border text-foreground text-xs">
                   <SelectValue placeholder="Select barber" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                <SelectContent className="bg-card border-border text-foreground">
                   {barbers.map((b) => (
                     <SelectItem key={b.id} value={b.id} className="text-xs">
                       {b.name}
@@ -254,12 +254,12 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Service</Label>
+              <Label className="text-xs text-foreground/85">Service</Label>
               <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-zinc-100 text-xs">
+                <SelectTrigger className="bg-card border-border text-foreground text-xs">
                   <SelectValue placeholder="Select service" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                <SelectContent className="bg-card border-border text-foreground">
                   {services.map((s) => (
                     <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} (${s.price})
@@ -273,29 +273,29 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Date</Label>
+              <Label className="text-xs text-foreground/85">Date</Label>
               <Input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 text-xs"
+                className="bg-card border-border text-foreground text-xs"
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300">Start Time</Label>
+              <Label className="text-xs text-foreground/85">Start Time</Label>
               <Input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 text-zinc-100 text-xs"
+                className="bg-card border-border text-foreground text-xs"
                 required
               />
             </div>
           </div>
 
           {/* Customer Selection Header */}
-          <div className="pt-2 border-t border-zinc-800">
+          <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs font-semibold text-amber-400">Customer Details</Label>
               <Button
@@ -310,20 +310,20 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
             </div>
 
             {isNewCustomer ? (
-              <div className="space-y-2 bg-zinc-900/60 p-3 rounded-lg border border-zinc-800">
+              <div className="space-y-2 bg-card/60 p-3 rounded-lg border border-border">
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     placeholder="First Name *"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs"
+                    className="bg-[var(--dash-surface)] border-border text-xs"
                     required
                   />
                   <Input
                     placeholder="Last Name *"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs"
+                    className="bg-[var(--dash-surface)] border-border text-xs"
                     required
                   />
                 </div>
@@ -332,7 +332,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
                     placeholder="Phone *"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs"
+                    className="bg-[var(--dash-surface)] border-border text-xs"
                     required
                   />
                   <Input
@@ -340,7 +340,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-xs"
+                    className="bg-[var(--dash-surface)] border-border text-xs"
                     required
                   />
                 </div>
@@ -348,22 +348,22 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
             ) : (
               <div className="space-y-2">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search existing customer by name, phone..."
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="pl-9 bg-zinc-900 border-zinc-800 text-xs"
+                    className="pl-9 bg-card border-border text-xs"
                   />
                 </div>
 
                 <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800 text-zinc-100 text-xs">
+                  <SelectTrigger className="bg-card border-border text-foreground text-xs">
                     <SelectValue placeholder="Choose customer" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-48">
+                  <SelectContent className="bg-card border-border text-foreground max-h-48">
                     {filteredCustomers.length === 0 ? (
-                      <div className="p-2 text-xs text-zinc-500">No customers found</div>
+                      <div className="p-2 text-xs text-muted-foreground">No customers found</div>
                     ) : (
                       filteredCustomers.map((c) => (
                         <SelectItem key={c.id} value={c.id} className="text-xs">
@@ -379,12 +379,12 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
 
           {/* Notes */}
           <div className="space-y-1">
-            <Label className="text-xs text-zinc-300">Appointment Notes (Optional)</Label>
+            <Label className="text-xs text-foreground/85">Appointment Notes (Optional)</Label>
             <Textarea
               placeholder="e.g. Requested low skin fade with beard trim"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="bg-zinc-900 border-zinc-800 text-xs h-16"
+              className="bg-card border-border text-xs h-16"
             />
           </div>
 
@@ -393,7 +393,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
               type="button"
               variant="ghost"
               onClick={onClose}
-              className="text-xs text-zinc-400"
+              className="text-xs text-muted-foreground"
             >
               Cancel
             </Button>

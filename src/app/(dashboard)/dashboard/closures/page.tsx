@@ -147,8 +147,8 @@ export default function ClosuresPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Holiday Closures</h1>
-          <p className="text-sm text-zinc-400 mt-1">Manage holidays, vacations, and special hours.</p>
+          <h1 className="text-2xl font-bold text-foreground">Holiday Closures</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage holidays, vacations, and special hours.</p>
         </div>
         {!showForm && (
           <Button
@@ -168,54 +168,54 @@ export default function ClosuresPage() {
       )}
 
       {showForm && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-zinc-100">{editingId ? 'Edit Closure' : 'New Closure'}</CardTitle>
+            <CardTitle className="text-foreground">{editingId ? 'Edit Closure' : 'New Closure'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Title</label>
+                <label className="block text-sm font-medium text-foreground/85 mb-1">Title</label>
                 <input
                   type="text"
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Christmas Day, Summer Vacation"
-                  className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">Description (optional)</label>
+                <label className="block text-sm font-medium text-foreground/85 mb-1">Description (optional)</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="e.g. Shop closed for the holiday"
-                  className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Start Date</label>
+                  <label className="block text-sm font-medium text-foreground/85 mb-1">Start Date</label>
                   <input
                     type="date"
                     required
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">End Date</label>
+                  <label className="block text-sm font-medium text-foreground/85 mb-1">End Date</label>
                   <input
                     type="date"
                     required
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -226,29 +226,29 @@ export default function ClosuresPage() {
                   id="isAllDay"
                   checked={form.isAllDay}
                   onChange={(e) => setForm({ ...form, isAllDay: e.target.checked })}
-                  className="rounded border-zinc-600 bg-zinc-800"
+                  className="rounded border-zinc-600 bg-muted"
                 />
-                <label htmlFor="isAllDay" className="text-sm text-zinc-300">All day</label>
+                <label htmlFor="isAllDay" className="text-sm text-foreground/85">All day</label>
               </div>
 
               {!form.isAllDay && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-300 mb-1">Start Time</label>
+                    <label className="block text-sm font-medium text-foreground/85 mb-1">Start Time</label>
                     <input
                       type="time"
                       value={form.startTime}
                       onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-300 mb-1">End Time</label>
+                    <label className="block text-sm font-medium text-foreground/85 mb-1">End Time</label>
                     <input
                       type="time"
                       value={form.endTime}
                       onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                      className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-zinc-100 focus:border-amber-500 focus:outline-none"
+                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -260,7 +260,7 @@ export default function ClosuresPage() {
                   {editingId ? 'Save Changes' : 'Create Closure'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm() }}
-                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                  className="border-input text-foreground/85 hover:bg-[var(--dash-hover)]">
                   Cancel
                 </Button>
               </div>
@@ -271,18 +271,18 @@ export default function ClosuresPage() {
 
       <div className="space-y-3">
         {closures.length === 0 && !showForm ? (
-          <Card className="bg-zinc-900 border-zinc-800 p-12 text-center">
-            <CalendarOff className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
-            <p className="text-zinc-400">No closures scheduled. Your shop is open every working day.</p>
+          <Card className="bg-card border-border p-12 text-center">
+            <CalendarOff className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No closures scheduled. Your shop is open every working day.</p>
           </Card>
         ) : (
           closures.map((closure) => (
-            <Card key={closure.id} className="bg-zinc-900 border-zinc-800">
+            <Card key={closure.id} className="bg-card border-border">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-zinc-100">{closure.title}</h3>
+                  <h3 className="font-semibold text-foreground">{closure.title}</h3>
                   {closure.description && (
-                    <p className="text-sm text-zinc-400 mt-0.5">{closure.description}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{closure.description}</p>
                   )}
                   <p className="text-sm text-amber-400/70 mt-1">
                     {formatDate(closure.startDate)}
@@ -295,7 +295,7 @@ export default function ClosuresPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => openEdit(closure)}
-                    className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    className="text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)]"
                     title="Edit closure"
                   >
                     <Pencil className="w-4 h-4" />

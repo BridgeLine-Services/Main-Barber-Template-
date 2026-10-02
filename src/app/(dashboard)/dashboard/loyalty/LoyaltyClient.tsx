@@ -84,11 +84,11 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Gift className="w-6 h-6 text-amber-500" />
             Loyalty Program
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Configure your shop's reward system
           </p>
         </div>
@@ -108,23 +108,23 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
       </div>
 
       {/* Program Settings */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-5">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs text-zinc-400 mb-1.5">Program Name</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5">Program Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Loyalty Program"
-              className="bg-zinc-900 border-zinc-800 text-zinc-200"
+              className="bg-card border-border text-foreground"
             />
           </div>
           <div>
-            <Label className="text-xs text-zinc-400 mb-1.5">Program Type</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5">Program Type</Label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as 'VISITS' | 'POINTS')}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+              className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
             >
               <option value="VISITS">Visit-based (e.g. 5 visits = $5 off)</option>
               <option value="POINTS">Points-based (e.g. $1 spent = 1 point)</option>
@@ -134,40 +134,40 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
 
         {type === 'POINTS' && (
           <div className="sm:w-1/2">
-            <Label className="text-xs text-zinc-400 mb-1.5">Points per Dollar Spent</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5">Points per Dollar Spent</Label>
             <Input
               type="number"
               value={pointsPerDollar}
               onChange={(e) => setPointsPerDollar(Number(e.target.value))}
               min="0.5"
               step="0.5"
-              className="bg-zinc-900 border-zinc-800 text-zinc-200"
+              className="bg-card border-border text-foreground"
             />
           </div>
         )}
       </div>
 
       {/* Reward Tiers */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-4">
+      <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold font-serif text-zinc-100">Reward Tiers</h2>
+          <h2 className="text-lg font-bold font-serif text-foreground">Reward Tiers</h2>
           <Button
             onClick={addTier}
             variant="outline"
             size="sm"
-            className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+            className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)]"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Tier
           </Button>
         </div>
 
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-muted-foreground">
           Set up rewards customers earn based on their {metricLabel}. Tiers are automatically sorted by threshold.
         </p>
 
         {tiers.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+          <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
             <Gift className="w-8 h-8 mx-auto mb-2 text-zinc-700" />
             <p className="text-sm">No reward tiers configured yet.</p>
             <p className="text-xs mt-1">Click "Add Tier" to create your first reward.</p>
@@ -177,10 +177,10 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
             {[...tiers].sort((a, b) => a.threshold - b.threshold).map((tier, index) => (
               <div
                 key={index}
-                className="flex flex-wrap items-end gap-3 bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-4"
+                className="flex flex-wrap items-end gap-3 bg-card/60 border border-border/60 rounded-xl p-4"
               >
                 <div className="w-28">
-                  <Label className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                     {type === 'POINTS' ? 'Points' : 'Visits'}
                   </Label>
                   <Input
@@ -188,15 +188,15 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
                     value={tier.threshold}
                     onChange={(e) => updateTier(index, 'threshold', Number(e.target.value))}
                     min="1"
-                    className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                    className="bg-card border-border text-foreground"
                   />
                 </div>
                 <div className="w-36">
-                  <Label className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Reward Type</Label>
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Reward Type</Label>
                   <select
                     value={tier.rewardType}
                     onChange={(e) => updateTier(index, 'rewardType', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-2 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none"
+                    className="w-full bg-card border border-border rounded-lg px-2 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
                   >
                     <option value="DISCOUNT">Discount ($)</option>
                     <option value="FREE_SERVICE">Free Service</option>
@@ -204,23 +204,23 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
                   </select>
                 </div>
                 <div className="flex-1 min-w-[180px]">
-                  <Label className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Reward Description</Label>
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Reward Description</Label>
                   <Input
                     value={tier.reward}
                     onChange={(e) => updateTier(index, 'reward', e.target.value)}
                     placeholder={tier.rewardType === 'DISCOUNT' ? '$5 off' : tier.rewardType === 'FREE_SERVICE' ? 'Free beard trim' : 'Custom reward'}
-                    className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                    className="bg-card border-border text-foreground"
                   />
                 </div>
                 {tier.rewardType === 'DISCOUNT' && (
                   <div className="w-28">
-                    <Label className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Amount ($)</Label>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Amount ($)</Label>
                     <Input
                       type="number"
                       value={tier.discountValue || 0}
                       onChange={(e) => updateTier(index, 'discountValue', Number(e.target.value))}
                       min="0"
-                      className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                      className="bg-card border-border text-foreground"
                     />
                   </div>
                 )}
@@ -228,7 +228,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
                   onClick={() => removeTier(index)}
                   variant="ghost"
                   size="icon"
-                  className="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:bg-red-950/30"
+                  className="bg-card border border-border text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -242,7 +242,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
             <p className="text-xs text-amber-400 font-semibold mb-2">Preview:</p>
             <div className="flex flex-wrap gap-2">
               {[...tiers].sort((a, b) => a.threshold - b.threshold).map((tier, i) => (
-                <span key={i} className="text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg">
+                <span key={i} className="text-xs bg-card border border-border text-foreground/85 px-3 py-1.5 rounded-lg">
                   <span className="text-amber-400 font-bold">{tier.threshold}</span> {metricLabel} = {tier.reward || '???'}
                 </span>
               ))}

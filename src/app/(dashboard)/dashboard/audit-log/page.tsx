@@ -85,28 +85,28 @@ export default function AuditLogPage() {
           <ScrollText className="h-6 w-6 text-amber-500" />
           Audit Log
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Track all administrative actions across your shop. {total} total events.
         </p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[40vh]">
-          <p className="text-zinc-400">Loading audit logs...</p>
+          <p className="text-muted-foreground">Loading audit logs...</p>
         </div>
       ) : logs.length === 0 ? (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-card border-border">
           <CardContent className="py-12 text-center">
-            <ScrollText className="h-12 w-12 mx-auto mb-3 text-zinc-600" />
-            <p className="text-zinc-400">No audit events recorded yet.</p>
-            <p className="text-sm text-zinc-500 mt-1">Actions like appointment cancellations, reschedules, and settings changes will appear here.</p>
+            <ScrollText className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-muted-foreground">No audit events recorded yet.</p>
+            <p className="text-sm text-muted-foreground mt-1">Actions like appointment cancellations, reschedules, and settings changes will appear here.</p>
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="space-y-2">
             {logs.map((log) => (
-              <Card key={log.id} className="bg-zinc-900 border-zinc-800">
+              <Card key={log.id} className="bg-card border-border">
                 <CardContent className="py-3 px-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -115,12 +115,12 @@ export default function AuditLogPage() {
                           {formatAction(log.action)}
                         </Badge>
                         {log.user && (
-                          <span className="text-xs text-zinc-400">
+                          <span className="text-xs text-muted-foreground">
                             by {log.user.name}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(log.createdAt)}
                         {log.entityType && ` · ${log.entityType}`}
                         {log.entityId && ` · ${log.entityId.substring(0, 8)}...`}
@@ -135,7 +135,7 @@ export default function AuditLogPage() {
 
           {/* Pagination */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               Showing {offset + 1}–{offset + logs.length} of {total}
             </p>
             <div className="flex gap-2">
@@ -144,7 +144,7 @@ export default function AuditLogPage() {
                 size="sm"
                 disabled={offset === 0}
                 onClick={() => setOffset(Math.max(0, offset - limit))}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                className="border-input text-foreground/85 hover:bg-[var(--dash-hover)]"
               >
                 <ChevronLeft className="h-4 w-4" /> Prev
               </Button>
@@ -153,7 +153,7 @@ export default function AuditLogPage() {
                 size="sm"
                 disabled={!hasMore}
                 onClick={() => setOffset(offset + limit)}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                className="border-input text-foreground/85 hover:bg-[var(--dash-hover)]"
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Button>

@@ -16,8 +16,8 @@ export default function OnboardingError({
   return (
     <div className="mx-auto max-w-md py-16 text-center">
       <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6">
-        <h2 className="text-lg font-semibold text-zinc-100">Setup is temporarily unavailable</h2>
-        <p className="mt-2 text-sm text-zinc-300">
+        <h2 className="text-lg font-semibold text-foreground">Setup is temporarily unavailable</h2>
+        <p className="mt-2 text-sm text-foreground/85">
           We couldn&apos;t render your onboarding workspace. Your account is safe. Please try again.
         </p>
         <button

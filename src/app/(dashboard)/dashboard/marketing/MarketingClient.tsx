@@ -247,11 +247,11 @@ export function MarketingClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Megaphone className="w-6 h-6 text-amber-500" />
             Marketing Automation
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground mt-1">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
         </div>
         {isOwner && (
           <Button
@@ -274,25 +274,25 @@ export function MarketingClient({
       )}
 
       {showForm && (
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-100">{editingId ? 'Edit Campaign' : 'Create Campaign'}</h2>
+        <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground">{editingId ? 'Edit Campaign' : 'Create Campaign'}</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-zinc-400 font-medium">Campaign Name</label>
+              <label className="text-xs text-muted-foreground font-medium">Campaign Name</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Summer Comeback"
-                className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100"
+                className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 font-medium">Audience</label>
+              <label className="text-xs text-muted-foreground font-medium">Audience</label>
               <select
                 value={audience}
                 onChange={e => { setAudience(e.target.value); setPreviewCount(null) }}
-                className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100"
+                className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
               >
                 {AUDIENCE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -303,11 +303,11 @@ export function MarketingClient({
 
           {audience === 'NOT_VISITED_BARBER' && (
             <div>
-              <label className="text-xs text-zinc-400 font-medium">Barber</label>
+              <label className="text-xs text-muted-foreground font-medium">Barber</label>
               <select
                 value={barberId}
                 onChange={e => { setBarberId(e.target.value); setPreviewCount(null) }}
-                className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100"
+                className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
               >
                 <option value="">Select barber...</option>
                 {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -317,11 +317,11 @@ export function MarketingClient({
 
           {audience === 'USED_SERVICE' && (
             <div>
-              <label className="text-xs text-zinc-400 font-medium">Service</label>
+              <label className="text-xs text-muted-foreground font-medium">Service</label>
               <select
                 value={serviceId}
                 onChange={e => { setServiceId(e.target.value); setPreviewCount(null) }}
-                className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100"
+                className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
               >
                 <option value="">Select service...</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -330,23 +330,23 @@ export function MarketingClient({
           )}
 
           <div>
-            <label className="text-xs text-zinc-400 font-medium">Subject</label>
+            <label className="text-xs text-muted-foreground font-medium">Subject</label>
             <input
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="We haven't seen you in a while!"
-              className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100"
+              className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
             />
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 font-medium">Message</label>
+            <label className="text-xs text-muted-foreground font-medium">Message</label>
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
               placeholder="Book your next cut and get 10% off..."
               rows={3}
-              className="w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 resize-none"
+              className="w-full mt-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground resize-none"
             />
           </div>
 
@@ -356,7 +356,7 @@ export function MarketingClient({
               disabled={previewing}
               variant="outline"
               size="sm"
-              className="bg-zinc-900 border-zinc-800 text-zinc-300"
+              className="bg-card border-border text-foreground/85"
             >
               {previewing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Eye className="w-3.5 h-3.5 mr-1.5" />}
               Preview Audience
@@ -381,30 +381,30 @@ export function MarketingClient({
       )}
 
       {campaigns.length === 0 ? (
-        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-12 text-center">
+        <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center">
           <Megaphone className="w-10 h-10 mx-auto text-zinc-700 mb-3" />
-          <p className="text-sm text-zinc-400 font-medium">No campaigns yet</p>
-          <p className="text-xs text-zinc-500 mt-1">Create your first campaign to re-engage customers.</p>
+          <p className="text-sm text-muted-foreground font-medium">No campaigns yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Create your first campaign to re-engage customers.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {campaigns.map(c => (
-            <div key={c.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+            <div key={c.id} className="bg-[var(--dash-surface)] border border-border rounded-2xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-100">{c.name}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{c.name}</h3>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                       c.status === 'SENT'
                         ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                        : 'text-zinc-400 bg-zinc-800/60 border-zinc-700'
+                        : 'text-muted-foreground bg-muted border-input'
                     }`}>
                       {c.status}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">{c.subject}</p>
-                  <p className="text-xs text-zinc-400 mt-2">{c.body}</p>
-                  <div className="flex items-center gap-3 mt-3 text-[11px] text-zinc-500">
+                  <p className="text-xs text-muted-foreground mt-1">{c.subject}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{c.body}</p>
+                  <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users className="w-3 h-3" /> {AUDIENCE_OPTIONS.find(a => a.value === c.audience)?.label || c.audience}
                     </span>
@@ -439,7 +439,7 @@ export function MarketingClient({
                       disabled={statusId === c.id || deletingId === c.id}
                       size="sm"
                       variant="outline"
-                      className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                      className="border-input bg-card hover:bg-[var(--dash-hover)] text-foreground/85"
                       title="Edit campaign"
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -450,7 +450,7 @@ export function MarketingClient({
                         disabled={statusId === c.id}
                         size="sm"
                         variant="outline"
-                        className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                        className="border-input bg-card hover:bg-[var(--dash-hover)] text-foreground/85"
                         title={c.status === 'ARCHIVED' ? 'Restore campaign' : 'Archive (disable) campaign'}
                       >
                         {statusId === c.id ? (
@@ -467,7 +467,7 @@ export function MarketingClient({
                       disabled={deletingId === c.id}
                       size="sm"
                       variant="outline"
-                      className="border-zinc-700 bg-zinc-900 hover:bg-red-950/40 hover:border-red-500/30 text-zinc-400 hover:text-red-400"
+                      className="border-input bg-card hover:bg-red-950/40 hover:border-red-500/30 text-muted-foreground hover:text-red-400"
                       title="Delete campaign"
                     >
                       {deletingId === c.id ? (

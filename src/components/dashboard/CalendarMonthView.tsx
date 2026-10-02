@@ -68,9 +68,9 @@ export function CalendarMonthView({
   const weekDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
-    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 sm:p-6">
+    <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-4 sm:p-6">
       {/* Month Days Header */}
-      <div className="grid grid-cols-7 gap-1 text-center mb-2 font-semibold text-xs text-zinc-400">
+      <div className="grid grid-cols-7 gap-1 text-center mb-2 font-semibold text-xs text-muted-foreground">
         {weekDayLabels.map((lbl) => (
           <div key={lbl} className="py-1">
             {lbl}
@@ -92,14 +92,14 @@ export function CalendarMonthView({
                 cell.isCurrentMonth
                   ? isToday
                     ? 'bg-amber-500/10 border-amber-500/50'
-                    : 'bg-zinc-900/60 border-zinc-800/80 hover:bg-zinc-900'
-                  : 'bg-zinc-950/40 border-zinc-900 opacity-40'
+                    : 'bg-card/60 border-border/80 hover:bg-card'
+                  : 'bg-[var(--dash-surface)]/40 border-zinc-900 opacity-40'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span
                   className={`text-xs font-bold ${
-                    isToday ? 'text-amber-400 font-mono' : 'text-zinc-300'
+                    isToday ? 'text-amber-400 font-mono' : 'text-foreground/85'
                   }`}
                 >
                   {cell.date.getDate()}
@@ -120,7 +120,7 @@ export function CalendarMonthView({
                       e.stopPropagation()
                       onSelectAppointment(appt)
                     }}
-                    className="p-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] truncate text-zinc-300 hover:text-amber-400"
+                    className="p-1 rounded bg-card border border-border text-[10px] truncate text-foreground/85 hover:text-amber-400"
                   >
                     <span className="font-mono text-amber-500 mr-1">
                       {formatTime(new Date(appt.startTime))}
@@ -129,7 +129,7 @@ export function CalendarMonthView({
                   </div>
                 ))}
                 {dayAppts.length > 2 && (
-                  <div className="text-[9px] text-zinc-500 font-medium text-right pr-1">
+                  <div className="text-[9px] text-muted-foreground font-medium text-right pr-1">
                     +{dayAppts.length - 2} more
                   </div>
                 )}

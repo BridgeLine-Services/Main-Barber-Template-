@@ -101,15 +101,15 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
   const sortedUpcoming = upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+    <div className="bg-card/50 border border-border rounded-xl p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <CalendarPlus className="w-4 h-4 text-amber-500" />
             Date-Specific Overrides
           </h3>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Override your recurring schedule for specific dates — time off, special hours, vacation, etc.
           </p>
         </div>
@@ -125,20 +125,20 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
 
       {/* Add Form */}
       {showForm && (
-        <div className="mb-4 bg-zinc-950 border border-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="mb-4 bg-[var(--dash-surface)] border border-border rounded-lg p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label className="text-zinc-400 text-xs">Date</Label>
+              <Label className="text-muted-foreground text-xs">Date</Label>
               <Input
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 mt-1"
+                className="bg-muted border-input mt-1"
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
             <div>
-              <Label className="text-zinc-400 text-xs">Type</Label>
+              <Label className="text-muted-foreground text-xs">Type</Label>
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={() => setIsAvailable(true)}
@@ -146,7 +146,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                     'flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors',
                     isAvailable
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                      : 'bg-muted text-muted-foreground border-input'
                   )}
                 >
                   <Clock className="w-3.5 h-3.5 inline mr-1" />
@@ -158,7 +158,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                     'flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors',
                     !isAvailable
                       ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                      : 'bg-muted text-muted-foreground border-input'
                   )}
                 >
                   <CalendarOff className="w-3.5 h-3.5 inline mr-1" />
@@ -171,32 +171,32 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
           {isAvailable && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-zinc-400 text-xs">Start Time</Label>
+                <Label className="text-muted-foreground text-xs">Start Time</Label>
                 <Input
                   type="time"
                   value={startTime}
                   onChange={e => setStartTime(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 mt-1"
+                  className="bg-muted border-input mt-1"
                 />
               </div>
               <div>
-                <Label className="text-zinc-400 text-xs">End Time</Label>
+                <Label className="text-muted-foreground text-xs">End Time</Label>
                 <Input
                   type="time"
                   value={endTime}
                   onChange={e => setEndTime(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 mt-1"
+                  className="bg-muted border-input mt-1"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <Label className="text-zinc-400 text-xs">Reason (optional)</Label>
+            <Label className="text-muted-foreground text-xs">Reason (optional)</Label>
             <Input
               value={reason}
               onChange={e => setReason(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 mt-1"
+              className="bg-muted border-input mt-1"
               placeholder="Vacation, Special opening, Personal, etc."
             />
           </div>
@@ -206,7 +206,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
               onClick={() => setShowForm(false)}
               variant="outline"
               size="sm"
-              className="border-zinc-700 text-zinc-400 hover:text-zinc-200"
+              className="border-input text-muted-foreground hover:text-foreground"
             >
               Cancel
             </Button>
@@ -224,11 +224,11 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
 
       {/* Existing Overrides */}
       {loading ? (
-        <p className="text-xs text-zinc-500 text-center py-4">Loading...</p>
+        <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
       ) : sortedUpcoming.length === 0 && !showForm ? (
         <div className="text-center py-6">
           <CalendarOff className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-          <p className="text-xs text-zinc-500">No upcoming date overrides. Your recurring schedule applies.</p>
+          <p className="text-xs text-muted-foreground">No upcoming date overrides. Your recurring schedule applies.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -241,7 +241,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                 key={o.id}
                 className={cn(
                   'flex items-center justify-between gap-3 px-4 py-3 rounded-lg border',
-                  o.isAvailable ? 'bg-zinc-950 border-zinc-800' : 'bg-red-950/20 border-red-900/30'
+                  o.isAvailable ? 'bg-[var(--dash-surface)] border-border' : 'bg-red-950/20 border-red-900/30'
                 )}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -252,8 +252,8 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                     {o.isAvailable ? <Clock className="w-4 h-4" /> : <CalendarOff className="w-4 h-4" />}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-zinc-200">{dateStr}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-medium text-foreground">{dateStr}</p>
+                    <p className="text-xs text-muted-foreground">
                       {o.isAvailable
                         ? `${o.startTime} – ${o.endTime}${o.reason ? ` · ${o.reason}` : ''}`
                         : `Day off${o.reason ? ` · ${o.reason}` : ''}`}
@@ -262,7 +262,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                 </div>
                 <button
                   onClick={() => handleDelete(o.id)}
-                  className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors shrink-0"
+                  className="w-7 h-7 rounded-md bg-muted hover:bg-red-950/40 text-muted-foreground hover:text-red-400 flex items-center justify-center transition-colors shrink-0"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
