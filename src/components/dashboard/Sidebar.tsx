@@ -36,7 +36,9 @@ import {
   Search,
   Smartphone,
   Activity,
-  Rocket } from 'lucide-react'
+  Rocket,
+  ArrowLeftRight,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
@@ -113,6 +115,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Hours', href: '/dashboard/settings?tab=hours', icon: Clock },
         { name: 'Shop Gallery', href: '/dashboard/gallery', icon: ImageIcon },
         { name: 'Photos', href: '/dashboard/media', icon: ImageIcon },
+        { name: 'Before & After', href: '/dashboard/before-after', icon: ArrowLeftRight },
         { name: 'Policies', href: '/dashboard/settings?tab=policies', icon: FileText },
         { name: 'Social Media', href: '/dashboard/settings?tab=social', icon: Globe },
         { name: 'SEO', href: '/dashboard/settings?tab=seo', icon: Search },
