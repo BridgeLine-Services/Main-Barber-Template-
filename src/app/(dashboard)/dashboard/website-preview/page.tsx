@@ -35,12 +35,12 @@ export default async function WebsitePreviewPage() {
 
   return (
     <main className="min-h-screen bg-[var(--dash-surface)] text-foreground">
-      <div className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
+      <div className="border-b border-amber-500/40 bg-[var(--dash-brand-soft)] px-4 py-2 text-center text-xs text-[var(--dash-brand)]">
         DRAFT PREVIEW — only visible to signed-in staff. This is exactly what your homepage will
         show once you press &quot;Publish website&quot; in Settings.
       </div>
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <p className="text-sm uppercase tracking-widest text-amber-400">{d?.heroEyebrow || 'Premium Barbershop'}</p>
+        <p className="text-sm uppercase tracking-widest text-[var(--dash-brand)]">{d?.heroEyebrow || 'Premium Barbershop'}</p>
         <h1 className="mt-2 text-4xl font-bold">{d?.heroTitle || name}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">{d?.heroDescription || `Experience top-tier craftsmanship at ${name}.`}</p>
         <div className="mt-8 space-y-6">

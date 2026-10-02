@@ -177,7 +177,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
     }
   }
 
-  const selectClass = 'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none'
+  const selectClass = 'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none'
 
   const assetLabel = (m: MediaOption) => {
     const typeLabel = m.type.replace(/_/g, ' ').toLowerCase()
@@ -189,7 +189,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <ArrowLeftRight className="h-5 w-5 text-amber-500" aria-hidden="true" />
+            <ArrowLeftRight className="h-5 w-5 text-[var(--dash-brand)]" aria-hidden="true" />
             Before &amp; After
           </CardTitle>
         </CardHeader>
@@ -203,7 +203,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
           {!showForm ? (
             <Button
               onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(true) }}
-              className="bg-amber-500 text-zinc-950 hover:bg-amber-400"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={media.length < 2}
             >
               <Plus className="h-4 w-4 mr-1" aria-hidden="true" /> New pair
@@ -319,7 +319,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                 <Button
                   onClick={savePair}
                   disabled={saving || !form.beforeAssetId || !form.afterAssetId}
-                  className="bg-amber-500 text-zinc-950 hover:bg-amber-400"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create pair'}
                 </Button>
@@ -330,7 +330,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
           {media.length < 2 && (
             <p className="text-xs text-muted-foreground">
               Upload at least two photos under{' '}
-              <a href="/dashboard/media" className="text-amber-500 underline">Photos</a>{' '}
+              <a href="/dashboard/media" className="text-[var(--dash-brand)] underline">Photos</a>{' '}
               to create a pair.
             </p>
           )}
@@ -378,7 +378,7 @@ export function BeforeAfterClient({ initialPairs, barbers, services, media, canM
                       </div>
                       <div className="relative w-1/2 overflow-hidden rounded-md bg-muted">
                         <img src={pair.afterAsset.url} alt={pair.afterAsset.altText || 'After'} className="h-24 w-full object-cover" />
-                        <span className="absolute left-1 top-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-950">After</span>
+                        <span className="absolute left-1 top-1 rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">After</span>
                       </div>
                     </div>
 

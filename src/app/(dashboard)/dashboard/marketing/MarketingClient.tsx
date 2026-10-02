@@ -248,7 +248,7 @@ export function MarketingClient({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Megaphone className="w-6 h-6 text-amber-500" />
+            <Megaphone className="w-6 h-6 text-[var(--dash-brand)]" />
             Marketing Automation
           </h1>
           <p className="text-xs text-muted-foreground mt-1">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
@@ -256,7 +256,7 @@ export function MarketingClient({
         {isOwner && (
           <Button
             onClick={() => { setError(null); if (showForm) { closeForm() } else { setShowForm(true) } }}
-            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
             {showForm ? 'Cancel' : 'New Campaign'}
@@ -362,7 +362,7 @@ export function MarketingClient({
               Preview Audience
             </Button>
             {previewCount !== null && (
-              <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+              <span className="text-xs text-[var(--dash-brand)] font-medium flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" /> {previewCount} customer{previewCount !== 1 ? 's' : ''} match
               </span>
             )}
@@ -371,7 +371,7 @@ export function MarketingClient({
               onClick={handleSave}
               disabled={creating || !name || !subject || !body}
               size="sm"
-              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {creating ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
               Save Campaign
@@ -382,7 +382,7 @@ export function MarketingClient({
 
       {campaigns.length === 0 ? (
         <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center">
-          <Megaphone className="w-10 h-10 mx-auto text-zinc-700 mb-3" />
+          <Megaphone className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground font-medium">No campaigns yet</p>
           <p className="text-xs text-muted-foreground mt-1">Create your first campaign to re-engage customers.</p>
         </div>
@@ -425,7 +425,7 @@ export function MarketingClient({
                         onClick={() => handleSend(c.id)}
                         disabled={sendingId === c.id}
                         size="sm"
-                        className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                       >
                         {sendingId === c.id ? (
                           <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending...</>

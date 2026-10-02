@@ -172,7 +172,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
         <div>
           <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-500" />
+            <Clock className="w-5 h-5 text-[var(--dash-brand)]" />
             <span>Weekly Work Schedule</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -183,7 +183,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs gap-2 shadow-lg shadow-amber-500/10"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs gap-2 shadow-lg shadow-black/10"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Working Hours
@@ -214,7 +214,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
                     type="button"
                     onClick={() => handleToggleOff(schedule.dayOfWeek)}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      !schedule.isOff ? 'bg-amber-500' : 'bg-zinc-700'
+                      !schedule.isOff ? 'bg-primary' : 'bg-muted'
                     }`}
                   >
                     <span
@@ -236,7 +236,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
                         type="time"
                         value={schedule.startTime}
                         onChange={(e) => handleTimeChange(schedule.dayOfWeek, 'startTime', e.target.value)}
-                        className="bg-card border-border text-xs text-foreground w-28 h-8 font-mono focus:border-amber-500"
+                        className="bg-card border-border text-xs text-foreground w-28 h-8 font-mono focus:border-ring"
                       />
                     </div>
 
@@ -246,7 +246,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
                         type="time"
                         value={schedule.endTime}
                         onChange={(e) => handleTimeChange(schedule.dayOfWeek, 'endTime', e.target.value)}
-                        className="bg-card border-border text-xs text-foreground w-28 h-8 font-mono focus:border-amber-500"
+                        className="bg-card border-border text-xs text-foreground w-28 h-8 font-mono focus:border-ring"
                       />
                     </div>
 
@@ -254,7 +254,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
                       variant="outline"
                       size="sm"
                       onClick={() => handleAddBreak(schedule.dayOfWeek)}
-                      className="bg-card border-border text-amber-400 hover:bg-[var(--dash-hover)] text-xs h-8 gap-1"
+                      className="bg-card border-border text-[var(--dash-brand)] hover:bg-[var(--dash-hover)] text-xs h-8 gap-1"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Break
                     </Button>
@@ -267,7 +267,7 @@ export function ScheduleEditor({ barberId, initialSchedules }: ScheduleEditorPro
               {/* Breaks list */}
               {!schedule.isOff && schedule.breaks.length > 0 && (
                 <div className="pl-4 sm:pl-36 space-y-2">
-                  <p className="text-[11px] font-semibold text-amber-500/90 uppercase tracking-wider">Scheduled Breaks</p>
+                  <p className="text-[11px] font-semibold text-[var(--dash-brand)]/90 uppercase tracking-wider">Scheduled Breaks</p>
                   <div className="space-y-2">
                     {schedule.breaks.map((brk, idx) => (
                       <div key={idx} className="flex items-center gap-2 bg-card/60 p-2 rounded-lg border border-border max-w-sm">

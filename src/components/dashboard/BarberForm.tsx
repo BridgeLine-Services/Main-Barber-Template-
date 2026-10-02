@@ -135,8 +135,8 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-xl font-serif text-amber-400 flex items-center gap-2">
-            <UserCircle className="w-5 h-5 text-amber-500" />
+          <DialogTitle className="text-xl font-serif text-[var(--dash-brand)] flex items-center gap-2">
+            <UserCircle className="w-5 h-5 text-[var(--dash-brand)]" />
             {isEdit ? 'Edit Barber Profile' : 'Add New Barber'}
           </DialogTitle>
         </DialogHeader>
@@ -154,7 +154,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Marcus Vance"
-              className="bg-card border-border text-xs focus:border-amber-500"
+              className="bg-card border-border text-xs focus:border-ring"
               required
             />
           </div>
@@ -165,7 +165,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
               placeholder="e.g. Master Barber • Skin Fades & Hot Towel Shaves"
-              className="bg-card border-border text-xs focus:border-amber-500"
+              className="bg-card border-border text-xs focus:border-ring"
             />
           </div>
 
@@ -176,7 +176,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                 value={photo}
                 onChange={(e) => setPhoto(e.target.value)}
                 placeholder="https://… or upload a file"
-                className="bg-card border-border text-xs focus:border-amber-500 font-mono"
+                className="bg-card border-border text-xs focus:border-ring font-mono"
               />
               <input
                 ref={photoInputRef}
@@ -209,13 +209,13 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Short bio for client booking page..."
-              className="bg-card border-border text-xs focus:border-amber-500 min-h-[70px]"
+              className="bg-card border-border text-xs focus:border-ring min-h-[70px]"
             />
           </div>
 
           {!isEdit && (
             <div className="p-3 bg-card/80 border border-border rounded-xl space-y-3">
-              <p className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-[var(--dash-brand)] flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" /> Login Credentials for Barber
               </p>
 
@@ -226,7 +226,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="barber@barbershop.com"
-                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-amber-500"
+                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-ring"
                   required={!isEdit}
                 />
               </div>
@@ -238,7 +238,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-amber-500"
+                  className="bg-[var(--dash-surface)] border-border text-xs focus:border-ring"
                   required={!isEdit}
                 />
               </div>
@@ -255,7 +255,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
                 type="button"
                 onClick={() => setIsActive(!isActive)}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  isActive ? 'bg-amber-500' : 'bg-zinc-700'
+                  isActive ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
@@ -279,7 +279,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
             <Button
               type="submit"
               disabled={loading}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs gap-2"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {isEdit ? 'Save Profile' : 'Create Barber'}

@@ -90,8 +90,8 @@ export default async function DashboardLayout({
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Desktop Header */}
         <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-[var(--dash-header)] border-b border-border sticky top-0 z-30">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-foreground [font-family:var(--dash-display-font)]">{businessName}</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground [font-family:var(--dash-display-font)] min-w-0 truncate">{businessName}</h1>
             <p className="text-xs text-muted-foreground">Shop Management Portal</p>
           </div>
 

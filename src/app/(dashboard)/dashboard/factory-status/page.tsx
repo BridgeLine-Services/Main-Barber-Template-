@@ -24,7 +24,7 @@ export default async function FactoryStatusPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wider text-amber-400">Barber Website Factory</p>
+        <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Barber Website Factory</p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">Factory status</h1>
         <p className="mt-2 text-muted-foreground">A launch checklist for this shop. Secrets are checked on the server and are never displayed.</p>
       </div>

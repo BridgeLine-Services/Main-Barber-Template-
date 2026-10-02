@@ -17,6 +17,7 @@ import {
 } from '@/lib/visual-config'
 import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
 import { PresetCompare } from '@/components/dashboard/PresetCompare'
+import { DashboardPreview } from '@/components/dashboard/DashboardPreview'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Website Appearance tab — owner-facing visual identity configuration.
@@ -285,9 +286,12 @@ function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset:
 interface AppearanceTabProps {
   websiteContent: WebsiteContentMap
   setWebsiteContent: (next: WebsiteContentMap) => void
+  /** Custom brand colors/font from the business record (always win over preset defaults). */
+  accentColor?: string | null
+  fontFamily?: string | null
 }
 
-export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceTabProps) {
+export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, fontFamily }: AppearanceTabProps) {
   const preset = (typeof websiteContent.visualPreset === 'string' ? websiteContent.visualPreset : '') as VisualStyle | ''
   const overrides = (websiteContent.visualConfig && typeof websiteContent.visualConfig === 'object'
     ? websiteContent.visualConfig
@@ -311,7 +315,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Monitor className="h-5 w-5 text-amber-500" />
+          <Monitor className="h-5 w-5 text-[var(--dash-brand)]" />
           Website Appearance
         </CardTitle>
       </CardHeader>
@@ -340,13 +344,13 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
                   aria-checked={isSelected}
                   onClick={() => setPreset(style)}
                   className={cn(
-                    'rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
-                    isSelected ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-500'
+                    'rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isSelected ? 'border-[var(--dash-brand-border)] bg-[var(--dash-brand-soft)]' : 'border-input hover:border-border'
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground">{VISUAL_STYLE_CONFIG[style].label}</span>
-                    {isSelected && <Check className="h-4 w-4 text-amber-500" aria-label="Selected" />}
+                    {isSelected && <Check className="h-4 w-4 text-[var(--dash-brand)]" aria-label="Selected" />}
                   </div>
                   <div className="mt-2 flex gap-1" aria-hidden="true">
                     {meta.swatches.map((c) => (
@@ -373,6 +377,18 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
           </div>
         </div>
 
+        {/* ── Dashboard preview (how this draft themes the control room) ── */}
+        <div>
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Dashboard preview</h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Your dashboard follows the <span className="font-semibold text-foreground">published</span> preset. This
+            shows how the control room&apos;s sidebar, header, buttons and cards will look with the current{' '}
+            <span className="font-semibold text-foreground">draft</span> — publishing applies it there too. Your
+            custom brand colors and font (Branding tab) take precedence over preset defaults.
+          </p>
+          <DashboardPreview preset={selectedPreset} accentColor={accentColor} fontFamily={fontFamily} />
+        </div>
+
         {/* ── Five-preset comparison (same real data, all styles) ───── */}
         <PresetCompare />
 
@@ -393,7 +409,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
                   <select
                     value={currentValue}
                     onChange={(e) => setOverride(key, e.target.value)}
-                    className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
                   >
                     <option value="">Preset default — {optionLabel(presetDefault)}</option>
                     {options.map((opt) => (
@@ -419,7 +435,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
               <select
                 value={overrides.headingFont ?? ''}
                 onChange={(e) => setOverride('headingFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
               >
                 <option value="">Preset default</option>
                 {FONT_FAMILY_OPTIONS.map((f) => (
@@ -432,7 +448,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
               <select
                 value={overrides.bodyFont ?? ''}
                 onChange={(e) => setOverride('bodyFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
               >
                 <option value="">Preset default</option>
                 {FONT_FAMILY_OPTIONS.map((f) => (

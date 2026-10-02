@@ -96,18 +96,18 @@ export default async function SchedulePage(props: SchedulePageProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Clock className="w-6 h-6 text-amber-500" />
+            <Clock className="w-6 h-6 text-[var(--dash-brand)]" />
             <span>Barber Schedule & Time Off</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             Managing availability for{' '}
-            <span className="text-amber-400 font-semibold">{selectedBarber?.name || 'Barber'}</span>
+            <span className="text-[var(--dash-brand)] font-semibold">{selectedBarber?.name || 'Barber'}</span>
           </p>
         </div>
 
         {isOwner && allBarbers.length > 1 && (
           <div className="flex items-center gap-2 bg-[var(--dash-surface)] border border-border p-2 rounded-xl">
-            <UserCircle className="w-4 h-4 text-amber-500" />
+            <UserCircle className="w-4 h-4 text-[var(--dash-brand)]" />
             <span className="text-xs text-muted-foreground font-medium">Select Barber:</span>
             <div className="flex gap-1 overflow-x-auto">
               {allBarbers.map((b) => (
@@ -116,7 +116,7 @@ export default async function SchedulePage(props: SchedulePageProps) {
                   href={`/dashboard/schedule?barberId=${b.id}`}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                     b.id === targetBarberId
-                      ? 'bg-amber-500 text-zinc-950'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-card text-foreground/85 hover:bg-[var(--dash-hover)]'
                   }`}
                 >

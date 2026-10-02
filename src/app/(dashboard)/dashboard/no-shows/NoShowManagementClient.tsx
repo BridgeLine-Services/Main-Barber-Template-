@@ -110,7 +110,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
         </div>
         <div className="rounded-xl border border-border bg-card/50 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-[var(--dash-brand)]" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Repeat Offenders</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.repeatOffenders}</p>
@@ -122,13 +122,13 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
         <div className="bg-card/50 border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground/85 uppercase tracking-wide flex items-center gap-2">
-              <Shield className="w-4 h-4 text-amber-500" />
+              <Shield className="w-4 h-4 text-[var(--dash-brand)]" />
               Escalation Policy
             </h2>
             <button
               onClick={handlePolicyUpdate}
               disabled={saving}
-              className="px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)] hover:bg-[var(--dash-brand-soft)] text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {saved ? 'Saved!' : saving ? 'Saving...' : 'Save Policy'}
@@ -144,7 +144,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
                 <select
                   value={policy[field]}
                   onChange={e => setPolicy({ ...policy, [field]: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
                 >
                   {Object.entries(ESCALATION_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -160,7 +160,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
                 type="checkbox"
                 checked={policy.requireDeposit}
                 onChange={e => setPolicy({ ...policy, requireDeposit: e.target.checked })}
-                className="w-4 h-4 rounded border-input bg-card text-amber-500 focus:ring-amber-500/50"
+                className="w-4 h-4 rounded border-input bg-card text-[var(--dash-brand)] focus:ring-ring/50"
               />
               <span className="text-sm text-foreground/85">Require deposit for flagged customers</span>
             </label>
@@ -173,7 +173,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
                   value={policy.depositAmount || ''}
                   onChange={e => setPolicy({ ...policy, depositAmount: parseFloat(e.target.value) || null })}
                   placeholder="0.00"
-                  className="w-24 px-2 py-1 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                  className="w-24 px-2 py-1 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
                 />
               </div>
             )}
@@ -184,7 +184,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
       {/* No-Show Records */}
       {noShows.length === 0 ? (
         <div className="text-center py-16">
-          <UserX className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+          <UserX className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">No no-show records yet.</p>
         </div>
       ) : (
@@ -223,7 +223,7 @@ export function NoShowManagementClient({ initialData }: { initialData: NoShowDat
                       <span className={cn(
                         'inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium',
                         a.reliability?.band === 'HIGH_RISK' ? 'text-red-400 bg-red-500/10 border-red-500/20' :
-                          a.reliability?.band === 'WATCH' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          a.reliability?.band === 'WATCH' ? 'text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border-[var(--dash-brand-border)]' :
                             'text-foreground/85 bg-muted border-input'
                       )}>
                         {a.reliability?.label || 'Watch'}{a.reliability ? ` · ${a.reliability.noShowPercentage}%` : ''}

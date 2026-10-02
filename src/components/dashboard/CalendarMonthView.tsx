@@ -88,24 +88,24 @@ export function CalendarMonthView({
             <div
               key={idx}
               onClick={() => onSelectDay(cell.date)}
-              className={`min-h-[100px] border p-2 rounded-xl flex flex-col justify-between cursor-pointer transition-all hover:border-amber-500/50 ${
+              className={`min-h-[100px] border p-2 rounded-xl flex flex-col justify-between cursor-pointer transition-all hover:border-[var(--dash-brand-border)] ${
                 cell.isCurrentMonth
                   ? isToday
-                    ? 'bg-amber-500/10 border-amber-500/50'
+                    ? 'bg-[var(--dash-brand-soft)] border-[var(--dash-brand-border)]'
                     : 'bg-card/60 border-border/80 hover:bg-card'
-                  : 'bg-[var(--dash-surface)]/40 border-zinc-900 opacity-40'
+                  : 'bg-[var(--dash-surface)]/40 border-border opacity-40'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span
                   className={`text-xs font-bold ${
-                    isToday ? 'text-amber-400 font-mono' : 'text-foreground/85'
+                    isToday ? 'text-[var(--dash-brand)] font-mono' : 'text-foreground/85'
                   }`}
                 >
                   {cell.date.getDate()}
                 </span>
                 {dayAppts.length > 0 && (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--dash-brand-soft)] text-[var(--dash-brand)]">
                     {dayAppts.length}
                   </span>
                 )}
@@ -120,9 +120,9 @@ export function CalendarMonthView({
                       e.stopPropagation()
                       onSelectAppointment(appt)
                     }}
-                    className="p-1 rounded bg-card border border-border text-[10px] truncate text-foreground/85 hover:text-amber-400"
+                    className="p-1 rounded bg-card border border-border text-[10px] truncate text-foreground/85 hover:text-[var(--dash-brand)]"
                   >
-                    <span className="font-mono text-amber-500 mr-1">
+                    <span className="font-mono text-[var(--dash-brand)] mr-1">
                       {formatTime(new Date(appt.startTime))}
                     </span>
                     {appt.customer?.firstName}

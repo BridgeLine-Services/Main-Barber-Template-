@@ -27,7 +27,7 @@ export function CustomerSearch({ onSearch, initialValue = '' }: CustomerSearchPr
         placeholder="Search customers by name, phone, email..."
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="pl-9 pr-8 bg-[var(--dash-surface)] border-border text-xs text-foreground h-10 focus:border-amber-500"
+        className="pl-9 pr-8 bg-[var(--dash-surface)] border-border text-xs text-foreground h-10 focus:border-ring"
       />
       {value && (
         <button

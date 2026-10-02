@@ -71,9 +71,9 @@ export function DeactivateShopCard() {
 
   if (deactivatedAt) {
     return (
-      <Card className="border-amber-900/50 bg-card">
+      <Card className="border-amber-600/40 bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-amber-400">
+          <CardTitle className="flex items-center gap-2 text-lg text-[var(--dash-brand)]">
             <PowerOff className="h-5 w-5" /> Shop Deactivated
           </CardTitle>
           <CardDescription>
@@ -90,9 +90,9 @@ export function DeactivateShopCard() {
   }
 
   return (
-    <Card className="border-amber-900/50 bg-card">
+    <Card className="border-amber-600/40 bg-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg text-amber-400">
+        <CardTitle className="flex items-center gap-2 text-lg text-[var(--dash-brand)]">
           <PowerOff className="h-5 w-5" /> Deactivate shop
         </CardTitle>
         <CardDescription>

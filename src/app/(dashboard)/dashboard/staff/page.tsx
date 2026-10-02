@@ -222,7 +222,7 @@ export default function StaffPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--dash-brand)]" />
       </div>
     )
   }
@@ -235,7 +235,7 @@ export default function StaffPage() {
           <p className="text-sm text-muted-foreground mt-1">Invite team members and manage their access.</p>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="bg-amber-500 text-black hover:bg-amber-400">
+          <Button onClick={() => setShowForm(true)} className="bg-primary text-black hover:bg-primary/90">
             <UserPlus className="w-4 h-4 mr-2" /> Invite Staff
           </Button>
         )}
@@ -250,10 +250,10 @@ export default function StaffPage() {
 
       {/* Temp credentials display */}
       {tempCreds && (
-        <Card className="bg-card border-amber-500/30">
+        <Card className="bg-card border-[var(--dash-brand-border)]">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-amber-300">Temporary Credentials — Share Securely</p>
+              <p className="text-sm font-medium text-[var(--dash-brand)]">Temporary Credentials — Share Securely</p>
               <Button size="sm" variant="ghost" onClick={() => setTempCreds(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </Button>
@@ -277,10 +277,10 @@ export default function StaffPage() {
 
       {/* Invitation link display */}
       {inviteLink && (
-        <Card className="bg-card border-amber-500/30">
+        <Card className="bg-card border-[var(--dash-brand-border)]">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-amber-300">Invitation Sent — Share This Secure Link</p>
+              <p className="text-sm font-medium text-[var(--dash-brand)]">Invitation Sent — Share This Secure Link</p>
               <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </Button>
@@ -337,7 +337,7 @@ export default function StaffPage() {
                     type="text" required value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="John Doe"
-                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-muted-500 focus:border-ring focus:outline-none"
                   />
                 </div>
                 <div>
@@ -346,7 +346,7 @@ export default function StaffPage() {
                     type="email" required value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="john@barbershop.com"
-                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-muted-500 focus:border-ring focus:outline-none"
                   />
                 </div>
               </div>
@@ -354,7 +354,7 @@ export default function StaffPage() {
                 <label className="block text-sm font-medium text-foreground/85 mb-1">Role</label>
                 <div className="flex gap-3">
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'BARBER' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
+                    form.role === 'BARBER' ? 'border-amber-500 bg-[var(--dash-brand-soft)]' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="BARBER" checked={form.role === 'BARBER'}
                       onChange={() => setForm({ ...form, role: 'BARBER' })}
@@ -363,7 +363,7 @@ export default function StaffPage() {
                     <span className="text-sm text-foreground">Barber</span>
                   </label>
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'BUSINESS_ADMIN' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
+                    form.role === 'BUSINESS_ADMIN' ? 'border-amber-500 bg-[var(--dash-brand-soft)]' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="BUSINESS_ADMIN" checked={form.role === 'BUSINESS_ADMIN'}
                       onChange={() => setForm({ ...form, role: 'BUSINESS_ADMIN' })}
@@ -372,7 +372,7 @@ export default function StaffPage() {
                     <span className="text-sm text-foreground">Business Admin (no ownership actions)</span>
                   </label>
                   <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'OWNER' ? 'border-amber-500 bg-amber-500/10' : 'border-input hover:border-zinc-600'
+                    form.role === 'OWNER' ? 'border-amber-500 bg-[var(--dash-brand-soft)]' : 'border-input hover:border-zinc-600'
                   }`}>
                     <input type="radio" name="role" value="OWNER" checked={form.role === 'OWNER'}
                       onChange={() => setForm({ ...form, role: 'OWNER' })}
@@ -388,7 +388,7 @@ export default function StaffPage() {
                   <select
                     value={form.barberId}
                     onChange={(e) => setForm({ ...form, barberId: e.target.value })}
-                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-ring focus:outline-none"
                   >
                     <option value="">No link — they'll only see their own profile once linked</option>
                     {barbers.map((b) => (
@@ -402,7 +402,7 @@ export default function StaffPage() {
                 </div>
               )}
               <div className="flex gap-3">
-                <Button type="submit" disabled={submitting} className="bg-amber-500 text-black hover:bg-amber-400">
+                <Button type="submit" disabled={submitting} className="bg-primary text-black hover:bg-primary/90">
                   {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Send Invite
                 </Button>
@@ -429,7 +429,7 @@ export default function StaffPage() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                    member.role === 'OWNER' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'
+                    member.role === 'OWNER' ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)]' : 'bg-blue-500/10 text-blue-400'
                   }`}>
                     {member.role === 'OWNER' ? <Crown className="w-5 h-5" /> : <Scissors className="w-5 h-5" />}
                   </div>
@@ -442,7 +442,7 @@ export default function StaffPage() {
                         <select
                           value={member.barberId || ''}
                           onChange={(e) => handleLinkBarber(member.id, e.target.value)}
-                          className="rounded-md bg-muted border border-input px-2 py-1 text-xs text-foreground focus:border-amber-500 focus:outline-none"
+                          className="rounded-md bg-muted border border-input px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"
                         >
                           <option value="">Not linked</option>
                           {barbers.map((b) => (
@@ -454,7 +454,7 @@ export default function StaffPage() {
                   </div>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium border ${
                     member.role === 'OWNER'
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                       : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                   }`}>
                     {member.role}
@@ -481,13 +481,13 @@ export default function StaffPage() {
                       title="Transfer business ownership to this member"
                       disabled={transferring !== null}
                       onClick={() => handleTransferOwnership(member.id, member.name)}
-                      className="text-muted-foreground hover:text-amber-400 hover:bg-amber-950/30"
+                      className="text-muted-foreground hover:text-[var(--dash-brand)] hover:bg-[var(--dash-hover)]"
                     >
                       {transferring === member.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" onClick={() => handleResetPassword(member.id, member.name)}
-                    className="text-muted-foreground hover:text-amber-400 hover:bg-amber-950/30">
+                    className="text-muted-foreground hover:text-[var(--dash-brand)] hover:bg-[var(--dash-hover)]">
                     <KeyRound className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleRemove(member.id, member.name)}

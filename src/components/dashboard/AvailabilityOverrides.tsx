@@ -106,7 +106,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CalendarPlus className="w-4 h-4 text-amber-500" />
+            <CalendarPlus className="w-4 h-4 text-[var(--dash-brand)]" />
             Date-Specific Overrides
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -116,7 +116,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
         <Button
           onClick={() => setShowForm(!showForm)}
           size="sm"
-          className="bg-amber-500 hover:bg-amber-600 text-zinc-900 font-semibold"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
         >
           {showForm ? <X className="w-4 h-4" /> : <CalendarPlus className="w-4 h-4 mr-1" />}
           {showForm ? 'Cancel' : 'Add Override'}
@@ -145,7 +145,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                   className={cn(
                     'flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors',
                     isAvailable
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                       : 'bg-muted text-muted-foreground border-input'
                   )}
                 >
@@ -214,7 +214,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
               onClick={handleSave}
               disabled={!date || saving}
               size="sm"
-              className="bg-amber-500 hover:bg-amber-600 text-zinc-900 font-semibold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {saving ? 'Saving...' : 'Save Override'}
             </Button>
@@ -227,7 +227,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
         <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
       ) : sortedUpcoming.length === 0 && !showForm ? (
         <div className="text-center py-6">
-          <CalendarOff className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+          <CalendarOff className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-xs text-muted-foreground">No upcoming date overrides. Your recurring schedule applies.</p>
         </div>
       ) : (
@@ -247,7 +247,7 @@ export function AvailabilityOverrides({ barberId }: { barberId: string }) {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
                     'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                    o.isAvailable ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'
+                    o.isAvailable ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)]' : 'bg-red-500/10 text-red-400'
                   )}>
                     {o.isAvailable ? <Clock className="w-4 h-4" /> : <CalendarOff className="w-4 h-4" />}
                   </div>

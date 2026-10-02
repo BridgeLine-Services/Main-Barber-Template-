@@ -38,7 +38,7 @@ export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
           <p className="text-sm text-muted-foreground mt-1">Today at a glance</p>
         </div>
         <div className="rounded-xl border border-border bg-card/50 p-10 text-center">
-          <AlertTriangle className="w-10 h-10 text-amber-500/60 mx-auto mb-3" />
+          <AlertTriangle className="w-10 h-10 text-[var(--dash-brand)]/60 mx-auto mb-3" />
           <p className="text-foreground/85 font-medium">Database not available</p>
           <p className="text-sm text-muted-foreground mt-1">The operations dashboard will appear here once the database is connected.</p>
         </div>
@@ -65,7 +65,7 @@ export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
 
       {/* Summary tiles */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <SummaryTile icon={<CalendarCheck className="w-4 h-4" />} label="Appointments Today" value={snapshot.totals.appointmentsToday} accent="text-amber-400" />
+        <SummaryTile icon={<CalendarCheck className="w-4 h-4" />} label="Appointments Today" value={snapshot.totals.appointmentsToday} accent="text-[var(--dash-brand)]" />
         <SummaryTile icon={<Clock className="w-4 h-4" />} label="Upcoming" value={snapshot.totals.upcoming} accent="text-blue-400" />
         <SummaryTile icon={<CheckCircle2 className="w-4 h-4" />} label="Completed" value={snapshot.totals.completed} accent="text-emerald-400" />
         <SummaryTile icon={<CalendarX className="w-4 h-4" />} label="Cancelled" value={snapshot.totals.cancelled} accent="text-red-400" />
@@ -91,7 +91,7 @@ export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
       <div className="rounded-xl border border-border bg-card/50 p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground/85 uppercase tracking-wide flex items-center gap-2">
-            <Armchair className="w-4 h-4 text-amber-500" /> Open Time Today
+            <Armchair className="w-4 h-4 text-[var(--dash-brand)]" /> Open Time Today
             <span className="text-muted-foreground normal-case font-normal">({totalOpenSlots} slot{totalOpenSlots === 1 ? '' : 's'} · 15+ min gaps)</span>
           </h2>
         </div>
@@ -130,7 +130,7 @@ export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
                     )}
                     <a
                       href={`/dashboard/calendar?date=${snapshot.dateStr}`}
-                      className="text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-1.5 transition-colors"
+                      className="text-xs font-semibold text-[var(--dash-brand)] hover:text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] rounded-lg px-2.5 py-1.5 transition-colors"
                     >
                       Book
                     </a>
@@ -153,7 +153,7 @@ export function DailyOperationsClient({ snapshot, dbAvailable }: Props) {
                         className="inline-flex items-center gap-1.5 text-xs text-foreground bg-card border border-border rounded-lg px-3 py-1.5"
                         title={`${r.minutes} minutes`}
                       >
-                        <Clock className="w-3 h-3 text-amber-500/70" />
+                        <Clock className="w-3 h-3 text-[var(--dash-brand)]/70" />
                         {fmtTime(r.start)} – {fmtTime(r.end)}
                         <span className="text-muted-foreground">({r.minutes}m)</span>
                       </span>

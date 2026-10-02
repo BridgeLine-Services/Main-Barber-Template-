@@ -42,7 +42,7 @@ export function CustomerProfileClient({ customerId }: { customerId: string }) {
       <Button
         onClick={() => setRebookOpen(true)}
         disabled={saving}
-        className="bg-amber-500 hover:bg-amber-600 text-black font-semibold gap-2"
+        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-2"
         size="sm"
       >
         <Sparkles className="w-4 h-4" />

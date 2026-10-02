@@ -26,9 +26,9 @@ interface WaitlistEntry {
 
 const STATUS_STYLES: Record<string, string> = {
   WAITING: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  NOTIFIED: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  NOTIFIED: 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]',
   BOOKED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  EXPIRED: 'bg-zinc-500/10 text-muted-foreground border-zinc-500/30',
+  EXPIRED: 'bg-[var(--dash-hover)] text-muted-foreground border-zinc-500/30',
   CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/30',
 }
 
@@ -81,7 +81,7 @@ export default function WaitlistPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--dash-brand)]" />
       </div>
     )
   }
@@ -122,7 +122,7 @@ export default function WaitlistPage() {
         return (
           <section aria-label="Today's walk-in queue">
             <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-amber-400" />
+              <Zap className="w-4 h-4 text-[var(--dash-brand)]" />
               <h2 className="text-lg font-semibold text-foreground">Today&apos;s Walk-In Queue</h2>
               <span className="text-xs text-muted-foreground">
                 {walkIns.filter(e => e.status === 'WAITING').length} waiting
@@ -133,17 +133,17 @@ export default function WaitlistPage() {
                 .filter(e => e.status === 'WAITING' || e.status === 'NOTIFIED')
                 .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                 .map((entry) => (
-                  <Card key={entry.id} className="bg-card border-amber-500/20">
+                  <Card key={entry.id} className="bg-card border-[var(--dash-brand-border)]">
                     <CardContent className="p-3 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 text-sm font-bold">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] text-sm font-bold">
                           {positions.get(entry.id) ?? '–'}
                         </span>
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate">
                             {entry.firstName} {entry.lastName}
                             {entry.status === 'NOTIFIED' && (
-                              <span className="ml-2 text-xs text-amber-400">called</span>
+                              <span className="ml-2 text-xs text-[var(--dash-brand)]">called</span>
                             )}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
@@ -157,7 +157,7 @@ export default function WaitlistPage() {
                           <Button
                             size="sm"
                             onClick={() => updateStatus(entry.id, 'NOTIFIED')}
-                            className="bg-amber-500 text-black hover:bg-amber-400 text-xs"
+                            className="bg-primary text-black hover:bg-primary/90 text-xs"
                             aria-label={`Call ${entry.firstName} (next in queue)`}
                           >
                             <Bell className="w-3.5 h-3.5 mr-1" /> Call Next
@@ -246,10 +246,10 @@ export default function WaitlistPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <a href={`tel:${entry.phone?.replace(/\D/g, "")}`} className="flex items-center gap-1 hover:text-amber-400">
+                      <a href={`tel:${entry.phone?.replace(/\D/g, "")}`} className="flex items-center gap-1 hover:text-[var(--dash-brand)]">
                         <Phone className="w-3.5 h-3.5" /> {entry.phone}
                       </a>
-                      <a href={`mailto:${entry.email}`} className="flex items-center gap-1 hover:text-amber-400">
+                      <a href={`mailto:${entry.email}`} className="flex items-center gap-1 hover:text-[var(--dash-brand)]">
                         <Mail className="w-3.5 h-3.5" /> {entry.email}
                       </a>
                     </div>
@@ -264,7 +264,7 @@ export default function WaitlistPage() {
                       <Button
                         size="sm"
                         onClick={() => updateStatus(entry.id, 'NOTIFIED')}
-                        className="bg-amber-500 text-black hover:bg-amber-400 text-xs"
+                        className="bg-primary text-black hover:bg-primary/90 text-xs"
                       >
                         <Bell className="w-3.5 h-3.5 mr-1" /> Notify
                       </Button>

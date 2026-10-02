@@ -195,13 +195,13 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{title}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         </div>
         <Button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="bg-amber-500 text-black hover:bg-amber-400"
+          className="bg-primary text-black hover:bg-primary/90"
         >
           <Upload className="mr-2 h-4 w-4" />
           {uploading ? 'Uploading...' : 'Upload Image'}
@@ -223,7 +223,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
             onClick={() => setActiveType(t.value)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               activeType === t.value
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)] border border-transparent'
             }`}
           >
@@ -238,11 +238,11 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
       ) : media.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="py-12 text-center">
-            <ImageIcon className="h-12 w-12 text-zinc-700 mx-auto mb-4" />
+            <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No images in this category yet.</p>
             <Button
               onClick={() => fileRef.current?.click()}
-              className="mt-4 bg-amber-500 text-black hover:bg-amber-400"
+              className="mt-4 bg-primary text-black hover:bg-primary/90"
             >
               <Plus className="mr-2 h-4 w-4" />
               Upload First Image
@@ -297,7 +297,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
               <div className="p-3 space-y-1">
                 <p className="text-xs text-muted-foreground truncate">{asset.altText || 'No description'}</p>
                 {asset.serviceId && services.some(svc => svc.id === asset.serviceId) && (
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90 truncate">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--dash-brand)]/90 truncate">
                     {services.find(svc => svc.id === asset.serviceId)?.name}
                   </p>
                 )}
@@ -315,7 +315,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Edit Image</CardTitle>
                 {TYPE_ROLE[editing.type] && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--dash-brand)]/90">
                     Renders {IMAGE_ROLES[TYPE_ROLE[editing.type]!].aspect.replace('aspect-[', '').replace(']', '').replace('/', ':')} · {IMAGE_ROLES[TYPE_ROLE[editing.type]!].priority ? 'above the fold' : 'standard'}
                   </span>
                 )}
@@ -457,7 +457,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
               </div>
               <Button
                 onClick={() => handleUpdate(editing)}
-                className="w-full bg-amber-500 text-black hover:bg-amber-400"
+                className="w-full bg-primary text-black hover:bg-primary/90"
               >
                 Save Changes
               </Button>

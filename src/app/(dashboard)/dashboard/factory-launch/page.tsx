@@ -33,7 +33,7 @@ export default async function FactoryLaunchPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wider text-amber-400">Barber Website Factory</p>
+        <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Barber Website Factory</p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">Factory Launch Console</h1>
         <p className="mt-2 text-muted-foreground">One prioritized workflow for deployment, configuration, testing, domain verification, and launch review.</p>
       </div>
@@ -51,7 +51,7 @@ export default async function FactoryLaunchPage() {
             <p>{report.counts.warnings} warnings</p>
           </div>
         </div>
-        <div className="mt-5 rounded-lg border border-white/10 bg-black/10 p-4">
+        <div className="mt-5 rounded-lg border border-border bg-muted p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next action</p>
           <p className="mt-1 text-lg font-semibold text-foreground">{report.nextAction.title}</p>
           <p className="mt-1 text-sm text-foreground/85">{report.nextAction.detail}</p>

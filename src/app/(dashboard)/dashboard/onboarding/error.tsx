@@ -23,7 +23,7 @@ export default function OnboardingError({
         <button
           type="button"
           onClick={() => reset()}
-          className="mt-5 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
+          className="mt-5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Try again
         </button>

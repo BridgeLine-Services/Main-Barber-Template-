@@ -90,7 +90,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-amber-500" />
+            <TrendingUp className="w-6 h-6 text-[var(--dash-brand)]" />
             Rebooking Engine
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -117,7 +117,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground font-medium">Total Due</p>
-            <p className="text-2xl font-bold font-mono text-amber-400 mt-1">{tasks.length}</p>
+            <p className="text-2xl font-bold font-mono text-[var(--dash-brand)] mt-1">{tasks.length}</p>
           </div>
           <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground font-medium">Overdue 30+ Days</p>
@@ -143,12 +143,12 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
       {metrics && (
   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
   {[
-  ['Due', metrics.due, 'text-amber-400'],
+  ['Due', metrics.due, 'text-[var(--dash-brand)]'],
   ['Overdue', metrics.overdue, 'text-orange-400'],
   ['At risk', metrics.atRisk, 'text-red-400'],
   ['Today', metrics.todayAppointments, 'text-emerald-400'],
   ].map(([label, value, color]) => (
-  <Link key={label} href="#retention-tasks" className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 hover:border-amber-500/40 transition-colors">
+  <Link key={label} href="#retention-tasks" className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 hover:border-[var(--dash-brand-border)] transition-colors">
   <p className="text-xs text-muted-foreground font-medium">{label}</p>
   <p className={`text-2xl font-bold font-mono mt-1 ${color}`}>{value}</p>
   </Link>
@@ -159,7 +159,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
   {/* Tasks List */}
       {tasks.length === 0 ? (
         <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center">
-          <Calendar className="w-10 h-10 mx-auto text-zinc-700 mb-3" />
+          <Calendar className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground font-medium">No customers due for rebooking</p>
           <p className="text-xs text-muted-foreground mt-1">All caught up! Customers will appear here when they're due.</p>
         </div>
@@ -170,7 +170,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
             const overdueColor =
               task.daysOverdue >= 30 ? 'text-red-400 bg-red-500/10 border-red-500/20' :
               task.daysOverdue >= 14 ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' :
-              'text-amber-400 bg-amber-500/10 border-amber-500/20'
+              'text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border-[var(--dash-brand-border)]'
 
             return (
               <div
@@ -179,13 +179,13 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-sm font-serif shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-sm font-serif shrink-0">
                       {task.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
                       <Link
                         href={`/dashboard/customers/${task.customerId}`}
-                        className="text-sm font-semibold text-foreground hover:text-amber-400 transition-colors"
+                        className="text-sm font-semibold text-foreground hover:text-[var(--dash-brand)] transition-colors"
                       >
                         {task.customerName}
                       </Link>
@@ -210,7 +210,7 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
                         onClick={() => handleSend(task.customerId)}
                         disabled={sending === task.customerId}
                         size="sm"
-                        className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                       >
                         {sending === task.customerId ? (
                           <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending...</>
@@ -256,9 +256,9 @@ export function RebookingDashboardClient({ initialTasks, initialMetrics }: { ini
 
                 {/* Predicted date */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/60">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
                   <span>
-                    Expected: <span className="text-amber-400 font-medium">{formatDate(task.predictedNextDate)}</span>
+                    Expected: <span className="text-[var(--dash-brand)] font-medium">{formatDate(task.predictedNextDate)}</span>
                     {' · '}
                     {task.daysOverdue > 0
                       ? `${task.daysOverdue} days overdue`

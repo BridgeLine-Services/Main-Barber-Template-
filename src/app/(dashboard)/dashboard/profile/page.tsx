@@ -143,10 +143,10 @@ export default function ProfilePage() {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Profile</h1>
+          <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
           <p className="text-sm text-muted-foreground mt-1">Update your information that customers see.</p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-amber-500 text-black hover:bg-amber-400">
+        <Button onClick={handleSave} disabled={saving} className="bg-primary text-black hover:bg-primary/90">
           <Save className="mr-2 h-4 w-4" />
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
@@ -156,7 +156,7 @@ export default function ProfilePage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Camera className="h-5 w-5 text-amber-500" />
+            <Camera className="h-5 w-5 text-[var(--dash-brand)]" />
             Profile Photo
           </CardTitle>
         </CardHeader>
@@ -203,7 +203,7 @@ export default function ProfilePage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5 text-amber-500" />
+            <User className="h-5 w-5 text-[var(--dash-brand)]" />
             Basic Information
           </CardTitle>
         </CardHeader>
@@ -256,7 +256,7 @@ export default function ProfilePage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Phone className="h-5 w-5 text-amber-500" />
+            <Phone className="h-5 w-5 text-[var(--dash-brand)]" />
             Personal Contact (Optional)
           </CardTitle>
         </CardHeader>
@@ -289,7 +289,7 @@ export default function ProfilePage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Globe className="h-5 w-5 text-amber-500" />
+            <Globe className="h-5 w-5 text-[var(--dash-brand)]" />
             Social Links
           </CardTitle>
         </CardHeader>

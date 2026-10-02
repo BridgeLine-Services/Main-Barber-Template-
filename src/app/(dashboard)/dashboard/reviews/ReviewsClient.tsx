@@ -187,7 +187,7 @@ export function ReviewsClient({
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 bg-card/50 border border-border rounded-xl px-4 py-2.5">
-            <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+            <Star className="w-6 h-6 text-[var(--dash-brand)] fill-amber-400" />
             <div>
               <p className="text-2xl font-bold text-foreground leading-none">{avgRating}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{total} reviews</p>
@@ -195,7 +195,7 @@ export function ReviewsClient({
           </div>
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-amber-500 hover:bg-amber-600 text-zinc-900 font-semibold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Review
@@ -228,7 +228,7 @@ export function ReviewsClient({
               <select
                 value={newBarberId}
                 onChange={e => setNewBarberId(e.target.value)}
-                className="w-full px-3 py-2 bg-muted border border-input rounded-md text-white text-sm"
+                className="w-full px-3 py-2 bg-muted border border-input rounded-md text-foreground text-sm"
               >
                 <option value="">Shop review (no specific barber)</option>
                 {barbers.map(b => (
@@ -249,7 +249,7 @@ export function ReviewsClient({
                   <Star
                     className={cn(
                       'w-6 h-6 transition-colors',
-                      s <= newRating ? 'text-amber-400 fill-amber-400' : 'text-zinc-700 hover:text-muted-foreground'
+                      s <= newRating ? 'text-[var(--dash-brand)] fill-amber-400' : 'text-muted-foreground hover:text-muted-foreground'
                     )}
                   />
                 </button>
@@ -276,7 +276,7 @@ export function ReviewsClient({
             <Button
               onClick={handleAddReview}
               disabled={!newAuthor.trim() || adding}
-              className="bg-amber-500 hover:bg-amber-600 text-zinc-900 font-semibold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {adding ? 'Adding...' : 'Add Review'}
             </Button>
@@ -292,7 +292,7 @@ export function ReviewsClient({
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               filter === 'all'
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                 : 'bg-card text-muted-foreground border-border hover:text-foreground'
             )}
           >
@@ -303,7 +303,7 @@ export function ReviewsClient({
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               filter === 'unassigned'
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                 : 'bg-card text-muted-foreground border-border hover:text-foreground'
             )}
           >
@@ -319,7 +319,7 @@ export function ReviewsClient({
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                   filter === b.id
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                     : 'bg-card text-muted-foreground border-border hover:text-foreground'
                 )}
               >
@@ -333,7 +333,7 @@ export function ReviewsClient({
       {/* Reviews List */}
       {filteredReviews.length === 0 ? (
         <div className="text-center py-16">
-          <Quote className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+          <Quote className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">
             {reviews.length === 0
               ? 'No reviews yet. Add one manually or wait for customers to submit reviews.'
@@ -347,7 +347,7 @@ export function ReviewsClient({
               key={r.id}
               className={cn(
                 'bg-card/50 border rounded-xl p-5',
-                r.isFeatured ? 'border-amber-500/30' : 'border-border'
+                r.isFeatured ? 'border-[var(--dash-brand-border)]' : 'border-border'
               )}
             >
               <div className="flex items-start justify-between gap-4">
@@ -359,7 +359,7 @@ export function ReviewsClient({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-foreground">{r.authorName}</span>
                       {r.isFeatured && (
-                        <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)] font-medium">
                           Featured
                         </span>
                       )}
@@ -381,7 +381,7 @@ export function ReviewsClient({
                           key={s}
                           className={cn(
                             'w-3.5 h-3.5',
-                            s <= r.rating ? 'text-amber-400 fill-amber-400' : 'text-zinc-700'
+                            s <= r.rating ? 'text-[var(--dash-brand)] fill-amber-400' : 'text-muted-foreground'
                           )}
                         />
                       ))}
@@ -418,7 +418,7 @@ export function ReviewsClient({
                     className={cn(
                       'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
                       r.isFeatured
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                         : 'bg-muted text-muted-foreground border-input hover:text-foreground'
                     )}
                   >

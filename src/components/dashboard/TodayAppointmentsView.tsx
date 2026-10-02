@@ -66,7 +66,7 @@ export function TodayAppointmentsView({
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <span>Today's Schedule</span>
-            <span className="text-xs font-sans font-normal px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full">
+            <span className="text-xs font-sans font-normal px-2.5 py-1 bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)] rounded-full">
               {formatFullDate(todayDate)}
             </span>
           </h1>
@@ -90,7 +90,7 @@ export function TodayAppointmentsView({
           <Button
             size="sm"
             onClick={() => setAddDialogOpen(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-amber-500/10"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-black/10"
           >
             <Plus className="w-4 h-4" />
             Add Appointment
@@ -106,7 +106,7 @@ export function TodayAppointmentsView({
               <p className="text-xs text-muted-foreground font-medium">Total Today</p>
               <p className="text-2xl font-bold text-foreground mt-1">{total}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-amber-400">
+            <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-[var(--dash-brand)]">
               <CalendarDays className="w-5 h-5" />
             </div>
           </CardContent>
@@ -158,7 +158,7 @@ export function TodayAppointmentsView({
 
         {appointments.length === 0 ? (
           <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center max-w-md mx-auto my-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-card border border-border text-amber-500 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-card border border-border text-[var(--dash-brand)] flex items-center justify-center mx-auto">
               <Scissors className="w-6 h-6" />
             </div>
             <div>
@@ -169,7 +169,7 @@ export function TodayAppointmentsView({
             </div>
             <Button
               onClick={() => setAddDialogOpen(true)}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               Book Appointment

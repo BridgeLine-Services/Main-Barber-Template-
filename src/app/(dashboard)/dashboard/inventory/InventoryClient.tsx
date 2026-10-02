@@ -162,7 +162,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
         </div>
         <button
           onClick={() => { setEditingItem(null); setShowForm(true) }}
-          className="px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 text-sm font-medium flex items-center gap-2 transition-colors"
+          className="px-4 py-2 rounded-lg bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)] hover:bg-[var(--dash-brand-soft)] text-sm font-medium flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" /> Add Item
         </button>
@@ -192,7 +192,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
                 filter === f
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                   : 'bg-card text-muted-foreground border-border hover:text-foreground'
               )}
             >
@@ -207,7 +207,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
             placeholder="Search items..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-card border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-amber-500/50"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-card border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-ring/50"
           />
         </div>
       </div>
@@ -215,7 +215,7 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
       {/* Inventory Table */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Package className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+          <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">
             {items.length === 0 ? 'No inventory items yet. Click "Add Item" to get started.' : 'No items match your filter.'}
           </p>
@@ -288,14 +288,14 @@ export function InventoryClient({ initialItems, barbers }: InventoryClientProps)
                           </button>
                           <button
                             onClick={() => { setEditingItem(item); setShowForm(true) }}
-                            className="w-7 h-7 rounded-md bg-muted hover:bg-zinc-700 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-md bg-muted hover:bg-[var(--dash-hover)] text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                             title="Edit"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleToggleArchive(item)}
-                            className="w-7 h-7 rounded-md bg-muted hover:bg-amber-950/40 text-muted-foreground hover:text-amber-400 flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-md bg-muted hover:bg-[var(--dash-hover)] text-muted-foreground hover:text-[var(--dash-brand)] flex items-center justify-center transition-colors"
                             title={item.archivedAt ? 'Restore to active inventory' : 'Archive (keep history)'}
                           >
                             {item.archivedAt ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
@@ -388,7 +388,7 @@ function InventoryForm({
               value={name}
               onChange={e => setName(e.target.value)}
               required
-              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -399,7 +399,7 @@ function InventoryForm({
                 type="text"
                 value={sku}
                 onChange={e => setSku(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
             <div>
@@ -409,7 +409,7 @@ function InventoryForm({
                 value={unit}
                 onChange={e => setUnit(e.target.value)}
                 placeholder="each, box, bottle..."
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
           </div>
@@ -421,7 +421,7 @@ function InventoryForm({
                 step="0.1"
                 value={stock}
                 onChange={e => setStock(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
             <div>
@@ -431,7 +431,7 @@ function InventoryForm({
                 step="0.1"
                 value={threshold}
                 onChange={e => setThreshold(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
           </div>
@@ -444,7 +444,7 @@ function InventoryForm({
                 value={cost}
                 onChange={e => setCost(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
             <div>
@@ -453,7 +453,7 @@ function InventoryForm({
                 type="text"
                 value={vendor}
                 onChange={e => setVendor(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
               />
             </div>
           </div>
@@ -462,7 +462,7 @@ function InventoryForm({
             <select
               value={barberId}
               onChange={e => setBarberId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50"
             >
               <option value="">Shop-wide</option>
               {barbers.map(b => (
@@ -476,13 +476,13 @@ function InventoryForm({
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-amber-500/50 resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--dash-surface)] border border-border text-foreground text-sm focus:outline-none focus:border-ring/50 resize-none"
             />
           </div>
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 text-sm font-medium transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)] hover:bg-[var(--dash-brand-soft)] text-sm font-medium transition-colors"
             >
               {item ? 'Save Changes' : 'Add Item'}
             </button>

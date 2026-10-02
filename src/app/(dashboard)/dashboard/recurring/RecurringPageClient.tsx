@@ -21,7 +21,7 @@ export function RecurringPageClient({
           <h1 className="font-serif text-2xl font-bold text-foreground">Recurring Appointments</h1>
           <p className="mt-1 text-sm text-muted-foreground">Schedule a repeat appointment series with availability checks.</p>
         </div>
-        <Button onClick={() => setOpen(true)} className="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400">
+        <Button onClick={() => setOpen(true)} className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90">
           <Repeat className="mr-2 h-4 w-4" /> Create recurring series
         </Button>
       </div>

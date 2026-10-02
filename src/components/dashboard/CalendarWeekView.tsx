@@ -59,7 +59,7 @@ export function CalendarWeekView({
             <div
               key={dateStr}
               className={`flex flex-col rounded-xl border p-2.5 min-h-[360px] bg-card/40 ${
-                isToday ? 'border-amber-500/50 bg-amber-500/5' : 'border-border/80'
+                isToday ? 'border-[var(--dash-brand-border)] bg-primary/5' : 'border-border/80'
               }`}
             >
               {/* Day Header */}
@@ -69,7 +69,7 @@ export function CalendarWeekView({
                 </p>
                 <p
                   className={`text-base font-bold mt-0.5 ${
-                    isToday ? 'text-amber-400' : 'text-foreground'
+                    isToday ? 'text-[var(--dash-brand)]' : 'text-foreground'
                   }`}
                 >
                   {dayDate.getDate()}
@@ -88,7 +88,7 @@ export function CalendarWeekView({
                         STATUS_COLORS[appt.status] || 'bg-card border-border text-foreground'
                       }`}
                     >
-                      <div className="text-[10px] font-mono font-bold text-amber-400">
+                      <div className="text-[10px] font-mono font-bold text-[var(--dash-brand)]">
                         {formatTime(start)}
                       </div>
                       <div className="text-xs font-bold text-foreground truncate">
@@ -107,7 +107,7 @@ export function CalendarWeekView({
               {/* Add button at bottom of day */}
               <button
                 onClick={() => onSelectDay(dateStr)}
-                className="mt-2 w-full py-1.5 border border-dashed border-border hover:border-amber-500/40 text-muted-foreground hover:text-amber-400 rounded text-[11px] flex items-center justify-center gap-1 transition-colors"
+                className="mt-2 w-full py-1.5 border border-dashed border-border hover:border-[var(--dash-brand-border)] text-muted-foreground hover:text-[var(--dash-brand)] rounded text-[11px] flex items-center justify-center gap-1 transition-colors"
               >
                 <Plus className="w-3 h-3" /> Add
               </button>

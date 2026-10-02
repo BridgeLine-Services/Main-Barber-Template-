@@ -38,8 +38,8 @@ export function AppointmentCard({ appointment, onUpdated }: AppointmentCardProps
         className={`bg-[var(--dash-surface)] border border-border border-l-4 ${borderClass} rounded-xl p-4 hover:border-input hover:shadow-lg transition-all cursor-pointer group`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 font-mono text-sm text-amber-400 font-semibold">
-            <Clock className="w-4 h-4 text-amber-500" />
+          <div className="flex items-center gap-2 font-mono text-sm text-[var(--dash-brand)] font-semibold">
+            <Clock className="w-4 h-4 text-[var(--dash-brand)]" />
             <span>
               {formatTime(startDate)} – {formatTime(endDate)}
             </span>
@@ -54,7 +54,7 @@ export function AppointmentCard({ appointment, onUpdated }: AppointmentCardProps
         </div>
 
         <div className="space-y-1.5">
-          <div className="font-semibold text-base text-foreground group-hover:text-amber-400 transition-colors flex items-center gap-2">
+          <div className="font-semibold text-base text-foreground group-hover:text-[var(--dash-brand)] transition-colors flex items-center gap-2">
             <User className="w-4 h-4 text-muted-foreground" />
             {appointment.customer
               ? `${appointment.customer.firstName} ${appointment.customer.lastName}`
@@ -63,7 +63,7 @@ export function AppointmentCard({ appointment, onUpdated }: AppointmentCardProps
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5 text-foreground/85">
-              <Scissors className="w-3.5 h-3.5 text-amber-500" />
+              <Scissors className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
               {appointment.service?.name || 'Service'}
             </span>
 

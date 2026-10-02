@@ -221,7 +221,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
       <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Plus className="w-5 h-5 text-amber-500" /> Manual Appointment
+            <Plus className="w-5 h-5 text-[var(--dash-brand)]" /> Manual Appointment
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-xs">
             Add an appointment directly into the shop schedule.
@@ -297,13 +297,13 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
           {/* Customer Selection Header */}
           <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs font-semibold text-amber-400">Customer Details</Label>
+              <Label className="text-xs font-semibold text-[var(--dash-brand)]">Customer Details</Label>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsNewCustomer(!isNewCustomer)}
-                className="text-xs text-amber-400 hover:text-amber-300 h-6 px-2"
+                className="text-xs text-[var(--dash-brand)] hover:text-[var(--dash-brand)] h-6 px-2"
               >
                 {isNewCustomer ? 'Select Existing Customer' : '+ New Customer'}
               </Button>
@@ -400,7 +400,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
             <Button
               type="submit"
               disabled={loading}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs"
             >
               {loading ? 'Creating...' : 'Create Appointment'}
             </Button>

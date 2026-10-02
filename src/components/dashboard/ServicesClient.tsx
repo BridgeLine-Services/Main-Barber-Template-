@@ -110,7 +110,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Scissors className="w-6 h-6 text-amber-500" />
+            <Scissors className="w-6 h-6 text-[var(--dash-brand)]" />
             <span>Service Catalog</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -120,7 +120,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
 
         <Button
           onClick={handleOpenAdd}
-          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs gap-1.5 shadow-lg shadow-amber-500/10 self-start sm:self-auto"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs gap-1.5 shadow-lg shadow-black/10 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" /> Add Service
         </Button>
@@ -170,7 +170,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                         </span>
                       </td>
 
-                      <td className="p-3.5 font-mono font-bold text-amber-400">
+                      <td className="p-3.5 font-mono font-bold text-[var(--dash-brand)]">
                         {formatPrice(service.price)}
                       </td>
 
@@ -195,7 +195,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
 
                       <td className="p-3.5 text-muted-foreground">
                         <span className="inline-flex items-center gap-1 font-medium text-foreground/85" title={barberNames}>
-                          <Users className="w-3 h-3 text-amber-500" />
+                          <Users className="w-3 h-3 text-[var(--dash-brand)]" />
                           {barbersCount} {barbersCount === 1 ? 'barber' : 'barbers'}
                         </span>
                       </td>
@@ -206,7 +206,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenEdit(service)}
-                            className="h-8 w-8 text-muted-foreground hover:text-amber-400 hover:bg-card"
+                            className="h-8 w-8 text-muted-foreground hover:text-[var(--dash-brand)] hover:bg-card"
                             title="Edit Service"
                           >
                             <Edit2 className="w-3.5 h-3.5" />

@@ -138,7 +138,7 @@ export default function ClosuresPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--dash-brand)]" />
       </div>
     )
   }
@@ -153,7 +153,7 @@ export default function ClosuresPage() {
         {!showForm && (
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-amber-500 text-black hover:bg-amber-400"
+            className="bg-primary text-black hover:bg-primary/90"
           >
             <Plus className="w-4 h-4 mr-2" /> Add Closure
           </Button>
@@ -182,7 +182,7 @@ export default function ClosuresPage() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Christmas Day, Summer Vacation"
-                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-muted-500 focus:border-ring focus:outline-none"
                 />
               </div>
 
@@ -193,7 +193,7 @@ export default function ClosuresPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="e.g. Shop closed for the holiday"
-                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground placeholder-muted-500 focus:border-ring focus:outline-none"
                 />
               </div>
 
@@ -205,7 +205,7 @@ export default function ClosuresPage() {
                     required
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-ring focus:outline-none"
                   />
                 </div>
                 <div>
@@ -215,7 +215,7 @@ export default function ClosuresPage() {
                     required
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-ring focus:outline-none"
                   />
                 </div>
               </div>
@@ -239,7 +239,7 @@ export default function ClosuresPage() {
                       type="time"
                       value={form.startTime}
                       onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
+                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-ring focus:outline-none"
                     />
                   </div>
                   <div>
@@ -248,14 +248,14 @@ export default function ClosuresPage() {
                       type="time"
                       value={form.endTime}
                       onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-amber-500 focus:outline-none"
+                      className="w-full rounded-lg bg-muted border border-input px-3 py-2 text-foreground focus:border-ring focus:outline-none"
                     />
                   </div>
                 </div>
               )}
 
               <div className="flex gap-3">
-                <Button type="submit" disabled={submitting} className="bg-amber-500 text-black hover:bg-amber-400">
+                <Button type="submit" disabled={submitting} className="bg-primary text-black hover:bg-primary/90">
                   {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   {editingId ? 'Save Changes' : 'Create Closure'}
                 </Button>
@@ -284,7 +284,7 @@ export default function ClosuresPage() {
                   {closure.description && (
                     <p className="text-sm text-muted-foreground mt-0.5">{closure.description}</p>
                   )}
-                  <p className="text-sm text-amber-400/70 mt-1">
+                  <p className="text-sm text-[var(--dash-brand)]/70 mt-1">
                     {formatDate(closure.startDate)}
                     {closure.endDate !== closure.startDate && ` — ${formatDate(closure.endDate)}`}
                     {!closure.isAllDay && closure.startTime && ` · ${closure.startTime}–${closure.endTime}`}

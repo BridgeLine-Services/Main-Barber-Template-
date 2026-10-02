@@ -140,13 +140,13 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
   }
 
   const inputClass =
-    'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none'
+    'w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none'
 
   return (
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <LayoutGrid className="h-5 w-5 text-amber-500" aria-hidden="true" />
+          <LayoutGrid className="h-5 w-5 text-[var(--dash-brand)]" aria-hidden="true" />
           Homepage Sections
         </CardTitle>
       </CardHeader>
@@ -197,7 +197,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => setExpanded(isOpen ? null : m.id)}
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${meta.label} settings`}
-                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--dash-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--dash-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Settings2 className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -208,7 +208,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => move(index, -1)}
                       disabled={index <= 1}
                       aria-label={`Move ${meta.label} up`}
-                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -217,7 +217,7 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
                       onClick={() => move(index, 1)}
                       disabled={index >= modules.length - 1}
                       aria-label={`Move ${meta.label} down`}
-                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                      className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>

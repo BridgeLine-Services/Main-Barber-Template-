@@ -135,7 +135,7 @@ export function RecurringDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[var(--dash-surface)] border-border text-foreground max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
+          <DialogTitle className="flex items-center gap-2 text-[var(--dash-brand)] font-serif">
             <Repeat className="w-5 h-5" />
             Recurring Appointment
           </DialogTitle>
@@ -159,7 +159,7 @@ export function RecurringDialog({
                 <select
                   value={barberId}
                   onChange={(e) => setBarberId(e.target.value)}
-                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
                 >
                   <option value="">Select barber...</option>
                   {barbers.map((b) => (
@@ -172,7 +172,7 @@ export function RecurringDialog({
                 <select
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
-                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
                 >
                   <option value="">Select service...</option>
                   {services.map((s) => (
@@ -203,7 +203,7 @@ export function RecurringDialog({
                 <select
                   value={intervalWeeks}
                   onChange={(e) => setIntervalWeeks(Number(e.target.value))}
-                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
                 >
                   <option value={2}>2 weeks</option>
                   <option value={3}>3 weeks</option>
@@ -215,7 +215,7 @@ export function RecurringDialog({
                 <select
                   value={totalOccurrences}
                   onChange={(e) => setTotalOccurrences(Number(e.target.value))}
-                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
                 >
                   {[3, 4, 6, 8, 10, 12].map((n) => (
                     <option key={n} value={n}>{n} appointments</option>
@@ -252,7 +252,7 @@ export function RecurringDialog({
                     {preview.availableCount} available
                   </span>
                   {preview.conflictCount > 0 && (
-                    <span className="text-amber-400 font-semibold">
+                    <span className="text-[var(--dash-brand)] font-semibold">
                       {preview.conflictCount} conflicts
                     </span>
                   )}
@@ -265,17 +265,17 @@ export function RecurringDialog({
                       className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded-lg ${
                         occ.available
                           ? 'bg-emerald-500/5'
-                          : 'bg-amber-500/5'
+                          : 'bg-primary/5'
                       }`}
                     >
                       {occ.available ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       ) : (
-                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
                       )}
                       <span className="text-foreground font-medium">{occ.dateLabel}</span>
                       {!occ.available && occ.reason && (
-                        <span className="text-amber-400/80 text-[10px] ml-auto">
+                        <span className="text-[var(--dash-brand)]/80 text-[10px] ml-auto">
                           {occ.reason}
                         </span>
                       )}
@@ -332,7 +332,7 @@ export function RecurringDialog({
               <Button
                 onClick={handleCreate}
                 disabled={creating || !customerName || !customerPhone || !customerEmail || preview.availableCount === 0}
-                className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 {creating ? (
                   <>

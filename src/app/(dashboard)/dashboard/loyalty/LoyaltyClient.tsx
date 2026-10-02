@@ -85,7 +85,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Gift className="w-6 h-6 text-amber-500" />
+            <Gift className="w-6 h-6 text-[var(--dash-brand)]" />
             Loyalty Program
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -95,7 +95,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
         >
           {saving ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
@@ -124,7 +124,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
             <select
               value={type}
               onChange={(e) => setType(e.target.value as 'VISITS' | 'POINTS')}
-              className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+              className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
             >
               <option value="VISITS">Visit-based (e.g. 5 visits = $5 off)</option>
               <option value="POINTS">Points-based (e.g. $1 spent = 1 point)</option>
@@ -168,7 +168,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
 
         {tiers.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Gift className="w-8 h-8 mx-auto mb-2 text-zinc-700" />
+            <Gift className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm">No reward tiers configured yet.</p>
             <p className="text-xs mt-1">Click "Add Tier" to create your first reward.</p>
           </div>
@@ -196,7 +196,7 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
                   <select
                     value={tier.rewardType}
                     onChange={(e) => updateTier(index, 'rewardType', e.target.value)}
-                    className="w-full bg-card border border-border rounded-lg px-2 py-2 text-sm text-foreground focus:border-amber-500/50 focus:outline-none"
+                    className="w-full bg-card border border-border rounded-lg px-2 py-2 text-sm text-foreground focus:border-ring/50 focus:outline-none"
                   >
                     <option value="DISCOUNT">Discount ($)</option>
                     <option value="FREE_SERVICE">Free Service</option>
@@ -238,12 +238,12 @@ export function LoyaltyClient({ initialProgram }: LoyaltyClientProps) {
         )}
 
         {tiers.length > 0 && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mt-4">
-            <p className="text-xs text-amber-400 font-semibold mb-2">Preview:</p>
+          <div className="bg-primary/5 border border-[var(--dash-brand-border)] rounded-xl p-4 mt-4">
+            <p className="text-xs text-[var(--dash-brand)] font-semibold mb-2">Preview:</p>
             <div className="flex flex-wrap gap-2">
               {[...tiers].sort((a, b) => a.threshold - b.threshold).map((tier, i) => (
                 <span key={i} className="text-xs bg-card border border-border text-foreground/85 px-3 py-1.5 rounded-lg">
-                  <span className="text-amber-400 font-bold">{tier.threshold}</span> {metricLabel} = {tier.reward || '???'}
+                  <span className="text-[var(--dash-brand)] font-bold">{tier.threshold}</span> {metricLabel} = {tier.reward || '???'}
                 </span>
               ))}
             </div>

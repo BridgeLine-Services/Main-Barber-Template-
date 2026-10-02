@@ -90,7 +90,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       <div>
         <Link
           href="/dashboard/customers"
-          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-amber-400 transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-[var(--dash-brand)] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Customers
@@ -101,7 +101,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xl font-serif">
+            <div className="w-16 h-16 rounded-full bg-[var(--dash-brand-soft)] border-2 border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-xl font-serif">
               {customer.firstName[0]}
               {customer.lastName[0]}
             </div>
@@ -113,7 +113,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
                 Customer since {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </p>
               {intelligence.isDueForRebook && (
-                <span className="inline-flex items-center gap-1.5 mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
+                <span className="inline-flex items-center gap-1.5 mt-2 text-xs text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] px-2.5 py-1 rounded-full font-medium">
                   <AlertTriangle className="w-3.5 h-3.5" /> Due for rebooking
                 </span>
               )}
@@ -137,29 +137,29 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
         {/* Contact Info & Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)] flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5" /> Phone Number
             </span>
             <p className="text-sm font-mono text-foreground">
-              <a href={`tel:${customer.phone?.replace(/\D/g, "")}`} className="hover:text-amber-400 transition-colors">
+              <a href={`tel:${customer.phone?.replace(/\D/g, "")}`} className="hover:text-[var(--dash-brand)] transition-colors">
                 {customer.phone}
               </a>
             </p>
           </div>
 
           <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)] flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> Email Address
             </span>
             <p className="text-sm text-foreground truncate">
-              <a href={`mailto:${customer.email}`} className="hover:text-amber-400 transition-colors">
+              <a href={`mailto:${customer.email}`} className="hover:text-[var(--dash-brand)] transition-colors">
                 {customer.email}
               </a>
             </p>
           </div>
 
           <div className="space-y-3 bg-card/60 border border-border/60 p-4 rounded-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)] flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Customer Notes
               <span className="ml-1 text-[9px] font-medium text-muted-foreground bg-muted border border-input rounded-full px-1.5 py-0.5">STAFF ONLY</span>
             </span>
@@ -178,7 +178,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       {/* Customer Intelligence Section */}
       <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
         <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-          <TrendingDown className="w-5 h-5 text-amber-500" />
+          <TrendingDown className="w-5 h-5 text-[var(--dash-brand)]" />
           <span>Customer Intelligence</span>
         </h2>
 
@@ -186,7 +186,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           {/* Visits */}
           <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-amber-500" />
+              <Calendar className="w-4 h-4 text-[var(--dash-brand)]" />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Visits</span>
             </div>
             <p className="text-2xl font-bold font-mono text-foreground">{intelligence.visitCount}</p>
@@ -224,7 +224,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           {/* Average Ticket */}
           <div className="bg-card/60 border border-border/60 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-amber-400" />
+              <DollarSign className="w-4 h-4 text-[var(--dash-brand)]" />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Ticket</span>
             </div>
             <p className="text-2xl font-bold font-mono text-emerald-400">
@@ -276,16 +276,16 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           </div>
 
           {/* Next Predicted */}
-          <div className={`rounded-xl p-4 border ${intelligence.isDueForRebook ? 'bg-amber-500/10 border-amber-500/30' : 'bg-card/60 border-border/60'}`}>
+          <div className={`rounded-xl p-4 border ${intelligence.isDueForRebook ? 'bg-[var(--dash-brand-soft)] border-[var(--dash-brand-border)]' : 'bg-card/60 border-border/60'}`}>
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className={`w-4 h-4 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-muted-foreground'}`} />
+              <Calendar className={`w-4 h-4 ${intelligence.isDueForRebook ? 'text-[var(--dash-brand)]' : 'text-muted-foreground'}`} />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Next Expected</span>
             </div>
-            <p className={`text-sm font-semibold mt-1 ${intelligence.isDueForRebook ? 'text-amber-400' : 'text-foreground'}`}>
+            <p className={`text-sm font-semibold mt-1 ${intelligence.isDueForRebook ? 'text-[var(--dash-brand)]' : 'text-foreground'}`}>
               {predictedDateStr || 'N/A'}
             </p>
             {intelligence.isDueForRebook && (
-              <p className="text-[10px] text-amber-400/80 mt-1">Due for rebooking</p>
+              <p className="text-[10px] text-[var(--dash-brand)]/80 mt-1">Due for rebooking</p>
             )}
           </div>
         </div>
@@ -294,7 +294,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[var(--dash-surface)] border border-border rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] text-[var(--dash-brand)] flex items-center justify-center shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
           <div>
@@ -342,7 +342,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-            <Scissors className="w-5 h-5 text-amber-500" />
+            <Scissors className="w-5 h-5 text-[var(--dash-brand)]" />
             <span>Haircut History &amp; Preferences</span>
           </h2>
           {customer.archivedAt && (
@@ -357,7 +357,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
           const preferred = computePreferredBarber(appointments)
           return (
             <div className="flex items-center gap-3 text-sm bg-card/60 border border-border/60 rounded-xl p-4">
-              <User className="w-4 h-4 text-amber-500 shrink-0" />
+              <User className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
               <span className="text-muted-foreground text-xs uppercase tracking-wide">Preferred Barber</span>
               <span className="text-foreground font-medium">
                 {preferred ? preferred.barberName : 'N/A'}
@@ -375,7 +375,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
         {/* Saved preferences (flexible JSON field on the Customer model) */}
         <div>
           <div className="flex items-center gap-2 mb-2.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">Saved Preferences</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)]">Saved Preferences</span>
             <span className="text-[9px] font-medium text-muted-foreground bg-muted border border-input rounded-full px-1.5 py-0.5">CUSTOMER VISIBLE</span>
           </div>
           {(() => {
@@ -413,7 +413,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
       {/* Appointment History Table */}
       <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-6 shadow-xl space-y-4">
         <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-          <Scissors className="w-5 h-5 text-amber-500" />
+          <Scissors className="w-5 h-5 text-[var(--dash-brand)]" />
           <span>Appointment History</span>
         </h2>
 
@@ -445,7 +445,7 @@ export default async function CustomerDetailPage(props: CustomerDetailPageProps)
 
                   return (
                     <tr key={appt.id} className="hover:bg-card/70 transition-colors">
-                      <td className="p-3.5 pl-4 font-mono text-amber-400 text-[11px]">
+                      <td className="p-3.5 pl-4 font-mono text-[var(--dash-brand)] text-[11px]">
                         {appt.confirmationNumber}
                       </td>
                       <td className="p-3.5">

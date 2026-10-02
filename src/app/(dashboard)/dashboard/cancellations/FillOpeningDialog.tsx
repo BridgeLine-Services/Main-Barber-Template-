@@ -104,7 +104,7 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[var(--dash-surface)] border border-border text-foreground max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
+          <DialogTitle className="flex items-center gap-2 text-[var(--dash-brand)] font-serif">
             <BellRing className="w-5 h-5" />
             <span>Appointment Opened</span>
           </DialogTitle>
@@ -114,19 +114,19 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
         </DialogHeader>
 
         {/* Opening card */}
-        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-2">
+        <div className="rounded-xl border border-[var(--dash-brand-border)] bg-primary/5 p-4 space-y-2">
           <div className="flex items-center gap-2.5 text-sm">
-            <Scissors className="w-4 h-4 text-amber-400 shrink-0" />
+            <Scissors className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
             <span className="text-muted-foreground text-xs w-16">Service</span>
             <span className="text-foreground font-medium">{opening.serviceName}</span>
           </div>
           <div className="flex items-center gap-2.5 text-sm">
-            <User className="w-4 h-4 text-amber-400 shrink-0" />
+            <User className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
             <span className="text-muted-foreground text-xs w-16">Barber</span>
             <span className="text-foreground font-medium">{opening.barberName}</span>
           </div>
           <div className="flex items-center gap-2.5 text-sm">
-            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <Clock className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
             <span className="text-muted-foreground text-xs w-16">Time</span>
             <span className="text-foreground font-medium">{opening.startTimeLabel} – {opening.endTimeLabel}</span>
           </div>
@@ -191,7 +191,7 @@ export function FillOpeningDialog({ opening, open, onOpenChange }: FillOpeningDi
                       size="sm"
                       onClick={() => handleNotify(c)}
                       disabled={notifyingId !== null}
-                      className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold shrink-0 h-8"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0 h-8"
                     >
                       {notifyingId === c.entryId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Notify'}
                     </Button>

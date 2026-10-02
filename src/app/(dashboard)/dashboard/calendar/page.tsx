@@ -107,7 +107,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <CalendarIcon className="w-6 h-6 text-amber-500" />
+            <CalendarIcon className="w-6 h-6 text-[var(--dash-brand)]" />
             <span>Master Calendar</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -121,13 +121,13 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           {/* View Switcher Tabs */}
           <Tabs value={view} onValueChange={(v) => setView(v as 'day' | 'week' | 'month')} className="w-auto">
             <TabsList className="bg-[var(--dash-surface)] border border-border text-muted-foreground p-1 h-9">
-              <TabsTrigger value="day" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 text-xs px-3 py-1">
+              <TabsTrigger value="day" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1">
                 Day
               </TabsTrigger>
-              <TabsTrigger value="week" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 text-xs px-3 py-1">
+              <TabsTrigger value="week" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1">
                 Week
               </TabsTrigger>
-              <TabsTrigger value="month" className="data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 text-xs px-3 py-1">
+              <TabsTrigger value="month" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1">
                 Month
               </TabsTrigger>
             </TabsList>
@@ -147,7 +147,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
               variant="ghost"
               size="sm"
               onClick={handleToday}
-              className="h-7 text-xs text-foreground/85 hover:text-amber-400 px-2.5 font-medium"
+              className="h-7 text-xs text-foreground/85 hover:text-[var(--dash-brand)] px-2.5 font-medium"
             >
               Today
             </Button>
@@ -172,7 +172,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           <Button
             size="sm"
             onClick={() => handleOpenAddForDate(currentDate.toISOString().split('T')[0])}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs h-9 gap-1 shadow-lg shadow-amber-500/10"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1 shadow-lg shadow-black/10"
           >
             <Plus className="w-4 h-4" />
             Add
@@ -183,7 +183,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
       {/* Main View Render */}
       {loading ? (
         <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+          <RefreshCw className="w-4 h-4 animate-spin text-[var(--dash-brand)]" />
           Loading calendar appointments...
         </div>
       ) : (

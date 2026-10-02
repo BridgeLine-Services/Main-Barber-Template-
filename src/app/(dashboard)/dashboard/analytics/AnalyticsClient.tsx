@@ -126,7 +126,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors border',
                 rangeDays === days
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border-[var(--dash-brand-border)]'
                   : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-input'
               )}
             >
@@ -241,7 +241,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
         {/* Barber Performance */}
         <div className="bg-card/50 border border-border rounded-xl p-5">
           <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-500" />
+            <Award className="w-4 h-4 text-[var(--dash-brand)]" />
             Barber Performance
           </h2>
           {barberPerformance.length === 0 ? (
@@ -259,13 +259,13 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                           {b.appointments} appts · {b.cancellations} canc · {b.noShows} NS
                         </span>
                       </div>
-                      <span className="text-sm font-semibold text-amber-400">
+                      <span className="text-sm font-semibold text-[var(--dash-brand)]">
                         ${b.revenue.toFixed(0)}
                       </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-amber-500/60 rounded-full transition-all"
+                        className="h-full bg-primary/60 rounded-full transition-all"
                         style={{ width: `${(b.revenue / maxRevenue) * 100}%` }}
                       />
                     </div>
@@ -279,7 +279,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
         {/* Peak Hours */}
         <div className="bg-card/50 border border-border rounded-xl p-5">
           <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-500" />
+            <Clock className="w-4 h-4 text-[var(--dash-brand)]" />
             Peak Hours
           </h2>
           {peakHours.length === 0 ? (
@@ -298,7 +298,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-amber-500/60 rounded-full"
+                        className="h-full bg-primary/60 rounded-full"
                         style={{ width: `${(ph.count / maxCount) * 100}%` }}
                       />
                     </div>
@@ -313,7 +313,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
       {/* Services Per Barber */}
       <div className="bg-card/50 border border-border rounded-xl p-5">
         <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-amber-500" />
+          <Calendar className="w-4 h-4 text-[var(--dash-brand)]" />
           Services Breakdown by Barber
         </h2>
         {servicesPerBarber.length === 0 ? (
@@ -334,7 +334,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
                     <tr key={i} className="border-b border-border/50 hover:bg-[var(--dash-hover)]">
                       <td className="py-3 px-3 text-foreground font-medium">{s.serviceName}</td>
                       <td className="py-3 px-3 text-right">
-                        <span className="text-amber-400 font-semibold">{s.totalCount}</span>
+                        <span className="text-[var(--dash-brand)] font-semibold">{s.totalCount}</span>
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex flex-wrap gap-1.5">
@@ -363,7 +363,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
 // ─── Stat Card Component ────────────────────────────────────────────────────
 
 const colorClasses: Record<string, { bg: string; text: string; border: string }> = {
-  amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+  amber: { bg: 'bg-[var(--dash-brand-soft)]', text: 'text-[var(--dash-brand)]', border: 'border-[var(--dash-brand-border)]' },
   red: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
   orange: { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
   green: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },

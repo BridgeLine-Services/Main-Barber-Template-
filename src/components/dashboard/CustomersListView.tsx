@@ -34,7 +34,7 @@ export function CustomersListView({ initialCustomers }: CustomersListViewProps) 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 text-amber-500" />
+            <Users className="w-6 h-6 text-[var(--dash-brand)]" />
             <span>Customer Directory</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -75,24 +75,24 @@ export function CustomersListView({ initialCustomers }: CustomersListViewProps) 
                       key={c.id}
                       className="hover:bg-card/70 transition-colors group"
                     >
-                      <td className="p-3.5 pl-4 font-semibold text-foreground group-hover:text-amber-400 transition-colors">
+                      <td className="p-3.5 pl-4 font-semibold text-foreground group-hover:text-[var(--dash-brand)] transition-colors">
                         <Link href={`/dashboard/customers/${c.id}`} className="block">
                           {c.firstName} {c.lastName}
                         </Link>
                       </td>
                       <td className="p-3.5 text-foreground/85 font-mono">
-                        <a href={`tel:${c.phone?.replace(/\D/g, "")}`} className="hover:text-amber-400 flex items-center gap-1">
+                        <a href={`tel:${c.phone?.replace(/\D/g, "")}`} className="hover:text-[var(--dash-brand)] flex items-center gap-1">
                           <Phone className="w-3 h-3 text-muted-foreground" />
                           {c.phone}
                         </a>
                       </td>
                       <td className="p-3.5 text-muted-foreground">
-                        <a href={`mailto:${c.email}`} className="hover:text-amber-400 flex items-center gap-1">
+                        <a href={`mailto:${c.email}`} className="hover:text-[var(--dash-brand)] flex items-center gap-1">
                           <Mail className="w-3 h-3 text-muted-foreground" />
                           {c.email}
                         </a>
                       </td>
-                      <td className="p-3.5 font-bold text-amber-400 font-mono">
+                      <td className="p-3.5 font-bold text-[var(--dash-brand)] font-mono">
                         {totalAppts}
                       </td>
                       <td className="p-3.5 text-muted-foreground">
@@ -108,7 +108,7 @@ export function CustomersListView({ initialCustomers }: CustomersListViewProps) 
                       <td className="p-3.5 pr-4 text-right">
                         <Link
                           href={`/dashboard/customers/${c.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--dash-brand)] hover:text-[var(--dash-brand)]"
                         >
                           View Profile <ChevronRight className="w-3.5 h-3.5" />
                         </Link>

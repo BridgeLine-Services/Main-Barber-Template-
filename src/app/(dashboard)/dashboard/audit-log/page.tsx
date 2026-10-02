@@ -81,8 +81,8 @@ export default function AuditLogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <ScrollText className="h-6 w-6 text-amber-500" />
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <ScrollText className="h-6 w-6 text-[var(--dash-brand)]" />
           Audit Log
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -111,7 +111,7 @@ export default function AuditLogPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/5">
+                        <Badge variant="outline" className="text-xs border-[var(--dash-brand-border)] text-[var(--dash-brand)] bg-primary/5">
                           {formatAction(log.action)}
                         </Badge>
                         {log.user && (

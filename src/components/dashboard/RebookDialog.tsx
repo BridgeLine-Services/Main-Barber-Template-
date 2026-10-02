@@ -120,7 +120,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
         {(suggestion?.preferences?.length ?? 0) > 0 && (
           <div className="rounded-lg border border-border bg-card/60 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-amber-400" /> Saved preferences — for your reference only
+              <Sparkles className="w-3 h-3 text-[var(--dash-brand)]" /> Saved preferences — for your reference only
             </p>
             <div className="flex flex-wrap gap-1.5">
               {suggestion.preferences.map((p) => (
@@ -133,7 +133,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
         )}
 
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-400 font-serif">
+          <DialogTitle className="flex items-center gap-2 text-[var(--dash-brand)] font-serif">
             <Sparkles className="w-5 h-5" />
             Rebook Customer
           </DialogTitle>
@@ -144,7 +144,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+            <Loader2 className="w-6 h-6 animate-spin text-[var(--dash-brand)]" />
             <span className="ml-2 text-sm text-muted-foreground">Loading rebooking suggestion...</span>
           </div>
         ) : success ? (
@@ -158,21 +158,21 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
             {/* Preselected details */}
             <div className="space-y-3 bg-card/60 border border-border/60 rounded-xl p-4">
               <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-amber-500 shrink-0" />
+                <User className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
                 <div className="flex-1">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Barber</p>
                   <p className="text-sm font-medium text-foreground">{suggestion?.barber?.name || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Scissors className="w-4 h-4 text-amber-500 shrink-0" />
+                <Scissors className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
                 <div className="flex-1">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Service</p>
                   <p className="text-sm font-medium text-foreground">{suggestion?.service?.name || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
+                <Calendar className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
                 <div className="flex-1">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Suggested Date</p>
                   <p className="text-sm font-medium text-foreground">{formatDate(selectedDate)}</p>
@@ -180,7 +180,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
               </div>
               {suggestion?.averageIntervalDays && (
                 <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Clock className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
                   <div className="flex-1">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Typical Interval</p>
                     <p className="text-sm font-medium text-foreground">Every {suggestion.averageIntervalDays} days</p>
@@ -203,10 +203,10 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
                       onClick={() => setSelectedTime(slot.time)}
                       className={`text-xs py-2 px-3 rounded-lg border font-medium transition-colors ${
                         selectedTime === slot.time
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                          ? 'bg-[var(--dash-brand-soft)] border-amber-500/40 text-[var(--dash-brand)]'
                           : slot.available
                           ? 'bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] hover:border-input'
-                          : 'bg-card/40 border-zinc-900 text-muted-foreground cursor-not-allowed'
+                          : 'bg-card/40 border-border text-muted-foreground cursor-not-allowed'
                       }`}
                     >
                       {slot.time}
@@ -240,7 +240,7 @@ export function RebookDialog({ customerId, open, onOpenChange }: RebookDialogPro
             <Button
               onClick={handleRebook}
               disabled={!selectedTime || submitting}
-              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {submitting ? (
                 <>

@@ -64,7 +64,7 @@ export default function E2ETestPage() {
           <Button
             onClick={runTest}
             disabled={running}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
           >
             {running ? (
               <>
@@ -124,10 +124,10 @@ export default function E2ETestPage() {
         </Card>
       )}
 
-      <Card className="bg-amber-950/20 border-amber-900/40">
+      <Card className="bg-amber-500/10 border-amber-600/40">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-[var(--dash-brand)] shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-amber-200">What this tests</p>
               <p className="text-xs text-amber-200/70 mt-1">

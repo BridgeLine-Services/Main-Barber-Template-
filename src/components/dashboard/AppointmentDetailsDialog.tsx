@@ -129,7 +129,7 @@ export function AppointmentDetailsDialog({
         <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
-              <Hash className="w-3.5 h-3.5 text-amber-500" />
+              <Hash className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
               {appointment.confirmationNumber}
             </span>
             <Badge
@@ -157,7 +157,7 @@ export function AppointmentDetailsDialog({
         <div className="space-y-4 my-2 text-sm">
           {/* Customer Info */}
           <div className="p-3.5 rounded-lg bg-card border border-border space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)] flex items-center gap-1.5">
               <User className="w-3.5 h-3.5" /> Customer Info
             </div>
             <div className="text-base font-bold text-foreground">
@@ -169,7 +169,7 @@ export function AppointmentDetailsDialog({
               {appointment.customer?.phone && (
                 <a
                   href={`tel:${appointment.customer.phone?.replace(/\D/g, "")}`}
-                  className="flex items-center gap-1 hover:text-amber-400 transition-colors"
+                  className="flex items-center gap-1 hover:text-[var(--dash-brand)] transition-colors"
                 >
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                   {appointment.customer.phone}
@@ -178,7 +178,7 @@ export function AppointmentDetailsDialog({
               {appointment.customer?.email && (
                 <a
                   href={`mailto:${appointment.customer.email}`}
-                  className="flex items-center gap-1 hover:text-amber-400 transition-colors"
+                  className="flex items-center gap-1 hover:text-[var(--dash-brand)] transition-colors"
                 >
                   <Mail className="w-3.5 h-3.5 text-muted-foreground" />
                   {appointment.customer.email}
@@ -191,7 +191,7 @@ export function AppointmentDetailsDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-lg bg-card border border-border space-y-1">
               <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                <Scissors className="w-3 h-3 text-amber-400" /> Service
+                <Scissors className="w-3 h-3 text-[var(--dash-brand)]" /> Service
               </span>
               <div className="font-semibold text-foreground">
                 {appointment.service?.name || 'Service'}
@@ -209,7 +209,7 @@ export function AppointmentDetailsDialog({
 
             <div className="p-3 rounded-lg bg-card border border-border space-y-1">
               <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                <User className="w-3 h-3 text-amber-400" /> Barber
+                <User className="w-3 h-3 text-[var(--dash-brand)]" /> Barber
               </span>
               <div className="font-semibold text-foreground">
                 {appointment.barber?.name || 'Barber'}
@@ -224,10 +224,10 @@ export function AppointmentDetailsDialog({
           <div className="p-3.5 rounded-lg bg-card border border-border space-y-2">
             <div className="flex items-center justify-between text-xs text-foreground/85">
               <span className="flex items-center gap-1.5 font-medium text-foreground">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                <Calendar className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
                 {formatFullDate(startDate)}
               </span>
-              <span className="flex items-center gap-1.5 font-semibold text-amber-400">
+              <span className="flex items-center gap-1.5 font-semibold text-[var(--dash-brand)]">
                 <Clock className="w-3.5 h-3.5" />
                 {formatTime(startDate)} - {formatTime(endDate)}
               </span>
@@ -247,7 +247,7 @@ export function AppointmentDetailsDialog({
           {/* Appointment Notes & Intake */}
           {(appointment.customerNotes || appointment.intakeResponses?.length > 0) && (
             <div className="space-y-3 rounded-lg border border-border bg-card p-3.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--dash-brand)]">
                 <FileText className="h-3.5 w-3.5" /> Appointment Notes &amp; Intake
               </div>
               {appointment.customerNotes && (
@@ -270,8 +270,8 @@ export function AppointmentDetailsDialog({
           )}
 
           {/* Payment info notice */}
-          <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
-            <CreditCard className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="p-2.5 rounded bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center gap-2 text-xs text-[var(--dash-brand)]">
+            <CreditCard className="w-4 h-4 text-[var(--dash-brand)] shrink-0" />
             <span>
               Payment due in person ({formatPrice(appointment.service?.price || 0)})
             </span>
@@ -314,8 +314,8 @@ export function AppointmentDetailsDialog({
 
           {/* Reschedule inline form */}
           {isRescheduling && (
-            <div className="p-3.5 rounded-lg bg-card border border-amber-500/30 space-y-3">
-              <div className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+            <div className="p-3.5 rounded-lg bg-card border border-[var(--dash-brand-border)] space-y-3">
+              <div className="text-xs font-semibold text-[var(--dash-brand)] flex items-center gap-1.5">
                 <CalendarClock className="w-4 h-4" /> Reschedule Appointment
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -351,7 +351,7 @@ export function AppointmentDetailsDialog({
                   size="sm"
                   disabled={loading}
                   onClick={handleReschedule}
-                  className="text-xs bg-amber-500 hover:bg-amber-400 text-zinc-950 font-medium"
+                  className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 >
                   Save Reschedule
                 </Button>

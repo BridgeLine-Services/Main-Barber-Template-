@@ -48,7 +48,7 @@ const REASON_COLORS: Record<string, string> = {
   SCHEDULE_CONFLICT: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
   FEELING_SICK: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
   FOUND_ANOTHER_TIME: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  OTHER: 'text-muted-foreground bg-zinc-700/30 border-zinc-600',
+  OTHER: 'text-muted-foreground bg-muted border-border',
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -110,7 +110,7 @@ export function CancellationIntelligenceClient({
         </div>
         <div className="rounded-xl border border-border bg-card/50 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingDown className="w-4 h-4 text-amber-400" />
+            <TrendingDown className="w-4 h-4 text-[var(--dash-brand)]" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Repeat Cancellers</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.total - stats.uniqueCustomers}</p>
@@ -140,7 +140,7 @@ export function CancellationIntelligenceClient({
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-amber-500/60 rounded-full"
+                      className="h-full bg-primary/60 rounded-full"
                       style={{ width: `${(count / maxReasonCount) * 100}%` }}
                     />
                   </div>
@@ -158,14 +158,14 @@ export function CancellationIntelligenceClient({
           placeholder="Search by customer name, email, or phone..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-amber-500/50"
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-ring/50"
         />
       </div>
 
       {/* Records Table */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <AlertTriangle className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+          <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">
             {records.length === 0 ? 'No cancellation records yet.' : 'No records match your filter.'}
           </p>
@@ -218,7 +218,7 @@ export function CancellationIntelligenceClient({
                               endTimeLabel: end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
                             })
                           }}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-lg px-2.5 py-1.5 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--dash-brand)] hover:text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] rounded-lg px-2.5 py-1.5 transition-colors"
                         >
                           <BellRing className="w-3.5 h-3.5" />
                           Fill Opening

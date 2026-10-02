@@ -243,10 +243,10 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Business Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Business Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your shop information, branding, hours, policies, and SEO.</p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-amber-500 text-black hover:bg-amber-400">
+        <Button onClick={handleSave} disabled={saving} className="bg-primary text-black hover:bg-primary/90">
           <Save className="mr-2 h-4 w-4" />
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                  ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)]'
                   : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)]'
               }`}
             >
@@ -279,7 +279,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="h-5 w-5 text-amber-500" />
+                <Building2 className="h-5 w-5 text-[var(--dash-brand)]" />
                 Business Information
               </CardTitle>
             </CardHeader>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
                   <select
                     value={resolveBusinessTimezone(business)}
                     onChange={e => setBusiness({ ...business, timezone: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-white text-sm"
+                    className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-foreground text-sm"
                   >
                     {TIMEZONES.map(tz => (
                       <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
@@ -322,7 +322,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5 text-amber-500" />
+                <Users className="h-5 w-5 text-[var(--dash-brand)]" />
                 Meet the Team Section
               </CardTitle>
             </CardHeader>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Phone className="h-5 w-5 text-amber-500" />
+                <Phone className="h-5 w-5 text-[var(--dash-brand)]" />
                 Contact Information
               </CardTitle>
             </CardHeader>
@@ -395,7 +395,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <MapPin className="h-5 w-5 text-amber-500" />
+                <MapPin className="h-5 w-5 text-[var(--dash-brand)]" />
                 Location
               </CardTitle>
             </CardHeader>
@@ -446,7 +446,7 @@ export default function SettingsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5 text-amber-500" />
+                <Clock className="h-5 w-5 text-[var(--dash-brand)]" />
                 Weekly Business Hours
               </CardTitle>
               <Button
@@ -508,7 +508,7 @@ export default function SettingsPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Palette className="h-5 w-5 text-amber-500" />
+              <Palette className="h-5 w-5 text-[var(--dash-brand)]" />
               Branding & Theme
             </CardTitle>
           </CardHeader>
@@ -586,7 +586,7 @@ export default function SettingsPage() {
               <select
                 value={business.themeMode || 'dark'}
                 onChange={e => setBusiness({ ...business, themeMode: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-white text-sm"
+                className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-foreground text-sm"
               >
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
@@ -599,7 +599,7 @@ export default function SettingsPage() {
               <select
                 value={business.fontFamily || ''}
                 onChange={e => setBusiness({ ...business, fontFamily: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-white text-sm"
+                className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-foreground text-sm"
               >
                 {FONTS.map(f => (
                   <option key={f.value} value={f.value}>{f.label}</option>
@@ -634,7 +634,7 @@ export default function SettingsPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Globe className="h-5 w-5 text-amber-500" />
+              <Globe className="h-5 w-5 text-[var(--dash-brand)]" />
               Social Media Links
             </CardTitle>
           </CardHeader>
@@ -702,7 +702,7 @@ export default function SettingsPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5 text-amber-500" />
+              <FileText className="h-5 w-5 text-[var(--dash-brand)]" />
               Shop Policies
             </CardTitle>
             <p className="text-xs text-muted-foreground">
@@ -741,7 +741,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Search className="h-5 w-5 text-amber-500" />
+                <Search className="h-5 w-5 text-[var(--dash-brand)]" />
                 Search Engine Optimization
               </CardTitle>
             </CardHeader>
@@ -782,7 +782,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <ImageIcon className="h-5 w-5 text-amber-500" />
+                <ImageIcon className="h-5 w-5 text-[var(--dash-brand)]" />
                 Open Graph (Social Sharing)
               </CardTitle>
             </CardHeader>
@@ -824,7 +824,7 @@ export default function SettingsPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Globe className="h-5 w-5 text-amber-500" />
+                <Globe className="h-5 w-5 text-[var(--dash-brand)]" />
                 Robots & Verification
               </CardTitle>
             </CardHeader>
@@ -878,7 +878,7 @@ export default function SettingsPage() {
 
       {activeTab === 'appearance' && (
         <>
-          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} />
           <HomeModulesCard websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
         </>
       )}

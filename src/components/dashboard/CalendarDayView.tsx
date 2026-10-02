@@ -41,7 +41,7 @@ export function CalendarDayView({
           const hourTimeStr = `${hour < 10 ? '0' : ''}${hour}:00`
 
           return (
-            <div key={hour} className="flex gap-4 items-start min-h-[64px] border-b border-zinc-900 pb-2">
+            <div key={hour} className="flex gap-4 items-start min-h-[64px] border-b border-border pb-2">
               <div className="w-16 shrink-0 text-xs font-mono text-muted-foreground pt-1">
                 {hourLabel}
               </div>
@@ -61,7 +61,7 @@ export function CalendarDayView({
                         }`}
                       >
                         <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                          <span className="flex items-center gap-1 font-mono text-amber-400">
+                          <span className="flex items-center gap-1 font-mono text-[var(--dash-brand)]">
                             <Clock className="w-3.5 h-3.5" />
                             {formatTime(start)} - {formatTime(end)}
                           </span>
@@ -79,7 +79,7 @@ export function CalendarDayView({
                           </span>
 
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Scissors className="w-3 h-3 text-amber-500" />
+                            <Scissors className="w-3 h-3 text-[var(--dash-brand)]" />
                             {appt.service?.name} {appt.barber?.name ? `(${appt.barber.name})` : ''}
                           </span>
                         </div>
@@ -89,9 +89,9 @@ export function CalendarDayView({
                 ) : (
                   <button
                     onClick={() => onSelectSlot(hourTimeStr)}
-                    className="w-full py-2 px-3 rounded-lg border border-dashed border-border/80 hover:border-amber-500/40 text-muted-foreground hover:text-amber-400 text-xs flex items-center justify-between transition-colors group"
+                    className="w-full py-2 px-3 rounded-lg border border-dashed border-border/80 hover:border-[var(--dash-brand-border)] text-muted-foreground hover:text-[var(--dash-brand)] text-xs flex items-center justify-between transition-colors group"
                   >
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground group-hover:text-amber-400">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground group-hover:text-[var(--dash-brand)]">
                       AVAILABLE SLOT
                     </span>
                     <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

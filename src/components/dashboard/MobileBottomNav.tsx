@@ -20,7 +20,7 @@ export function MobileBottomNav() {
       {items.map(({ href, label, icon: Icon }) => {
         const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
         return (
-          <Link key={href} href={href} className={cn('flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors', active ? 'text-amber-400' : 'text-muted-foreground hover:text-foreground')} aria-current={active ? 'page' : undefined}>
+          <Link key={href} href={href} className={cn('flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors', active ? 'text-[var(--dash-brand)]' : 'text-muted-foreground hover:text-foreground')} aria-current={active ? 'page' : undefined}>
             <Icon aria-hidden="true" className="size-5" />
             <span>{label}</span>
           </Link>

@@ -171,7 +171,7 @@ export function AppointmentsListView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-amber-500" />
+            <CalendarDays className="w-6 h-6 text-[var(--dash-brand)]" />
             <span>All Appointments</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -186,14 +186,14 @@ export function AppointmentsListView({
             onClick={exportToCSV}
             className="bg-[var(--dash-surface)] border-border text-foreground/85 hover:bg-card text-xs h-9 gap-1.5"
           >
-            <Download className="w-3.5 h-3.5 text-amber-400" />
+            <Download className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
             Export CSV
           </Button>
 
           <Button
             size="sm"
             onClick={() => setAddDialogOpen(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-amber-500/10"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-black/10"
           >
             <Plus className="w-4 h-4" />
             New Appointment
@@ -204,7 +204,7 @@ export function AppointmentsListView({
             variant="outline"
             className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] font-semibold text-xs h-9 gap-1.5"
           >
-            <Repeat className="w-4 h-4 text-amber-400" />
+            <Repeat className="w-4 h-4 text-[var(--dash-brand)]" />
             Recurring
           </Button>
         </div>
@@ -309,7 +309,7 @@ export function AppointmentsListView({
                       }}
                       className="hover:bg-card/70 transition-colors cursor-pointer group"
                     >
-                      <td className="p-3.5 pl-4 font-mono text-amber-400 font-semibold">
+                      <td className="p-3.5 pl-4 font-mono text-[var(--dash-brand)] font-semibold">
                         {appt.confirmationNumber}
                       </td>
                       <td className="p-3.5">
@@ -319,7 +319,7 @@ export function AppointmentsListView({
                         <div className="text-[11px] text-muted-foreground">{formatTime(st)}</div>
                       </td>
                       <td className="p-3.5">
-                        <div className="font-semibold text-foreground group-hover:text-amber-400 transition-colors">
+                        <div className="font-semibold text-foreground group-hover:text-[var(--dash-brand)] transition-colors">
                           {appt.customer
                             ? `${appt.customer.firstName} ${appt.customer.lastName}`
                             : 'Unknown'}

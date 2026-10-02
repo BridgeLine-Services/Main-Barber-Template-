@@ -121,7 +121,7 @@ export function FaqManager() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <HelpCircle className="h-5 w-5 text-amber-500" />
+            <HelpCircle className="h-5 w-5 text-[var(--dash-brand)]" />
             Frequently Asked Questions
           </CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -183,7 +183,7 @@ export function FaqManager() {
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-amber-500 text-black hover:bg-amber-400"
+                        className="bg-primary text-black hover:bg-primary/90"
                         disabled={savingId === faq.id}
                         onClick={() => handleUpdate(faq)}
                       >
@@ -201,7 +201,7 @@ export function FaqManager() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5 text-amber-500" />
+            <Plus className="h-5 w-5 text-[var(--dash-brand)]" />
             Add New FAQ
           </CardTitle>
         </CardHeader>
@@ -237,7 +237,7 @@ export function FaqManager() {
           </div>
           <div className="flex justify-end">
             <Button
-              className="bg-amber-500 text-black hover:bg-amber-400"
+              className="bg-primary text-black hover:bg-primary/90"
               disabled={creating}
               onClick={handleCreate}
             >
