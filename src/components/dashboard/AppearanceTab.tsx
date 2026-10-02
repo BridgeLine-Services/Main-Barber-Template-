@@ -66,6 +66,9 @@ const FIELD_LABELS: Record<VisualOverrideKey, string> = {
   motionLevel: 'Motion level',
   mobileNavMode: 'Mobile navigation focus',
   reviewPresentation: 'Review presentation',
+  buttonStyle: 'Button style',
+  imageShape: 'Image shape',
+  headingScale: 'Heading scale',
 }
 
 const OPTION_LABELS: Record<string, string> = {
@@ -87,6 +90,14 @@ const OPTION_LABELS: Record<string, string> = {
   walkin: 'Walk-in-focused',
   barber: 'Barber-focused',
   strip: 'Compact strip / carousel',
+  sharp: 'Sharp — square corners',
+  soft: 'Soft — slightly rounded',
+  pill: 'Pill — fully rounded',
+  square: 'Square — sharp corners',
+  rounded: 'Rounded — soft corners',
+  'full-bleed': 'Full-bleed — edge to edge',
+  compact: 'Compact — smaller headings',
+  grand: 'Grand — larger headings',
 }
 
 function optionLabel(value: string): string {

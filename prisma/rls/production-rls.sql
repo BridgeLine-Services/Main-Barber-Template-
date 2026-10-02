@@ -52,7 +52,7 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   WaitlistEntry, NotificationLog, AuditLog, BusinessClosure,
 --   BusinessRewardProgram, CustomerTagAssignment, CancellationRecord,
 --   NoShowPolicy, InventoryItem, MarketingCampaign, WebsiteContent,
---   BookingQuestion, RescheduleHistory, PortalVerificationChallenge,
+--   BookingQuestion, RescheduleHistory, BeforeAfterPair, PortalVerificationChallenge,
 --   PortalSession, Faq
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
@@ -72,6 +72,7 @@ DECLARE
     'BusinessClosure','BusinessRewardProgram','CustomerTagAssignment',
     'CancellationRecord','NoShowPolicy','InventoryItem','MarketingCampaign',
     'WebsiteContent','BookingQuestion','RescheduleHistory',
+    'BeforeAfterPair',
     'PortalVerificationChallenge','PortalSession','Faq',
     -- Newly denormalized (migration 20260927153000): businessId is
     -- trigger-maintained from the parent record, never app-supplied.

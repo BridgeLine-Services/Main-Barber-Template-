@@ -21,7 +21,7 @@ const TENANT_TABLES = [
   'NoShowPolicy','InventoryItem','MarketingCampaign','WebsiteContent',
   'BookingQuestion','RescheduleHistory','PortalVerificationChallenge',
   'PortalSession','Faq','BarberService','BarberRewardProgram',
-  'AppointmentIntakeResponse','Payment',
+  'AppointmentIntakeResponse','Payment','BeforeAfterPair',
   // tenant roots
   'Business','Schedule',
 ]

@@ -19,7 +19,7 @@ const PUBLISH_FIELDS = [
   'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle',
   'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle',
   'faqDescription', 'finalCtaTitle', 'finalCtaDescription',
-  'featuredReviewCount', 'visualPreset', 'visualConfig',
+  'featuredReviewCount', 'visualPreset', 'visualConfig', 'homeModules',
 ] as const
 
 /**

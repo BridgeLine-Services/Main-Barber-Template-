@@ -90,6 +90,7 @@ model Business {
   inventoryItems               InventoryItem[]
   marketingCampaigns           MarketingCampaign[]
   mediaAssets                  MediaAsset[]
+  beforeAfterPairs             BeforeAfterPair[]
   seo                          BusinessSEO?
   availabilityOverrides        AvailabilityOverride[]
   faqs                         Faq[]
@@ -194,6 +195,7 @@ model Barber {
   inventoryItems        InventoryItem[]
   reviews               Review[]
   mediaAssets           MediaAsset[]
+  beforeAfterPairs      BeforeAfterPair[]
   availabilityOverrides AvailabilityOverride[]
 
   @@index([businessId])
@@ -259,10 +261,11 @@ model Service {
   createdAt                        DateTime @default(now())
   updatedAt                        DateTime @updatedAt
 
-  barbers         BarberService[]
-  appointments    Appointment[]
-  waitlistEntries WaitlistEntry[]
-  mediaAssets     MediaAsset[] // portfolio / example work linked to this service
+  barbers          BarberService[]
+  appointments     Appointment[]
+  waitlistEntries  WaitlistEntry[]
+  mediaAssets      MediaAsset[] // portfolio / example work linked to this service
+  beforeAfterPairs BeforeAfterPair[]
 
   @@index([businessId])
 }
@@ -307,25 +310,56 @@ enum MediaType {
 }
 
 model MediaAsset {
-  id          String    @id @default(cuid())
+  id          String            @id @default(cuid())
   businessId  String
-  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business    Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   barberId    String? // null = shop asset, set for barber-specific assets
-  barber      Barber?   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber      Barber?           @relation(fields: [barberId], references: [id], onDelete: Cascade)
   serviceId   String? // null = not service-specific; set for service-linked portfolio work
-  service     Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  service     Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  beforePairs BeforeAfterPair[] @relation("BeforeImage")
+  afterPairs  BeforeAfterPair[] @relation("AfterImage")
   type        MediaType
   url         String // CDN / storage URL
   storageKey  String? // provider-specific key for deletion/management
   altText     String?
   caption     String?
-  sortOrder   Int       @default(0)
-  isPublished Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  focalX      Int? // horizontal focal point, 0-100 (percent from left); null = center
+  focalY      Int? // vertical focal point, 0-100 (percent from top); null = center
+  sortOrder   Int               @default(0)
+  isPublished Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@index([businessId, type])
   @@index([barberId, type])
+  @@index([serviceId])
+}
+
+// ─── Before/After transformations (homepage module + reusable component) ───
+// An owner-curated pair of REAL shop images presented as a verified
+// transformation. Never auto-paired; always tenant-scoped.
+model BeforeAfterPair {
+  id            String     @id @default(cuid())
+  businessId    String
+  business      Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  beforeAssetId String
+  beforeAsset   MediaAsset @relation("BeforeImage", fields: [beforeAssetId], references: [id], onDelete: Cascade)
+  afterAssetId  String
+  afterAsset    MediaAsset @relation("AfterImage", fields: [afterAssetId], references: [id], onDelete: Cascade)
+  barberId      String? // optional attribution
+  barber        Barber?    @relation(fields: [barberId], references: [id], onDelete: SetNull)
+  serviceId     String? // optional service; drives the booking CTA preselection
+  service       Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  caption       String?
+  details       String?    @db.Text
+  sortOrder     Int        @default(0)
+  isPublished   Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([businessId, isPublished, sortOrder])
+  @@index([barberId])
   @@index([serviceId])
 }
 
@@ -699,21 +733,21 @@ model StaffInvitation {
 }
 
 model AuditLog {
-  id         String      @id @default(cuid())
-  businessId String?
-  business   Business?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     AuditAction
-  entityType String? // "Appointment", "Customer", "Service", etc.
-  entityId   String?
-  oldValues  Json?
-  newValues  Json?
+  id          String      @id @default(cuid())
+  businessId  String?
+  business    Business?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      AuditAction
+  entityType  String? // "Appointment", "Customer", "Service", etc.
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
   // Meaningful human-readable description of what happened
   description String?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime    @default(now())
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
 
   @@index([businessId, createdAt])
   @@index([userId])
@@ -953,8 +987,9 @@ model WebsiteContent {
   // ─── Visual identity (DRAFT; published via the snapshot) ────────────────
   // Owner-selected preset + independent layout overrides. Null = never
   // configured: the public site falls back to the default preset mapping.
-  visualPreset           String? // black-label | barber-heritage | street-cut | clean-club | modern-classic
-  visualConfig           Json? // { heroLayout, serviceLayout, barberLayout, galleryLayout, motionLevel, mobileNavMode, reviewPresentation }
+  visualPreset          String? // black-label | barber-heritage | street-cut | clean-club | modern-classic
+  visualConfig          Json? // { heroLayout, serviceLayout, barberLayout, galleryLayout, motionLevel, mobileNavMode, reviewPresentation }
+  homeModules           Json? // unified homepage module config: order, enabled, per-module settings (see src/lib/home-modules.ts)
   servicesTitle         String?
   servicesDescription   String?   @db.Text
   teamTitle             String?

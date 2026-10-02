@@ -1,4 +1,5 @@
 import { VISUAL_STYLES, VISUAL_STYLE_CONFIG, type VisualStyle } from './visual-style'
+import { FONT_FAMILY_VALUES } from './theme'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Visual configuration system
@@ -20,6 +21,13 @@ export const MOTION_LEVELS = ['off', 'subtle', 'expressive'] as const
 export const MOBILE_NAV_MODES = ['appointment', 'walk-in', 'barber'] as const
 export const REVIEW_PRESENTATIONS = ['editorial', 'cards', 'strip'] as const
 
+// Owner-selectable identity overrides (gap 6): button shape, image shape,
+// typography pairing (curated, self-hosted fonts), and heading scale.
+// Bounded vocabularies only — the server rejects anything else.
+export const BUTTON_STYLES = ['sharp', 'soft', 'pill'] as const
+export const IMAGE_SHAPES = ['square', 'portrait', 'rounded', 'full-bleed'] as const
+export const HEADING_SCALES = ['compact', 'standard', 'grand'] as const
+
 export type HeroLayout = (typeof HERO_LAYOUTS)[number]
 export type ServiceLayout = (typeof SERVICE_LAYOUTS)[number]
 export type BarberLayout = (typeof BARBER_LAYOUTS)[number]
@@ -27,6 +35,9 @@ export type GalleryLayout = (typeof GALLERY_LAYOUTS)[number]
 export type MotionLevel = (typeof MOTION_LEVELS)[number]
 export type MobileNavMode = (typeof MOBILE_NAV_MODES)[number]
 export type ReviewPresentation = (typeof REVIEW_PRESENTATIONS)[number]
+export type ButtonStyle = (typeof BUTTON_STYLES)[number]
+export type ImageShape = (typeof IMAGE_SHAPES)[number]
+export type HeadingScale = (typeof HEADING_SCALES)[number]
 
 export interface VisualConfig {
   preset: VisualStyle
@@ -38,6 +49,12 @@ export interface VisualConfig {
   motionLevel: MotionLevel
   mobileNavMode: MobileNavMode
   reviewPresentation: ReviewPresentation
+  buttonStyle: ButtonStyle
+  imageShape: ImageShape
+  /** Curated self-hosted font id; null = follow the business branding font. */
+  headingFont: string | null
+  bodyFont: string | null
+  headingScale: HeadingScale
 }
 
 export const VISUAL_FIELD_OPTIONS = {
@@ -48,6 +65,9 @@ export const VISUAL_FIELD_OPTIONS = {
   motionLevel: MOTION_LEVELS,
   mobileNavMode: MOBILE_NAV_MODES,
   reviewPresentation: REVIEW_PRESENTATIONS,
+  buttonStyle: BUTTON_STYLES,
+  imageShape: IMAGE_SHAPES,
+  headingScale: HEADING_SCALES,
 } as const
 
 export type VisualOverrideKey = keyof typeof VISUAL_FIELD_OPTIONS
@@ -62,6 +82,11 @@ export interface StoredVisualConfig {
   motionLevel?: unknown
   mobileNavMode?: unknown
   reviewPresentation?: unknown
+  buttonStyle?: unknown
+  imageShape?: unknown
+  headingFont?: unknown
+  bodyFont?: unknown
+  headingScale?: unknown
 }
 
 function pick<T extends string>(value: unknown, allowed: readonly T[]): T | null {
@@ -88,6 +113,11 @@ export function resolveVisualConfig(preset?: unknown, overrides?: unknown): Visu
       ? (overrides as StoredVisualConfig)
       : {}
 
+  const buttonStyle = pick(o.buttonStyle, BUTTON_STYLES) ?? base.button
+  const imageShape = pick(o.imageShape, IMAGE_SHAPES) ?? base.imageShape
+  const headingFont = typeof o.headingFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(o.headingFont) ? o.headingFont : null
+  const bodyFont = typeof o.bodyFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(o.bodyFont) ? o.bodyFont : null
+  const headingScale = pick(o.headingScale, HEADING_SCALES) ?? 'standard'
   const galleryLayout = pick(o.galleryLayout, GALLERY_LAYOUTS)
   const motionLevel = pick(o.motionLevel, MOTION_LEVELS)
   const mobileNavMode = pick(o.mobileNavMode, MOBILE_NAV_MODES)
@@ -104,6 +134,11 @@ export function resolveVisualConfig(preset?: unknown, overrides?: unknown): Visu
     motionLevel: motionLevel ?? base.motion,
     mobileNavMode: mobileNavMode ?? 'appointment',
     reviewPresentation: reviewPresentation ?? 'editorial',
+    buttonStyle,
+    imageShape,
+    headingFont,
+    bodyFont,
+    headingScale,
   }
 }
 
@@ -137,6 +172,15 @@ export function validateVisualConfigInput(input: {
   if (motionLevel) clean.motionLevel = motionLevel
   if (mobileNavMode) clean.mobileNavMode = mobileNavMode
   if (reviewPresentation) clean.reviewPresentation = reviewPresentation
+  const buttonStyle = pick(raw.buttonStyle, BUTTON_STYLES)
+  const imageShape = pick(raw.imageShape, IMAGE_SHAPES)
+  const headingScale = pick(raw.headingScale, HEADING_SCALES)
+  if (buttonStyle) clean.buttonStyle = buttonStyle
+  if (imageShape) clean.imageShape = imageShape
+  if (headingScale) clean.headingScale = headingScale
+  // Typography: curated, self-hosted font ids only (see lib/theme.ts).
+  if (typeof raw.headingFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(raw.headingFont)) clean.headingFont = raw.headingFont
+  if (typeof raw.bodyFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(raw.bodyFont)) clean.bodyFont = raw.bodyFont
 
   return { visualPreset: preset, visualConfig: clean }
 }
