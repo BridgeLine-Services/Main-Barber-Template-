@@ -29,11 +29,11 @@ const patchSchema = z.object({
 
 async function resolvePair(id: string, businessId: string, role?: string, sessionBarberId?: string | null) {
   const pair = await prisma.beforeAfterPair.findFirst({ where: { id, businessId } })
-  if (!pair) return { error: 'not-found' as const }
+  if (!pair) return { pair: null, forbidden: false }
   if (role === 'BARBER' && sessionBarberId && pair.barberId && pair.barberId !== sessionBarberId) {
-    return { error: 'forbidden' as const }
+    return { pair: null, forbidden: true }
   }
-  return { pair }
+  return { pair, forbidden: false }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -48,8 +48,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!businessId) return NextResponse.json({ error: 'No business context' }, { status: 400 })
 
     const found = await resolvePair(id, businessId, role, sessionBarberId)
-    if (found.error === 'not-found') return NextResponse.json({ error: 'Pair not found' }, { status: 404 })
-    if (found.error === 'forbidden') return NextResponse.json({ error: 'You can only manage your own pairs' }, { status: 403 })
+    if (!found.pair && found.forbidden) return NextResponse.json({ error: 'You can only manage your own pairs' }, { status: 403 })
+    if (!found.pair) return NextResponse.json({ error: 'Pair not found' }, { status: 404 })
     const existing = found.pair
 
     const body = await req.json().catch(() => null)
@@ -121,8 +121,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (!businessId) return NextResponse.json({ error: 'No business context' }, { status: 400 })
 
     const found = await resolvePair(id, businessId, role, sessionBarberId)
-    if (found.error === 'not-found') return NextResponse.json({ error: 'Pair not found' }, { status: 404 })
-    if (found.error === 'forbidden') return NextResponse.json({ error: 'You can only manage your own pairs' }, { status: 403 })
+    if (!found.pair && found.forbidden) return NextResponse.json({ error: 'You can only manage your own pairs' }, { status: 403 })
+    if (!found.pair) return NextResponse.json({ error: 'Pair not found' }, { status: 404 })
 
     await prisma.beforeAfterPair.delete({ where: { id: found.pair.id } })
     await logAudit({
