@@ -4,6 +4,7 @@ import { Calendar, ExternalLink } from 'lucide-react'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
 import type { SocialGallerySettings } from '@/lib/home-modules'
+import { focalPositionStyle } from '@/lib/image-roles'
 
 // ─── Social-style portfolio section (gap 7) ─────────────────────────────────
 // A social-inspired grid of the shop's REAL locally managed portfolio
@@ -15,6 +16,8 @@ export interface SocialImage {
   id: string
   url: string
   altText: string | null
+  focalX?: number | null
+  focalY?: number | null
 }
 
 type Props = {
@@ -68,6 +71,7 @@ export function SocialGallerySection({ images, settings, shopName, buttonShape }
                 alt={image.altText || `${shopName} portfolio`}
                 loading="lazy"
                 className="aspect-square w-full object-cover transition-transform duration-ui group-hover:scale-[1.05] group-hover:brightness-110"
+                style={focalPositionStyle(image.focalX, image.focalY)}
               />
             </Link>
           </StaggerItem>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, Images } from 'lucide-react'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
+import { focalPositionStyle } from '@/lib/image-roles'
 
 // ─── Featured work (gap 8: "Signature work or featured portfolio" module) ───
 // Real published portfolio assets in an editorial grid. Every tile deep
@@ -14,6 +15,8 @@ export interface FeaturedImage {
   url: string
   altText: string | null
   caption: string | null
+  focalX?: number | null
+  focalY?: number | null
 }
 
 type Props = {
@@ -62,6 +65,7 @@ export function FeaturedWorkSection({ images, heading, blurb, shopName }: Props)
                 alt={image.altText || `${shopName} — featured work`}
                 loading="lazy"
                 className={`aspect-[4/5] w-full object-cover transition-transform duration-ui group-hover:scale-[1.03] ${i === 0 ? 'sm:aspect-[4/3]' : ''}`}
+                style={focalPositionStyle(image.focalX, image.focalY)}
               />
               {image.caption && (
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/80 to-transparent p-3 pt-8 text-sm font-medium text-background">

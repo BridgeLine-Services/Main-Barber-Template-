@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Sparkles,
 } from 'lucide-react'
+import { focalPositionStyle } from '@/lib/image-roles'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { ShopStatus } from '@/components/customer/ShopStatus'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
@@ -166,7 +167,7 @@ export default async function HomePage() {
             moduleSettings('featuredWork')?.count ?? 6,
             moduleSettings('socialGallery')?.social?.count ?? 6
           ),
-          select: { id: true, url: true, altText: true, caption: true },
+          select: { id: true, url: true, altText: true, caption: true, focalX: true, focalY: true },
         })
       : Promise.resolve([]),
     isModuleEnabled('shopExperience')
@@ -174,7 +175,7 @@ export default async function HomePage() {
           where: { businessId: business.id, type: 'SHOP_PHOTO', isPublished: true },
           orderBy: { sortOrder: 'asc' },
           take: moduleSettings('shopExperience')?.count ?? 4,
-          select: { id: true, url: true, altText: true },
+          select: { id: true, url: true, altText: true, focalX: true, focalY: true },
         })
       : Promise.resolve([]),
     isModuleEnabled('beforeAfter')
@@ -183,8 +184,8 @@ export default async function HomePage() {
           orderBy: { sortOrder: 'asc' },
           take: moduleSettings('beforeAfter')?.count ?? 3,
           include: {
-            beforeAsset: { select: { url: true, altText: true } },
-            afterAsset: { select: { url: true, altText: true } },
+            beforeAsset: { select: { url: true, altText: true, focalX: true, focalY: true } },
+            afterAsset: { select: { url: true, altText: true, focalX: true, focalY: true } },
             barber: { select: { id: true, name: true } },
             service: { select: { id: true, name: true } },
           },
@@ -626,6 +627,7 @@ export default async function HomePage() {
                             loading="lazy"
                             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             className="img-cinematic object-cover transition-transform duration-slow group-hover:scale-[1.03]"
+                            style={focalPositionStyle(photo.focalX, photo.focalY)}
                           />
                         ) : (
                           /* No photo on record: a quiet accent tile with the
@@ -942,7 +944,7 @@ export default async function HomePage() {
       <SocialGallerySection
         images={featuredRows
           .slice(0, socialSettings.count)
-          .map((img) => ({ id: img.id, url: img.url, altText: img.altText }))}
+          .map((img) => ({ id: img.id, url: img.url, altText: img.altText, focalX: img.focalX, focalY: img.focalY }))}
         settings={socialSettings}
         shopName={shopName}
         buttonShape={buttonShape}

@@ -30,6 +30,9 @@ const updateMediaSchema = z.object({
   caption: z.string().max(500).optional().nullable(),
   sortOrder: z.number().int().optional(),
   isPublished: z.boolean().optional(),
+  // Per-asset focal point (percent 0-100); null = use the role default
+  focalX: z.number().int().min(0).max(100).optional().nullable(),
+  focalY: z.number().int().min(0).max(100).optional().nullable(),
 })
 
 /**

@@ -83,15 +83,19 @@ export const IMAGE_ROLES: Record<ImageRole, ImageRoleSpec> = {
 }
 
 /**
- * object-position for an asset with optional focal point (percent 0-100).
- * Focal point wins when present; otherwise the role default.
+ * Inline object-position style for an asset with a focal point set.
+ *
+ * Returns undefined when no focal point exists — the component then keeps
+ * the role's default position CLASS (spec.position), which stays statically
+ * in the Tailwind scan. Focal values are runtime data, so they must be an
+ * inline style, not an arbitrary Tailwind class the JIT would strip.
  */
-export function objectPositionFor(role: ImageRole, focalX?: number | null, focalY?: number | null): string {
-  const spec = IMAGE_ROLES[role]
-  if (spec.focalAware && typeof focalX === 'number' && typeof focalY === 'number') {
-    const x = Math.min(Math.max(Math.round(focalX), 0), 100)
-    const y = Math.min(Math.max(Math.round(focalY), 0), 100)
-    return `object-[${x}%_${y}%]`
-  }
-  return spec.position
+export function focalPositionStyle(
+  focalX?: number | null,
+  focalY?: number | null
+): { objectPosition: string } | undefined {
+  if (typeof focalX !== 'number' || typeof focalY !== 'number') return undefined
+  const x = Math.min(Math.max(Math.round(focalX), 0), 100)
+  const y = Math.min(Math.max(Math.round(focalY), 0), 100)
+  return { objectPosition: `${x}% ${y}%` }
 }

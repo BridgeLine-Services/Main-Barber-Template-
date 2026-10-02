@@ -1,6 +1,7 @@
 import React from 'react'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { Stagger, StaggerItem } from '@/components/motion/reveal'
+import { focalPositionStyle } from '@/lib/image-roles'
 
 // ─── Shop experience module (gap 8: shop interior / atmosphere) ─────────────
 // Real SHOP_PHOTO assets showing the space. Empty module → nothing renders.
@@ -9,6 +10,8 @@ export interface ShopPhoto {
   id: string
   url: string
   altText: string | null
+  focalX?: number | null
+  focalY?: number | null
 }
 
 type Props = {
@@ -37,6 +40,7 @@ export function ShopExperienceSection({ photos, heading, blurb, shopName }: Prop
               alt={photo.altText || `${shopName} interior`}
               loading="lazy"
               className={`w-full rounded-lg border border-border/60 object-cover ${i === 0 ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}
+              style={focalPositionStyle(photo.focalX, photo.focalY)}
             />
           </StaggerItem>
         ))}

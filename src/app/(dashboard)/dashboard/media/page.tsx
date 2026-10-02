@@ -11,6 +11,17 @@ import {
   Upload, Trash2, Edit3, X, Image as ImageIcon, Star, Eye, EyeOff,Plus
 } from 'lucide-react'
 
+import { IMAGE_ROLES, type ImageRole } from '@/lib/image-roles'
+
+/** Which image-role rendering contract each media type feeds on the public site. */
+const TYPE_ROLE: Partial<Record<string, ImageRole>> = {
+  HERO: 'hero',
+  BARBER_PHOTO: 'barber',
+  SERVICE_PHOTO: 'service',
+  SHOP_PHOTO: 'shop',
+  BARBER_PORTFOLIO: 'portfolio',
+}
+
 interface MediaAsset {
   id: string
   type: string
@@ -21,6 +32,8 @@ interface MediaAsset {
   isPublished: boolean
   barberId?: string | null
   serviceId?: string | null
+  focalX?: number | null
+  focalY?: number | null
 }
 
 interface ServiceOption {
@@ -152,6 +165,8 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
           sortOrder: asset.sortOrder,
           isPublished: asset.isPublished,
           serviceId: asset.serviceId || null,
+          focalX: asset.focalX ?? null,
+          focalY: asset.focalY ?? null,
         }),
       })
       const data = await res.json().catch(() => null)
@@ -299,14 +314,92 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Edit Image</CardTitle>
+                {TYPE_ROLE[editing.type] && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90">
+                    Renders {IMAGE_ROLES[TYPE_ROLE[editing.type]!].aspect.replace('aspect-[', '').replace(']', '').replace('/', ':')} · {IMAGE_ROLES[TYPE_ROLE[editing.type]!].priority ? 'above the fold' : 'standard'}
+                  </span>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              { }
-              <img src={editing.url} alt={editing.altText || ''} className="w-full rounded-lg border border-zinc-700" />
+              <div className="relative rounded-lg overflow-hidden border border-zinc-700 bg-zinc-950">
+                <button
+                  type="button"
+                  className="block w-full cursor-crosshair"
+                  aria-label="Click the image to set the focal point"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const x = Math.round(Math.min(Math.max(((e.clientX - rect.left) / rect.width) * 100, 0), 100))
+                    const y = Math.round(Math.min(Math.max(((e.clientY - rect.top) / rect.height) * 100, 0), 100))
+                    setEditing({ ...editing, focalX: x, focalY: y })
+                  }}
+                >
+                  <img
+                    src={editing.url}
+                    alt={editing.altText || 'Image preview'}
+                    className="w-full max-h-72 object-cover pointer-events-none"
+                    style={{
+                      objectPosition: `${editing.focalX ?? 50}% ${editing.focalY ?? 50}%`,
+                    }}
+                  />
+                  {/* Focal marker */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{
+                      left: `${editing.focalX ?? 50}%`,
+                      top: `${editing.focalY ?? 50}%`,
+                    }}
+                  >
+                    <span className="absolute inset-0 rounded-full border-2 border-amber-400 bg-amber-400/20" />
+                    <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-amber-400" />
+                    <span className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-amber-400" />
+                  </span>
+                </button>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-400">Focal point (how the image is cropped)</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-zinc-500 w-6">X</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={editing.focalX ?? 50}
+                    onChange={(e) => setEditing({ ...editing, focalX: parseInt(e.target.value) })}
+                    className="flex-1 accent-amber-500"
+                    aria-label="Focal point horizontal position"
+                  />
+                  <span className="text-[11px] text-zinc-500 w-8 text-right">{editing.focalX ?? 50}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-zinc-500 w-6">Y</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={editing.focalY ?? 50}
+                    onChange={(e) => setEditing({ ...editing, focalY: parseInt(e.target.value) })}
+                    className="flex-1 accent-amber-500"
+                    aria-label="Focal point vertical position"
+                  />
+                  <span className="text-[11px] text-zinc-500 w-8 text-right">{editing.focalY ?? 50}%</span>
+                </div>
+                {(editing.focalX !== null && editing.focalX !== undefined) || (editing.focalY !== null && editing.focalY !== undefined) ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ ...editing, focalX: null, focalY: null })}
+                    className="text-[11px] text-zinc-400 underline hover:text-zinc-200"
+                  >
+                    Reset to center
+                  </button>
+                ) : (
+                  <p className="text-[11px] text-zinc-500">Click the image or drag the sliders to choose what stays visible when the site crops this photo.</p>
+                )}
+              </div>
               <div>
                 <Label className="text-zinc-400">Alt Text</Label>
                 <Input

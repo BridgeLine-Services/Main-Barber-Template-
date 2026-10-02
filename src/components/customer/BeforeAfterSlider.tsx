@@ -11,11 +11,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { ArrowRight, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { focalPositionStyle } from '@/lib/image-roles'
 
 export interface BeforeAfterData {
   id: string
-  before: { url: string; alt: string }
-  after: { url: string; alt: string }
+  before: { url: string; alt: string; focalX?: number | null; focalY?: number | null }
+  after: { url: string; alt: string; focalX?: number | null; focalY?: number | null }
   caption?: string | null
   details?: string | null
   barberName?: string | null
@@ -96,13 +97,16 @@ export function BeforeAfterSlider({ pair, contextLabel, bookHref, bookLabel = 'B
         style={{ touchAction: 'pan-y' }} // frame stays scrollable vertically; the handle opts out
       >
         {/* Both images share the frame (identical crop box), so they stay
-            perfectly aligned; only the reveal window differs. */}
+            perfectly aligned; only the reveal window differs. Focal framing
+            comes from the AFTER asset — the pair must share one crop or the
+            comparison illusion breaks. */}
         { }
         <img
           src={pair.after.url}
           alt={afterAlt}
           draggable={false}
           className="absolute inset-0 h-full w-full object-cover"
+          style={focalPositionStyle(pair.after.focalX, pair.after.focalY)}
           loading="lazy"
         />
         {/* BEFORE image clipped to the left of the divider */}
@@ -113,7 +117,10 @@ export function BeforeAfterSlider({ pair, contextLabel, bookHref, bookLabel = 'B
             alt={beforeAlt}
             draggable={false}
             className="absolute inset-0 h-full w-full object-cover"
-            style={{ width: position > 0 ? `${(100 / position) * 100}%` : '100%' }}
+            style={{
+              width: position > 0 ? `${(100 / position) * 100}%` : '100%',
+              ...focalPositionStyle(pair.after.focalX, pair.after.focalY),
+            }}
             loading="lazy"
           />
         </div>
