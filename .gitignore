@@ -59,3 +59,7 @@ test-results/
 playwright-report/
 # Local backup dumps (npm run db:backup)
 backups/
+
+.qa-screens/
+
+docs/qa-screens/

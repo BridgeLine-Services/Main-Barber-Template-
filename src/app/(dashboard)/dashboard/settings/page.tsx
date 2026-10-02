@@ -705,6 +705,11 @@ export default function SettingsPage() {
               <FileText className="h-5 w-5 text-amber-500" />
               Shop Policies
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              These policies appear on your public site. The placeholders are starting points, not
+              legal advice — have a qualified lawyer review your Terms of Service and Privacy
+              Policy before publishing them for your location and services.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {[
