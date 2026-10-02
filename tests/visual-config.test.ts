@@ -29,6 +29,7 @@ import {
   VISUAL_OVERRIDE_KEYS,
   type VisualConfig,
 } from '../src/lib/visual-config'
+import { VISUAL_STYLES as VISUAL_STYLES_IMPORT } from '../src/lib/visual-style'
 
 let passed = 0
 let failed = 0
@@ -185,6 +186,40 @@ check(
     (k) => (allFields.visualConfig as Record<string, unknown>)[k] === optionSets[k][0]
   )
 )
+
+// ── Sitewide preset identity regression (Req 3, review Req 12) ────────────────
+// The customer layout emits data-visual-style on every customer page; the
+// preset identity CSS must cover ALL five presets sitewide (not just the
+// homepage .visual-style-* class), or Services/Barbers/Gallery/Reviews
+// silently lose their preset character.
+{
+  const css = require('fs').readFileSync('src/app/globals.css', 'utf-8')
+  for (const style of VISUAL_STYLES_IMPORT) {
+    check(
+      `preset "${style}" has sitewide identity CSS ([data-visual-style])`,
+      css.includes(`[data-visual-style='${style}']`)
+    )
+  }
+  check(
+    'preset identity drives shape sitewide via --radius',
+    css.includes(`[data-visual-style='clean-club'] { --radius: 1rem; }`)
+  )
+  check(
+    'street-cut uppercase CTA treatment is scoped to customer pages',
+    css.includes(`[data-visual-style='street-cut'] main button`)
+  )
+}
+
+// Review presentation resolution used by /reviews (Req 12): all three
+// variants resolve from stored values, and legacy sites get 'editorial'.
+{
+  for (const rp of REVIEW_PRESENTATIONS) {
+    const cfg = resolveVisualConfig('modern-classic', { reviewPresentation: rp })
+    expectEqual(cfg.reviewPresentation, rp, `review presentation "${rp}" resolves from override`)
+  }
+  const legacy = resolveVisualConfig(undefined, undefined)
+  expectEqual(legacy.reviewPresentation, 'editorial', 'legacy site (no config) defaults to editorial reviews')
+}
 
 // ── Results ──────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(50)}`)
