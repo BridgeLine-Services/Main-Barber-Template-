@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { resolveBusiness } from '@/lib/tenant'
+import { visualConfigFromContent } from '@/lib/visual-config'
 import { getInitials } from '@/lib/utils'
 import type { Prisma } from '@prisma/client'
 
@@ -56,6 +57,15 @@ export default async function BarbersPage() {
     orderBy: { order: 'asc' },
   })
 
+  // Tenant visual identity (published snapshot → composition).
+  const rawContent = await prisma.websiteContent.findUnique({
+    where: { businessId: business.id },
+  }).catch(() => null)
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
+  const visual = visualConfigFromContent(content)
+
   return (
     <Section className="pt-12 lg:pt-20">
       {/* Header — configurable from business settings */}
@@ -70,7 +80,7 @@ export default async function BarbersPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">No barbers have been added yet. Add barbers in the Dashboard under Team.</p>
         </div>
-      ) : (
+      ) : visual.barberLayout === 'editorial' ? (
         /* Portrait-led editorial profiles — the same grammar as the landing
            team section: photo left, name/specialty/bio beside it, services
            as quiet hairline rows, book as a text action. Review stats and
@@ -180,6 +190,145 @@ export default async function BarbersPage() {
                         <Link
                           href={`/barbers/${barber.slug}`}
                           className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground"
+                        >
+                          Full profile
+                          <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            )
+          })}
+        </Stagger>
+      ) : visual.barberLayout === 'portrait-grid' ? (
+        /* PORTRAIT GRID — photography-first tiles; the portrait is the
+           composition. Rating shown only when reviews exist. */
+        <Stagger className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+          {barbers.map((barber) => {
+            const reviewCount = (barber.reviews || []).length
+            const avgRating = reviewCount > 0
+              ? ((barber.reviews || []).reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviewCount).toFixed(1)
+              : null
+            return (
+              <StaggerItem key={barber.id}>
+                <div className="group">
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border/70">
+                    {barber.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={barber.photo}
+                        alt={barber.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-slow group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-secondary">
+                        <span className="font-display text-4xl font-semibold text-primary">
+                          {getInitials(barber.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                      {barber.name}
+                    </h2>
+                    {avgRating && (
+                      <p className="text-xs text-muted-foreground">
+                        {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                    {barber.specialty && (
+                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{barber.specialty}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-3">
+                      <Link
+                        href={`/book?barberId=${barber.id}`}
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      >
+                        Book
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Link>
+                      {barber.slug && (
+                        <Link
+                          href={`/barbers/${barber.slug}`}
+                          className="text-xs text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                        >
+                          Profile
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            )
+          })}
+        </Stagger>
+      ) : (
+        /* LARGE PROFILE — full-width features: prominent photography, bio,
+           specialties, and a primary booking action. */
+        <Stagger className="flex flex-col gap-14">
+          {barbers.map((barber) => {
+            const reviewCount = (barber.reviews || []).length
+            const avgRating = reviewCount > 0
+              ? ((barber.reviews || []).reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviewCount).toFixed(1)
+              : null
+            return (
+              <StaggerItem key={barber.id}>
+                <div className="group grid gap-8 border-t border-border/60 pt-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+                  <div className="relative aspect-[4/5] max-h-[30rem] overflow-hidden rounded-lg border border-border/70 sm:aspect-[16/10] lg:aspect-[4/5]">
+                    {barber.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={barber.photo}
+                        alt={barber.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-slow group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-secondary">
+                        <span className="font-display text-7xl font-semibold text-primary">
+                          {getInitials(barber.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <div className="flex flex-wrap items-baseline gap-x-3">
+                      <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                        {barber.name}
+                      </h2>
+                      {avgRating && (
+                        <span className="text-sm text-muted-foreground">
+                          {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    {barber.specialty && (
+                      <p className="eyebrow-accent mt-2">{barber.specialty}</p>
+                    )}
+                    <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+                      {barber.bio || 'Dedicated to precision craftsmanship, clean line-ups, and legendary customer care.'}
+                    </p>
+                    {(barber.services || []).length > 0 && (
+                      <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
+                        {(barber.services || []).length} service{(barber.services || []).length !== 1 ? 's' : ''} offered
+                      </p>
+                    )}
+                    <div className="mt-8 flex flex-wrap items-center gap-4">
+                      <Link
+                        href={`/book?barberId=${barber.id}`}
+                        className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors duration-micro hover:bg-primary/90 focus-ring"
+                      >
+                        <Calendar className="h-4 w-4" aria-hidden="true" />
+                        Book with {barber.name.split(' ')[0]}
+                      </Link>
+                      {barber.slug && (
+                        <Link
+                          href={`/barbers/${barber.slug}`}
+                          className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
                         >
                           Full profile
                           <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />

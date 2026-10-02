@@ -6,7 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { formatDuration, formatPrice } from '@/lib/utils'
 import { PAYMENT_DISCLAIMER } from '@/lib/constants'
 import { resolveBusiness } from '@/lib/tenant'
+import { visualConfigFromContent } from '@/lib/visual-config'
 import { Clock, CreditCard, Images } from 'lucide-react'
+import Image from 'next/image'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal'
@@ -39,6 +41,31 @@ export default async function ServicesPage() {
     orderBy: { order: 'asc' },
   })
 
+  // Tenant visual identity (published snapshot; draft→publish→render).
+  const rawContent = await prisma.websiteContent.findUnique({
+    where: { businessId: business.id },
+  }).catch(() => null)
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
+  const visual = visualConfigFromContent(content)
+
+  // Real service photography for the image-led menu variant (loaded only
+  // when that layout is selected).
+  const [servicePhotoRows] = visual.serviceLayout === 'visual-menu'
+    ? await Promise.all([
+        prisma.mediaAsset.findMany({
+          where: { businessId: business.id, type: 'SERVICE_PHOTO', isPublished: true },
+          orderBy: { sortOrder: 'asc' },
+        }),
+      ])
+    : [[]]
+  const servicePhotoByServiceId = new Map(
+    (servicePhotoRows as { id: string; serviceId: string | null; url: string; altText: string | null }[])
+      .filter((a) => a.serviceId)
+      .map((a) => [a.serviceId as string, a])
+  )
+
   // Service-linked portfolio work (barber portfolio + service photos that
   // the business has published and linked to a service) — used for the
   // "See examples of this service" connection.
@@ -70,8 +97,9 @@ export default async function ServicesPage() {
       />
 
 
-      {/* Service menu — editorial hairline rows, the same grammar as the
-          landing services section. Book and example links stay inline. */}
+      {/* Service menu — three owner-selectable compositions driven by the
+          tenant's published visual configuration. All use real records. */}
+      {visual.serviceLayout === 'editorial' && (
       <Stagger className="border-t border-border/60">
         {services.map((service) => (
           <StaggerItem key={service.id} className="border-b border-border/60">
@@ -116,6 +144,119 @@ export default async function ServicesPage() {
           </StaggerItem>
         ))}
       </Stagger>
+      )}
+
+      {visual.serviceLayout === 'cards' && (
+      <Stagger className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {services.map((service) => (
+          <StaggerItem key={service.id} className="flex flex-col justify-between rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div>
+              <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
+                {service.name}
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                {service.description || 'Professional barbering service tailored to your style preferences.'}
+              </p>
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                {formatDuration(service.duration)}
+                <span className="mx-1 text-border" aria-hidden="true">·</span>
+                Pay in person
+              </p>
+            </div>
+            <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
+              <span className="font-display text-lg font-bold text-foreground tabular-nums">
+                {formatPrice(service.price)}
+              </span>
+              <div className="flex items-center gap-3">
+                {(examplesByService.get(service.id) ?? 0) > 0 && (
+                  <GhostButton
+                    href={`/gallery?service=${service.id}`}
+                    className="text-xs py-1"
+                    aria-label={`See examples of ${service.name}`}
+                  >
+                    <Images className="h-3.5 w-3.5" aria-hidden="true" />
+                  </GhostButton>
+                )}
+                <BookButton
+                  href={`/book?serviceId=${service.id}`}
+                  label="Book"
+                  size="md"
+                />
+              </div>
+            </div>
+          </StaggerItem>
+        ))}
+      </Stagger>
+      )}
+
+      {visual.serviceLayout === 'visual-menu' && (
+      <Stagger className="grid gap-6 border-t-2 border-accent/30 pt-6 sm:grid-cols-2 lg:grid-cols-3">
+        {services.map((service) => {
+          const photo = servicePhotoByServiceId.get(service.id)
+          return (
+            <StaggerItem key={service.id} className="group">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/60">
+                {photo ? (
+                  <Image
+                    src={photo.url}
+                    alt={photo.altText || `${service.name} at ${business.name}`}
+                    fill
+                    loading="lazy"
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="img-cinematic object-cover transition-transform duration-slow group-hover:scale-[1.03]"
+                  />
+                ) : (
+                  <div
+                    aria-hidden="true"
+                    className="flex h-full items-center justify-center"
+                    style={{ background: 'linear-gradient(160deg, hsl(var(--accent) / 0.12), hsl(var(--muted)) 70%)' }}
+                  >
+                    <span className="font-display text-4xl font-semibold text-foreground/15">
+                      {service.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                    {service.name}
+                  </h2>
+                  <span className="font-display text-base font-bold text-foreground tabular-nums">
+                    {formatPrice(service.price)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                  {service.description || 'Professional barbering service tailored to your style preferences.'}
+                </p>
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3 w-3" aria-hidden="true" />
+                  {formatDuration(service.duration)}
+                </p>
+                <div className="mt-3 flex items-center gap-4">
+                  {(examplesByService.get(service.id) ?? 0) > 0 && (
+                    <GhostButton
+                      href={`/gallery?service=${service.id}`}
+                      className="text-xs py-1"
+                      aria-label={`See examples of ${service.name}`}
+                    >
+                      <Images className="h-3.5 w-3.5" aria-hidden="true" />
+                      Examples
+                    </GhostButton>
+                  )}
+                  <BookButton
+                    href={`/book?serviceId=${service.id}`}
+                    label="Book"
+                    size="md"
+                  />
+                </div>
+              </div>
+            </StaggerItem>
+          )
+        })}
+      </Stagger>
+      )}
 
       {/* Payment Disclaimer Banner */}
       <Reveal className="mt-16">

@@ -110,7 +110,8 @@ export default async function HomePage() {
     ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
     : rawContent
 
-  const [barbers, services, reviews] = await Promise.all([
+  const visual = visualConfigFromContent(content)
+  const [barbers, services, reviews, servicePhotoRows] = await Promise.all([
     prisma.barber.findMany({
       where: { businessId: business.id, isActive: true },
       orderBy: { order: 'asc' },
@@ -124,7 +125,19 @@ export default async function HomePage() {
       orderBy: { createdAt: 'desc' },
       take: content?.featuredReviewCount ?? 3,
     }),
+    // Real service photography for the image-led menu variant — only loaded
+    // when that layout is actually selected (never fabricated placeholders).
+    visual.serviceLayout === 'visual-menu'
+      ? prisma.mediaAsset.findMany({
+          where: { businessId: business.id, type: 'SERVICE_PHOTO', isPublished: true },
+          orderBy: { sortOrder: 'asc' },
+        })
+      : Promise.resolve([]),
   ])
+
+  const servicePhotoByServiceId = new Map(
+    servicePhotoRows.filter((a) => a.serviceId).map((a) => [a.serviceId as string, a])
+  )
 
   const shopName = business?.name || 'Barber Shop'
   const shopPhone = business?.phone || ''
@@ -161,7 +174,6 @@ export default async function HomePage() {
   // Tenant visual identity — resolved from the published WebsiteContent
   // snapshot (draft → publish → this). Single source of truth:
   // resolveVisualConfig handles defaults, invalid values, and legacy keys.
-  const visual = visualConfigFromContent(content)
   const styleClass = `visual-style-${visual.preset}`
   const buttonShape = buttonStyleClass(visual.preset)
   const imageShape = imageStyleClass(visual.preset)
@@ -181,102 +193,241 @@ export default async function HomePage() {
 
   return (
     <div className={`pb-12 ${styleClass}`} data-visual-style={visual.preset} data-motion={visual.motionLevel}>
-      {/* ─── Style-aware hero ─────────────────────────────────────────────── */}
-      <section className={`visual-hero relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.heroLayout === 'split' ? 'lg:min-h-[78svh] lg:justify-start' : ''} ${visual.heroLayout === 'poster' ? 'items-end justify-start' : ''} ${visual.preset === 'black-label' ? 'lg:min-h-[86svh]' : ''}`}>
+      {/* ─── Hero — three genuinely distinct owner-selectable compositions ── */}
+      {visual.heroLayout === 'split' && (
+        /* SPLIT: real two-column — editorial text region beside an image
+           region. The photo is its own composition element, not a backdrop. */
+        <section className="relative -mt-16 overflow-hidden pt-16 lg:min-h-[78svh] lg:flex lg:items-center border-b border-border/60">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 pt-14 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16 lg:pt-8 lg:pb-24">
+            <div className="order-2 flex flex-col items-start text-left lg:order-1">
+              <HeroReveal>
+                <span className="eyebrow text-accent">{heroEyebrow}</span>
+              </HeroReveal>
+              <HeroReveal delay={0.12} className="mt-5">
+                <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
+                  {heroTitle}
+                  {locationStr && !content?.heroTitle ? (
+                    <span className="block text-2xl text-accent sm:text-3xl">Barbershop in {locationStr}</span>
+                  ) : null}
+                </h1>
+              </HeroReveal>
+              <HeroReveal delay={0.24} className="mt-6 max-w-xl">
+                <p className="text-balance text-base leading-relaxed text-foreground/70 sm:text-lg">{heroDescription}</p>
+              </HeroReveal>
+              <HeroReveal delay={0.36} className="mt-10 flex w-full flex-col gap-4 sm:flex-row sm:items-center">
+                <BookButton
+                  href={content?.heroPrimaryCtaHref || '/book'}
+                  label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
+                  className={`w-full sm:w-auto ${buttonShape}`}
+                />
+                <div className="flex gap-3">
+                  {shopPhoneDigits && (
+                    <GhostButton href={`tel:${shopPhoneDigits}`} className="px-5 py-4">Call</GhostButton>
+                  )}
+                  {shopPhoneDigits && (
+                    <GhostButton href={`sms:${shopPhoneDigits}`} className="px-5 py-4">Text Us</GhostButton>
+                  )}
+                </div>
+              </HeroReveal>
+              <HeroReveal delay={0.48} className="mt-12 w-full max-w-md">
+                <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-5 text-xs text-foreground/60 sm:text-sm">
+                  {highlights.map((h) => (
+                    <span key={h.label} className="inline-flex items-center gap-2">
+                      <h.icon className="h-4 w-4 text-accent" aria-hidden="true" />{h.label}
+                    </span>
+                  ))}
+                </div>
+              </HeroReveal>
+            </div>
+            {/* Image region: the shop's own hero photo (portrait crop), or an
+                accent-lit surface with the shop monogram — never a stock photo. */}
+            <div className={`order-1 lg:order-2 ${heroImage ? '' : 'relative aspect-[4/3] lg:aspect-[4/5]'}`}>
+              {heroImage ? (
+                <div className="relative aspect-[4/3] overflow-hidden border border-border/60 lg:aspect-[4/5]">
+                  <Image
+                    src={heroImage}
+                    alt={`Inside ${shopName}`}
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 40vw, 100vw"
+                    quality={80}
+                    className={`img-cinematic object-cover ${imageShape === 'rounded-2xl' ? '' : imageShape}`}
+                  />
+                </div>
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className={`flex h-full items-center justify-center border border-border/60 ${imageShape === 'rounded-2xl' ? '' : imageShape}`}
+                  style={{ background: 'radial-gradient(ellipse 90% 70% at 50% 20%, hsl(var(--accent) / 0.16), hsl(var(--muted)) 75%)' }}
+                >
+                  <span className="font-display text-8xl font-semibold text-foreground/15">
+                    {shopName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
-        {/* Background: owner-configured hero image, or an elegant accent-lit
-            gradient when none is set. Never a permanently hard-coded photo. */}
-        {heroImage ? (
-          <Image
-            src={heroImage}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            quality={80}
-            className={`img-cinematic object-cover ${imageShape} ${visual.heroLayout === 'poster' ? 'scale-105' : ''}`}
-          />
-        ) : (
+      {visual.heroLayout === 'poster' && (
+        /* POSTER: typography-led. The headline IS the design; photography is
+           a supporting inset, and the booking action is unmissable. */
+        <section className="relative -mt-16 overflow-hidden pt-16 border-b border-border/60">
+          <div className="mx-auto w-full max-w-7xl px-4 pb-20 pt-14 sm:px-6 lg:pb-28 lg:pt-20">
+            <HeroReveal>
+              <span className="eyebrow text-accent">{heroEyebrow}</span>
+            </HeroReveal>
+            <HeroReveal delay={0.12} className="mt-6">
+              <h1 className="font-display text-6xl font-semibold uppercase leading-[0.92] tracking-tight text-foreground sm:text-8xl lg:text-[clamp(5rem,12vw,9.5rem)]">
+                {heroTitle}
+              </h1>
+            </HeroReveal>
+            {locationStr && !content?.heroTitle ? (
+              <HeroReveal delay={0.2}>
+                <p className="mt-3 text-xl font-medium uppercase tracking-[0.35em] text-accent sm:text-2xl">
+                  Barbershop — {locationStr}
+                </p>
+              </HeroReveal>
+            ) : null}
+            <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_0.6fr] lg:items-end">
+              <HeroReveal delay={0.32}>
+                <p className="max-w-2xl text-balance text-base leading-relaxed text-foreground/70 sm:text-lg">
+                  {heroDescription}
+                </p>
+                <div className="mt-10 flex w-full flex-col gap-4 sm:flex-row sm:items-center">
+                  <BookButton
+                    href={content?.heroPrimaryCtaHref || '/book'}
+                    label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
+                    className={`w-full text-base sm:w-auto sm:px-10 sm:py-5 ${buttonShape}`}
+                  />
+                  {shopPhoneDigits && (
+                    <GhostButton href={`tel:${shopPhoneDigits}`} className="px-5 py-4">Call</GhostButton>
+                  )}
+                </div>
+                <div className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-foreground/15 pt-5 text-xs text-foreground/60 sm:text-sm">
+                  {highlights.map((h) => (
+                    <span key={h.label} className="inline-flex items-center gap-2">
+                      <h.icon className="h-4 w-4 text-accent" aria-hidden="true" />{h.label}
+                    </span>
+                  ))}
+                </div>
+              </HeroReveal>
+              {heroImage ? (
+                <HeroReveal delay={0.44}>
+                  <div className={`relative aspect-square overflow-hidden border border-border/60 ${imageShape === 'rounded-2xl' ? '' : imageShape}`}>
+                    <Image
+                      src={heroImage}
+                      alt=""
+                      fill
+                      priority
+                      sizes="(min-width: 1024px) 35vw, 100vw"
+                      quality={80}
+                      className="img-cinematic object-cover"
+                    />
+                  </div>
+                </HeroReveal>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {visual.heroLayout === 'cinematic' && (
+        /* CINEMATIC: immersive full-bleed imagery with a legibility overlay —
+           the classic premium barbershop opening. */
+        <section className={`visual-hero relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.preset === 'black-label' ? 'lg:min-h-[86svh]' : ''}`}>
+          {heroImage ? (
+            <Image
+              src={heroImage}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              quality={80}
+              className={`img-cinematic object-cover ${imageShape}`}
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                background:
+                  'radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--accent) / 0.14), transparent 60%), radial-gradient(ellipse 100% 80% at 50% 100%, hsl(var(--background)), hsl(var(--background)) 70%)',
+              }}
+            />
+          )}
+          {/* Dark overlays keep text readable over any photo */}
           <div
             aria-hidden="true"
-            className="absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--accent) / 0.14), transparent 60%), radial-gradient(ellipse 100% 80% at 50% 100%, hsl(var(--background)), hsl(var(--background)) 70%)',
-            }}
+            className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/55 to-background"
           />
-        )}
+          <div aria-hidden="true" className="absolute inset-0 bg-black/15" />
 
-        {/* Dark overlays keep text readable over any photo */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/55 to-background"
-        />
-        <div aria-hidden="true" className="absolute inset-0 bg-black/15" />
+          <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-24 pb-16 text-center sm:px-6">
+            <HeroReveal>
+              <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5 backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                {heroEyebrow}
+              </span>
+            </HeroReveal>
 
-        <div className={`relative z-10 mx-auto flex w-full flex-col px-4 pt-24 pb-16 sm:px-6 ${visual.heroLayout === 'split' ? 'max-w-6xl items-center text-center lg:items-start lg:text-left' : visual.heroLayout === 'poster' ? 'max-w-7xl items-start text-left' : 'max-w-3xl items-center text-center'}`}>
-          <HeroReveal>
-            <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5 backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              {heroEyebrow}
-            </span>
-          </HeroReveal>
+            {/* SEO-optimized H1: includes shop name + city for local search */}
+            <HeroReveal delay={0.12} className="mt-6">
+              <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+                {heroTitle}
+                {locationStr && !content?.heroTitle ? (
+                  <span className="text-accent"> — Barbershop in {locationStr}</span>
+                ) : null}
+              </h1>
+            </HeroReveal>
 
-          {/* SEO-optimized H1: includes shop name + city for local search */}
-          <HeroReveal delay={0.12} className="mt-6">
-            <h1 className={`font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl ${visual.heroLayout === 'poster' ? 'max-w-3xl text-left text-6xl uppercase leading-[0.88] sm:text-8xl lg:text-[clamp(5rem,13vw,10rem)]' : ''}`}>
-              {heroTitle}
-              {locationStr && !content?.heroTitle ? (
-                <span className="text-accent"> — Barbershop in {locationStr}</span>
-              ) : null}
-            </h1>
-          </HeroReveal>
+            <HeroReveal delay={0.24} className="mt-6 max-w-2xl">
+              <p className="text-balance text-base leading-relaxed text-foreground/70 sm:text-lg">
+                {heroDescription}
+              </p>
+            </HeroReveal>
 
-          <HeroReveal delay={0.24} className="mt-6 max-w-2xl">
-            <p className="text-balance text-base leading-relaxed text-foreground/70 sm:text-lg">
-              {heroDescription}
-            </p>
-          </HeroReveal>
+            <HeroReveal delay={0.36} className="mt-10 flex w-full flex-col items-center justify-center gap-4 sm:flex-row">
+              <BookButton
+                href={content?.heroPrimaryCtaHref || '/book'}
+                label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
+                className={`w-full sm:w-auto ${buttonShape}`}
+              />
+              <div className="flex w-full items-center justify-center gap-3 sm:w-auto">
+                {shopPhoneDigits && (
+                  <GhostButton href={`tel:${shopPhoneDigits}`} className="w-auto px-5 py-4">
+                    <Phone className="h-4 w-4 text-accent" aria-hidden="true" />
+                    Call
+                  </GhostButton>
+                )}
+                {shopPhoneDigits && (
+                  <GhostButton href={`sms:${shopPhoneDigits}`} className="w-auto px-5 py-4">
+                    <MessageSquare className="h-4 w-4 text-accent" aria-hidden="true" />
+                    Text Us
+                  </GhostButton>
+                )}
+              </div>
+            </HeroReveal>
 
-          <HeroReveal delay={0.36} className="mt-10 flex w-full flex-col items-center justify-center gap-4 sm:flex-row">
-            <BookButton
-              href={content?.heroPrimaryCtaHref || '/book'}
-              label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
-              className={`w-full sm:w-auto ${buttonShape}`}
-            />
-            <div className="flex w-full items-center justify-center gap-3 sm:w-auto">
-              {shopPhoneDigits && (
-                <GhostButton href={`tel:${shopPhoneDigits}`} className="w-auto px-5 py-4">
-                  <Phone className="h-4 w-4 text-accent" aria-hidden="true" />
-                  Call
-                </GhostButton>
-              )}
-              {shopPhoneDigits && (
-                <GhostButton href={`sms:${shopPhoneDigits}`} className="w-auto px-5 py-4">
-                  <MessageSquare className="h-4 w-4 text-accent" aria-hidden="true" />
-                  Text Us
-                </GhostButton>
-              )}
-            </div>
-          </HeroReveal>
+            {/* Trust highlights — driven by real business settings */}
+            <HeroReveal delay={0.48} className="mt-12 w-full max-w-xl">
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-foreground/10 pt-6 text-xs text-foreground/60 sm:text-sm">
+                {highlights.map((h) => (
+                  <span key={h.label} className="inline-flex items-center gap-2">
+                    <h.icon className="h-4 w-4 text-accent" aria-hidden="true" />
+                    {h.label}
+                  </span>
+                ))}
+              </div>
+            </HeroReveal>
+          </div>
 
-          {/* Trust highlights — driven by real business settings */}
-          <HeroReveal delay={0.48} className="mt-12 w-full max-w-xl">
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-foreground/10 pt-6 text-xs text-foreground/60 sm:text-sm">
-              {highlights.map((h) => (
-                <span key={h.label} className="inline-flex items-center gap-2">
-                  <h.icon className="h-4 w-4 text-accent" aria-hidden="true" />
-                  {h.label}
-                </span>
-              ))}
-            </div>
-          </HeroReveal>
-        </div>
-
-        <ScrollHint className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 text-foreground/50">
-          <ChevronDown className="h-6 w-6" />
-        </ScrollHint>
-      </section>
+          <ScrollHint className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 text-foreground/50">
+            <ChevronDown className="h-6 w-6" />
+          </ScrollHint>
+        </section>
+      )}
 
       {/* ─── Services ────────────────────────────────────────────────────── */}
       {showServices && (
@@ -303,41 +454,140 @@ export default async function HomePage() {
         </div>
 
         {services.length > 0 ? (
-          /* Editorial service menu — hairline rows, large names, price right.
-             Book stays one tap away from every row. */
-          <Stagger className={`visual-services border-t border-border/60 ${visual.serviceLayout === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.serviceLayout === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
-            {services.slice(0, 6).map((service) => (
-              <StaggerItem key={service.id} className={visual.serviceLayout === 'cards' ? 'rounded-xl border border-border/70 bg-card p-5 shadow-sm' : 'border-b border-border/60'}>
-                <div className={`group flex flex-col gap-3 ${visual.serviceLayout === 'cards' ? '' : 'py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7'}`}>
-                  <div className="min-w-0">
-                    <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          /* EDITORIAL — hairline menu rows: large names, quiet metadata,
+             price right, Book one tap away. */
+          visual.serviceLayout === 'editorial' ? (
+            <Stagger className="visual-services border-t border-border/60">
+              {services.slice(0, 6).map((service) => (
+                <StaggerItem key={service.id} className="border-b border-border/60">
+                  <div className="group flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                        {service.name}
+                      </h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2 max-w-2xl">
+                        {service.description || 'Full haircut service with lineup, neck shave, and styling.'}
+                      </p>
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                        {formatDuration(service.duration)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-6 sm:shrink-0 sm:self-center">
+                      <span className="font-display text-lg font-bold text-foreground tabular-nums sm:text-xl">
+                        {formatPrice(service.price)}
+                      </span>
+                      <Link
+                        href={`/book?serviceId=${service.id}`}
+                        className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        aria-label={`Book ${service.name}`}
+                      >
+                        Book
+                        <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </div>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )
+
+          /* CARDS — compact panels for scannable browsing. */
+          : visual.serviceLayout === 'cards' ? (
+            <Stagger className="visual-services grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {services.slice(0, 6).map((service) => (
+                <StaggerItem key={service.id} className="flex flex-col justify-between rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+                  <div>
+                    <h3 className="font-display text-xl font-semibold tracking-tight text-foreground">
                       {service.name}
                     </h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2 max-w-2xl">
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2">
                       {service.description || 'Full haircut service with lineup, neck shave, and styling.'}
                     </p>
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                       {formatDuration(service.duration)}
                     </p>
                   </div>
-                  <div className="flex items-center justify-between gap-6 sm:shrink-0 sm:self-center">
-                    <span className="font-display text-lg font-bold text-foreground tabular-nums sm:text-xl">
+                  <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
+                    <span className="font-display text-lg font-bold text-foreground tabular-nums">
                       {formatPrice(service.price)}
                     </span>
                     <Link
                       href={`/book?serviceId=${service.id}`}
-                      className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      className="group/book inline-flex items-center gap-1.5 rounded-sm px-1 py-1 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring"
                       aria-label={`Book ${service.name}`}
                     >
                       Book
                       <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
                     </Link>
                   </div>
-                </div>
-              </StaggerItem>
-            ))}
-          </Stagger>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )
+
+          /* VISUAL MENU — image-led: the shop's own service photography
+             drives the composition; text rows sit beside it. */
+          : (
+            <Stagger className="visual-services grid gap-5 border-t-2 border-accent/30 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+              {services.slice(0, 6).map((service) => {
+                const photo = servicePhotoByServiceId.get(service.id)
+                return (
+                  <StaggerItem key={service.id} className="group">
+                    <Link
+                      href={`/book?serviceId=${service.id}`}
+                      className="focus-ring block overflow-hidden rounded-lg"
+                      aria-label={`Book ${service.name}`}
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden border border-border/60">
+                        {photo ? (
+                          <Image
+                            src={photo.url}
+                            alt={photo.altText || `${service.name} at ${shopName}`}
+                            fill
+                            loading="lazy"
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            className="img-cinematic object-cover transition-transform duration-slow group-hover:scale-[1.03]"
+                          />
+                        ) : (
+                          /* No photo on record: a quiet accent tile with the
+                             service initial — honest, not a fake stock image. */
+                          <div
+                            aria-hidden="true"
+                            className="flex h-full items-center justify-center"
+                            style={{ background: 'linear-gradient(160deg, hsl(var(--accent) / 0.12), hsl(var(--muted)) 70%)' }}
+                          >
+                            <span className="font-display text-4xl font-semibold text-foreground/15">
+                              {service.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                            {service.name}
+                          </h3>
+                          <span className="font-display text-base font-bold text-foreground tabular-nums">
+                            {formatPrice(service.price)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                          {service.description || 'Full haircut service with lineup, neck shave, and styling.'}
+                        </p>
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <Clock className="h-3 w-3" aria-hidden="true" />
+                          {formatDuration(service.duration)}
+                          <ArrowRight className="ml-auto h-3.5 w-3.5 text-accent transition-transform duration-micro group-hover:translate-x-0.5" aria-hidden="true" />
+                        </p>
+                      </div>
+                    </Link>
+                  </StaggerItem>
+                )
+              })}
+            </Stagger>
+          )
         ) : (
           <Reveal className="flex flex-col items-center justify-center space-y-3 py-12 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
@@ -359,10 +609,10 @@ export default async function HomePage() {
         />
 
         {barbers.length > 0 ? (
-          /* Human editorial profiles — portrait-led rows, name/specialty/bio
-             beside the photo, book as a quiet text action. Two columns keep
-             the profiles large enough to feel like people, not records. */
-          <Stagger className={`visual-team grid grid-cols-1 gap-x-12 gap-y-10 ${visual.barberLayout === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
+          /* EDITORIAL — portrait-led rows: photo beside name/specialty/bio,
+             Book as a quiet text action. Two columns feel like people. */
+          visual.barberLayout === 'editorial' ? (
+          <Stagger className="visual-team grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
                 <div className="group flex flex-col gap-5 sm:flex-row sm:gap-6">
@@ -394,6 +644,103 @@ export default async function HomePage() {
               </StaggerItem>
             ))}
           </Stagger>
+          )
+
+          /* PORTRAIT GRID — photography-first tiles: the portrait is the
+             composition; name + specialty sit beneath it. */
+          : visual.barberLayout === 'portrait-grid' ? (
+          <Stagger className="visual-team grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+            {barbers.map((barber) => (
+              <StaggerItem key={barber.id}>
+                <Link href={`/barbers/${barber.slug || barber.id}`} className="group block focus-ring rounded-lg">
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border/70">
+                    {barber.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={barber.photo}
+                        alt={barber.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-slow group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-secondary">
+                        <span className="font-display text-4xl font-semibold text-primary">
+                          {getInitials(barber.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <h3 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                      {barber.name}
+                    </h3>
+                    {barber.specialty && (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{barber.specialty}</p>
+                    )}
+                    <p className="eyebrow mt-2 opacity-0 transition-opacity duration-micro group-hover:opacity-100 group-focus-visible:opacity-100">
+                      Book a chair
+                    </p>
+                  </div>
+                </Link>
+              </StaggerItem>
+            ))}
+          </Stagger>
+          )
+
+          /* LARGE PROFILE — full-width editorial features: prominent
+             photography, expanded bio, and a primary booking action. */
+          : (
+          <Stagger className="visual-team flex flex-col gap-14">
+            {barbers.map((barber) => (
+              <StaggerItem key={barber.id}>
+                <div className="group grid gap-8 border-t border-border/60 pt-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+                  <div className="relative aspect-[4/5] max-h-[30rem] overflow-hidden rounded-lg border border-border/70 sm:aspect-[16/10] lg:aspect-[4/5]">
+                    {barber.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={barber.photo}
+                        alt={barber.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-slow group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-secondary">
+                        <span className="font-display text-7xl font-semibold text-primary">
+                          {getInitials(barber.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <h3 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                      {barber.name}
+                    </h3>
+                    {barber.specialty && (
+                      <p className="eyebrow-accent mt-2">{barber.specialty}</p>
+                    )}
+                    <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+                      {barber.bio || 'Expert in fades, tapers, razor line-ups, and luxury beard sculpting.'}
+                    </p>
+                    <div className="mt-8 flex flex-wrap items-center gap-4">
+                      <BookButton
+                        href={`/book?barberId=${barber.id}`}
+                        label={`Book with ${barber.name.split(' ')[0]}`}
+                        className={`${buttonShape}`}
+                      />
+                      <Link
+                        href={`/barbers/${barber.slug || barber.id}`}
+                        className="group/profile inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      >
+                        Full profile
+                        <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/profile:translate-x-0.5" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            ))}
+          </Stagger>
+          )
         ) : (
           <Reveal className="flex flex-col items-center justify-center space-y-3 py-12 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
