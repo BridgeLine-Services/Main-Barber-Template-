@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { Section, SectionHeading } from '@/components/customer/Section'
+import { ShopStatus } from '@/components/customer/ShopStatus'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 import type { BusinessHours } from '@/lib/business-hours'
@@ -847,6 +848,12 @@ export default async function HomePage() {
           title={content?.visitTitle || `Find ${shopName}`}
           description={content?.visitDescription || undefined}
         />
+
+        {/* Live shop status: real open/closed state, today's hours, and
+            the current walk-in queue. */}
+        <Reveal className="mb-8">
+          <ShopStatus />
+        </Reveal>
 
         <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <StaggerItem>
