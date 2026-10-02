@@ -238,6 +238,70 @@ async function main() {
     }, custALogin.sessionCookie, bizA.slug)
     assert(r.status === 409, `double cancel rejected (got ${r.status})`)
 
+    console.log('\n── Portal reschedule (own appointment, within policy) ──')
+    // Alice books a second appointment while signed in (account already linked)
+    r = await api('/api/public/appointments', {
+      method: 'POST',
+      body: JSON.stringify({
+        serviceId: serviceA.id, date: dateStr, time: '12:00',
+        customer: { firstName: 'Alice', lastName: 'A', phone: '555-0111', email: custAEmail },
+      }),
+    }, custALogin.sessionCookie, bizA.slug)
+    assert(r.status === 200, `Alice books a second appointment (got ${r.status})`)
+    const appt2 = await prisma.appointment.findFirst({
+      where: { businessId: bizA.id, status: 'CONFIRMED' },
+      orderBy: { createdAt: 'desc' },
+    })
+    assert(!!appt2, 'second appointment exists')
+
+    // Bob cannot reschedule Alice's appointment → 404 (ownership-scoped)
+    r = await api(`/api/portal/appointments/${appt2!.id}`, {
+      method: 'PATCH', body: JSON.stringify({ action: 'reschedule', startTime: `${dateStr}T15:00:00.000Z` }),
+    }, custBLogin.sessionCookie, bizA.slug)
+    assert(r.status === 404, `Bob cannot reschedule Alice's appointment (got ${r.status})`)
+
+    // Alice reschedules to a valid future slot
+    r = await api(`/api/portal/appointments/${appt2!.id}`, {
+      method: 'PATCH', body: JSON.stringify({ action: 'reschedule', startTime: `${dateStr}T14:00:00.000Z` }),
+    }, custALogin.sessionCookie, bizA.slug)
+    assert(r.status === 200, `Alice reschedules her own appointment (got ${r.status}, body ${JSON.stringify(r.body)})`)
+    const afterReschedule = await prisma.appointment.findUnique({ where: { id: appt2!.id } })
+    assert(afterReschedule?.startTime.toISOString() === `${dateStr}T14:00:00.000Z`,
+      `appointment start time moved (got ${afterReschedule?.startTime.toISOString()})`)
+    const rh = await prisma.rescheduleHistory.findFirst({
+      where: { appointmentId: appt2!.id }, orderBy: { createdAt: 'desc' },
+    })
+    assert(!!rh && rh.actor === 'CUSTOMER' && rh.previousStartTime.toISOString() === `${dateStr}T12:00:00.000Z`,
+      `RescheduleHistory recorded with actor CUSTOMER (got actor ${rh?.actor})`)
+
+    // Alice tries to reschedule into the past → 400
+    r = await api(`/api/portal/appointments/${appt2!.id}`, {
+      method: 'PATCH', body: JSON.stringify({ action: 'reschedule', startTime: '2020-01-01T10:00:00.000Z' }),
+    }, custALogin.sessionCookie, bizA.slug)
+    assert(r.status === 400, `past-time reschedule rejected (got ${r.status})`)
+
+    console.log('\n── Cross-business isolation for the account ──')
+    // Alice has a customer record at shop A. On shop B she resolves to nothing.
+    r = await api('/api/portal/me', {}, custALogin.sessionCookie, bizB.slug)
+    assert(r.status === 200 && r.body?.customer === null,
+      'Alice\'s shop-A record does not leak to shop B (resolves to no customer there)')
+    r = await api(`/api/portal/appointments/${appt2!.id}`, {
+      method: 'PATCH', body: JSON.stringify({ action: 'cancel' }),
+    }, custALogin.sessionCookie, bizB.slug)
+    assert(r.status === 404, `Alice's shop-A appointment is not actionable from shop B (got ${r.status})`)
+
+    console.log('\n── Expired / invalid access credentials are rejected ──')
+    r = await api('/api/portal/me', {}, 'next-auth.session-token=garbage-token-value', bizA.slug)
+    assert(r.status === 401, `invalid session cookie rejected (got ${r.status})`)
+    r = await api('/api/public/appointments/shorttoken/reschedule', {
+      method: 'POST', body: JSON.stringify({ startTime: `${dateStr}T16:00:00.000Z` }),
+    }, '', bizA.slug)
+    assert(r.status === 400, `malformed access token rejected (got ${r.status})`)
+    r = await api('/api/public/appointments/' + 'x'.repeat(40) + '/reschedule', {
+      method: 'POST', body: JSON.stringify({ startTime: `${dateStr}T16:00:00.000Z` }),
+    }, '', bizA.slug)
+    assert(r.status === 404, `unknown access token rejected (got ${r.status})`)
+
     console.log('\n── Login/logout audit trail ──')
     const loginAudit = await prisma.auditLog.findFirst({
       where: { userId: custA!.id, action: 'LOGIN_SUCCESS' },
@@ -253,6 +317,7 @@ async function main() {
       `owner2-custsec-${stamp}@test.com`, `owner-custsec-${stamp}@test.com`,
     ]
     await prisma.auditLog.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
+    await prisma.rescheduleHistory.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.appointment.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.customer.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.user.deleteMany({ where: { OR: [{ email: { in: emails } }, { customerId: { not: null } }] } })

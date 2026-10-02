@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { Loader2, CalendarClock, History, LogOut } from 'lucide-react'
+import RescheduleFlow from '@/components/customer/RescheduleFlow'
 
 interface PortalAppointment {
   id: string
@@ -97,6 +98,17 @@ export function CustomerPortalAuthed({ businessName }: { businessName: string })
     }
   }
 
+  const rescheduleAppointment = useCallback(async (id: string, startTime: string) => {
+    const res = await fetch(`/api/portal/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reschedule', startTime }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.error || 'Unable to reschedule.')
+    return { startTime: data.startTime }
+  }, [])
+
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
@@ -161,13 +173,24 @@ export function CustomerPortalAuthed({ businessName }: { businessName: string })
                   <p className="text-sm text-muted-foreground">{fmtDate(a.startTime)} · with {a.barber?.name || 'any barber'}</p>
                   <p className="text-xs text-muted-foreground">Confirmation {a.confirmationNumber}</p>
                 </div>
-                <button
-                  onClick={() => cancelAppointment(a.id)}
-                  disabled={busyId === a.id}
-                  className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {busyId === a.id ? 'Cancelling…' : 'Cancel'}
-                </button>
+                <div className="flex w-full flex-wrap items-center justify-end gap-2">
+                  {a.barber && a.service && (
+                    <RescheduleFlow
+                      serviceId={a.service.id}
+                      barberId={a.barber.id}
+                      currentStartTime={a.startTime}
+                      submit={(startTime) => rescheduleAppointment(a.id, startTime)}
+                      onRescheduled={load}
+                    />
+                  )}
+                  <button
+                    onClick={() => cancelAppointment(a.id)}
+                    disabled={busyId === a.id}
+                    className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {busyId === a.id ? 'Cancelling…' : 'Cancel'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
