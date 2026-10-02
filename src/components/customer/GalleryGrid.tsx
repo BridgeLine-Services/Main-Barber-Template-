@@ -14,7 +14,7 @@ export type GalleryImage = {
   url: string
   altText?: string | null
   caption?: string | null
-  barber?: { name: string; slug: string | null } | null
+  barber?: { id: string; name: string; slug: string | null } | null
   service?: { id: string; name: string } | null
 }
 
@@ -141,7 +141,7 @@ function Lightbox({
             )}
             {image.service && (
               <Link
-                href={`/book?serviceId=${image.service.id}`}
+                href={`/book?serviceId=${image.service.id}${image.barber ? `&barberId=${image.barber.id}` : ''}`}
                 onClick={onClose}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:brightness-125 focus-ring rounded-sm px-1 py-1"
               >

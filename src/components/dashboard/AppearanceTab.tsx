@@ -257,18 +257,18 @@ function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset:
       </div>
       <div className="space-y-2.5 p-2.5" style={{ fontFamily: bodyFont }}>
         <div>
-          <p className={label} style={{ color: accent }}>Services — {resolved.serviceLayout}</p>
+          <p className={label} style={{ color: accent }}>Services — {OPTION_LABELS[resolved.serviceLayout] ?? resolved.serviceLayout}</p>
           {services}
         </div>
         <div>
-          <p className={label} style={{ color: accent }}>Team — {resolved.barberLayout}</p>
+          <p className={label} style={{ color: accent }}>Team — {OPTION_LABELS[resolved.barberLayout] ?? resolved.barberLayout}</p>
           <span style={{ fontFamily: headingFont }}>
             <span className={cn(hSize, 'block font-bold leading-tight')} style={{ color: light }}>The chairs behind the craft</span>
           </span>
           <div className="mt-1">{team}</div>
         </div>
         <div>
-          <p className={label} style={{ color: accent }}>Gallery — {resolved.galleryLayout}</p>
+          <p className={label} style={{ color: accent }}>Gallery — {OPTION_LABELS[resolved.galleryLayout] ?? resolved.galleryLayout}</p>
           {gallery}
         </div>
         <div className="flex justify-center border-t border-zinc-700 pt-2.5">

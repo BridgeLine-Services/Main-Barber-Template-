@@ -75,7 +75,7 @@ export default async function GalleryPage(
         type: { in: ['BARBER_PORTFOLIO', 'SERVICE_PHOTO'] },
         OR: [{ barberId: null }, { barber: { isActive: true } }],
       },
-      include: { barber: { select: { name: true, slug: true } }, service: { select: { id: true, name: true } } },
+      include: { barber: { select: { id: true, name: true, slug: true } }, service: { select: { id: true, name: true } } },
       orderBy: { sortOrder: 'asc' },
       take: 48, // keep the payload light — no huge image sets by default
     }).catch(() => [])
@@ -129,7 +129,7 @@ export default async function GalleryPage(
   const images = await prisma.mediaAsset.findMany({
     where: { businessId: business.id, type: 'GALLERY', isPublished: true, barberId: null },
     include: {
-      barber: { select: { name: true, slug: true } },
+      barber: { select: { id: true, name: true, slug: true } },
       service: { select: { id: true, name: true } },
     },
     orderBy: { sortOrder: 'asc' },
