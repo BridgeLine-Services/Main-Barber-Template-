@@ -16,6 +16,7 @@ import {
   resolveVisualConfig,
 } from '@/lib/visual-config'
 import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
+import { PresetCompare } from '@/components/dashboard/PresetCompare'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Website Appearance tab — owner-facing visual identity configuration.
@@ -30,7 +31,7 @@ import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
 
 type WebsiteContentMap = Record<string, unknown>
 
-const PRESET_META: Record<VisualStyle, { blurb: string; swatches: string[]; type: string }> = {
+export const PRESET_META: Record<VisualStyle, { blurb: string; swatches: string[]; type: string }> = {
   'black-label': {
     blurb: 'Luxury, cinematic, dark materials, refined editorial typography.',
     swatches: ['#0a0a0a', '#d4af37', '#1c1c1c', '#f5f5f0'],
@@ -371,6 +372,9 @@ export function AppearanceTab({ websiteContent, setWebsiteContent }: AppearanceT
             <MiniSitePreview resolved={resolved} preset={selectedPreset} />
           </div>
         </div>
+
+        {/* ── Five-preset comparison (same real data, all styles) ───── */}
+        <PresetCompare />
 
         {/* ── Independent layout overrides ──────────────────────────── */}
         <div>
