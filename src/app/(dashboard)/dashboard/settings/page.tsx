@@ -12,13 +12,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  Save, Building2, Phone,MapPin, Clock, Globe, Palette, Users,
+  Save, Building2, Phone,MapPin, Clock, Globe, Monitor, Palette, Users,
   Search, FileText, Image as ImageIcon,HelpCircle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
+import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
 import { resolveBusinessTimezone } from '@/lib/timezone'
 
 const TIMEZONES = [
@@ -105,14 +106,14 @@ type SettingsSeo = {
   googleVerification?: string | null
 }
 
-type WebsiteContentMap = Record<string, string | boolean>
+type WebsiteContentMap = Record<string, string | boolean | Record<string, string>>
 
-type Tab = 'business' | 'hours' | 'branding' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
+type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
 
 // Single source of truth for the selected tab: the ?tab= URL parameter.
 // The component derives the active tab from it — no duplicated state that can
 // drift. Invalid values fall back to the default tab.
-const VALID_TABS = ['business', 'hours', 'branding', 'social', 'policies', 'seo', 'faq', 'website', 'booking'] as const
+const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'social', 'policies', 'seo', 'faq', 'website', 'booking'] as const
 const DEFAULT_TAB: Tab = 'business'
 
 export default function SettingsPage() {
@@ -215,6 +216,7 @@ export default function SettingsPage() {
     { id: 'business', label: 'Business Info', icon: Building2 },
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'branding', label: 'Branding & Theme', icon: Palette },
+    { id: 'appearance', label: 'Website Appearance', icon: Monitor },
     { id: 'social', label: 'Social Links', icon: Globe },
     { id: 'policies', label: 'Policies', icon: FileText },
     { id: 'seo', label: 'SEO', icon: Search },
@@ -867,6 +869,10 @@ export default function SettingsPage() {
       )}
 
   {activeTab === 'faq' && <FaqManager />}
+
+      {activeTab === 'appearance' && (
+        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+      )}
 
       {activeTab === 'website' && (
         <Card className="bg-zinc-900 border-zinc-800">

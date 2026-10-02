@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { validateVisualConfigInput } from '@/lib/visual-config'
 import { requireBusinessAdmin } from '@/lib/auth-helpers'
 import { getBusinessIdForUser, logAudit } from '@/lib/auth-helpers'
 import { updateBusinessSchema } from '@/lib/validation'
@@ -79,9 +80,18 @@ export async function PATCH(req: NextRequest) {
       })
       let updatedWebsiteContent = null
       if (websiteContent && typeof websiteContent === 'object') {
-        const allowedWebsiteFields = ['heroEyebrow', 'heroTitle', 'heroDescription', 'heroImageUrl', 'heroPrimaryCtaLabel', 'heroPrimaryCtaHref', 'heroSecondaryCtaLabel', 'heroSecondaryCtaHref', 'showServices', 'showTeam', 'showReviews', 'showVisit', 'showFaq', 'showFinalCta', 'servicesTitle', 'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle', 'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle', 'faqDescription', 'finalCtaTitle', 'finalCtaDescription', 'featuredReviewCount']
+        const allowedWebsiteFields = ['heroEyebrow', 'heroTitle', 'heroDescription', 'heroImageUrl', 'heroPrimaryCtaLabel', 'heroPrimaryCtaHref', 'heroSecondaryCtaLabel', 'heroSecondaryCtaHref', 'showServices', 'showTeam', 'showReviews', 'showVisit', 'showFaq', 'showFinalCta', 'servicesTitle', 'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle', 'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle', 'faqDescription', 'finalCtaTitle', 'finalCtaDescription', 'featuredReviewCount', 'visualPreset', 'visualConfig']
         const websiteData: Record<string, unknown> = {}
         for (const field of allowedWebsiteFields) if (field in websiteContent) websiteData[field] = websiteContent[field]
+        // Visual identity: normalize + reject invalid values (never trust raw input)
+        if ('visualPreset' in websiteContent || 'visualConfig' in websiteContent) {
+          const visual = validateVisualConfigInput({
+            visualPreset: websiteContent.visualPreset,
+            visualConfig: websiteContent.visualConfig,
+          })
+          if (websiteContent.visualPreset !== undefined) websiteData.visualPreset = visual.visualPreset
+          if (websiteContent.visualConfig !== undefined) websiteData.visualConfig = visual.visualConfig
+        }
         if (Object.keys(websiteData).length > 0) {
           updatedWebsiteContent = await prisma.websiteContent.upsert({ where: { businessId }, create: { businessId, ...websiteData }, update: websiteData })
         }

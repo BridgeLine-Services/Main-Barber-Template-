@@ -23,7 +23,8 @@ import { Section, SectionHeading } from '@/components/customer/Section'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 import type { BusinessHours } from '@/lib/business-hours'
-import { getVisualStyleConfig, visualStyleClass, buttonStyleClass, imageStyleClass } from '@/lib/visual-style'
+import { buttonStyleClass, imageStyleClass } from '@/lib/visual-style'
+import { visualConfigFromContent } from '@/lib/visual-config'
 
 
 // ─── Dynamic SEO Metadata ──────────────────────────────────────────────
@@ -157,11 +158,13 @@ export default async function HomePage() {
     business?.aboutText ||
     `Experience top-tier craftsmanship at ${shopName}. From classic razor fades to precision beard styling, walk out looking and feeling sharp.`
   const heroImage = content?.heroImageUrl || null
-  const visualStyle = (content as { visualStyle?: unknown } | null)?.visualStyle
-  const visual = getVisualStyleConfig(visualStyle)
-  const styleClass = visualStyleClass(visualStyle)
-  const buttonShape = buttonStyleClass(visualStyle)
-  const imageShape = imageStyleClass(visualStyle)
+  // Tenant visual identity — resolved from the published WebsiteContent
+  // snapshot (draft → publish → this). Single source of truth:
+  // resolveVisualConfig handles defaults, invalid values, and legacy keys.
+  const visual = visualConfigFromContent(content)
+  const styleClass = `visual-style-${visual.preset}`
+  const buttonShape = buttonStyleClass(visual.preset)
+  const imageShape = imageStyleClass(visual.preset)
 
   const showServices = content?.showServices ?? true
   const showTeam = content?.showTeam ?? true
@@ -177,9 +180,9 @@ export default async function HomePage() {
   ]
 
   return (
-    <div className={`pb-12 ${styleClass}`} data-visual-style={visual.style}>
+    <div className={`pb-12 ${styleClass}`} data-visual-style={visual.preset} data-motion={visual.motionLevel}>
       {/* ─── Style-aware hero ─────────────────────────────────────────────── */}
-      <section className={`visual-hero relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.hero === 'split' ? 'lg:min-h-[78svh] lg:justify-start' : ''} ${visual.hero === 'poster' ? 'items-end justify-start' : ''} ${visual.style === 'black-label' ? 'lg:min-h-[86svh]' : ''}`}>
+      <section className={`visual-hero relative -mt-16 flex min-h-[92svh] items-center justify-center overflow-hidden border-b border-border/60 ${visual.heroLayout === 'split' ? 'lg:min-h-[78svh] lg:justify-start' : ''} ${visual.heroLayout === 'poster' ? 'items-end justify-start' : ''} ${visual.preset === 'black-label' ? 'lg:min-h-[86svh]' : ''}`}>
 
         {/* Background: owner-configured hero image, or an elegant accent-lit
             gradient when none is set. Never a permanently hard-coded photo. */}
@@ -191,7 +194,7 @@ export default async function HomePage() {
             priority
             sizes="100vw"
             quality={80}
-            className={`img-cinematic object-cover ${imageShape} ${visual.hero === 'poster' ? 'scale-105' : ''}`}
+            className={`img-cinematic object-cover ${imageShape} ${visual.heroLayout === 'poster' ? 'scale-105' : ''}`}
           />
         ) : (
           <div
@@ -211,7 +214,7 @@ export default async function HomePage() {
         />
         <div aria-hidden="true" className="absolute inset-0 bg-black/15" />
 
-        <div className={`relative z-10 mx-auto flex w-full flex-col px-4 pt-24 pb-16 sm:px-6 ${visual.hero === 'split' ? 'max-w-6xl items-center text-center lg:items-start lg:text-left' : visual.hero === 'poster' ? 'max-w-7xl items-start text-left' : 'max-w-3xl items-center text-center'}`}>
+        <div className={`relative z-10 mx-auto flex w-full flex-col px-4 pt-24 pb-16 sm:px-6 ${visual.heroLayout === 'split' ? 'max-w-6xl items-center text-center lg:items-start lg:text-left' : visual.heroLayout === 'poster' ? 'max-w-7xl items-start text-left' : 'max-w-3xl items-center text-center'}`}>
           <HeroReveal>
             <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5 backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
@@ -221,7 +224,7 @@ export default async function HomePage() {
 
           {/* SEO-optimized H1: includes shop name + city for local search */}
           <HeroReveal delay={0.12} className="mt-6">
-            <h1 className={`font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl ${visual.hero === 'poster' ? 'max-w-3xl text-left text-6xl uppercase leading-[0.88] sm:text-8xl lg:text-[clamp(5rem,13vw,10rem)]' : ''}`}>
+            <h1 className={`font-display text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl ${visual.heroLayout === 'poster' ? 'max-w-3xl text-left text-6xl uppercase leading-[0.88] sm:text-8xl lg:text-[clamp(5rem,13vw,10rem)]' : ''}`}>
               {heroTitle}
               {locationStr && !content?.heroTitle ? (
                 <span className="text-accent"> — Barbershop in {locationStr}</span>
@@ -280,7 +283,7 @@ export default async function HomePage() {
       <Section>
         <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end lg:mb-14">
           <SectionHeading
-            align={visual.services === 'editorial' ? 'left' : undefined}
+            align={visual.serviceLayout === 'editorial' ? 'left' : undefined}
             eyebrow={content?.servicesTitle ? undefined : 'Our Services'}
             title={content?.servicesTitle || 'Crafted Cuts & Barbering Services'}
             description={content?.servicesDescription || undefined}
@@ -302,10 +305,10 @@ export default async function HomePage() {
         {services.length > 0 ? (
           /* Editorial service menu — hairline rows, large names, price right.
              Book stays one tap away from every row. */
-          <Stagger className={`visual-services border-t border-border/60 ${visual.services === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.services === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
+          <Stagger className={`visual-services border-t border-border/60 ${visual.serviceLayout === 'cards' ? 'grid grid-cols-1 gap-4 border-t-0 sm:grid-cols-2 lg:grid-cols-3' : visual.serviceLayout === 'visual-menu' ? 'border-t-2 border-accent/30' : ''}`}>
             {services.slice(0, 6).map((service) => (
-              <StaggerItem key={service.id} className={visual.services === 'cards' ? 'rounded-xl border border-border/70 bg-card p-5 shadow-sm' : 'border-b border-border/60'}>
-                <div className={`group flex flex-col gap-3 ${visual.services === 'cards' ? '' : 'py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7'}`}>
+              <StaggerItem key={service.id} className={visual.serviceLayout === 'cards' ? 'rounded-xl border border-border/70 bg-card p-5 shadow-sm' : 'border-b border-border/60'}>
+                <div className={`group flex flex-col gap-3 ${visual.serviceLayout === 'cards' ? '' : 'py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-7'}`}>
                   <div className="min-w-0">
                     <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                       {service.name}
@@ -359,7 +362,7 @@ export default async function HomePage() {
           /* Human editorial profiles — portrait-led rows, name/specialty/bio
              beside the photo, book as a quiet text action. Two columns keep
              the profiles large enough to feel like people, not records. */
-          <Stagger className={`visual-team grid grid-cols-1 gap-x-12 gap-y-10 ${visual.team === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
+          <Stagger className={`visual-team grid grid-cols-1 gap-x-12 gap-y-10 ${visual.barberLayout === 'large-profile' ? 'lg:grid-cols-1 lg:gap-y-14' : 'md:grid-cols-2'}`}>
             {barbers.map((barber) => (
               <StaggerItem key={barber.id}>
                 <div className="group flex flex-col gap-5 sm:flex-row sm:gap-6">
@@ -410,10 +413,10 @@ export default async function HomePage() {
           title={content?.reviewsTitle || 'What Our Clients Say'}
           description={content?.reviewsDescription || undefined}
         />
-        <Stagger className={`visual-reviews grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${visual.style === 'black-label' ? 'lg:gap-8' : ''}`}>
+        <Stagger className={`visual-reviews grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${visual.preset === 'black-label' ? 'lg:gap-8' : ''}`}>
           {reviews.map((review) => (
             <StaggerItem key={review.id}>
-              <Card className={`h-full border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 ${visual.style === 'street-cut' ? 'rounded-none shadow-[5px_5px_0_hsl(var(--accent)/0.18)]' : visual.style === 'clean-club' ? 'rounded-2xl' : ''}`}>
+              <Card className={`h-full border-border/70 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 ${visual.preset === 'street-cut' ? 'rounded-none shadow-[5px_5px_0_hsl(var(--accent)/0.18)]' : visual.preset === 'clean-club' ? 'rounded-2xl' : ''}`}>
                 <CardContent className="space-y-3 p-6">
                   <div className="flex items-center gap-1" role="img" aria-label={`${review.rating} out of 5 stars`}>
                     {Array.from({ length: 5 }).map((_, i) => (

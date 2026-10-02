@@ -950,6 +950,11 @@ model WebsiteContent {
   showVisit             Boolean   @default(true)
   showFaq               Boolean   @default(true)
   showFinalCta          Boolean   @default(true)
+  // ─── Visual identity (DRAFT; published via the snapshot) ────────────────
+  // Owner-selected preset + independent layout overrides. Null = never
+  // configured: the public site falls back to the default preset mapping.
+  visualPreset           String? // black-label | barber-heritage | street-cut | clean-club | modern-classic
+  visualConfig           Json? // { heroLayout, serviceLayout, barberLayout, galleryLayout, motionLevel, mobileNavMode, reviewPresentation }
   servicesTitle         String?
   servicesDescription   String?   @db.Text
   teamTitle             String?
