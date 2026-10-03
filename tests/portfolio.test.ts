@@ -216,12 +216,22 @@ async function main() {
 
   console.log('\nSource-level UI checks (accessibility, lazy loading, mobile, owner perms)')
   {
+    // PortfolioGallery delegates rendering to the shared GalleryGrid so the
+    // barber-profile gallery honors the tenant's configured layout and gets
+    // the same lightbox as /gallery.
     const gallery = readFileSync(join(SRC, 'components/customer/PortfolioGallery.tsx'), 'utf8')
-    assert(gallery.includes('loading="lazy"'), 'gallery images lazy-load')
+    const grid = readFileSync(join(SRC, 'components/customer/GalleryGrid.tsx'), 'utf8')
+    assert(gallery.includes('GalleryGrid'), 'barber profile gallery renders through the shared GalleryGrid')
+    assert(gallery.includes('layout={layout}'), 'tenant gallery layout drives the profile gallery')
     assert(gallery.includes('aria-pressed'), 'filter chips expose aria-pressed state')
     assert(gallery.includes('aria-label="Filter portfolio by service"'), 'filter group labelled for screen readers')
-    assert(gallery.includes('grid-cols-2 md:grid-cols-3'), 'mobile-first responsive grid')
-    assert(gallery.includes('figcaption'), 'captions render as text (usable without images)')
+    assert(grid.includes('loading="lazy"'), 'gallery images lazy-load')
+    assert(grid.includes('grid-cols-1 gap-4 sm:grid-cols-2'), 'grid layout is mobile-first responsive')
+    assert(grid.includes('columns-1 gap-4 sm:columns-2'), 'masonry layout is responsive')
+    assert(grid.includes('snap-x snap-mandatory'), 'filmstrip layout scrolls horizontally on touch')
+    assert(grid.includes('figcaption'), 'captions render as text (usable without images)')
+    assert(grid.includes('aria-modal="true"'), 'lightbox is an accessible modal dialog')
+    assert(grid.includes("key === 'Escape'"), 'lightbox closes on Escape')
 
     const mediaApi = readFileSync(join(SRC, 'app/api/dashboard/media/route.ts'), 'utf8')
     assert(mediaApi.includes('validateServiceLink'), 'service link validation exists')

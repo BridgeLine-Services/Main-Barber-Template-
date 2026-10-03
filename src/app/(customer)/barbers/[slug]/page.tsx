@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
 import PortfolioGallery from '@/components/customer/PortfolioGallery'
+import { visualConfigFromContent } from '@/lib/visual-config'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -82,6 +83,15 @@ export default async function BarberProfilePage(props: PageProps) {
     : null
 
   const business = barber.business
+
+  // Tenant gallery layout (published snapshot) shapes this barber's portfolio.
+  const rawContent = business
+    ? await prisma.websiteContent.findUnique({ where: { businessId: business.id } }).catch(() => null)
+    : null
+  const content = rawContent?.publishedContent
+    ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
+    : rawContent
+  const visual = visualConfigFromContent(content)
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
@@ -215,7 +225,12 @@ export default async function BarberProfilePage(props: PageProps) {
         return portfolioAssets.length > 0 ? (
           <section className="mb-12">
             <h2 className="display-heading text-display-3 text-foreground mb-6">View Work</h2>
-            <PortfolioGallery assets={portfolioAssets} altFallback={barber.name} />
+            <PortfolioGallery
+              assets={portfolioAssets}
+              altFallback={barber.name}
+              layout={visual.galleryLayout}
+              barber={{ id: barber.id, name: barber.name, slug: barber.slug }}
+            />
           </section>
         ) : null
       })()}

@@ -2,24 +2,32 @@
 
 import { useState } from 'react'
 import { Images } from 'lucide-react'
+import type { GalleryLayout } from '@/lib/visual-config'
+import { GalleryGrid } from '@/components/customer/GalleryGrid'
 import { buildPortfolioFilters, filterPortfolio, PortfolioAsset } from '@/lib/portfolio'
 
 /**
- * Customer-facing portfolio gallery with optional per-service filtering.
+ * Barber-profile portfolio gallery.
  *
- * - Filters are derived from the actual assets (only configured services
- *   appear as categories).
- * - Images lazy-load and always carry accessible alt text.
- * - Fully usable without images: captions render as text and every image
- *   is inside a <figure> with a textual caption fallback.
+ * - Service filter chips derived from the barber's actual assets.
+ * - Renders through the shared GalleryGrid so the tenant's configured
+ *   gallery layout (grid / masonry / editorial / filmstrip) shapes this
+ *   gallery too, with the same accessible lightbox, barber attribution,
+ *   and booking links as the main /gallery page.
  */
 export default function PortfolioGallery({
   assets,
   altFallback,
+  layout = 'grid',
+  barber,
 }: {
   assets: PortfolioAsset[]
   /** Fallback alt text (e.g. the barber's name) when an asset lacks altText. */
   altFallback: string
+  /** Tenant-configured gallery layout; defaults to the classic grid. */
+  layout?: GalleryLayout
+  /** The profile's barber — attached to every asset for lightbox booking links. */
+  barber: { id: string; name: string; slug: string | null }
 }) {
   const filters = buildPortfolioFilters(assets)
   const [active, setActive] = useState('all')
@@ -54,32 +62,18 @@ export default function PortfolioGallery({
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {visible.map((asset) => (
-          <figure key={asset.id} className="rounded-lg overflow-hidden border bg-card">
-            <div className="aspect-square bg-muted">
-              { }
-              <img
-                src={asset.url}
-                alt={asset.altText || `${altFallback} portfolio work${asset.service ? ` — ${asset.service.name}` : ''}`}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {(asset.caption || asset.service) && (
-              <figcaption className="px-3 py-2 text-xs text-muted-foreground">
-                {asset.caption && <span className="block truncate">{asset.caption}</span>}
-                {asset.service && (
-                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-accent/90 mt-0.5">
-                    {asset.service.name}
-                  </span>
-                )}
-              </figcaption>
-            )}
-          </figure>
-        ))}
-      </div>
+      <GalleryGrid
+        layout={layout}
+        contextLabel={`${altFallback} portfolio`}
+        images={visible.map((asset) => ({
+          id: asset.id,
+          url: asset.url,
+          altText: asset.altText,
+          caption: asset.caption,
+          barber: { id: barber.id, name: barber.name, slug: barber.slug },
+          service: asset.service ?? null,
+        }))}
+      />
 
       {visible.length === 0 && (
         <p className="text-sm text-muted-foreground flex items-center gap-2">
