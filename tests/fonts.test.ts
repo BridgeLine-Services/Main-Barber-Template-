@@ -18,7 +18,10 @@ async function main() {
   // 1. Homepage HTML applies every font family class on <body>
   //    (next/font production class names are hashed `__variable_*`)
   const html = await fetch(`${BASE}/`).then((r) => r.text())
-  const variableClasses = (html.match(/__variable_[a-f0-9]+/g) || [])
+  // Class-name shape differs across Next.js build versions: older builds emit
+  // `__variable_<hex>`, newer ones `inter_<hash>-module__<hash>__variable`.
+  // Both formats contain the `__variable` marker exactly once per family.
+  const variableClasses = (html.match(/__variable/g) || [])
   assert(variableClasses.length >= 7, `layout body carries all 7 font variable classes (found ${variableClasses.length})`)
   assert(html.includes('font-sans'), 'default font-sans class applied')
 
@@ -31,9 +34,12 @@ async function main() {
   const css = await Promise.all(
     cssLinks.map((l) => fetch(l.startsWith('http') ? l : `${BASE}${l}`).then((r) => r.text()).catch(() => ''))
   ).then((all) => all.join('\n'))
-  const families = ['__inter', '__poppins', '__montserrat', '__playfair', '__roboto', '__oswald', '__lato']
+  // Family-name shape also differs: older builds emit `font-family:__inter`,
+  // newer ones `font-family:inter` (+ `inter Fallback`). Match the plain name
+  // so the check holds across both formats.
+  const families = ['inter', 'poppins', 'montserrat', 'playfair', 'roboto', 'oswald', 'lato']
   for (const fam of families) {
-    assert(css.includes(`font-family:${fam}`), `built CSS defines self-hosted @font-face for ${fam}`)
+    assert(new RegExp(`font-family:${fam}(?: Fallback)?;`).test(css), `built CSS defines self-hosted @font-face for ${fam}`)
   }
   for (const v of ['--font-inter', '--font-poppins', '--font-montserrat', '--font-playfair',
     '--font-roboto', '--font-oswald', '--font-lato']) {
@@ -47,7 +53,16 @@ async function main() {
   assert(woff2Refs.length >= 13, `CSS references ${woff2Refs.length} self-hosted font files (>=13 expected)`)
   const sample = woff2Refs[0]
   if (sample) {
-    const res = await fetch(sample.startsWith('http') ? sample : `${BASE}${sample}`)
+    // url() refs are relative to the CSS file that declares them (e.g. the
+    // chunk at /_next/static/css/*.css references ../media/*.woff2), so
+    // resolve against the CSS link instead of naively concatenating BASE.
+    const firstCss = cssLinks[0]
+      ? (cssLinks[0].startsWith('http') ? cssLinks[0] : `${BASE}${cssLinks[0]}`)
+      : null
+    const sampleUrl = sample.startsWith('http')
+      ? sample
+      : firstCss ? new URL(sample, firstCss).href : `${BASE}${sample}`
+    const res = await fetch(sampleUrl)
     assert(res.status === 200, 'font file is served locally (200)')
   }
 
