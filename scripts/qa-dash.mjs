@@ -12,7 +12,7 @@ import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 
 const prisma = new PrismaClient()
-const BASE = 'http://localhost:4321'
+const BASE = 'http://second-test-shop:3000'
 const OUT = '/app/conversations/6ab6cc4fb3b8526e5be9ca03/repo/.qa-screens'
 const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
 const PRESETS = ['black-label', 'barber-heritage', 'street-cut', 'clean-club', 'modern-classic']

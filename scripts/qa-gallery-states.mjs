@@ -2,13 +2,18 @@
    homepage and gallery with a FULL, SMALL (single image) and EMPTY gallery,
    at mobile (320px) and desktop (1280px). Verifies no broken images, no
    horizontal overflow, deliberate fallbacks in the empty state, and that the
-   lead-image hierarchy holds when images exist. Restores the original
-   isPublished flags afterwards. Artifacts → .qa-gallery-states/ */
+   lead-image hierarchy holds when images exist.
+
+   Non-destructive: snapshots EVERY field this script touches (visualPreset,
+   publishedContent, heroImageUrl, business.logo, gallery isPublished flags)
+   before the first mutation and restores all of them in a finally block —
+   even when navigation, assertions or rendering throw. Artifacts →
+   .qa-gallery-states/ */
 import { chromium } from 'playwright'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
-const BASE = 'http://second-test-shop:4321'
+const BASE = 'http://second-test-shop:3000'
 const OUT = '/app/conversations/6ab6cc4fb3b8526e5be9ca03/repo/.qa-gallery-states'
 const WIDTHS = [320, 1280]
 const STATES = [
@@ -68,10 +73,42 @@ async function setGalleryState(keep) {
   return { snapshot: rows }
 }
 
-async function restoreGallery(snapshot) {
-  for (const r of snapshot) {
+async function restoreGalleryFlags(snapshot) {
+  for (const r of snapshot.gallery) {
     await prisma.mediaAsset.update({ where: { id: r.id }, data: { isPublished: r.isPublished } })
   }
+}
+
+/** Everything this script can mutate, captured before the first change. */
+async function takeSnapshot() {
+  const content = await prisma.websiteContent.findUnique({ where: { businessId: BUSINESS_ID } })
+  const business = await prisma.business.findUnique({ where: { id: BUSINESS_ID } })
+  const gallery = await prisma.mediaAsset.findMany({
+    where: { businessId: BUSINESS_ID, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] } },
+    select: { id: true, isPublished: true },
+  })
+  return {
+    visualPreset: content.visualPreset,
+    publishedContent: JSON.parse(JSON.stringify(content.publishedContent ?? null)),
+    heroImageUrl: content.heroImageUrl,
+    logo: business.logo,
+    gallery,
+  }
+}
+
+/** Full restoration — runs in finally even when rendering or assertions fail. */
+async function restoreSnapshot(s) {
+  await prisma.websiteContent.update({
+    where: { businessId: BUSINESS_ID },
+    data: {
+      visualPreset: s.visualPreset,
+      publishedContent: s.publishedContent,
+      heroImageUrl: s.heroImageUrl,
+    },
+  })
+  await prisma.business.update({ where: { id: BUSINESS_ID }, data: { logo: s.logo } })
+  await restoreGalleryFlags(s)
+  console.log('\n♻  original preset, published config, logo, hero and gallery flags restored')
 }
 
 async function audit(page, preset, state, width, route, routeName) {
@@ -111,15 +148,10 @@ async function audit(page, preset, state, width, route, routeName) {
 }
 
 async function main() {
-  const snapshotFull = await prisma.mediaAsset.findMany({
-    where: { businessId: BUSINESS_ID, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] } },
-    select: { id: true, isPublished: true },
-  })
+  // ── Non-destructive snapshot: EVERY field this script can mutate, taken
+  // before the first change so finally can restore the exact original state.
+  const snapshot = await takeSnapshot()
   try {
-    const snapshot = await prisma.mediaAsset.findMany({
-      where: { businessId: BUSINESS_ID, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] } },
-      select: { id: true, isPublished: true },
-    })
     for (const preset of PRESETS) {
       await publish(preset)
       console.log(`\n🎨 ${preset}`)
@@ -127,24 +159,18 @@ async function main() {
         await setGalleryState(keep)
         for (const width of WIDTHS) {
           const page = await browser.newPage({ viewport: { width, height: 900 } })
-          await audit(page, preset, state, width, '/', 'home')
-          await audit(page, preset, state, width, '/gallery', 'gallery')
-          await page.close()
+          try {
+            await audit(page, preset, state, width, '/', 'home')
+            await audit(page, preset, state, width, '/gallery', 'gallery')
+          } finally {
+            await page.close() // never leak a page on assertion failure
+          }
         }
-        await restoreGallery(snapshot) // restore after EVERY state
+        await restoreGalleryFlags(snapshot) // restore after EVERY state
       }
     }
   } finally {
-    // restore seeded flags and preset
-    await restoreGallery(snapshotFull)
-    const content = await prisma.websiteContent.findUnique({ where: { businessId: BUSINESS_ID } })
-    await prisma.websiteContent.update({
-      where: { businessId: BUSINESS_ID },
-      data: {
-        visualPreset: content.visualPreset,
-        publishedContent: { ...(content.publishedContent ?? {}) },
-      },
-    })
+    await restoreSnapshot(snapshot)
     await prisma.$disconnect()
     await browser.close()
   }

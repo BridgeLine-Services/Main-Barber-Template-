@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, Monitor, Info } from 'lucide-react'
+import { Check, Monitor, Info, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   VISUAL_STYLES,
@@ -311,6 +311,26 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
     setWebsiteContent({ ...websiteContent, visualConfig: next })
   }
 
+  /**
+   * Reset to preset defaults: clears every optional visual override (layouts,
+   * motion, buttons, typography) so the selected preset's built-in choices
+   * apply again. The preset itself, branding, photos, services, barbers and
+   * reviews are untouched. Follows the normal save flow — draft only,
+   * never auto-publishes.
+   */
+  const hasOverrides = Object.keys(overrides).length > 0
+  const resetToPresetDefaults = () => {
+    const presetLabel = VISUAL_STYLE_CONFIG[selectedPreset].label
+    const ok = window.confirm(
+      `Reset to ${presetLabel} defaults?\n\n` +
+      'All layout and typography overrides will be cleared and this preset\'s built-in design choices will apply again. ' +
+      'Your preset, branding, logo, photos, services, barbers and reviews are all kept.\n\n' +
+      'This saves as a draft — nothing goes live until you publish.'
+    )
+    if (!ok) return
+    setWebsiteContent({ ...websiteContent, visualConfig: {} })
+  }
+
   return (
     <Card className="bg-card border-border">
       <CardHeader>
@@ -394,9 +414,21 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
 
         {/* ── Independent layout overrides ──────────────────────────── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-foreground">Layout & behavior</h3>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Layout & behavior</h3>
+            <button
+              type="button"
+              onClick={resetToPresetDefaults}
+              disabled={!hasOverrides}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-[var(--dash-surface)] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              Reset to {VISUAL_STYLE_CONFIG[selectedPreset].label} defaults
+            </button>
+          </div>
           <p className="mb-4 text-xs text-muted-foreground">
             Every option defaults to the preset&apos;s built-in choice. Override only what you want to differ.
+            Resetting clears all overrides (saved as a draft) and keeps everything else about your site.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(Object.keys(VISUAL_FIELD_OPTIONS) as VisualOverrideKey[]).map((key) => {
