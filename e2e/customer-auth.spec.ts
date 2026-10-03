@@ -20,11 +20,11 @@ test('customer can sign up from the public entry point and lands on /portal', as
   const email = `e2e-signup-${Date.now()}@example.com`
 
   await page.goto('/login')
-  await page.getByRole('button', { name: /create one/i }).click()
+  await page.getByRole('button', { name: /don.t have an account\?/i }).click()
   await page.locator('#name').fill('E2E Signup')
   await page.locator('#email').fill(email)
   await page.locator('#password').fill(PASSWORD)
-  await page.getByRole('button', { name: /create account/i }).click()
+  await page.getByRole('button', { name: 'Sign-Up', exact: true }).click()
 
   // Auto-login → /auth/redirect → server router sends CUSTOMER to /portal
   await page.waitForURL(/\/portal/, { timeout: 30_000 })
@@ -47,7 +47,7 @@ test('existing customer can sign in and is routed to /portal', async ({ page }) 
   await page.goto('/login')
   await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(PASSWORD)
-  await page.getByRole('button', { name: /sign in|log in/i }).click()
+  await page.getByRole('button', { name: 'Login', exact: true }).click()
 
   // Server role router: CUSTOMER → /portal (never /dashboard)
   await page.waitForURL(/\/portal/, { timeout: 30_000 })
@@ -62,7 +62,7 @@ test('signed-in customer is denied management pages and APIs', async ({ page }) 
   await page.goto('/login')
   await page.getByPlaceholder('you@example.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(PASSWORD)
-  await page.getByRole('button', { name: /sign in|log in/i }).click()
+  await page.getByRole('button', { name: 'Login', exact: true }).click()
   await page.waitForURL(/\/portal/, { timeout: 30_000 })
 
   // Direct URL to the management portal → server gate redirects to /portal

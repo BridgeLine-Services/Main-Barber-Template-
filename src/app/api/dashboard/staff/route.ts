@@ -122,10 +122,15 @@ export async function POST(req: NextRequest) {
 
       const email = parsed.data.email.toLowerCase()
 
-      // An account with this email can never be "re-invited" — the accept
-      // flow only creates NEW accounts, so an existing email is a hard stop.
+      // An existing account can only be invited when it can be securely
+      // LINKED at acceptance: an active public customer account (CUSTOMER
+      // role, no business). The invitee must then authenticate as that exact
+      // account to accept. Staff/owner accounts and accounts already tied to
+      // any business are a hard stop — acceptance would have to move a user
+      // between tenants, which invitations must never do.
       const existing = await prisma.user.findUnique({ where: { email } })
-      if (existing) {
+      const linkable = existing?.role === 'CUSTOMER' && !existing.businessId && existing.isActive
+      if (existing && !linkable) {
         return NextResponse.json({ error: 'A user with this email already exists' }, { status: 409 })
       }
 
@@ -198,10 +203,12 @@ export async function POST(req: NextRequest) {
         console.error('[staff] invite email failed', emailError instanceof Error ? emailError.message : 'unknown error')
       }
 
+      const linking = Boolean(existing && linkable)
       return NextResponse.json({
         invitation,
         inviteUrl,
         emailSent,
+        linking,
         message: emailSent
           ? `Invitation sent to ${email}. The link below is a backup in case the email doesn't arrive.`
           : 'Invitation created. Share the secure link below with your new team member.',

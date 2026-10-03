@@ -2,7 +2,7 @@
 
 import { useEffect, useState, FormEvent } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
 interface InviteInfo {
@@ -12,6 +12,10 @@ interface InviteInfo {
   name?: string
   role?: string
   businessName?: string
+  // The invited email already has an account (e.g. a customer being invited
+  // to become staff) — acceptance happens by signing in with that account,
+  // never by creating a duplicate account.
+  existingAccount?: boolean
 }
 
 const REASON_TEXT: Record<string, string> = {
@@ -23,6 +27,7 @@ const REASON_TEXT: Record<string, string> = {
 }
 
 export function AcceptInvitationForm() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') || ''
   const [invite, setInvite] = useState<InviteInfo | null>(null)
@@ -30,6 +35,8 @@ export function AcceptInvitationForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [linkPassword, setLinkPassword] = useState('')
+  const [linking, setLinking] = useState(false)
 
   useEffect(() => {
     if (!token) { setInvite({ valid: false, reason: 'invalid' }); return }
@@ -61,12 +68,59 @@ export function AcceptInvitationForm() {
       if (result?.ok) {
         window.location.assign(result.url ?? '/auth/redirect')
       } else {
-        setError('Account created! Please sign in.')
+        setError('Account created! Please sign in now.')
         setLoading(false)
       }
     } catch {
       setError('Failed to connect to the server. Please try again.')
       setLoading(false)
+    }
+  }
+
+  // Existing account: authenticate as the invited account, then accept.
+  // The server re-verifies that the session owns the invited email.
+  const handleLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLinking(true)
+    try {
+      const result = await signIn('credentials', {
+        email: invite?.email,
+        password: linkPassword,
+        redirect: false,
+      })
+      if (!result?.ok) {
+        setError('That password didn’t match this account. Please try again.')
+        setLinking(false)
+        return
+      }
+      const res = await fetch('/api/auth/accept-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to accept invitation')
+        setLinking(false)
+        return
+      }
+      // The account was just promoted to staff, but the session token still
+      // carries the old CUSTOMER role (JWTs are minted at sign-in). Sign in
+      // again so the session reflects the new role before routing.
+      const refreshed = await signIn('credentials', {
+        email: invite?.email,
+        password: linkPassword,
+        redirect: false,
+      })
+      if (!refreshed?.ok) {
+        // Linking succeeded — route anyway; the next regular sign-in gets the
+        // correct role. Do not show a confusing error here.
+      }
+      router.push('/auth/redirect')
+    } catch {
+      setError('Failed to connect to the server. Please try again.')
+      setLinking(false)
     }
   }
 
@@ -90,10 +144,35 @@ export function AcceptInvitationForm() {
                 <div className="mb-6 p-3.5 rounded-lg bg-red-950/50 border border-red-800/50 text-red-300 text-sm">{error}</div>
               )}
               <div className="mb-6 p-3.5 rounded-lg bg-zinc-800/40 border border-zinc-700/60 text-sm space-y-1">
-                <p><span className="text-zinc-400">Name:</span> {invite.name}</p>
+                {invite.existingAccount ? null : <p><span className="text-zinc-400">Name:</span> {invite.name}</p>}
                 <p><span className="text-zinc-400">Email:</span> {invite.email}</p>
                 <p><span className="text-zinc-400">Role:</span> <span className="capitalize">{invite.role?.toLowerCase().replace('_', ' ')}</span></p>
               </div>
+              {invite.existingAccount ? (
+                <form onSubmit={handleLink} className="space-y-5">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    You already have an account with this email. Enter its password to accept the invitation
+                    {' '}— your existing account will be linked to this team, and your password stays the same.
+                  </p>
+                  <div>
+                    <label htmlFor="link-password" className={labelCls}>Password for your existing account</label>
+                    <input
+                      id="link-password"
+                      type="password"
+                      className={inputCls}
+                      value={linkPassword}
+                      onChange={e => setLinkPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      placeholder="Your existing password"
+                    />
+                  </div>
+                  <button type="submit" disabled={linking || !linkPassword}
+                    className="w-full py-3 rounded-lg bg-amber-500 text-zinc-950 font-bold text-sm hover:bg-amber-400 transition-colors disabled:opacity-50">
+                    {linking ? 'Accepting…' : 'Login & Accept Invitation'}
+                  </button>
+                </form>
+              ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label htmlFor="password" className={labelCls}>Choose a password</label>
@@ -108,11 +187,12 @@ export function AcceptInvitationForm() {
                   {loading ? 'Creating your account…' : 'Accept invitation'}
                 </button>
               </form>
+              )}
             </>
           ) : (
             <div className="text-center space-y-4">
               <p className="text-sm text-red-300">{REASON_TEXT[invite.reason || 'invalid']}</p>
-              <Link href="/login" className="inline-block text-xs text-zinc-400 hover:text-amber-400 transition-colors">Go to sign in</Link>
+              <Link href="/login" className="inline-block text-xs text-zinc-400 hover:text-amber-400 transition-colors">Go to Login</Link>
             </div>
           )}
         </div>

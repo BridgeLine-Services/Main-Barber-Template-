@@ -247,8 +247,99 @@ async function main() {
     })
     assert(!!revokedAudit, 'STAFF_INVITATION_REVOKED audit recorded')
 
-    console.log(`\n${passed} passed, ${failed} failed`)
-    process.exit(failed === 0 ? 0 : 1)
+
+    console.log('\n── Existing account: secure linking ──')
+    // Each actor below acts from its own client IP (rate limits are per-IP).
+    const custIp = `10.77.0.7`
+    const barberIp = `10.77.0.8`
+    const raceIp1 = `10.77.0.9`
+    const raceIp2 = `10.77.0.10`
+    // A public CUSTOMER account can be invited; acceptance requires an
+    // authenticated session that owns the invited email.
+    const custEmail = `link-cust-${stamp}@test.com`
+    const customer = await prisma.user.create({
+      data: { email: custEmail, name: 'Link Customer', role: 'CUSTOMER', passwordHash: pwHash },
+    })
+    createdUsers.push(customer.id)
+
+    r = await api('/api/dashboard/staff', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Link Customer', email: custEmail, role: 'BARBER' }),
+    }, ownerALogin.sessionCookie)
+    assert(r.status === 201 && r.body?.linking === true, `owner can invite an existing customer account for linking (got ${r.status})`)
+    const linkToken: string = new URL(r.body.inviteUrl as string).searchParams.get('token') || ''
+
+    // Staff/other-business accounts remain a hard stop
+    r = await api('/api/dashboard/staff', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Cross', email: barberUserA.email, role: 'BARBER' }),
+    }, ownerALogin.sessionCookie)
+    assert(r.status === 409, `inviting an existing staff account still rejected (got ${r.status})`)
+    r = await api('/api/dashboard/staff', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Cross', email: ownerB.email, role: 'BARBER' }),
+    }, ownerALogin.sessionCookie)
+    assert(r.status === 409, `inviting another business's account still rejected (got ${r.status})`)
+
+    // GET reports the existing account so the UI can offer the link flow
+    r = await api(`/api/auth/accept-invitation?token=${encodeURIComponent(linkToken)}`)
+    assert(r.status === 200 && r.body?.existingAccount === true, 'GET reports existingAccount for a linkable invitee')
+
+    // Unauthenticated acceptance of an existing account is refused
+    r = await api('/api/auth/accept-invitation', {
+      method: 'POST', body: JSON.stringify({ token: linkToken, password }),
+      headers: { 'x-forwarded-for': custIp },
+    })
+    assert(r.status === 401, `unauthenticated acceptance of an existing account refused (got ${r.status})`)
+
+    // A session for a DIFFERENT account must not be able to link it
+    r = await api('/api/auth/accept-invitation', {
+      method: 'POST', body: JSON.stringify({ token: linkToken }),
+      headers: { 'x-forwarded-for': barberIp },
+    }, barberALogin.sessionCookie)
+    assert(r.status === 401, `a different user's session cannot accept someone else's invitation (got ${r.status})`)
+
+    // The customer signs in and accepts — account is linked, not duplicated
+    const custLogin = await login(custEmail, password)
+    assert(custLogin.ok, 'customer can sign in')
+    r = await api('/api/auth/accept-invitation', {
+      method: 'POST', body: JSON.stringify({ token: linkToken }),
+      headers: { 'x-forwarded-for': custIp },
+    }, custLogin.sessionCookie)
+    assert(r.status === 200 && r.body?.linked === true, `authenticated customer accepts invitation (got ${r.status})`)
+    const linkedUser = await prisma.user.findUnique({ where: { email: custEmail } })
+    assert(linkedUser?.role === 'BARBER' && linkedUser.businessId === bizA.id,
+      `existing account linked to the invited role and business (got ${linkedUser?.role})`)
+    assert(linkedUser?.passwordHash === pwHash, 'linking never changes the existing password')
+
+    // Token is single-use even for linking
+    r = await api('/api/auth/accept-invitation', {
+      method: 'POST', body: JSON.stringify({ token: linkToken }),
+      headers: { 'x-forwarded-for': custIp },
+    }, custLogin.sessionCookie)
+    assert(r.status === 409, `used link invitation cannot be accepted again (got ${r.status})`)
+
+    console.log('\n── Concurrent acceptance ──')
+    // Two racing accepts of the same invitation: exactly one succeeds.
+    const raceToken = crypto.randomBytes(32).toString('base64url')
+    await prisma.staffInvitation.create({
+      data: {
+        businessId: bizA.id, email: `race-${stamp}@test.com`, name: 'Race', role: 'BARBER',
+        tokenHash: crypto.createHash('sha256').update(raceToken).digest('hex'),
+        expiresAt: new Date(Date.now() + 86_400_000), invitedById: ownerA.id,
+      },
+    })
+    const [race1, race2] = await Promise.all([
+      api('/api/auth/accept-invitation', { method: 'POST', body: JSON.stringify({ token: raceToken, password }), headers: { 'x-forwarded-for': raceIp1 } }),
+      api('/api/auth/accept-invitation', { method: 'POST', body: JSON.stringify({ token: raceToken, password: 'Other-Pass-789!' }), headers: { 'x-forwarded-for': raceIp2 } }),
+    ])
+    const statuses = [race1.status, race2.status].sort()
+    assert(statuses[0] === 201 && statuses[1] === 409,
+      `exactly one concurrent accept wins (got ${race1.status}, ${race2.status})`)
+    const raceUsers = await prisma.user.findMany({ where: { email: `race-${stamp}@test.com` } })
+    assert(raceUsers.length === 1, `concurrent acceptance creates exactly one account (got ${raceUsers.length})`)
+    if (raceUsers[0]) createdUsers.push(raceUsers[0].id)
+
   } finally {
     await prisma.auditLog.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.staffInvitation.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
@@ -262,6 +353,12 @@ async function main() {
     void ownerB
     await prisma.$disconnect()
   }
+
+  // Exit AFTER the finally-block cleanup — process.exit() never runs finally,
+  // and calling it inside the try block silently leaked every run's test
+  // businesses into the shared dev database.
+  console.log(`\n${passed} passed, ${failed} failed`)
+  process.exit(failed === 0 ? 0 : 1)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

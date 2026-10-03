@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
@@ -19,7 +21,15 @@ import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 //  - Single-use: acceptedAt is set with a guarded updateMany so two racing
 //    accepts cannot both succeed.
 //  - Time-limited: expiresAt enforced. Revocable: revokedAt enforced.
-//  - The invitee chooses their own password; the invited role is fixed.
+//  - The invitee chooses their own password for a NEW account; the invited
+//    role is fixed by the invitation.
+//  - EXISTING ACCOUNT LINKING: when the invited email already has an account
+//    (e.g. a public customer being invited to become staff), the invitation
+//    can only be accepted by an authenticated session that OWNS that exact
+//    account (session id + email must match the invited email). The role,
+//    business, and barber profile are applied server-side in one transaction;
+//    the existing password is kept. No unauthenticated or third-party session
+//    can ever link the account.
 // ============================================================================
 
 function hashToken(token: string): string {
@@ -28,7 +38,10 @@ function hashToken(token: string): string {
 
 const acceptSchema = z.object({
   token: z.string().min(32).max(128),
-  password: passwordPolicySchema,
+  // Required for NEW accounts. For linking an EXISTING account the invitee
+  // proves ownership by authenticating (their session), so no password is
+  // needed — it is never changed by acceptance.
+  password: passwordPolicySchema.optional(),
   // No role/business/email fields — those come from the invitation only.
 })
 
@@ -52,6 +65,15 @@ export async function GET(req: NextRequest) {
   })
   if (!business || business.deactivatedAt) return NextResponse.json({ valid: false, reason: 'business-unavailable' }, { status: 410 })
 
+  // Does the invited email already have an account? The invitee holds the
+  // invitation token, which names this email — revealing "you already have an
+  // account" to the token holder leaks nothing new. The acceptance UI uses
+  // this to render the sign-in-to-link flow instead of the password form.
+  const existing = await prisma.user.findUnique({
+    where: { email: normalizeEmail(invitation.email) },
+    select: { id: true },
+  })
+
   return NextResponse.json({
     valid: true,
     email: invitation.email,
@@ -59,6 +81,7 @@ export async function GET(req: NextRequest) {
     role: invitation.role,
     businessName: business.name,
     expiresAt: invitation.expiresAt,
+    existingAccount: Boolean(existing),
   })
 }
 
@@ -84,8 +107,81 @@ export async function POST(req: NextRequest) {
 
     const email = normalizeEmail(invitation.email)
     const existing = await prisma.user.findUnique({ where: { email } })
+
+    // ─── EXISTING ACCOUNT: secure linking only ────────────────────────────
     if (existing) {
-      return NextResponse.json({ error: 'An account with this email already exists. Please sign in or ask your manager for help.' }, { status: 409 })
+      // The session must be the owner of the invited account. A session for a
+      // different account, or no session at all, can never link it. Email is
+      // re-checked against the invitation, so an invitee can never accept an
+      // invitation addressed to someone else's email.
+      const session = await getServerSession(authOptions)
+      const sessionEmail = session?.user?.email ? normalizeEmail(session.user.email) : null
+      if (!session?.user?.id || session.user.id !== existing.id || sessionEmail !== email) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Please log in with that account, then open this invitation link again.' },
+          { status: 401 }
+        )
+      }
+
+      const linked = await prisma.$transaction(async (tx) => {
+        // Single-use guard: claim the invitation atomically. A racing second
+        // accept sees count 0 and must fail.
+        const claimed = await tx.staffInvitation.updateMany({
+          where: { id: invitation.id, acceptedAt: null, revokedAt: null },
+          data: { acceptedAt: new Date() },
+        })
+        if (claimed.count === 0) throw new Error('INVITATION_ALREADY_USED')
+
+        // Guarded link: the account must still be an active, unlinked customer
+        // at claim time. A racing invitation, role change, or deactivation
+        // cannot be silently overwritten (updateMany sees count 0).
+        const updated = await tx.user.updateMany({
+          where: { id: existing.id, role: 'CUSTOMER', businessId: null, isActive: true },
+          data: {
+            role: invitation.role, // fixed by the invitation — never client-supplied
+            businessId: invitation.businessId,
+            barberId: invitation.barberId,
+            passwordChangedAt: new Date(),
+          },
+        })
+        if (updated.count === 0) throw new Error('ACCOUNT_NOT_LINKABLE')
+
+        return tx.user.findUnique({
+          where: { id: existing.id },
+          select: { id: true, email: true, name: true, role: true },
+        })
+      })
+
+      // Audit: existing account linked to the invitation's role/business.
+      try {
+        await prisma.auditLog.create({
+          data: {
+            businessId: invitation.businessId,
+            userId: linked!.id,
+            action: 'STAFF_INVITATION_ACCEPTED',
+            entityType: 'StaffInvitation',
+            entityId: invitation.id,
+            newValues: { email: linked!.email, role: linked!.role, linkedExistingAccount: true },
+            description: `Staff invitation accepted by ${linked!.email} (${linked!.role}) — existing account linked`,
+            ipAddress: req.headers.get('x-forwarded-for'),
+            userAgent: req.headers.get('user-agent'),
+          },
+        })
+      } catch (auditError) {
+        console.error('[accept-invitation] audit failed', auditError instanceof Error ? auditError.message : 'unknown')
+      }
+
+      return NextResponse.json({
+        success: true,
+        linked: true,
+        user: linked,
+        message: 'Invitation accepted — your existing account now has staff access.',
+      }, { status: 200 })
+    }
+
+    // ─── NEW ACCOUNT: the invitee chooses their own password ──────────────
+    if (!parsed.data.password) {
+      return NextResponse.json({ error: 'Please choose a password for your new account.' }, { status: 400 })
     }
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 12)
@@ -153,6 +249,9 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'INVITATION_ALREADY_USED') {
       return NextResponse.json({ error: 'This invitation was already used.' }, { status: 409 })
+    }
+    if (error instanceof Error && error.message === 'ACCOUNT_NOT_LINKABLE') {
+      return NextResponse.json({ error: 'This invitation can no longer be accepted with this account. Please ask your manager for help.' }, { status: 409 })
     }
     console.error('[accept-invitation] failed', error)
     return NextResponse.json({ error: 'Failed to accept invitation. Please try again.' }, { status: 500 })

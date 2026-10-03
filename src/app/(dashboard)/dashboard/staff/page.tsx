@@ -371,16 +371,7 @@ export default function StaffPage() {
                     <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-foreground">Business Admin (no ownership actions)</span>
                   </label>
-                  <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    form.role === 'OWNER' ? 'border-amber-500 bg-[var(--dash-brand-soft)]' : 'border-input hover:border-zinc-600'
-                  }`}>
-                    <input type="radio" name="role" value="OWNER" checked={form.role === 'OWNER'}
-                      onChange={() => setForm({ ...form, role: 'OWNER' })}
-                      className="sr-only" />
-                    <Crown className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">Owner (full access)</span>
-                  </label>
-                </div>
+                  </div>
               </div>
               {form.role === 'BARBER' && (
                 <div>

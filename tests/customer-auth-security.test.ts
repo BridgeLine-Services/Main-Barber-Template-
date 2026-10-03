@@ -335,8 +335,6 @@ async function main() {
     })
     assert(!!loginAudit, 'LOGIN_SUCCESS audit recorded for customer sign-in')
 
-    console.log(`\n${passed} passed, ${failed} failed`)
-    process.exit(failed === 0 ? 0 : 1)
   } finally {
     // cleanup
     const emails = [
@@ -355,6 +353,12 @@ async function main() {
     void ownerA
     await prisma.$disconnect()
   }
+
+  // Exit AFTER the finally-block cleanup — process.exit() never runs finally,
+  // and calling it inside the try block silently leaked every run's test
+  // businesses into the shared dev database.
+  console.log(`\n${passed} passed, ${failed} failed`)
+  process.exit(failed === 0 ? 0 : 1)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

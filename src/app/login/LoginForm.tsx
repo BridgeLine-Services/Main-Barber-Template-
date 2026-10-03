@@ -137,12 +137,12 @@ export default function LoginForm({ businessName }: LoginFormProps) {
 
         <div className="relative z-10 max-w-md">
           <h1 className="display-heading text-display-1 text-foreground">
-            {mode === 'login' ? 'Login' : 'Sign Up'}
+            {mode === 'login' ? 'Login' : 'Sign-Up'}
           </h1>
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
             {mode === 'login'
-              ? 'Sign in to continue.'
-              : `Create an account to book faster at ${shopName}.`}
+              ? 'Customers and invited staff access their accounts on this same page.'
+              : 'Create a customer account to manage your bookings. Invited staff should use Login instead.'}
           </p>
         </div>
 
@@ -156,10 +156,12 @@ export default function LoginForm({ businessName }: LoginFormProps) {
         {/* Compact brand intro for mobile */}
         <div className="lg:hidden mb-10">
           <h1 className="display-heading text-display-3 text-foreground">
-            {mode === 'login' ? 'Login' : 'Sign Up'}
+            {mode === 'login' ? 'Login' : 'Sign-Up'}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === 'login' ? 'Sign in to continue.' : `Book faster at ${shopName}.`}
+            {mode === 'login'
+              ? 'Customers and invited staff use this same page.'
+              : 'Create a customer account to manage your bookings.'}
           </p>
         </div>
 
@@ -167,12 +169,12 @@ export default function LoginForm({ businessName }: LoginFormProps) {
           {/* Desktop heading (mobile has its own above) */}
           <div className="hidden lg:block mb-8">
             <h2 className="display-heading text-display-3 text-foreground">
-              {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+              {mode === 'login' ? 'Login' : 'Sign-Up'}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {mode === 'login'
-                ? 'Sign in to continue.'
-                : 'Create an account to manage your appointments and bookings.'}
+                ? 'Manage your bookings or access your staff account.'
+                : 'Create an account to manage your bookings. No account is needed to book an appointment — invited staff should use Login on this same page.'}
             </p>
           </div>
 
@@ -267,11 +269,11 @@ export default function LoginForm({ businessName }: LoginFormProps) {
                     className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin"
                     aria-hidden="true"
                   />
-                  <span>{mode === 'login' ? 'Signing in…' : 'Creating account…'}</span>
+                  <span>{mode === 'login' ? 'Logging in…' : 'Signing Up…'}</span>
                 </span>
               ) : (
                 <>
-                  <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
+                  <span>{mode === 'login' ? 'Login' : 'Sign-Up'}</span>
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-micro group-hover:translate-x-0.5"
                     aria-hidden="true"
@@ -288,9 +290,9 @@ export default function LoginForm({ businessName }: LoginFormProps) {
               className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
             >
               {mode === 'login' ? (
-                <>Don&apos;t have an account? <span className="text-primary font-medium">Create one</span></>
+                <>Don&apos;t have an account? <span className="text-primary font-medium">Sign-Up</span></>
               ) : (
-                <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
+                <>Already have an account? <span className="text-primary font-medium">Login</span></>
               )}
             </button>
           </div>
