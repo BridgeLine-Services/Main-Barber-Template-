@@ -89,51 +89,16 @@ export function isKnownWeakPassword(password: string): boolean {
 }
 
 // ============================================================================
-// OWNER REGISTRATION MODE — controls whether new owner accounts can be
-// created on this deployment.
+// OWNER PROVISIONING TOKEN
 //
-//   OWNER_REGISTRATION_MODE=onboarding    → (default) public owner sign-up
-//                                           enabled; new owners are sent
-//                                           straight into onboarding.
-//   OWNER_REGISTRATION_MODE=invite_only   → no public sign-up. Accounts are
-//                                           created by an administrator
-//                                           (invitation); the register UI
-//                                           explains this.
-//   OWNER_REGISTRATION_MODE=disabled      → registration hidden. Only
-//                                           existing users can log in.
-//
-// Unknown values fail safe: registration is DISABLED (never accidentally
-// leave sign-up open on a customer deployment because of a typo).
+// Owner accounts are created ONLY through the authorized provisioning
+// endpoint (POST /api/auth/register-owner), which requires a request header
+// matching this server-side secret. There is no public owner sign-up: the
+// shared Login / Sign-Up form always creates a CUSTOMER account, and staff
+// accounts come only from the invitation lifecycle. If this secret is not
+// configured, owner provisioning is fully closed (fail-closed).
 // ============================================================================
 
-export type OwnerRegistrationMode = 'onboarding' | 'invite_only' | 'disabled'
-
-function readOwnerRegistrationMode(): OwnerRegistrationMode {
-  const raw = (process.env.OWNER_REGISTRATION_MODE || 'onboarding').trim().toLowerCase()
-  if (raw === 'onboarding') return 'onboarding'
-  if (raw === 'invite_only' || raw === 'inviteonly') return 'invite_only'
-  if (raw === 'disabled') return 'disabled'
-  console.warn(
-    `[app-config] Unknown OWNER_REGISTRATION_MODE "${raw}" — failing safe to "disabled".`
-  )
-  return 'disabled'
-}
-
-const REGISTRATION_MODE: OwnerRegistrationMode = readOwnerRegistrationMode()
-
-export const registrationConfig = {
-  mode: REGISTRATION_MODE,
-  /** Public self-service sign-up allowed (creates an owner in onboarding). */
-  isOpen: REGISTRATION_MODE === 'onboarding',
-  isInviteOnly: REGISTRATION_MODE === 'invite_only',
-  isDisabled: REGISTRATION_MODE === 'disabled',
-} as const
-
-export function getOwnerRegistrationMode(): OwnerRegistrationMode {
-  return REGISTRATION_MODE
-}
-
-// ============================================================================
 // SMTP SENDER — the From address for every outbound system email.
 //
 // Local development may fall back to a placeholder sender; PRODUCTION must

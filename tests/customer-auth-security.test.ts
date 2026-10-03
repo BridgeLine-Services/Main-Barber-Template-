@@ -4,7 +4,9 @@
  * Proves, against a live server:
  *  - Public signup always creates a CUSTOMER (role is server-determined; any
  *    client-supplied role is ignored — never OWNER/staff).
- *  - Owner onboarding lives only at the gated /api/auth/register-owner.
+ *  - Owner creation is NOT public: /api/auth/register-owner rejects every
+ *    unauthenticated/forged request, and only the authorized provisioning
+ *    token (server-side secret) can create an OWNER.
  *  - A CUSTOMER session cannot reach any dashboard page or API (403/redirect).
  *  - The customer portal resolves the customer from the SESSION — query
  *    params (e.g. ?customerId=) are ignored, so there is no IDOR.
@@ -134,13 +136,38 @@ async function main() {
     })
     assert(r.status === 201, 'second customer signup ok')
 
-    console.log('\n── Owner onboarding is a separate, gated endpoint ──')
+    console.log('\n── Owner creation is authorized provisioning only (never public) ──')
+    // 1. No token, plain public request → refused, nothing created.
+    const forgedOwnerEmail = `owner2-custsec-${stamp}@test.com`
     r = await api('/api/auth/register-owner', {
       method: 'POST',
-      body: JSON.stringify({ name: 'New Owner', email: `owner2-custsec-${stamp}@test.com`, password }),
+      body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password }),
     })
-    const newOwner = await prisma.user.findUnique({ where: { email: `owner2-custsec-${stamp}@test.com` } })
-    assert(r.status === 201 && newOwner?.role === 'OWNER', 'register-owner creates an OWNER (gated flow)')
+    assert(r.status === 404, `public request to register-owner is refused (got ${r.status})`)
+    assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no OWNER account created by a public request')
+
+    // 2. Forged role field + mode query param + fake token header → refused.
+    r = await api(`/api/auth/register-owner?mode=onboarding`, {
+      method: 'POST',
+      headers: { 'x-provisioning-token': 'forged-token', 'x-role': 'OWNER' },
+      body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password, role: 'OWNER', businessId: 'x' }),
+    })
+    assert(r.status === 404, `forged token/role/params cannot create an owner (got ${r.status})`)
+    assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no partial/privileged account from forged provisioning')
+
+    // 3. Authorized provisioning (server-side secret) CAN create the owner.
+    const provisioningToken = process.env.OWNER_PROVISIONING_TOKEN
+    if (provisioningToken) {
+      r = await api('/api/auth/register-owner', {
+        method: 'POST',
+        headers: { 'x-provisioning-token': provisioningToken },
+        body: JSON.stringify({ name: 'Provisioned Owner', email: forgedOwnerEmail, password }),
+      })
+      const provisionedOwner = await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })
+      assert(r.status === 201 && provisionedOwner?.role === 'OWNER', 'authorized provisioning token creates an OWNER')
+    } else {
+      console.log('  ⚠️ OWNER_PROVISIONING_TOKEN not set — authorized provisioning not verified here')
+    }
 
     console.log('\n── Login & session ──')
     const custALogin = await login(custAEmail, password)

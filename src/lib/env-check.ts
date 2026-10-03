@@ -56,7 +56,7 @@ export const OPTIONAL_ENV_VARS = [
 
 export const INTERNAL_ENV_VARS = [
   { variable: 'SINGLE_BUSINESS_ID', description: 'Configured tenant for a single-business deployment', category: 'INTERNAL' as const, secret: false },
-  { variable: 'OWNER_REGISTRATION_MODE', description: 'Owner registration policy', category: 'INTERNAL' as const, secret: false },
+  { variable: 'OWNER_PROVISIONING_TOKEN', description: 'Secret required to create owner accounts (provisioning)', category: 'INTERNAL' as const, secret: true },
   { variable: 'APP_MODE', description: 'Demo or production runtime mode', category: 'INTERNAL' as const, secret: false },
 ]
 

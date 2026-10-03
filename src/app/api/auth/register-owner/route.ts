@@ -5,16 +5,19 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { registrationConfig } from '@/lib/app-config'
+import { timingSafeEqual } from 'crypto'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 
 // ============================================================================
-// OWNER ONBOARDING SIGNUP — the ONLY public path that creates an OWNER.
+// OWNER PROVISIONING — the only path that creates an OWNER, and it is NOT
+// public. Requires an explicit provisioning token: the request must carry a
+// header (x-provisioning-token) matching the server-side secret
+// OWNER_PROVISIONING_TOKEN, verified with a constant-time comparison. When
+// the secret is not configured the endpoint is fully closed (fail-closed).
 //
-// Gated by the deployment-level OWNER_REGISTRATION_MODE switch. This is the
-// "create your barbershop" entry: the new owner is sent into onboarding to
-// build their shop. A public request can never obtain OWNER through
-// /api/auth/register (customers) or the staff invitation lifecycle (staff).
+// A public request can never obtain OWNER through /api/auth/register
+// (always CUSTOMER) or the staff invitation lifecycle (staff roles only).
+// The seeded/authorized owner then completes shop setup via onboarding.
 // ============================================================================
 
 const registerOwnerSchema = z.object({
@@ -25,16 +28,20 @@ const registerOwnerSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  if (registrationConfig.isDisabled) {
+  // ── Authorized provisioning check (server-side, fail-closed) ──────────
+  // The token is held only by the platform operator / provisioning process.
+  // No query parameter, body field, or client state can substitute for it.
+  const expected = process.env.OWNER_PROVISIONING_TOKEN
+  const provided = req.headers.get('x-provisioning-token') ?? ''
+  const authorized =
+    !!expected &&
+    provided.length === expected.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(expected))
+  if (!authorized) {
+    // Same response whether the secret is unset or merely wrong — no signal.
     return NextResponse.json(
-      { error: 'Registration is currently unavailable. Please contact your administrator.', code: 'REGISTRATION_DISABLED' },
-      { status: 403 }
-    )
-  }
-  if (registrationConfig.isInviteOnly) {
-    return NextResponse.json(
-      { error: 'Accounts can only be created through an invitation. Please contact your administrator.', code: 'REGISTRATION_INVITE_ONLY' },
-      { status: 403 }
+      { error: 'Not found' },
+      { status: 404 }
     )
   }
 
@@ -68,7 +75,8 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Create owner with no business — they'll set up their shop via onboarding
+    // Authorized provisioning: create owner with no business — they'll set
+    // up their shop via onboarding after their first login.
     const owner = await prisma.user.create({
       data: {
         email,

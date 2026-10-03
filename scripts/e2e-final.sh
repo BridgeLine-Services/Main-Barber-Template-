@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E2E: Review & Complete step, OWNER_REGISTRATION_MODE, password reset.
+# E2E: Review & Complete step, authorized owner provisioning, password reset.
 # Runs against a live dev server (localhost:3000) + embedded test database.
 set -u
 BASE="http://localhost:3000"
@@ -21,13 +21,23 @@ async function main() {
 main().finally(() => prisma['\$disconnect']())" >/dev/null 2>&1
 sleep 1
 
-echo "═══ 1. Owner signup vs customer signup (API) ═══"
-# OWNER_REGISTRATION_MODE unset → default 'onboarding' (open). The owner
-# onboarding signup is the ONLY public path that creates an OWNER account.
+echo "═══ 1. Owner provisioning vs customer signup (API) ═══"
+# Owner creation is NOT public: /api/auth/register-owner requires the
+# server-side OWNER_PROVISIONING_TOKEN. No token, forged token, role
+# fields, or mode params can create an owner account.
+PROV_TOKEN="${OWNER_PROVISIONING_TOKEN:-}"
 R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"E2E-Owner@Test.dev","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
-check "owner registration open by default (onboarding mode)" "201" "$R"
+check "owner provisioning refused without token (never public)" "404" "$R"
+R=$(req POST '/api/auth/register-owner?mode=onboarding' '{"name":"E2E Owner","email":"E2E-Owner@Test.dev","password":"Passw0rd123","role":"OWNER"}' -H "x-provisioning-token: forged-token" -o /dev/null -w "%{http_code}")
+check "forged token/role/params cannot create an owner" "404" "$R"
+if [ -n "$PROV_TOKEN" ]; then
+  R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"E2E-Owner@Test.dev","password":"Passw0rd123"}' -H "x-provisioning-token: $PROV_TOKEN" -o /dev/null -w "%{http_code}")
+  check "authorized provisioning token creates the owner" "201" "$R"
+else
+  echo "✗ OWNER_PROVISIONING_TOKEN not set — provisioning untestable"; FAIL=$((FAIL+1))
+fi
 # Same email, different case → duplicate prevented by normalization
-R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"  e2e-owner@test.dev ","password":"Passw0rd123"}' -o /dev/null -w "%{http_code}")
+R=$(req POST /api/auth/register-owner '{"name":"E2E Owner","email":"  e2e-owner@test.dev ","password":"Passw0rd123"}' -H "x-provisioning-token: $PROV_TOKEN" -o /dev/null -w "%{http_code}")
 check "normalized email prevents duplicate account" "409" "$R"
 # Public customer signup ALWAYS creates a CUSTOMER — never OWNER/staff
 R=$(req POST /api/auth/register '{"name":"E2E Two","email":"e2e2@test.dev","password":"Passw0rd123"}' | jqpy "str(d['user']['role'])")

@@ -13,8 +13,8 @@ import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 // The role is determined SERVER-SIDE and is always CUSTOMER. Any role value
 // supplied by the browser is ignored (and rejected by the schema — this
 // endpoint accepts no role field at all). Staff accounts are created only
-// through the invitation lifecycle; owner accounts only through the gated
-// owner-onboarding endpoint (/api/auth/register-owner).
+// through the invitation lifecycle; owner accounts only through the
+// token-gated provisioning endpoint (/api/auth/register-owner).
 // ============================================================================
 
 const registerSchema = z.object({

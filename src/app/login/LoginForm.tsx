@@ -1,11 +1,9 @@
 'use client'
 
-// Login + owner registration form. The registration UI adapts to the
-// deployment's OWNER_REGISTRATION_MODE (read server-side in page.tsx):
-//   onboarding  → full sign-up flow (default)
-//   invite_only → unified public Sign-Up (CUSTOMER); staff accounts
-//                          are created only by owner invitation
-//   disabled    → sign-up hidden entirely, existing users only
+// Shared Login / Sign-Up form — the single public entry point for customers
+// and invited staff. Sign-Up always posts to /api/auth/register, which
+// assigns the CUSTOMER role server-side (staff roles come only from the
+// invitation lifecycle; owner accounts only from authorized provisioning).
 //
 // Design: editorial split layout (Sections 8/9). The left panel carries the
 // shop's brand (name, display typography, accent, theme colors injected by
@@ -23,15 +21,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export interface RegistrationModeProps {
-  registrationMode: 'onboarding' | 'invite_only' | 'disabled'
+export interface LoginFormProps {
   /** Resolved shop name for the brand panel (server-provided). */
   businessName?: string | null
 }
 
-export default function LoginForm({ registrationMode, businessName }: RegistrationModeProps) {
+export default function LoginForm({ businessName }: LoginFormProps) {
   const searchParams = useSearchParams()
-  const [mode, setMode] = useState<'login' | 'register'>('login') // register only reachable when openRegistration
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,13 +49,10 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
 
     try {
       if (mode === 'register') {
-        // OWNER_REGISTRATION_MODE=onboarding keeps the register tab as the
-        // controlled owner-provisioning flow (gated server-side by the mode).
-        // Every other state is the unified public Sign-Up: the server always
-        // assigns CUSTOMER (/api/auth/register accepts no role field), and
-        // staff roles come only from the invitation lifecycle.
-        const isOwnerOnboarding = registrationMode === 'onboarding'
-        const res = await fetch(isOwnerOnboarding ? '/api/auth/register-owner' : '/api/auth/register', {
+        // Unified public Sign-Up: the server always assigns CUSTOMER
+        // (/api/auth/register accepts no role field), and staff roles come
+        // only from the invitation lifecycle.
+        const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password }),
@@ -115,7 +109,6 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
     }
   }
 
-  const openRegistration = registrationMode !== 'disabled'
   const shopName = businessName?.trim() || 'The Barbershop'
 
   const switchMode = () => {
@@ -149,9 +142,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
             {mode === 'login'
               ? 'Sign in to continue.'
-              : registrationMode === 'onboarding'
-                ? `Create your owner account and set up ${shopName} in minutes.`
-                : `Create an account to book faster at ${shopName}.`}
+              : `Create an account to book faster at ${shopName}.`}
           </p>
         </div>
 
@@ -168,11 +159,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
             {mode === 'login' ? 'Login' : 'Sign Up'}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === 'login'
-              ? 'Sign in to continue.'
-              : registrationMode === 'onboarding'
-                ? `Set up ${shopName} in minutes.`
-                : `Book faster at ${shopName}.`}
+            {mode === 'login' ? 'Sign in to continue.' : `Book faster at ${shopName}.`}
           </p>
         </div>
 
@@ -185,9 +172,7 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
             <p className="mt-2 text-sm text-muted-foreground">
               {mode === 'login'
                 ? 'Sign in to continue.'
-                : registrationMode === 'onboarding'
-                  ? 'Registration takes less than a minute.'
-                  : 'Create an account to manage your appointments and bookings.'}
+                : 'Create an account to manage your appointments and bookings.'}
             </p>
           </div>
 
@@ -296,32 +281,19 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
             </Button>
           </form>
 
-          {/* Registration switch — adapts to OWNER_REGISTRATION_MODE */}
-          {openRegistration ? (
-            <div className="mt-8 hairline pt-5 text-center">
-              <button
-                onClick={switchMode}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
-              >
-                {mode === 'login' ? (
-                  <>Don&apos;t have an account? <span className="text-primary font-medium">Create one</span></>
-                ) : (
-                  <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
-                )}
-              </button>
-              {registrationMode === 'invite_only' && mode === 'login' && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Staff accounts are created by invitation only.
-                </p>
+          {/* Login / Sign-Up switch — one shared entry point */}
+          <div className="mt-8 hairline pt-5 text-center">
+            <button
+              onClick={switchMode}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
+            >
+              {mode === 'login' ? (
+                <>Don&apos;t have an account? <span className="text-primary font-medium">Create one</span></>
+              ) : (
+                <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
               )}
-            </div>
-          ) : (
-            <div className="mt-8 hairline pt-5 text-center">
-              <p className="text-sm text-muted-foreground">
-                Registration is currently closed. Contact your administrator if you need access.
-              </p>
-            </div>
-          )}
+            </button>
+          </div>
 
           {/* Mobile-only return link (desktop has it in the brand panel) */}
           <div className="mt-8 text-center lg:hidden">
