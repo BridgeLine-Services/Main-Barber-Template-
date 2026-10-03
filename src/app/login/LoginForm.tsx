@@ -143,9 +143,8 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
         </Link>
 
         <div className="relative z-10 max-w-md">
-          <p className="eyebrow-accent mb-5">Member access</p>
           <h1 className="display-heading text-display-1 text-foreground">
-            The chair is waiting.
+            {mode === 'login' ? 'Login' : 'Sign Up'}
           </h1>
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
             {mode === 'login'
@@ -165,9 +164,8 @@ export default function LoginForm({ registrationMode, businessName }: Registrati
       <main className="flex flex-col justify-center px-5 py-10 sm:px-10 lg:px-14">
         {/* Compact brand intro for mobile */}
         <div className="lg:hidden mb-10">
-          <p className="eyebrow-accent mb-3">Member access</p>
           <h1 className="display-heading text-display-3 text-foreground">
-            {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+            {mode === 'login' ? 'Login' : 'Sign Up'}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === 'login'
