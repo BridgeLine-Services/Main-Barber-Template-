@@ -13,6 +13,8 @@ type StyleConfig = {
   hero: 'cinematic' | 'split' | 'poster'
   services: 'editorial' | 'cards' | 'visual-menu'
   team: 'portrait-grid' | 'editorial' | 'large-profile'
+  gallery: 'grid' | 'masonry' | 'editorial' | 'filmstrip'
+  reviews: 'editorial' | 'cards' | 'strip'
   imageShape: 'square' | 'portrait' | 'rounded' | 'full-bleed'
   button: 'sharp' | 'soft' | 'pill'
   motion: 'off' | 'subtle' | 'expressive'
@@ -20,19 +22,29 @@ type StyleConfig = {
 
 export const VISUAL_STYLE_CONFIG: Record<VisualStyle, StyleConfig> = {
   'black-label': {
-    label: 'Black Label', hero: 'cinematic', services: 'editorial', team: 'editorial', imageShape: 'portrait', button: 'sharp', motion: 'subtle',
+    // Premium editorial storytelling: curated feature rows and quote-led reviews.
+    label: 'Black Label', hero: 'cinematic', services: 'editorial', team: 'editorial', gallery: 'editorial', reviews: 'editorial',
+    imageShape: 'portrait', button: 'sharp', motion: 'subtle',
   },
   'barber-heritage': {
-    label: 'Barber Heritage', hero: 'cinematic', services: 'visual-menu', team: 'portrait-grid', imageShape: 'rounded', button: 'soft', motion: 'subtle',
+    // Tactile and varied: mixed-height masonry, signage-style review strip.
+    label: 'Barber Heritage', hero: 'cinematic', services: 'visual-menu', team: 'portrait-grid', gallery: 'masonry', reviews: 'strip',
+    imageShape: 'rounded', button: 'soft', motion: 'subtle',
   },
   'street-cut': {
-    label: 'Street Cut', hero: 'poster', services: 'cards', team: 'large-profile', imageShape: 'square', button: 'sharp', motion: 'expressive',
+    // Bold poster energy: horizontal filmstrip, punchy review cards.
+    label: 'Street Cut', hero: 'poster', services: 'cards', team: 'large-profile', gallery: 'filmstrip', reviews: 'cards',
+    imageShape: 'square', button: 'sharp', motion: 'expressive',
   },
   'clean-club': {
-    label: 'Clean Club', hero: 'split', services: 'cards', team: 'portrait-grid', imageShape: 'rounded', button: 'pill', motion: 'off',
+    // Calm and orderly: uniform grid, quiet review strip.
+    label: 'Clean Club', hero: 'split', services: 'cards', team: 'portrait-grid', gallery: 'grid', reviews: 'strip',
+    imageShape: 'rounded', button: 'pill', motion: 'off',
   },
   'modern-classic': {
-    label: 'Modern Classic', hero: 'split', services: 'editorial', team: 'editorial', imageShape: 'portrait', button: 'soft', motion: 'subtle',
+    // Refined default: uniform grid, quote-led reviews (historical behavior).
+    label: 'Modern Classic', hero: 'split', services: 'editorial', team: 'editorial', gallery: 'grid', reviews: 'editorial',
+    imageShape: 'portrait', button: 'soft', motion: 'subtle',
   },
 }
 

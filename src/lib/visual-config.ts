@@ -138,10 +138,10 @@ export function resolveVisualConfig(preset?: unknown, overrides?: unknown): Visu
   const headingFont = typeof o.headingFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(o.headingFont) ? o.headingFont : null
   const bodyFont = typeof o.bodyFont === 'string' && (FONT_FAMILY_VALUES as readonly string[]).includes(o.bodyFont) ? o.bodyFont : null
   const headingScale = pick(o.headingScale, HEADING_SCALES) ?? 'standard'
-  const galleryLayout = pick(o.galleryLayout, GALLERY_LAYOUTS)
+  const galleryLayout = pick(o.galleryLayout, GALLERY_LAYOUTS) ?? base.gallery
   const motionLevel = pick(o.motionLevel, MOTION_LEVELS)
   const mobileNavMode = pick(o.mobileNavMode, MOBILE_NAV_MODES)
-  const reviewPresentation = pick(o.reviewPresentation, REVIEW_PRESENTATIONS)
+  const reviewPresentation = pick(o.reviewPresentation, REVIEW_PRESENTATIONS) ?? base.reviews
 
   return {
     preset: style,
@@ -149,11 +149,12 @@ export function resolveVisualConfig(preset?: unknown, overrides?: unknown): Visu
     heroLayout: pick(o.heroLayout, HERO_LAYOUTS) ?? base.hero,
     serviceLayout: pick(o.serviceLayout, SERVICE_LAYOUTS) ?? base.services,
     barberLayout: pick(o.barberLayout, BARBER_LAYOUTS) ?? base.team,
-    // Defaults for values with no preset mapping (first entry = sensible default)
-    galleryLayout: galleryLayout ?? 'grid',
+    // Preset-aware defaults; motion and mobile nav keep historical defaults
+    // (mobileNavMode is behavioral, not just visual, so it stays neutral).
+    galleryLayout,
     motionLevel: motionLevel ?? base.motion,
     mobileNavMode: mobileNavMode ?? 'appointment',
-    reviewPresentation: reviewPresentation ?? 'editorial',
+    reviewPresentation,
     buttonStyle,
     imageShape,
     headingFont,
