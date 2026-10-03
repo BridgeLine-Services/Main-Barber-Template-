@@ -29,6 +29,7 @@
     "test:matrix": "npx tsx tests/cross-tenant-matrix.test.ts",
     "test:lifecycle": "npx tsx tests/customer-data-lifecycle.test.ts",
     "test:notifications": "npx tsx tests/notification-resilience.test.ts",
+    "test:guest-journey": "npx tsx tests/guest-booking-journey.test.ts",
     "test:business-admin": "npx tsx tests/business-admin-role.test.ts",
     "test:booking": "npx tsx tests/booking.test.ts",
     "test:auth": "npx tsx tests/customer-auth-security.test.ts && npx tsx tests/customer-password-reset.test.ts",
