@@ -28,7 +28,9 @@ const ROUTES = [
   ['/about', 'about'],
 ]
 const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club', 'warm-premium', 'high-energy-urban', 'single-chair']
-const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
+// Resolve the seeded test shop by slug so the harness survives database resets.
+const BUSINESS_ID = (await prisma.business.findUnique({ where: { slug: 'second-test-shop' } }))?.id
+if (!BUSINESS_ID) throw new Error('test shop "second-test-shop" not found — run the seed first')
 
 const fs = await import('fs')
 fs.mkdirSync(OUT, { recursive: true })
