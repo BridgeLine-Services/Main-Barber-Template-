@@ -85,6 +85,21 @@ const PRESET_DASH: Record<VisualStyle, DashPalette> = {
     text: '#f0ece5', muted: '#a89f92', hover: '#292420', accent: '#c88a4b', accentFg: '#141210',
     radius: '6px', displayFont: "'Playfair Display', Georgia, serif", dark: true,
   },
+  'warm-premium': {
+    bg: '#221a12', surface: '#2b2218', surface2: '#352a1e', border: '#3d3022', borderStrong: '#4c3d2c',
+    text: '#f5efe4', muted: '#ab9c85', hover: '#332819', accent: '#c98f4e', accentFg: '#221a12',
+    radius: '8px', displayFont: "'Playfair Display', Georgia, serif", dark: true,
+  },
+  'high-energy-urban': {
+    bg: '#101214', surface: '#17191c', surface2: '#1e2125', border: '#2a2e33', borderStrong: '#3a3f45',
+    text: '#f0f2f4', muted: '#9aa1a9', hover: '#22262b', accent: '#c8f318', accentFg: '#101214',
+    radius: '4px', displayFont: "'Oswald', 'Arial Narrow', sans-serif", dark: true,
+  },
+  'single-chair': {
+    bg: '#f8f5ef', surface: '#fffdf8', surface2: '#f1ece2', border: '#e4ddd0', borderStrong: '#d4c9b6',
+    text: '#2a251c', muted: '#756c5b', hover: '#ece5d8', accent: '#8a6d3f', accentFg: '#fffdf8',
+    radius: '8px', displayFont: "'Playfair Display', Georgia, serif", dark: false,
+  },
 }
 
 /** Fallback when nothing is configured — the classic zinc dashboard look. */

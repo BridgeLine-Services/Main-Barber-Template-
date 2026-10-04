@@ -237,8 +237,11 @@
      systemic, not homepage-only. */
   [data-visual-style='black-label'] { --radius: 0.125rem; }
   [data-visual-style='street-cut'] { --radius: 0.125rem; }
+  [data-visual-style='high-energy-urban'] { --radius: 0.125rem; }
   [data-visual-style='barber-heritage'] { --radius: 0.65rem; }
   [data-visual-style='clean-club'] { --radius: 1rem; }
+  [data-visual-style='single-chair'] { --radius: 0.75rem; }
+  /* warm-premium keeps the baseline --radius: 0.5rem. */
   /* modern-classic keeps the baseline --radius: 0.5rem. */
   /* Modern Classic — the baseline editorial identity: default shape,
      standard tracking. Explicit so all five presets are defined. */
@@ -299,6 +302,48 @@
   [data-visual-style='clean-club'] main article {
     border: 1px solid hsl(var(--border) / 0.8);
     box-shadow: 0 18px 40px -24px hsl(var(--foreground) / 0.22);
+  }
+
+  /* Warm Premium — coffee-house luxury: serif weight, honeyed glow
+     washing down from the hero, warm hairline frames. */
+  [data-visual-style='warm-premium'] .font-display { font-weight: 600; letter-spacing: -0.02em; }
+  [data-visual-style='warm-premium'] main {
+    background-image: radial-gradient(
+      1000px 520px at 50% -10%,
+      hsl(var(--accent) / 0.1),
+      transparent 72%
+    );
+  }
+  [data-visual-style='warm-premium'] main article {
+    border-color: hsl(var(--accent) / 0.32);
+    box-shadow: 0 24px 48px -32px hsl(var(--foreground) / 0.18);
+  }
+
+  /* High-Energy Urban — poster wall + voltage: condensed display, hard
+     frames, tape-stripe accent underlines, uppercase CTAs. */
+  [data-visual-style='high-energy-urban'] .font-display {
+    letter-spacing: 0.01em;
+    font-weight: 800;
+    line-height: 0.95;
+  }
+  [data-visual-style='high-energy-urban'] main article {
+    border: 2px solid hsl(var(--foreground) / 0.24);
+    border-top: 3px solid hsl(var(--accent) / 0.85);
+  }
+  [data-visual-style='high-energy-urban'] main button {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  /* Single-Chair Studio — personal journal: relaxed tracking, airy
+     hairline frames, quiet paper wash. The barber is the brand. */
+  [data-visual-style='single-chair'] .font-display { letter-spacing: 0.01em; font-weight: 500; }
+  [data-visual-style='single-chair'] main {
+    background-image: linear-gradient(180deg, hsl(var(--foreground) / 0.03), transparent 300px);
+  }
+  [data-visual-style='single-chair'] main article {
+    border-color: hsl(var(--foreground) / 0.18);
   }
 
   /* Motion levels (Req 9): 'off' freezes reveal/parallax feel even if a

@@ -13,6 +13,25 @@ Baseline (2026-10-01): tsc 0 errors, production build green, test:ci 18/18 green
 - /services, /barbers, /gallery, /reviews, MobileBottomNav, and motion components
   do not consume any visual configuration.
 
+## Preset roster (2026-10-03)
+
+Eight identities, one architecture — every preset is data-driven from
+`VISUAL_STYLE_CONFIG` + sitewide `[data-visual-style]` identity CSS:
+
+| Preset | Character |
+|---|---|
+| black-label | luxury gallery, near-black, hairline frames |
+| barber-heritage | vintage shop, pinstripe wash, warm frames |
+| street-cut | poster energy, offset shadows, uppercase CTAs |
+| clean-club | airy studio, soft elevation, accent glow |
+| modern-classic | refined editorial default |
+| warm-premium | coffee-house luxury, honeyed glow, soft frames |
+| high-energy-urban | poster wall + voltage: hard frames, tape-stripe underline, condensed type |
+| single-chair | one-person studio: journal-like, airy, personal |
+
+Each also carries a matching dashboard palette (`PRESET_DASH`), picker
+metadata (`PRESET_META`), and QA coverage in all preset matrices.
+
 ## Requirements → files → status
 
 | Req | Area | Status | Files |

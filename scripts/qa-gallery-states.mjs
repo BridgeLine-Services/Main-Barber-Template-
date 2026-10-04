@@ -21,7 +21,7 @@ const STATES = [
   ['small', 1],         // exactly 1 published portfolio/gallery image
   ['empty', 0],        // none published
 ]
-const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club']
+const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club', 'warm-premium', 'high-energy-urban', 'single-chair']
 const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
 
 const fs = await import('fs')

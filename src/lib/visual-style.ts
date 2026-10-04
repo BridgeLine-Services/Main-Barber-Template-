@@ -4,6 +4,9 @@ export const VISUAL_STYLES = [
   'street-cut',
   'clean-club',
   'modern-classic',
+  'warm-premium',
+  'high-energy-urban',
+  'single-chair',
 ] as const
 
 export type VisualStyle = (typeof VISUAL_STYLES)[number]
@@ -45,6 +48,24 @@ export const VISUAL_STYLE_CONFIG: Record<VisualStyle, StyleConfig> = {
     // Refined default: uniform grid, quote-led reviews (historical behavior).
     label: 'Modern Classic', hero: 'split', services: 'editorial', team: 'editorial', gallery: 'grid', reviews: 'editorial',
     imageShape: 'portrait', button: 'soft', motion: 'subtle',
+  },
+  'warm-premium': {
+    // Coffee-house comfort at luxury grade: soft frames, glowing hero
+    // services, one large personal profile row.
+    label: 'Warm Premium', hero: 'split', services: 'editorial', team: 'large-profile', gallery: 'editorial', reviews: 'editorial',
+    imageShape: 'rounded', button: 'soft', motion: 'subtle',
+  },
+  'high-energy-urban': {
+    // Poster walls and voltage: hard frames, tape-stripe underlines,
+    // horizontal filmstrip, punchy review cards.
+    label: 'High-Energy Urban', hero: 'poster', services: 'cards', team: 'large-profile', gallery: 'filmstrip', reviews: 'cards',
+    imageShape: 'square', button: 'sharp', motion: 'expressive',
+  },
+  'single-chair': {
+    // One person, one brand: cinematic intro, menu-board services, the
+    // barber's own portfolio wall, journal-style reviews.
+    label: 'Single-Chair Studio', hero: 'cinematic', services: 'visual-menu', team: 'large-profile', gallery: 'masonry', reviews: 'editorial',
+    imageShape: 'portrait', button: 'pill', motion: 'subtle',
   },
 }
 

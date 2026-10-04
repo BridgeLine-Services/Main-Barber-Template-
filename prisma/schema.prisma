@@ -987,7 +987,7 @@ model WebsiteContent {
   // ─── Visual identity (DRAFT; published via the snapshot) ────────────────
   // Owner-selected preset + independent layout overrides. Null = never
   // configured: the public site falls back to the default preset mapping.
-  visualPreset          String? // black-label | barber-heritage | street-cut | clean-club | modern-classic
+  visualPreset          String? // black-label | barber-heritage | street-cut | clean-club | modern-classic | warm-premium | high-energy-urban | single-chair
   visualConfig          Json? // { heroLayout, serviceLayout, barberLayout, galleryLayout, motionLevel, mobileNavMode, reviewPresentation }
   homeModules           Json? // unified homepage module config: order, enabled, per-module settings (see src/lib/home-modules.ts)
   servicesTitle         String?

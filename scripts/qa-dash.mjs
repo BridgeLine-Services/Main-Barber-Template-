@@ -25,7 +25,7 @@ if (!LOGIN_EMAIL || !LOGIN_PASSWORD) {
   console.error('Set QA_LOGIN_EMAIL and QA_LOGIN_PASSWORD (seeded QA shop owner) to run the dashboard sweep.')
   process.exit(1)
 }
-const PRESETS = ['black-label', 'barber-heritage', 'street-cut', 'clean-club', 'modern-classic']
+const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club', 'warm-premium', 'high-energy-urban', 'single-chair']
 const PAGES = [
   ['/dashboard', 'overview'],
   ['/dashboard/appointments', 'appointments'],

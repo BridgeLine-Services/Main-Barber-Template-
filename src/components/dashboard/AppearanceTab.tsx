@@ -58,6 +58,21 @@ export const PRESET_META: Record<VisualStyle, { blurb: string; swatches: string[
     swatches: ['#1e2126', '#d4af37', '#f4f4f2', '#9aa3ad'],
     type: 'Modern serif/sans',
   },
+  'warm-premium': {
+    blurb: 'Coffee-house warmth at luxury grade: honeyed surfaces, soft frames.',
+    swatches: ['#2b2218', '#c98f4e', '#f5efe4', '#ab9c85'],
+    type: 'Serif display',
+  },
+  'high-energy-urban': {
+    blurb: 'Voltage accent, poster walls, hard frames, condensed type.',
+    swatches: ['#101214', '#c8f318', '#f0f2f4', '#3a3f45'],
+    type: 'Condensed heavy',
+  },
+  'single-chair': {
+    blurb: 'One-person studio: journal-like, airy, personal. You are the brand.',
+    swatches: ['#f8f5ef', '#8a6d3f', '#fffdf8', '#2a251c'],
+    type: 'Editorial serif',
+  },
 }
 
 const FIELD_LABELS: Record<VisualOverrideKey, string> = {
@@ -352,7 +367,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
           <p className="mb-4 text-xs text-muted-foreground">
             Each preset is a complete design identity — typography, spacing, surfaces, image treatment, and motion.
           </p>
-          <div role="radiogroup" aria-label="Visual preset" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div role="radiogroup" aria-label="Visual preset" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {VISUAL_STYLES.map((style) => {
               const meta = PRESET_META[style]
               const isSelected = selectedPreset === style

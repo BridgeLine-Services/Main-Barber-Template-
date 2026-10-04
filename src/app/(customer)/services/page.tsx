@@ -118,11 +118,11 @@ export default async function ServicesPage() {
                   Pay in person
                 </p>
               </div>
-              <div className="flex items-center justify-between gap-6 sm:shrink-0 sm:self-center">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 sm:shrink-0 sm:self-center">
                 <span className="font-display text-lg font-bold text-foreground tabular-nums sm:text-xl">
                   {formatPrice(service.price)}
                 </span>
-                <div className="flex items-center gap-4">
+                <div className="ml-auto flex items-center gap-3 sm:gap-4">
                   {(examplesByService.get(service.id) ?? 0) > 0 && (
                     <GhostButton
                       href={`/gallery?service=${service.id}`}
@@ -234,7 +234,7 @@ export default async function ServicesPage() {
                   <Clock className="h-3 w-3" aria-hidden="true" />
                   {formatDuration(service.duration)}
                 </p>
-                <div className="mt-3 flex items-center gap-4">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   {(examplesByService.get(service.id) ?? 0) > 0 && (
                     <GhostButton
                       href={`/gallery?service=${service.id}`}

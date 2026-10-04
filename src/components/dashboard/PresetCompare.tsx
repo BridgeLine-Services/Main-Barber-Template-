@@ -226,7 +226,7 @@ function PresetFrame({ preset, data, mobile }: { preset: VisualStyle; data: Comp
   )
 }
 
-/* ── The comparison card: all five presets, same real data ─────────────── */
+/* ── The comparison card: every preset, same real data ─────────────────── */
 export function PresetCompare() {
   const [data, setData] = useState<CompareData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -245,7 +245,7 @@ export function PresetCompare() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2">
-          <span>Compare all five styles</span>
+          <span>Compare all styles</span>
           <Button
             variant="outline"
             size="sm"
@@ -270,7 +270,7 @@ export function PresetCompare() {
         )}
         {!error && !data && <p className="text-sm text-muted-foreground">Loading your shop data…</p>}
         {data && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             {VISUAL_STYLES.map((preset) => (
               <div key={preset} className="space-y-2">
                 <div>
