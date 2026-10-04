@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Calendar, Star, Scissors, Instagram, Facebook, Globe, Phone } from 'lucide-react'
 import PortfolioGallery from '@/components/customer/PortfolioGallery'
+import { BeforeAfterSlider, type BeforeAfterData } from '@/components/customer/BeforeAfterSlider'
+import { getBarberNextAvailable } from '@/lib/availability'
+import { format, parseISO } from 'date-fns'
 import { visualConfigFromContent } from '@/lib/visual-config'
 
 interface PageProps {
@@ -84,6 +87,64 @@ export default async function BarberProfilePage(props: PageProps) {
 
   const business = barber.business
 
+  // NEXT AVAILABLE — a real slot from the booking engine, shown only when
+  // one exists in the next 7 days. Never fabricated, never a broken chip.
+  let nextAvailable: { date: string; time: string } | null = null
+  if (business) {
+    try {
+      nextAvailable = await getBarberNextAvailable({
+        businessId: business.id,
+        barberId: barber.id,
+        days: 7,
+      })
+    } catch {
+      nextAvailable = null
+    }
+  }
+
+  // Before/After pairs attributed to THIS barber (published only).
+  let beforeAfterPairs: BeforeAfterData[] = []
+  if (business) {
+    try {
+      const pairs = await prisma.beforeAfterPair.findMany({
+        where: {
+          businessId: business.id,
+          barberId: barber.id,
+          isPublished: true,
+        },
+        include: {
+          beforeAsset: true,
+          afterAsset: true,
+          service: { select: { id: true, name: true, isActive: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      })
+      beforeAfterPairs = pairs.map((pair) => ({
+        id: pair.id,
+        before: {
+          url: pair.beforeAsset.url,
+          alt: pair.beforeAsset.altText || '',
+          focalX: pair.beforeAsset.focalX,
+          focalY: pair.beforeAsset.focalY,
+        },
+        after: {
+          url: pair.afterAsset.url,
+          alt: pair.afterAsset.altText || '',
+          focalX: pair.afterAsset.focalX,
+          focalY: pair.afterAsset.focalY,
+        },
+        caption: pair.caption,
+        details: pair.details,
+        barberName: barber.name,
+        barberId: barber.id,
+        serviceName: pair.service?.isActive ? pair.service.name : null,
+        serviceId: pair.service?.isActive ? pair.service.id : null,
+      }))
+    } catch {
+      beforeAfterPairs = []
+    }
+  }
+
   // Tenant gallery layout (published snapshot) shapes this barber's portfolio.
   const rawContent = business
     ? await prisma.websiteContent.findUnique({ where: { businessId: business.id } }).catch(() => null)
@@ -114,6 +175,11 @@ export default async function BarberProfilePage(props: PageProps) {
           <h1 className="display-heading text-display-2 text-foreground mb-2">{barber.name}</h1>
           {barber.specialty && (
             <p className="eyebrow-accent mb-3">{barber.specialty}</p>
+          )}
+          {barber.yearsExperience != null && (
+            <p className="mb-3 text-sm font-medium text-muted-foreground">
+              {barber.yearsExperience} {barber.yearsExperience === 1 ? 'year' : 'years'} behind the chair
+            </p>
           )}
 
           {/* Auto-calculated reputation */}
@@ -162,6 +228,37 @@ export default async function BarberProfilePage(props: PageProps) {
               </a>
             )}
           </div>
+
+          {/* Specialties chips — the linked services this barber offers.
+              Each chip deep-links into booking with service + barber. */}
+          {barber.services.length > 0 && (
+            <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
+              {barber.services.slice(0, 6).map((bs) =>
+                bs.service?.isActive ? (
+                  <Link
+                    key={bs.serviceId}
+                    href={`/book?serviceId=${bs.serviceId}&barberId=${barber.id}`}
+                    className="rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors duration-micro hover:border-accent/50 hover:text-foreground focus-ring"
+                  >
+                    {bs.service.name}
+                  </Link>
+                ) : null
+              )}
+            </div>
+          )}
+
+          {/* Next Available — real slot from the booking engine, only when one exists */}
+          {nextAvailable && (
+            <div className="mt-4">
+              <Link
+                href={`/book?barberId=${barber.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
+              >
+                <span aria-hidden="true">●</span>
+                Next available: {format(parseISO(nextAvailable.date), 'EEEE, MMMM d')} · {nextAvailable.time}
+              </Link>
+            </div>
+          )}
 
           <div className="mt-6">
             <Button asChild className="font-bold" style={{ backgroundColor: business.accentColor }}>
@@ -234,6 +331,30 @@ export default async function BarberProfilePage(props: PageProps) {
           </section>
         ) : null
       })()}
+
+      {/* Before & After — pairs attributed to this barber. Each "Book this
+          look" honors the pair's service preselection. */}
+      {beforeAfterPairs.length > 0 && (
+        <section className="mb-12">
+          <h2 className="display-heading text-display-3 text-foreground mb-6">Before &amp; After</h2>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            {beforeAfterPairs.map((pair) => {
+              const params = new URLSearchParams()
+              if (pair.serviceId) params.set('serviceId', pair.serviceId)
+              if (pair.barberId) params.set('barberId', pair.barberId)
+              const qs = params.toString()
+              return (
+                <BeforeAfterSlider
+                  key={pair.id}
+                  pair={pair}
+                  contextLabel={barber.name}
+                  bookHref={qs ? `/book?${qs}` : '/book'}
+                />
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Recent Reviews */}
       {barber.reviews.length > 0 && (

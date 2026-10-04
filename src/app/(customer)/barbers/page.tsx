@@ -4,6 +4,8 @@ import { generatePageMetadata } from '@/lib/generate-page-metadata'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { getBarberNextAvailable } from '@/lib/availability'
+import { format, parseISO } from 'date-fns'
 import { resolveBusiness } from '@/lib/tenant'
 import { visualConfigFromContent } from '@/lib/visual-config'
 import { getInitials } from '@/lib/utils'
@@ -57,6 +59,26 @@ export default async function BarbersPage() {
     orderBy: { order: 'asc' },
   })
 
+  // NEXT AVAILABLE chips — real slots from the same engine the booking
+  // flow uses, never marketing copy. A barber with nothing open in the
+  // window simply shows no chip. Failures degrade quietly: the team grid
+  // must never break because availability lookup hiccuped.
+  const nextByBarber = new Map<string, { date: string; time: string } | null>()
+  await Promise.all(
+    barbers.map(async (barber) => {
+      try {
+        const slot = await getBarberNextAvailable({
+          businessId: business.id,
+          barberId: barber.id,
+          days: 7,
+        })
+        nextByBarber.set(barber.id, slot)
+      } catch {
+        nextByBarber.set(barber.id, null)
+      }
+    })
+  )
+
   // Tenant visual identity (published snapshot → composition).
   const rawContent = await prisma.websiteContent.findUnique({
     where: { businessId: business.id },
@@ -65,6 +87,22 @@ export default async function BarbersPage() {
     ? { ...rawContent, ...(rawContent.publishedContent as Record<string, unknown>) }
     : rawContent
   const visual = visualConfigFromContent(content)
+
+  /** Quiet availability chip: "Next: Mon, Oct 5 · 4:30 PM". Deep-links
+   *  into booking with this barber preselected. */
+  const NextChip = ({ barberId }: { barberId: string }) => {
+    const slot = nextByBarber.get(barberId)
+    if (!slot) return null
+    return (
+      <Link
+        href={`/book?barberId=${barberId}`}
+        className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
+      >
+        <span aria-hidden="true">●</span>
+        Next: {format(parseISO(slot.date), 'EEE, MMM d')} · {slot.time}
+      </Link>
+    )
+  }
 
   return (
     <Section className="pt-12 lg:pt-20">
@@ -117,10 +155,18 @@ export default async function BarbersPage() {
                           {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
                         </span>
                       )}
+                      {barber.yearsExperience != null && (
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {barber.yearsExperience} {barber.yearsExperience === 1 ? 'year' : 'years'} behind the chair
+                        </span>
+                      )}
                     </div>
                     {barber.specialty && (
                       <p className="eyebrow-accent mt-1.5">{barber.specialty}</p>
                     )}
+                    <div className="mt-2">
+                      <NextChip barberId={barber.id} />
+                    </div>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       &ldquo;{barber.bio || 'Dedicated to precision craftsmanship, clean line-ups, and legendary customer care.'}&rdquo;
                     </p>
@@ -240,9 +286,17 @@ export default async function BarbersPage() {
                         {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
                       </p>
                     )}
+                    {barber.yearsExperience != null && (
+                      <p className="text-xs text-muted-foreground">
+                        {barber.yearsExperience} {barber.yearsExperience === 1 ? 'year' : 'years'} behind the chair
+                      </p>
+                    )}
                     {barber.specialty && (
                       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{barber.specialty}</p>
                     )}
+                    <div className="mt-2">
+                      <NextChip barberId={barber.id} />
+                    </div>
                     <div className="mt-3 flex items-center gap-3">
                       <Link
                         href={`/book?barberId=${barber.id}`}
@@ -305,10 +359,18 @@ export default async function BarbersPage() {
                           {avgRating} ★ · {reviewCount} review{reviewCount !== 1 ? 's' : ''}
                         </span>
                       )}
+                      {barber.yearsExperience != null && (
+                        <span className="text-sm text-muted-foreground">
+                          {barber.yearsExperience} {barber.yearsExperience === 1 ? 'year' : 'years'} behind the chair
+                        </span>
+                      )}
                     </div>
                     {barber.specialty && (
                       <p className="eyebrow-accent mt-2">{barber.specialty}</p>
                     )}
+                    <div className="mt-3">
+                      <NextChip barberId={barber.id} />
+                    </div>
                     <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
                       {barber.bio || 'Dedicated to precision craftsmanship, clean line-ups, and legendary customer care.'}
                     </p>
