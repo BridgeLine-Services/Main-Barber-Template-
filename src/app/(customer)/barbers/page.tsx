@@ -96,7 +96,7 @@ export default async function BarbersPage() {
     return (
       <Link
         href={`/book?barberId=${barberId}`}
-        className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
+        className="card-cta inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
       >
         <span aria-hidden="true">●</span>
         Next: {format(parseISO(slot.date), 'EEE, MMM d')} · {slot.time}
@@ -227,7 +227,7 @@ export default async function BarbersPage() {
                     <div className="mt-5 flex items-center gap-5">
                       <Link
                         href={`/book?barberId=${barber.id}`}
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        className="card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-all duration-micro hover:brightness-125 focus-ring"
                       >
                         <Calendar className="h-4 w-4" aria-hidden="true" />
                         Book with {barber.name.split(' ')[0]}
@@ -300,7 +300,7 @@ export default async function BarbersPage() {
                     <div className="mt-3 flex items-center gap-3">
                       <Link
                         href={`/book?barberId=${barber.id}`}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        className="card-cta inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring"
                       >
                         Book
                         <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -308,7 +308,7 @@ export default async function BarbersPage() {
                       {barber.slug && (
                         <Link
                           href={`/barbers/${barber.slug}`}
-                          className="text-xs text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                          className="text-xs text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring"
                         >
                           Profile
                         </Link>
@@ -382,7 +382,7 @@ export default async function BarbersPage() {
                     <div className="mt-8 flex flex-wrap items-center gap-4">
                       <Link
                         href={`/book?barberId=${barber.id}`}
-                        className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors duration-micro hover:bg-primary/90 focus-ring"
+                        className="card-cta inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors duration-micro hover:bg-primary/90 focus-ring"
                       >
                         <Calendar className="h-4 w-4" aria-hidden="true" />
                         Book with {barber.name.split(' ')[0]}
@@ -390,7 +390,7 @@ export default async function BarbersPage() {
                       {barber.slug && (
                         <Link
                           href={`/barbers/${barber.slug}`}
-                          className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                          className="card-cta group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring"
                         >
                           Full profile
                           <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />

@@ -121,7 +121,7 @@ export async function ShopStatus() {
           {walkInsWelcome && (
             <Link
               href="/queue"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+              className="card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary focus-ring"
             >
               <Users className="h-4 w-4" aria-hidden="true" />
               Join the walk-in queue

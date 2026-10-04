@@ -43,7 +43,7 @@ export function FeaturedWorkSection({ images, heading, blurb, shopName }: Props)
         <Reveal delay={0.1}>
           <Link
             href="/gallery"
-            className="group inline-flex items-center text-sm font-semibold text-accent transition hover:brightness-125"
+            className="group card-cta inline-flex items-center text-sm font-semibold text-accent hover:brightness-125"
           >
             View Full Gallery
             <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

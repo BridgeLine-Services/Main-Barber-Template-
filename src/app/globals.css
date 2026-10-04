@@ -171,6 +171,31 @@
   .hairline {
     @apply border-t border-border/60;
   }
+
+  /* ─── In-card call-to-action ───────────────────────────────────────────
+     Quiet editorial text actions (Book / View profile / View all …) share
+     one treatment: comfortable touch target without visual bulk. The
+     negative margin grows the tappable area beyond the visible chip, the
+     tint + press scale appear only on interaction, and shape follows the
+     preset's --radius token. Primary CTAs stay heavier by comparison. */
+  .card-cta {
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem 0.75rem;
+    margin: -0.5rem -0.75rem;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+  .card-cta:hover {
+    background-color: hsl(var(--primary) / 0.07);
+  }
+  .card-cta:active {
+    transform: scale(0.97);
+  }
+  @media (max-width: 768px) {
+    .card-cta {
+      padding: 0.625rem 0.75rem;
+      margin: -0.625rem -0.75rem;
+    }
+  }
   /* Display/serif heading treatment — strong, tight, editorial. */
   .display-heading {
     font-family: var(--font-poppins), var(--font-inter), system-ui, sans-serif;

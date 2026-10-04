@@ -580,7 +580,7 @@ export default async function HomePage() {
             <Reveal delay={0.1}>
               <Link
                 href="/services"
-                className="group inline-flex items-center text-sm font-semibold text-accent transition hover:brightness-125"
+                className="group card-cta inline-flex items-center text-sm font-semibold text-accent hover:brightness-125"
               >
                 View All Services
                 <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
@@ -615,7 +615,7 @@ export default async function HomePage() {
                       </span>
                       <Link
                         href={`/book?serviceId=${service.id}`}
-                        className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        className="group/book card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary focus-ring"
                         aria-label={`Book ${service.name}`}
                       >
                         Book
@@ -651,7 +651,7 @@ export default async function HomePage() {
                     </span>
                     <Link
                       href={`/book?serviceId=${service.id}`}
-                      className="group/book inline-flex items-center gap-1.5 rounded-sm px-1 py-1 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring"
+                      className="group/book card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary focus-ring"
                       aria-label={`Book ${service.name}`}
                     >
                       Book
@@ -821,7 +821,7 @@ export default async function HomePage() {
                     <div className="mt-4 flex flex-wrap items-center gap-5">
                       <Link
                         href={`/book?barberId=${barber.id}`}
-                        className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        className="group/book card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary focus-ring"
                       >
                         Book with {barber.name.split(' ')[0]}
                         <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
@@ -829,7 +829,7 @@ export default async function HomePage() {
                       {barber.slug && (
                         <Link
                           href={`/barbers/${barber.slug}`}
-                          className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                          className="group/view card-cta inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-ring"
                         >
                           View profile
                           <ArrowRight className="h-3.5 w-3.5 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />
@@ -928,7 +928,7 @@ export default async function HomePage() {
                       />
                       <Link
                         href={`/barbers/${barber.slug || barber.id}`}
-                        className="group/profile inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                        className="group/profile card-cta inline-flex items-center gap-1.5 text-sm font-semibold text-primary focus-ring"
                       >
                         Full profile
                         <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/profile:translate-x-0.5" aria-hidden="true" />
@@ -1122,9 +1122,10 @@ export default async function HomePage() {
                     href={mapsLinkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 inline-block text-sm text-accent hover:underline"
+                    className="group card-cta mt-1 inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
                   >
-                    Get Directions →
+                    Get Directions
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-micro group-hover:translate-x-0.5" aria-hidden="true" />
                   </a>
                 </div>
               </div>
@@ -1157,12 +1158,12 @@ export default async function HomePage() {
                 <div className="border-t border-border/60 pt-4">
                   <h3 className="mb-3 text-base font-bold text-foreground">Contact</h3>
                   <div className="flex flex-col gap-2.5">
-                    <a href={`tel:${shopPhoneDigits}`} className="inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring rounded-sm">
+                    <a href={`tel:${shopPhoneDigits}`} className="card-cta inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring">
                       <Phone className="h-4 w-4" aria-hidden="true" />
                       {shopPhone}
                     </a>
                     {business?.email && (
-                      <a href={`mailto:${business.email}`} className="inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring rounded-sm">
+                      <a href={`mailto:${business.email}`} className="card-cta inline-flex items-center gap-2 text-sm text-accent hover:underline focus-ring">
                         <Mail className="h-4 w-4" aria-hidden="true" />
                         {business.email}
                       </a>

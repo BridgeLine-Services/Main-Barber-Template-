@@ -133,7 +133,7 @@ function Lightbox({
               <Link
                 href={`/barbers/${image.barber.slug}`}
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                className="card-cta inline-flex items-center gap-1.5 text-xs font-semibold text-primary focus-ring"
               >
                 <User className="h-3.5 w-3.5" aria-hidden="true" />
                 {image.barber.name}
@@ -143,7 +143,7 @@ function Lightbox({
               <Link
                 href={`/book?serviceId=${image.service.id}${image.barber ? `&barberId=${image.barber.id}` : ''}`}
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                className="card-cta inline-flex items-center gap-1.5 text-xs font-semibold text-primary focus-ring"
               >
                 <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
                 Book {image.service.name}
@@ -153,7 +153,7 @@ function Lightbox({
               <Link
                 href={`/gallery?service=${image.service.id}`}
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                className="card-cta inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground focus-ring"
               >
                 <Scissors className="h-3.5 w-3.5" aria-hidden="true" />
                 More like this

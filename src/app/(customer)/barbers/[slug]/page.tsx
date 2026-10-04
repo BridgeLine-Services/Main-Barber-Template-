@@ -157,7 +157,7 @@ export default async function BarberProfilePage(props: PageProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
       {/* Back link */}
-      <Link href="/barbers" className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-micro mb-6 focus-ring rounded-sm px-1 py-1">
+      <Link href="/barbers" className="card-cta group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-micro mb-6 focus-ring">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         All Barbers
       </Link>
@@ -252,7 +252,7 @@ export default async function BarberProfilePage(props: PageProps) {
             <div className="mt-4">
               <Link
                 href={`/book?barberId=${barber.id}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
+                className="card-cta inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
               >
                 <span aria-hidden="true">●</span>
                 Next available: {format(parseISO(nextAvailable.date), 'EEEE, MMMM d')} · {nextAvailable.time}

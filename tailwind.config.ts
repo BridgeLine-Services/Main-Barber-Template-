@@ -64,7 +64,7 @@ const config: Config = {
       // from mobile to large desktop without a size per breakpoint.
       fontSize: {
         'display-hero': ['clamp(3rem, 8vw, 5.5rem)', { lineHeight: '1.02', letterSpacing: '-0.03em', fontWeight: '700' }],
-        'display-1': ['clamp(2.5rem, 5.5vw, 4rem)', { lineHeight: '1.06', letterSpacing: '-0.02em', fontWeight: '700' }],
+        'display-1': ['clamp(2.5rem, 5.5vw, 4rem)', { lineHeight: '1.06', letterSpacing: '-0.02em', fontWeight: '600' }],
         'display-2': ['clamp(1.75rem, 4vw, 2.5rem)', { lineHeight: '1.12', letterSpacing: '-0.015em', fontWeight: '600' }],
         'display-3': ['clamp(1.375rem, 2.5vw, 1.625rem)', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '600' }],
       },

@@ -28,6 +28,8 @@ const ROUTES = [
   ['/about', 'about'],
 ]
 const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club', 'warm-premium', 'high-energy-urban', 'single-chair']
+const ONLY = process.argv[2] ? process.argv[2].split(',') : null
+const RUN_PRESETS = ONLY ? PRESETS.filter((p) => ONLY.includes(p)) : PRESETS
 // Resolve the seeded test shop by slug so the harness survives database resets.
 const BUSINESS_ID = (await prisma.business.findUnique({ where: { slug: 'second-test-shop' } }))?.id
 if (!BUSINESS_ID) throw new Error('test shop "second-test-shop" not found — run the seed first')
@@ -58,7 +60,7 @@ async function publish(preset) {
 
 const results = []
 try {
-  for (const preset of PRESETS) {
+  for (const preset of RUN_PRESETS) {
     await publish(preset)
     const page = await browser.newPage()
     for (const [route, slug] of ROUTES) {
