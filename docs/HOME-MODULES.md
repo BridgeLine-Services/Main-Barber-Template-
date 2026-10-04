@@ -18,7 +18,7 @@ improvises its section list.
 | 3 | `shopStatus` | yes | Live open/closed + queue state |
 | 4 | `featuredWork` | no | Curated portfolio strip |
 | 5 | `services` | yes (legacy `showServices`) | Service menu with deep-link booking |
-| 6 | `team` | yes (legacy `showTeam`) | Barber cards |
+| 6 | `team` | yes (legacy `showTeam`) | Barber cards with rating, years of experience, live next-available chip, specialty, and a View Profile link to the full barber profile |
 | 7 | `beforeAfter` | no | Before/after proof gallery |
 | 8 | `reviews` | yes (legacy `showReviews`) | Featured reviews |
 | 9 | `socialGallery` | no | Configurable handle/heading social strip |
