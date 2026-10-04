@@ -18,7 +18,10 @@ async function main() {
   })
   await prisma.mediaAsset.deleteMany({ where: { id: { in: old.map((a) => a.id) } } })
 
-  const barber = await prisma.barber.findFirst({ where: { businessId: business.id, isActive: true }, select: { id: true, slug: true } })
+  const barber = await prisma.barber.findFirst({
+    where: { businessId: business.id, isActive: true },
+    select: { id: true, slug: true },
+  })
   const services = await prisma.service.findMany({
     where: { businessId: business.id, isActive: true },
     select: { id: true, name: true },
@@ -26,7 +29,7 @@ async function main() {
   const svc = (needle: string) => services.find((s) => s.name.toLowerCase().includes(needle))
 
   const haircut = svc('haircut + beard') ?? svc('haircut')
-  const beard = svc('beard')
+  const beard = svc('beard trim') ?? svc('beard')
   const kids = svc('kids')
   const premium = svc('premium')
 
@@ -41,8 +44,9 @@ async function main() {
     { url: img(6), caption: 'Premium cut — full service', serviceId: premium?.id ?? null, focalX: 40, focalY: 30 },
   ]
 
+  const created: { id: string }[] = []
   for (const [i, a] of assets.entries()) {
-    await prisma.mediaAsset.create({
+    const row = await prisma.mediaAsset.create({
       data: {
         businessId: business.id,
         barberId: barber?.id ?? null,
@@ -50,44 +54,23 @@ async function main() {
         url: a.url,
         altText: a.caption,
         caption: a.caption,
+        serviceId: a.serviceId,
         focalX: a.focalX,
         focalY: a.focalY,
         sortOrder: i,
         isPublished: true,
       },
     })
+    created.push(row)
   }
 
-  // One published before/after pair so the "Before & After" chip has content
-  const before = await prisma.mediaAsset.create({
-    data: {
-      businessId: business.id,
-      barberId: barber?.id ?? null,
-      type: 'GALLERY',
-      url: img(2),
-      altText: 'Before — grown out',
-      caption: 'Before: four weeks grown out',
-      sortOrder: 90,
-      isPublished: true,
-    },
-  })
-  const after = await prisma.mediaAsset.create({
-    data: {
-      businessId: business.id,
-      barberId: barber?.id ?? null,
-      type: 'GALLERY',
-      url: img(1),
-      altText: 'After — fresh fade',
-      caption: 'After: fresh skin fade',
-      sortOrder: 91,
-      isPublished: true,
-    },
-  })
+  // Pair two assets that are inside the featured strip (sortOrder 1, 0) so
+  // the "Before & After" category chip has real pair membership to render.
   await prisma.beforeAfterPair.create({
     data: {
       businessId: business.id,
-      beforeAssetId: before.id,
-      afterAssetId: after.id,
+      beforeAssetId: created[1].id, // p2 — grown out (before)
+      afterAssetId: created[0].id, // p1 — fresh taper (after)
       barberId: barber?.id ?? null,
       serviceId: haircut?.id ?? null,
       caption: 'QA seed — transformation',
@@ -97,7 +80,7 @@ async function main() {
   const count = await prisma.mediaAsset.count({
     where: { businessId: business.id, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] }, isPublished: true },
   })
-  console.log(`Seeded QA portfolio for ${business.slug}: ${count} published assets (incl. 1 before/after pair)`)
+  console.log(`Seeded QA portfolio for ${business.slug}: ${count} published assets (incl. 1 in-strip before/after pair)`)
 }
 
 main()
