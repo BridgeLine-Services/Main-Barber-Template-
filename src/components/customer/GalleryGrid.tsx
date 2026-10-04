@@ -65,7 +65,7 @@ export function Lightbox({
       role="dialog"
       aria-modal="true"
       aria-label={image.altText || 'Gallery image enlarged'}
-      className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex flex-col bg-background/95 backdrop-blur-sm"
     >
       {/* Header: context + close */}
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-6">

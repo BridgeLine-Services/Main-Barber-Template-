@@ -5,6 +5,7 @@
  * public homepage renders it. Idempotent.
  * Run: bash -c 'set -a; source ../local.env; set +a; npx tsx scripts/seed-featured-module-qa.ts'
  */
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../src/lib/prisma'
 
 const ALL_ON = [
@@ -24,12 +25,12 @@ async function main() {
     })),
   }
 
-  const published = (wc.publishedContent as Record<string, unknown> | null) ?? {}
-  published.homeModules = homeModules
+  const published =
+    ((wc.publishedContent ?? {}) as Prisma.JsonObject)
 
   await prisma.websiteContent.update({
     where: { id: wc.id },
-    data: { homeModules, publishedContent: published },
+    data: { homeModules, publishedContent: { ...published, homeModules } },
   })
 
   console.log('featuredWork module enabled (explicit config, published snapshot updated)')
