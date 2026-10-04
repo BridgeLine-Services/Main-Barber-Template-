@@ -36,7 +36,7 @@ metadata (`PRESET_META`), and QA coverage in all preset matrices.
 
 | Req | Area | Status | Files |
 |---|---|---|---|
-| 3 | 5 presets, full identity | Done | lib/visual-style.ts, globals.css (data-visual-style tokens: shape/type/surface/framing sitewide) |
+| 3 | 8 presets, full identity | Done | lib/visual-style.ts, globals.css (data-visual-style tokens: shape/type/surface/framing sitewide) |
 | 4 | 3 hero layouts | Done | (customer)/page.tsx |
 | 5 | 3 service layouts | Done | (customer)/services/page.tsx |
 | 6 | 3 barber layouts | Done | (customer)/barbers/*, page.tsx team |
