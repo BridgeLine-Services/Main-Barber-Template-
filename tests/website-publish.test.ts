@@ -134,14 +134,34 @@ async function main() {
   })
   assert(audit.length === 2, 'both publishes are audited')
 
-  // cleanup
-  await prisma.auditLog.deleteMany({ where: { businessId: business.id } })
-  await prisma.websiteContent.deleteMany({ where: { businessId: business.id } })
-  await prisma.user.deleteMany({ where: { businessId: business.id } })
-  await prisma.business.delete({ where: { id: business.id } })
-
   console.log(`\nWebsite draft/publish tests: ${passed} passed, ${failed} failed`)
-  process.exit(failed ? 1 : 0)
+  return failed ? 1 : 0
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+/**
+ * Remove every pubtest-* shop (users, website content, audit logs, then the
+ * business). Runs in a finally so an interrupted or crashed run can never
+ * leak a second business into the DB — which would break the localhost
+ * sole-business fallback used by other e2e suites.
+ */
+async function cleanupTestShops() {
+  const stale = await prisma.business.findMany({
+    where: { slug: { startsWith: 'pubtest-' } }, select: { id: true },
+  })
+  for (const s of stale) {
+    await prisma.auditLog.deleteMany({ where: { businessId: s.id } }).catch(() => {})
+    await prisma.websiteContent.deleteMany({ where: { businessId: s.id } }).catch(() => {})
+    await prisma.user.deleteMany({ where: { businessId: s.id } }).catch(() => {})
+    await prisma.business.delete({ where: { id: s.id } }).catch(() => {})
+  }
+}
+
+let exitCode = 0
+main()
+  .then((code) => { exitCode = code ?? 0 })
+  .catch((e) => { console.error(e); exitCode = 1 })
+  .finally(async () => {
+    await cleanupTestShops().catch(() => {})
+    await prisma.$disconnect().catch(() => {})
+    process.exit(exitCode)
+  })
