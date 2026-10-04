@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
+import { getBarberNextAvailable } from '@/lib/availability'
+import { format, parseISO } from 'date-fns'
 import { resolveBusiness } from '@/lib/tenant'
 import { formatDuration, formatPrice, getInitials } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -133,6 +135,7 @@ export default async function HomePage() {
   const [barbers, services, reviews, servicePhotoRows] = await Promise.all([
     prisma.barber.findMany({
       where: { businessId: business.id, isActive: true },
+      include: { reviews: { where: { isPublished: true }, select: { rating: true } } },
       orderBy: { order: 'asc' },
     }),
     prisma.service.findMany({
@@ -733,6 +736,53 @@ export default async function HomePage() {
       </Section>
   )
 
+  // Team availability chips — real slots from the booking engine; a barber
+  // with nothing open shows no chip. Failures degrade quietly.
+  const nextByBarber = new Map<string, { date: string; time: string } | null>()
+  await Promise.all(
+    barbers.map(async (barber) => {
+      try {
+        const slot = await getBarberNextAvailable({
+          businessId: business.id,
+          barberId: barber.id,
+          days: 7,
+        })
+        nextByBarber.set(barber.id, slot)
+      } catch {
+        nextByBarber.set(barber.id, null)
+      }
+    })
+  )
+
+  /** Shared stats line: rating (when reviews exist) + years of experience. */
+  const TeamStats = ({ barber }: { barber: (typeof barbers)[number] }) => {
+    const rs = barber.reviews || []
+    const count = rs.length
+    const avg = count > 0 ? (rs.reduce((sum, r) => sum + r.rating, 0) / count).toFixed(1) : null
+    if (!avg && barber.yearsExperience == null) return null
+    const parts: string[] = []
+    if (avg) parts.push(`${avg} ★ · ${count} review${count !== 1 ? 's' : ''}`)
+    if (barber.yearsExperience != null) {
+      parts.push(`${barber.yearsExperience} ${barber.yearsExperience === 1 ? 'year' : 'years'} behind the chair`)
+    }
+    return <p className="mt-1 text-xs font-medium text-muted-foreground">{parts.join(' · ')}</p>
+  }
+
+  /** Quiet availability chip: "Next: Mon, Oct 5 · 4:30 PM". */
+  const TeamNextChip = ({ barber }: { barber: (typeof barbers)[number] }) => {
+    const slot = nextByBarber.get(barber.id)
+    if (!slot) return null
+    return (
+      <Link
+        href={`/book?barberId=${barber.id}`}
+        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.05] px-3 py-1 text-xs font-medium text-primary transition-colors duration-micro hover:bg-primary/10 focus-ring"
+      >
+        <span aria-hidden="true">●</span>
+        Next: {format(parseISO(slot.date), 'EEE, MMM d')} · {slot.time}
+      </Link>
+    )
+  }
+
   const teamNode = (
       <Section tone="muted" bleed>
         <SectionHeading
@@ -763,16 +813,29 @@ export default async function HomePage() {
                     {barber.specialty && (
                       <p className="eyebrow-accent mt-1.5">{barber.specialty}</p>
                     )}
+                    <TeamStats barber={barber} />
                     <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                       {barber.bio || 'Expert in fades, tapers, razor line-ups, and luxury beard sculpting.'}
                     </p>
-                    <Link
-                      href={`/book?barberId=${barber.id}`}
-                      className="group/book mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
-                    >
-                      Book with {barber.name.split(' ')[0]}
-                      <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
-                    </Link>
+                    <TeamNextChip barber={barber} />
+                    <div className="mt-4 flex flex-wrap items-center gap-5">
+                      <Link
+                        href={`/book?barberId=${barber.id}`}
+                        className="group/book inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-micro hover:brightness-125 focus-ring rounded-sm px-1 py-1"
+                      >
+                        Book with {barber.name.split(' ')[0]}
+                        <ArrowRight className="h-4 w-4 transition-transform duration-micro group-hover/book:translate-x-0.5" aria-hidden="true" />
+                      </Link>
+                      {barber.slug && (
+                        <Link
+                          href={`/barbers/${barber.slug}`}
+                          className="group/view inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-micro hover:text-foreground focus-ring rounded-sm px-1 py-1"
+                        >
+                          View profile
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-micro group-hover/view:translate-x-0.5" aria-hidden="true" />
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </StaggerItem>
@@ -810,6 +873,8 @@ export default async function HomePage() {
                     {barber.specialty && (
                       <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{barber.specialty}</p>
                     )}
+                    <TeamStats barber={barber} />
+                    <TeamNextChip barber={barber} />
                     <p className="eyebrow mt-2 opacity-0 transition-opacity duration-micro group-hover:opacity-100 group-focus-visible:opacity-100">
                       Book a chair
                     </p>
@@ -850,9 +915,11 @@ export default async function HomePage() {
                     {barber.specialty && (
                       <p className="eyebrow-accent mt-2">{barber.specialty}</p>
                     )}
+                    <TeamStats barber={barber} />
                     <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
                       {barber.bio || 'Expert in fades, tapers, razor line-ups, and luxury beard sculpting.'}
                     </p>
+                    <TeamNextChip barber={barber} />
                     <div className="mt-8 flex flex-wrap items-center gap-4">
                       <BookButton
                         href={`/book?barberId=${barber.id}`}
