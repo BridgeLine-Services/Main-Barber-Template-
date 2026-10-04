@@ -89,3 +89,74 @@ never commit them; see `.gitignore` and `docs/OPERATIONS.md`.
 `tests/payment-transitions.test.ts` — 51 assertions: full transition
 matrix, in-person flow, illegal operations refused, idempotency
 uniqueness, cross-tenant refusal, fail-closed provider resolution.
+
+---
+
+# Payments & POS (optional, owner-controlled)
+
+The Payment ledger above is now wired into a complete, optional POS
+system. **`PaymentSettings.enabled` is the owner's master switch.**
+
+## Owner control
+
+| Switch | OFF (default) | ON |
+|---|---|---|
+| Booking | unchanged, no payment required ("Pay at Shop") | unchanged — POS never blocks booking |
+| Dashboard | no Payments nav content, APIs return empty | checkout, history, receipts, reconciliation, financial dashboard |
+| Barbers | cannot enable payments individually (guard enforced server-side) | may run checkout on their own appointments if `allowBarberCheckout` |
+
+A barber can never override an owner-disabled feature: `canRunCheckout()`
+in `src/lib/payments/pos.ts` is the single guard used by every route.
+
+## Configuration (`PaymentSettings`)
+
+tips (presets + per-barber `Barber.tipsOptOut`), tax (rate %), deposits
+(PERCENT/FLAT), cancellation fee, no-show fee, card-on-file (Stripe
+references only — never raw card data), commission (default % with
+per-barber override, computed on service revenue at checkout), receipt
+emails (via the app's SMTP configuration).
+
+## Stripe integration
+
+- `src/lib/payments/providers/stripe.ts` — server-side PaymentProvider
+  (REST via fetch, no SDK). `STRIPE_SECRET_KEY` never leaves the server.
+- `POST /api/webhooks/stripe` — HMAC signature verification against
+  `STRIPE_WEBHOOK_SECRET`, then `StripeEvent` table dedup: every event
+  id is inserted first; a unique violation acknowledges the replay as a
+  no-op. Settlement (succeeded/failed/canceled/refunded) flows through
+  the same state machine as everything else.
+- Idempotency keys on every ledger write make provider retries safe.
+- Enabling the master switch fails closed (`400`) when
+  `STRIPE_SECRET_KEY` is absent from the environment.
+
+## Checkout math
+
+`service + line items − discount = taxable`; `tax = taxable × rate`;
+tips are a **separate TIP ledger row** (never mixed with service
+revenue); `refundedAmount` tracks partial refunds; deposits already paid
+reduce the remaining balance shown at checkout.
+
+## API surface (all staff-auth, tenant-scoped by `businessId`)
+
+- `GET|PATCH /api/dashboard/payments/settings` (PATCH owner-only)
+- `GET|POST /api/dashboard/payments/checkout/[appointmentId]`
+- `POST /api/dashboard/payments/intent` (Stripe PaymentIntent, returns clientSecret)
+- `POST /api/dashboard/payments/fee` (cancellation / no-show)
+- `POST /api/dashboard/payments/[id]/refund` (full or partial)
+- `GET /api/dashboard/payments` (history + filters; barbers: own rows)
+- `GET|POST /api/dashboard/payments/[id]/receipt` (view / email)
+- `GET /api/dashboard/payments/summary` (owner financial tiles)
+- `GET /api/dashboard/payments/reconciliation` (owner)
+
+## Role access
+
+| Role | Access |
+|---|---|
+| OWNER | everything |
+| BUSINESS_ADMIN | checkout, history, refunds (no shop-wide reports) |
+| BARBER | own checkout + own payment rows only |
+| CUSTOMER | none of these endpoints |
+
+Tests: `npx tsx tests/payments.test.ts` (66 assertions: pay-at-shop mode,
+checkout/tips/commission, partial + full refunds, fees, permissions,
+tenant isolation, webhook signature + duplicate-event idempotency).
