@@ -17,6 +17,11 @@ services, reviews) can also be composed per preset, and the owner preview
 shows any combination before publishing. See
 [docs/VISUAL-SYSTEM-PLAN.md](docs/VISUAL-SYSTEM-PLAN.md).
 
+The customer homepage is a stack of owner-toggleable sections — including a
+quick-book availability finder and an FAQ accordion — reordered and
+enabled/disabled from the dashboard. See
+[docs/HOME-MODULES.md](docs/HOME-MODULES.md).
+
 ## Barber Website Factory
 
 This repository is governed by the [Main Barber Template Architecture
