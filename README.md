@@ -6,6 +6,17 @@ Designed as a white-label barbershop platform — each shop deploys with its own
 
 ---
 
+## Visual identities
+
+Every shop deploys with one of eight switchable visual identities —
+Black Label, Barber Heritage, Street Cut, Clean Club, Modern Classic,
+Warm Premium, High Energy Urban, and Single Chair. Owners pick one in
+**Dashboard → Appearance**, adjust colors and typography on top of it, and
+can reset to that preset's defaults at any time. Layouts (hero, gallery,
+services, reviews) can also be composed per preset, and the owner preview
+shows any combination before publishing. See
+[docs/VISUAL-SYSTEM-PLAN.md](docs/VISUAL-SYSTEM-PLAN.md).
+
 ## Barber Website Factory
 
 This repository is governed by the [Main Barber Template Architecture
