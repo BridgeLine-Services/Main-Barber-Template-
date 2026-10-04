@@ -38,6 +38,7 @@ export const OPTIONAL_ENV_VARS = [
   { variable: 'SMTP_USER', description: 'Email server username', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
   { variable: 'SMTP_PASS', description: 'Email server password', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'email' as const },
   { variable: 'SMTP_FROM', description: 'From email address for notifications', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
+  { variable: 'CONTACT_EMAIL', description: 'Recipient for public contact-form submissions (falls back to SMTP_USER)', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
   { variable: 'SMS_ENABLED', description: 'Enable SMS notifications', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'sms' as const },
   { variable: 'TWILIO_ACCOUNT_SID', description: 'Twilio account SID', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'sms' as const },
   { variable: 'TWILIO_AUTH_TOKEN', description: 'Twilio authentication token', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'sms' as const },

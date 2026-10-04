@@ -54,9 +54,10 @@ there; it is validated against a properly role-split database instead
 - `accessibility.spec.ts` — automated axe (WCAG 2.1 A/AA) scans of the
   home, booking, services, and login pages, plus a keyboard-focus test.
 
-Running them requires a real environment (they do NOT run in the
-server-free CI): a PostgreSQL database with migrations + seed applied,
-plus Chromium:
+They run in CI (Template CI → "E2E browser tests" job: Postgres
+service + demo seed + production build + Chromium) and can also be run
+locally. Running them locally requires a real environment: a PostgreSQL
+database with migrations + seed applied, plus Chromium:
 
 ```
 npm run e2e:install-browsers

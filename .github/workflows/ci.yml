@@ -63,3 +63,49 @@ jobs:
       # at critical severity; does not fail the build on advisory noise.
       - run: npm audit --omit=dev --audit-level=critical || echo '::warning title=npm audit::production-dependency advisories found (critical)'
       - run: npm run build
+
+  # Browser-level E2E (final-audit requirement): real Chromium against the
+  # production build. Docs/TESTING.md documents the local equivalent.
+  e2e:
+    name: E2E browser tests
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/barber
+      NEXTAUTH_SECRET: ci-only-secret-for-build-validation
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # Demo-mode seed gives E2E a deterministic owner account, then
+      # scripts/e2e-prepare-user.mts pins its password for the specs.
+      APP_MODE: demo
+      SEED_ALLOW_DESTRUCTIVE: 'true'
+      E2E_OWNER_EMAIL: owner@yourbarbershop.com
+      E2E_OWNER_PASSWORD: E2eOwner!Passw0rd
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: barber
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx prisma migrate deploy
+      - run: npx prisma generate
+      - run: npm run db:seed
+      - run: npx tsx scripts/e2e-prepare-user.mts
+      - run: npm run build
+      # playwright.config.ts webServer boots `npm run start` itself.
+      - run: npm run test:e2e
