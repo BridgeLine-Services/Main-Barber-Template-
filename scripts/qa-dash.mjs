@@ -14,8 +14,17 @@ const prisma = new PrismaClient()
 const BASE = 'http://second-test-shop:3000'
 const OUT = '/app/conversations/6ab6cc4fb3b8526e5be9ca03/repo/.qa-screens'
 const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
-const LOGIN_EMAIL = 'owner2@master-template-test.local'
-const LOGIN_PASSWORD = 'QaOwner2!2026'
+// Dashboard login credentials come from the environment (never hardcoded —
+// the architecture constitution forbids literal client contact emails in
+// scripts, and credentials don't belong in source anyway). Export them for
+// the seeded QA shop owner before running, e.g.:
+//   QA_LOGIN_EMAIL=... QA_LOGIN_PASSWORD=... node scripts/qa-dash.mjs
+const LOGIN_EMAIL = process.env.QA_LOGIN_EMAIL ?? ''
+const LOGIN_PASSWORD = process.env.QA_LOGIN_PASSWORD ?? ''
+if (!LOGIN_EMAIL || !LOGIN_PASSWORD) {
+  console.error('Set QA_LOGIN_EMAIL and QA_LOGIN_PASSWORD (seeded QA shop owner) to run the dashboard sweep.')
+  process.exit(1)
+}
 const PRESETS = ['black-label', 'barber-heritage', 'street-cut', 'clean-club', 'modern-classic']
 const PAGES = [
   ['/dashboard', 'overview'],
