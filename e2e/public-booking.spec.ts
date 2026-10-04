@@ -39,14 +39,24 @@ test('guest can complete a full booking and see a confirmation', async ({ page }
   const skippedToDetails = await detailsVisible.isVisible().catch(() => false)
 
   if (!skippedToDetails) {
-    // Wait for either outcome: auto-advance to details, or a date picker
+    // Wait for any of three outcomes: auto-advance to details, the
+    // first-available suggestion card, or a date picker. The suggestion card
+    // appears when the earliest opening is not today (e.g. on the shop's
+    // Sunday off-day), so the suite must be date-independent and handle it.
+    const useSuggestionButton = page.getByRole('button', { name: /use this appointment/i })
     await Promise.race([
       detailsVisible.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {}),
       dateHeading.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {}),
+      useSuggestionButton.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {}),
     ])
 
     if (await detailsVisible.isVisible().catch(() => false)) {
       // Wizard auto-advanced with an earliest slot — nothing to pick
+    } else if (await useSuggestionButton.isVisible().catch(() => false)) {
+      // Earliest opening is a future day: accept the suggested slot, which
+      // resolves date+time and advances to the details step.
+      await useSuggestionButton.click()
+      await expect(detailsVisible).toBeVisible({ timeout: 20_000 })
     } else if (await dateHeading.isVisible().catch(() => false)) {
       const dateButton = page.getByRole('button', { name: /has available slots/i }).first()
       await dateButton.waitFor({ state: 'visible', timeout: 20_000 })
