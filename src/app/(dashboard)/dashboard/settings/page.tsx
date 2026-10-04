@@ -92,6 +92,7 @@ type SettingsBusiness = {
   google?: string | null
   timezone?: string | null
   hours?: Record<string, DayHours> | null
+  parkingAvailable?: boolean | null
 }
 
 type SettingsSeo = {
@@ -434,6 +435,16 @@ export default function SettingsPage() {
                     className="bg-muted border-input mt-1"
                   />
                 </div>
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <Label className="text-foreground">Parking Available</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Show a parking note in the Visit Us section on your website</p>
+                </div>
+                <Switch
+                  checked={business.parkingAvailable === true}
+                  onCheckedChange={v => setBusiness({ ...business, parkingAvailable: v })}
+                />
               </div>
             </CardContent>
           </Card>

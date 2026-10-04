@@ -27,7 +27,7 @@ type Props = {
 
 /* ── Lightbox ────────────────────────────────────────────────────────────── */
 
-function Lightbox({
+export function Lightbox({
   images,
   index,
   onClose,
@@ -146,7 +146,17 @@ function Lightbox({
                 className="card-cta inline-flex items-center gap-1.5 text-xs font-semibold text-primary focus-ring"
               >
                 <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                Book {image.service.name}
+                Book This Service
+              </Link>
+            )}
+            {image.barber && (
+              <Link
+                href={`/book?barberId=${image.barber.id}${image.service ? `&serviceId=${image.service.id}` : ''}`}
+                onClick={onClose}
+                className="card-cta inline-flex items-center gap-1.5 text-xs font-semibold text-primary focus-ring"
+              >
+                <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                Book With {image.barber.name}
               </Link>
             )}
             {image.service && (

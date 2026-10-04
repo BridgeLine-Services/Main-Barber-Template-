@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Scissors,
   Phone,
+  Car,
   Star,
   MapPin,
   Mail,
@@ -23,6 +24,7 @@ import {
 import { focalPositionStyle } from '@/lib/image-roles'
 import { Section, SectionHeading } from '@/components/customer/Section'
 import { ShopStatus } from '@/components/customer/ShopStatus'
+import { computeShopStatus } from '@/lib/shop-status'
 import { BookButton, GhostButton } from '@/components/customer/Cta'
 import { Reveal, Stagger, StaggerItem, HeroReveal, ScrollHint } from '@/components/motion/reveal'
 import type { BusinessHours } from '@/lib/business-hours'
@@ -162,7 +164,7 @@ export default async function HomePage() {
   )
 
   // Module-dependent data — only loaded when the module is enabled.
-  const [featuredRows, shopPhotoRows, beforeAfterPairRows] = await Promise.all([
+  const [featuredRows, shopPhotoRows, beforeAfterPairRows, pairAssetIdRows] = await Promise.all([
     isModuleEnabled('featuredWork') || isModuleEnabled('socialGallery')
       ? prisma.mediaAsset.findMany({
           where: { businessId: business.id, type: { in: ['BARBER_PORTFOLIO', 'GALLERY'] }, isPublished: true },
@@ -171,7 +173,16 @@ export default async function HomePage() {
             moduleSettings('featuredWork')?.count ?? 6,
             moduleSettings('socialGallery')?.social?.count ?? 6
           ),
-          select: { id: true, url: true, altText: true, caption: true, focalX: true, focalY: true },
+          select: {
+            id: true,
+            url: true,
+            altText: true,
+            caption: true,
+            focalX: true,
+            focalY: true,
+            barber: { select: { id: true, name: true, slug: true } },
+            service: { select: { id: true, name: true, price: true } },
+          },
         })
       : Promise.resolve([]),
     isModuleEnabled('shopExperience')
@@ -195,7 +206,18 @@ export default async function HomePage() {
           },
         })
       : Promise.resolve([]),
+    // All published before/after pair asset ids — used to tag Featured Work
+    // assets with the "Before & After" category chip. No new model: the
+    // pairing already exists in the database.
+    isModuleEnabled('featuredWork')
+      ? prisma.beforeAfterPair.findMany({
+          where: { businessId: business.id, isPublished: true },
+          select: { beforeAssetId: true, afterAssetId: true },
+        })
+      : Promise.resolve([] as { beforeAssetId: string; afterAssetId: string }[]),
   ])
+
+  const pairAssetIds = new Set(pairAssetIdRows.flatMap((p) => [p.beforeAssetId, p.afterAssetId]))
 
   // Module-dependent data — only loaded when the module is enabled.
   const [faqRows, reviewStats, closingImageRow] = await Promise.all([
@@ -269,6 +291,25 @@ export default async function HomePage() {
   const imageShape = resolvedImageShapeClass(visual)
 
 
+  // Subtle live status for the hero — the same shared calculation the
+  // ShopStatus card uses (lib/shop-status). Only shown when the shop has
+  // real configured hours; never invents an open/closed state.
+  const { hasHours: shopHasHours, openNow: shopOpenNow } = computeShopStatus(business)
+  const heroStatusPill = shopHasHours ? (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-xs font-medium text-foreground/80 backdrop-blur-sm ${
+        shopOpenNow ? '' : 'opacity-80'
+      }`}
+      title={shopOpenNow ? 'Open now' : 'Closed'}
+    >
+      <span
+        className={`inline-block h-2 w-2 rounded-full ${shopOpenNow ? 'bg-emerald-500' : 'bg-destructive/70'}`}
+        aria-hidden="true"
+      />
+      {shopOpenNow ? 'Open Now' : 'Closed'}
+    </span>
+  ) : null
+
   // Trust highlights driven by real business configuration — never fake claims
   const highlights = [
     { icon: CheckCircle2, label: 'Instant Confirmation' },
@@ -289,7 +330,10 @@ export default async function HomePage() {
           <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 pt-14 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16 lg:pt-8 lg:pb-24">
             <div className="order-2 flex flex-col items-start text-left lg:order-1">
               <HeroReveal>
-                <span className="eyebrow text-accent">{heroEyebrow}</span>
+                <span className="flex flex-wrap items-center gap-3">
+                  <span className="eyebrow text-accent">{heroEyebrow}</span>
+                  {heroStatusPill}
+                </span>
               </HeroReveal>
               <HeroReveal delay={0.12} className="mt-5">
                 <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
@@ -368,7 +412,10 @@ export default async function HomePage() {
         <section className="relative -mt-16 overflow-hidden pt-16 border-b border-border/60">
           <div className="mx-auto w-full max-w-7xl px-4 pb-20 pt-14 sm:px-6 lg:pb-28 lg:pt-20">
             <HeroReveal>
-              <span className="eyebrow text-accent">{heroEyebrow}</span>
+              <span className="flex flex-wrap items-center gap-3">
+                <span className="eyebrow text-accent">{heroEyebrow}</span>
+                {heroStatusPill}
+              </span>
             </HeroReveal>
             <HeroReveal delay={0.12} className="mt-6">
               <h1 className="font-display text-6xl font-semibold uppercase leading-[0.92] tracking-tight text-foreground sm:text-8xl lg:text-[clamp(5rem,12vw,9.5rem)]">
@@ -467,9 +514,12 @@ export default async function HomePage() {
 
           <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-24 pb-16 text-center sm:px-6">
             <HeroReveal>
-              <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5 backdrop-blur-sm">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                {heroEyebrow}
+              <span className="flex flex-wrap items-center justify-center gap-3">
+                <span className="eyebrow border border-accent/30 bg-accent/10 px-3 py-1.5 backdrop-blur-sm">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  {heroEyebrow}
+                </span>
+                {heroStatusPill}
               </span>
             </HeroReveal>
 
@@ -557,7 +607,12 @@ export default async function HomePage() {
   const featuredSettings = moduleSettings('featuredWork')
   const featuredWorkNode = featuredRows.length > 0 ? (
     <FeaturedWorkSection
-      images={featuredRows.slice(0, featuredSettings?.count ?? 6)}
+      images={featuredRows.slice(0, featuredSettings?.count ?? 6).map((img) => ({
+        ...img,
+        barber: img.barber ?? null,
+        service: img.service ?? null,
+        isBeforeAfter: pairAssetIds.has(img.id),
+      }))}
       heading={featuredSettings?.heading}
       blurb={featuredSettings?.blurb}
       shopName={shopName}
@@ -1008,9 +1063,17 @@ export default async function HomePage() {
                 <p className={`mt-4 font-display font-medium leading-snug tracking-tight text-foreground ${idx === 0 ? 'text-2xl sm:text-3xl' : 'text-xl'}`}>
                   &ldquo;{review.comment}&rdquo;
                 </p>
-                <footer className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <footer className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-px w-8 bg-accent/50" aria-hidden="true" />
                   {review.authorName}
+                  <span className="text-xs text-muted-foreground/70">
+                    {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  </span>
+                  {review.isGoogleReview && (
+                    <span className="rounded-full border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+                      Google Review
+                    </span>
+                  )}
                 </footer>
               </blockquote>
             </StaggerItem>
@@ -1040,6 +1103,14 @@ export default async function HomePage() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     — {review.authorName}
                   </p>
+                  <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/70">
+                    {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                    {review.isGoogleReview && (
+                      <span className="rounded-full border border-border/70 px-2 py-0.5 text-muted-foreground">
+                        Google Review
+                      </span>
+                    )}
+                  </p>
                 </CardContent>
               </Card>
             </StaggerItem>
@@ -1063,6 +1134,14 @@ export default async function HomePage() {
                 </p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   — {review.authorName}
+                </p>
+                <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground/70">
+                  {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  {review.isGoogleReview && (
+                    <span className="rounded-full border border-border/70 px-2 py-0.5 text-muted-foreground">
+                      Google Review
+                    </span>
+                  )}
                 </p>
               </Card>
             </StaggerItem>
@@ -1127,6 +1206,12 @@ export default async function HomePage() {
                     Get Directions
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-micro group-hover:translate-x-0.5" aria-hidden="true" />
                   </a>
+                  {business?.parkingAvailable && (
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Car className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                      Parking available on site
+                    </p>
+                  )}
                 </div>
               </div>
 

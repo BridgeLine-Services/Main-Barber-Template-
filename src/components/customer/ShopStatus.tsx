@@ -14,14 +14,16 @@ import { resolveBusiness } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { estimateWaitMinutes, WALK_IN_TIME_RANGE } from '@/lib/queue'
 import { resolveBusinessTimezone, startOfDayUTC } from '@/lib/timezone'
+import { computeShopStatus } from '@/lib/shop-status'
 import type { BusinessHours } from '@/lib/business-hours'
 
 export async function ShopStatus() {
   const business = await resolveBusiness().catch(() => null)
   if (!business) return null
 
-  // Soft-deactivated shops keep marketing pages but report closed.
-  const deactivated = business.deactivatedAt != null
+  // Real open/closed state — shared calculation (lib/shop-status), so every
+  // customer surface (status card, hero indicator) says the same thing.
+  const { deactivated, hasHours, openNow } = computeShopStatus(business)
 
   // Current local day/time in the BUSINESS's timezone, not the server's.
   const timezone = resolveBusinessTimezone(business)
@@ -30,19 +32,6 @@ export async function ShopStatus() {
   const todayHours = business.hours && typeof business.hours === 'object'
     ? (business.hours as BusinessHours)[dayKey]
     : undefined
-  const hasHours = Boolean(todayHours)
-
-  const minutesNow = now.hour * 60 + now.minute
-  const toMinutes = (t: string) => {
-    const [h, m] = t.split(':').map(Number)
-    return (h || 0) * 60 + (m || 0)
-  }
-  const openNow =
-    !deactivated &&
-    hasHours &&
-    !todayHours!.isOff &&
-    minutesNow >= toMinutes(todayHours!.open || '09:00') &&
-    minutesNow < toMinutes(todayHours!.close || '18:00')
 
   // Live queue state for the current business day (real WAITING entries).
   const [waitingEntries, activeBarbers] = await Promise.all([

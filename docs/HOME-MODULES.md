@@ -64,3 +64,42 @@ records it renders nothing — no invented questions.
 `tests/home-modules.test.ts` (50 checks): legacy derivation, explicit
 round-trips, ship-on defaults, append semantics, settings clamping, and
 malformed-input recovery.
+
+## Featured work (`featuredWork`)
+
+Real published portfolio assets (BARBER_PORTFOLIO / GALLERY media) in an
+editorial grid, newest first, clamped to the module's `count` setting.
+
+- **Attribution** — each asset carries its linked barber and service
+  (existing `MediaAsset` relations, no duplicate models). Tiles show the
+  caption, barber, service name and service price when available.
+- **Category chips** — derived from the business's own published content:
+  the linked service name (Haircut / Fade / Beard / Lineup / Kids /
+  Specialty via keyword mapping in `src/lib/portfolio.ts`) plus published
+  Before/After pair membership (`before-after`). A chip only appears when
+  at least one published asset maps to it; chips scroll horizontally on
+  mobile and wrap on desktop.
+- **Lightbox** — tiles open the shared gallery lightbox (`GalleryGrid`)
+  directly, with "Book This Service" and "Book With This Barber" deep links
+  that preserve the selected barber/service into `/book` preselection.
+- No published images → the module renders nothing.
+
+## Reviews (`reviews`)
+
+All three presentation modes (editorial / cards / strip) show the review
+date and a "Google Review" source badge when the data exists
+(`Review.isGoogleReview`). Names shown are the configured author names;
+nothing is invented.
+
+## Visit (`visit`)
+
+Hours, address, map and directions. When the business sets
+**Parking Available** (Dashboard → Settings → Business → Location), the
+location card shows a parking note — data-driven, no invented details.
+
+## Hero status indicator
+
+All three hero layouts show a subtle Open Now / Closed pill next to the
+eyebrow, computed by the same shared calculation (`src/lib/shop-status.ts`)
+that powers the customer `ShopStatus` card. It only renders when the shop
+has real configured weekly hours; by-appointment shops show no pill.
