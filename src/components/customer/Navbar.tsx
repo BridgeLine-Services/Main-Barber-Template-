@@ -65,7 +65,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Main">
+        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium" aria-label="Main">
           {navLinks.map((link) => {
             const isActive = pathname === link.href
             return (
@@ -92,7 +92,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
         </nav>
 
         {/* Desktop CTA, Sign In & Phone */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           {phone && (
             <a
               href={`tel:${phone.replace(/\D/g, '')}`}
@@ -124,7 +124,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <Link
             href="/book"
             className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground"
@@ -154,7 +154,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="overflow-hidden border-b border-border bg-background/95 backdrop-blur-md md:hidden"
+            className="overflow-hidden border-b border-border bg-background/95 backdrop-blur-md lg:hidden"
           >
             <div className="space-y-1 px-4 pb-6 pt-2">
               {navLinks.map((link) => {
