@@ -62,6 +62,9 @@ check('featuredWork defaults off', legacy.modules.find((m) => m.id === 'featured
 check('shopExperience defaults off', legacy.modules.find((m) => m.id === 'shopExperience')?.enabled === false)
 check('visit follows showVisit=true', legacy.modules.find((m) => m.id === 'visit')?.enabled === true)
 check('finalCta follows showFinalCta=true', legacy.modules.find((m) => m.id === 'finalCta')?.enabled === true)
+check('quickBook ships on for derived sites', legacy.modules.find((m) => m.id === 'quickBook')?.enabled === true)
+check('faq ships on for derived sites', legacy.modules.find((m) => m.id === 'faq')?.enabled === true)
+expectEqual(legacy.modules[1].id, 'quickBook', 'quickBook defaults to slot 2 (after hero)')
 
 const legacyOff = resolveHomeModules({
   showServices: false,
@@ -70,7 +73,8 @@ const legacyOff = resolveHomeModules({
   showVisit: false,
   showFinalCta: false,
 })
-check('all legacy toggles off → every legacy module off', legacyOff.modules.every((m) => !m.enabled || ALWAYS_ON_MODULES.includes(m.id)))
+const SHIP_ON = ['quickBook', 'faq'] as const
+check('all legacy toggles off → every legacy module off', legacyOff.modules.every((m) => !m.enabled || ALWAYS_ON_MODULES.includes(m.id) || (SHIP_ON as readonly string[]).includes(m.id)))
 check('hero stays on even with everything off', legacyOff.modules[0].id === 'hero' && legacyOff.modules[0].enabled)
 
 const legacyUndef = resolveHomeModules({})
@@ -96,6 +100,8 @@ check('stored services=false wins over legacy toggle true', explicit.modules.fin
 check('missing modules appended (team present)', explicit.modules.find((m) => m.id === 'team') !== undefined)
 check('appended legacy modules follow toggles (team on)', explicit.modules.find((m) => m.id === 'team')?.enabled === true)
 check('appended new modules stay off (beforeAfter)', explicit.modules.find((m) => m.id === 'beforeAfter')?.enabled === false)
+check('appended homepage-upgrade modules stay off (quickBook)', explicit.modules.find((m) => m.id === 'quickBook')?.enabled === false)
+check('appended homepage-upgrade modules stay off (faq)', explicit.modules.find((m) => m.id === 'faq')?.enabled === false)
 expectEqual(explicit.modules.length, HOME_MODULE_IDS.length, 'no duplicates after append')
 
 const reordered = resolveHomeModules({

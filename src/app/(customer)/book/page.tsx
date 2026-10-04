@@ -105,12 +105,22 @@ function BookingFlow() {
     }
   }, [step, selectedServiceId, selectedBarberId, selectedDate, selectedTime])
 
-  // Pre-fill from URL params
+  // Pre-fill from URL params (service/barber from service menus and barber
+  // cards; date from the homepage quick-booking finder)
   useEffect(() => {
     const serviceParam = searchParams.get('serviceId')
     const barberParam = searchParams.get('barberId')
+    const dateParam = searchParams.get('date')
     if (serviceParam) setSelectedServiceId(serviceParam)
     if (barberParam) setSelectedBarberId(barberParam)
+    if (dateParam) {
+      // Strict YYYY-MM-DD parse — anything else is ignored, never guessed.
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateParam)
+      if (m) {
+        const parsed = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+        if (!Number.isNaN(parsed.getTime())) setSelectedDate(parsed)
+      }
+    }
   }, [searchParams])
 
   // Fetch services and barbers on mount

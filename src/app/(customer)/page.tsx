@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Scissors,
   Phone,
-  MessageSquare,
   Star,
   MapPin,
   Mail,
@@ -31,6 +30,8 @@ import { resolvedButtonShapeClass, resolvedImageShapeClass } from '@/lib/visual-
 import { mapFontFamily } from '@/lib/theme'
 import { Fragment } from 'react'
 import { FeaturedWorkSection } from '@/components/customer/home/FeaturedWorkSection'
+import { QuickBookSection } from '@/components/customer/home/QuickBookSection'
+import { FaqSection } from '@/components/customer/home/FaqSection'
 import { BeforeAfterSection } from '@/components/customer/home/BeforeAfterSection'
 import { SocialGallerySection } from '@/components/customer/home/SocialGallerySection'
 import { ShopExperienceSection } from '@/components/customer/home/ShopExperienceSection'
@@ -193,6 +194,37 @@ export default async function HomePage() {
       : Promise.resolve([]),
   ])
 
+  // Module-dependent data — only loaded when the module is enabled.
+  const [faqRows, reviewStats, closingImageRow] = await Promise.all([
+    isModuleEnabled('faq')
+      ? prisma.faq.findMany({
+          where: { businessId: business.id, isActive: true },
+          orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
+          take: moduleSettings('faq')?.count ?? 6,
+        })
+      : Promise.resolve([]),
+    isModuleEnabled('reviews')
+      ? prisma.review.aggregate({
+          where: { businessId: business.id, isPublished: true },
+          _avg: { rating: true },
+          _count: { _all: true },
+        })
+      : Promise.resolve(null),
+    // Strongest available image for the closing CTA — the hero photo first,
+    // then one published portfolio/shop photo. Never a stock image.
+    isModuleEnabled('finalCta') && !content?.heroImageUrl
+      ? prisma.mediaAsset.findFirst({
+          where: { businessId: business.id, isPublished: true, type: { in: ['BARBER_PORTFOLIO', 'GALLERY', 'SHOP_PHOTO'] } },
+          orderBy: { sortOrder: 'asc' },
+          select: { url: true, altText: true, focalX: true, focalY: true },
+        })
+      : Promise.resolve(null),
+  ])
+
+  const closingImage = content?.heroImageUrl
+    ? { url: content.heroImageUrl, altText: `Inside ${business?.name}`, focalX: null, focalY: null }
+    : closingImageRow
+
   const shopName = business?.name || 'Barber Shop'
   const shopPhone = business?.phone || ''
   const shopPhoneDigits = shopPhone.replace(/\D/g, '')
@@ -242,10 +274,6 @@ export default async function HomePage() {
   ]
 
 
-  // Heading scale — swaps concrete size tokens on editorial hero h1s
-  // (the poster hero is intentionally display-size and keeps its scale).
-  const heroH1Size = (standard: string, compact: string, grand: string) =>
-    visual.headingScale === 'compact' ? compact : visual.headingScale === 'grand' ? grand : standard
 
   // ─── Section nodes — data-dependent modules render null when empty ─────
   const heroNode = (
@@ -277,14 +305,18 @@ export default async function HomePage() {
                   label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
                   className={`w-full sm:w-auto ${buttonShape}`}
                 />
-                <div className="flex gap-3">
-                  {shopPhoneDigits && (
-                    <GhostButton href={`tel:${shopPhoneDigits}`} className="px-5 py-4">Call</GhostButton>
-                  )}
-                  {shopPhoneDigits && (
-                    <GhostButton href={`sms:${shopPhoneDigits}`} className="px-5 py-4">Text Us</GhostButton>
-                  )}
-                </div>
+                <GhostButton href="/services" className="w-full px-5 py-4 sm:w-auto">
+                  View Services
+                </GhostButton>
+                {shopPhoneDigits && (
+                  <a
+                    href={`tel:${shopPhoneDigits}`}
+                    className="inline-flex items-center gap-2 rounded-md px-2 py-4 text-sm font-medium text-foreground/70 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Phone className="h-4 w-4" aria-hidden="true" />
+                    {shopPhone}
+                  </a>
+                )}
               </HeroReveal>
               <HeroReveal delay={0.48} className="mt-12 w-full max-w-md">
                 <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-5 text-xs text-foreground/60 sm:text-sm">
@@ -358,8 +390,17 @@ export default async function HomePage() {
                     label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
                     className={`w-full text-base sm:w-auto sm:px-10 sm:py-5 ${buttonShape}`}
                   />
+                  <GhostButton href="/services" className="w-full px-5 py-4 text-base sm:px-8 sm:py-5">
+                    View Services
+                  </GhostButton>
                   {shopPhoneDigits && (
-                    <GhostButton href={`tel:${shopPhoneDigits}`} className="px-5 py-4">Call</GhostButton>
+                    <a
+                      href={`tel:${shopPhoneDigits}`}
+                      className="inline-flex items-center gap-2 rounded-md px-2 py-5 text-sm font-medium text-foreground/70 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Phone className="h-4 w-4" aria-hidden="true" />
+                      {shopPhone}
+                    </a>
                   )}
                 </div>
                 <div className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-foreground/15 pt-5 text-xs text-foreground/60 sm:text-sm">
@@ -451,21 +492,21 @@ export default async function HomePage() {
                 label={content?.heroPrimaryCtaLabel || 'Book Your Appointment'}
                 className={`w-full sm:w-auto ${buttonShape}`}
               />
-              <div className="flex w-full items-center justify-center gap-3 sm:w-auto">
-                {shopPhoneDigits && (
-                  <GhostButton href={`tel:${shopPhoneDigits}`} className="w-auto px-5 py-4">
-                    <Phone className="h-4 w-4 text-accent" aria-hidden="true" />
-                    Call
-                  </GhostButton>
-                )}
-                {shopPhoneDigits && (
-                  <GhostButton href={`sms:${shopPhoneDigits}`} className="w-auto px-5 py-4">
-                    <MessageSquare className="h-4 w-4 text-accent" aria-hidden="true" />
-                    Text Us
-                  </GhostButton>
-                )}
-              </div>
+              <GhostButton href="/services" className="w-full px-5 py-4 sm:w-auto">
+                View Services
+              </GhostButton>
             </HeroReveal>
+            {shopPhoneDigits && (
+              <HeroReveal delay={0.42} className="mt-4">
+                <a
+                  href={`tel:${shopPhoneDigits}`}
+                  className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground/70 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  Prefer to call? {shopPhone}
+                </a>
+              </HeroReveal>
+            )}
 
             {/* Trust highlights — driven by real business settings */}
             <HeroReveal delay={0.48} className="mt-12 w-full max-w-xl">
@@ -487,6 +528,20 @@ export default async function HomePage() {
       )}
     </>
   )
+
+  const quickBookNode = services.length > 0 ? (
+    /* Availability finder — hands off straight into the existing booking
+       flow with service/barber/date preselected. Real slots only. */
+    <QuickBookSection
+      services={services.slice(0, 8).map((s) => ({
+        id: s.id,
+        name: s.name,
+        durationLabel: formatDuration(s.duration),
+      }))}
+      barbers={barbers.map((b) => ({ id: b.id, name: b.name }))}
+      buttonShape={buttonShape}
+    />
+  ) : null
 
   const shopStatusNode = (
     <Section tone="muted">
@@ -859,6 +914,18 @@ export default async function HomePage() {
           title={content?.reviewsTitle || 'What Our Clients Say'}
           description={content?.reviewsDescription || undefined}
         />
+        {reviewStats && reviewStats._count._all > 0 && (
+          <Reveal className="-mt-6 mb-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:mb-14">
+            <span className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-foreground">
+              <Star className="h-4 w-4 fill-accent text-accent" aria-hidden="true" />
+              {(reviewStats._avg.rating ?? 0).toFixed(1)}
+            </span>
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <span className="text-sm text-muted-foreground">
+              {reviewStats._count._all} {reviewStats._count._all === 1 ? 'review' : 'reviews'}
+            </span>
+          </Reveal>
+        )}
         {/* EDITORIAL — quote-led: large serif-feeling pull quotes in an
             asymmetric two-column flow. */}
         {visual.reviewPresentation === 'editorial' && (
@@ -1058,17 +1125,46 @@ export default async function HomePage() {
       </Section>
   )
 
+  const faqSettings = moduleSettings('faq')
+  const faqNode = faqRows.length > 0 ? (
+    <FaqSection
+      faqs={faqRows.map((f) => ({ id: f.id, category: f.category, question: f.question, answer: f.answer }))}
+      heading={faqSettings?.heading}
+      blurb={faqSettings?.blurb}
+    />
+  ) : null
+
   const finalCtaNode = (
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 70% 80% at 50% 100%, hsl(var(--accent) / 0.12), transparent 65%)',
-          }}
-        />
-        <div className="relative mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28">
+      <section className="relative overflow-hidden border-t border-border/60">
+        {closingImage ? (
+          <>
+            <Image
+              src={closingImage.url}
+              alt={closingImage.altText || `Work from ${shopName}`}
+              fill
+              loading="lazy"
+              sizes="100vw"
+              quality={80}
+              className="img-cinematic object-cover"
+              style={focalPositionStyle(closingImage.focalX, closingImage.focalY)}
+            />
+            {/* Legibility overlay — content stays readable over any photo */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/75 to-background/90"
+            />
+          </>
+        ) : (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 80% at 50% 100%, hsl(var(--accent) / 0.12), transparent 65%)',
+            }}
+          />
+        )}
+        <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28">
           <Reveal>
             <p className="eyebrow-accent mb-5">Book Your Chair</p>
             <h2 className="display-heading text-display-1 text-foreground">
@@ -1076,13 +1172,22 @@ export default async function HomePage() {
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
-            <p className="mt-5 max-w-xl text-large text-muted-foreground">
+            <p className="mx-auto mt-5 max-w-xl text-large text-muted-foreground">
               {content?.finalCtaDescription ||
                 `Book online in under a minute. ${shopPhone ? `Prefer to talk? Call ${shopPhone}.` : 'See real-time availability and lock in your spot.'}`}
             </p>
           </Reveal>
-          <Reveal delay={0.2} className="mt-10">
+          <Reveal delay={0.2} className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <BookButton label="Book Your Appointment" className={`w-full sm:w-auto ${buttonShape}`} />
+            {shopPhoneDigits && (
+              <a
+                href={`tel:${shopPhoneDigits}`}
+                className="inline-flex items-center gap-2 rounded-md px-4 py-4 text-sm font-semibold text-foreground/80 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                Call {shopPhone}
+              </a>
+            )}
           </Reveal>
         </div>
       </section>
@@ -1092,6 +1197,7 @@ export default async function HomePage() {
   // what order (hero is structural and always first).
   const moduleNode: Partial<Record<HomeModuleId, React.ReactNode>> = {
     hero: heroNode,
+    quickBook: quickBookNode,
     shopStatus: shopStatusNode,
     featuredWork: featuredWorkNode,
     services: servicesNode,
@@ -1101,6 +1207,7 @@ export default async function HomePage() {
     socialGallery: socialGalleryNode,
     shopExperience: shopExperienceNode,
     visit: visitNode,
+    faq: faqNode,
     finalCta: finalCtaNode,
   }
 

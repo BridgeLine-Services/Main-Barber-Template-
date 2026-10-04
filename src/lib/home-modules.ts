@@ -18,6 +18,7 @@
 
 export const HOME_MODULE_IDS = [
   'hero',
+  'quickBook',
   'shopStatus',
   'featuredWork',
   'services',
@@ -27,6 +28,7 @@ export const HOME_MODULE_IDS = [
   'socialGallery',
   'shopExperience',
   'visit',
+  'faq',
   'finalCta',
 ] as const
 
@@ -88,6 +90,7 @@ export interface StoredHomeModules {
 
 const MAX_COUNT: Record<HomeModuleId, number> = {
   hero: 1,
+  quickBook: 1,
   shopStatus: 1,
   featuredWork: 12,
   services: 24,
@@ -97,11 +100,13 @@ const MAX_COUNT: Record<HomeModuleId, number> = {
   socialGallery: 12,
   shopExperience: 12,
   visit: 1,
+  faq: 8,
   finalCta: 1,
 }
 
 const DEFAULT_COUNT: Record<HomeModuleId, number> = {
   hero: 1,
+  quickBook: 1,
   shopStatus: 1,
   featuredWork: 6,
   services: 12,
@@ -111,6 +116,7 @@ const DEFAULT_COUNT: Record<HomeModuleId, number> = {
   socialGallery: 6,
   shopExperience: 4,
   visit: 1,
+  faq: 6,
   finalCta: 1,
 }
 
@@ -201,10 +207,12 @@ export function resolveHomeModules(content: unknown): ResolvedHomeModules {
     return v === undefined ? true : v === true
   }
 
+  const SHIP_ON: readonly HomeModuleId[] = ['quickBook', 'faq'] as const
   const defaultFor = (id: HomeModuleId): HomeModule => ({
     id,
-    // New modules default off; legacy modules follow their toggles.
-    enabled: id in LEGACY_TOGGLE ? legacyEnabled(id) : false,
+    // Modules that predate the module system follow their legacy toggles;
+    // homepage-upgrade modules ship on (data-gated); everything else is off.
+    enabled: id in LEGACY_TOGGLE ? legacyEnabled(id) : (SHIP_ON as readonly string[]).includes(id),
     settings: parseSettings(undefined, id),
   })
 
@@ -232,9 +240,13 @@ export function resolveHomeModules(content: unknown): ResolvedHomeModules {
   }
   // …then append anything missing in default order (legacy toggles decide
   // enabled for legacy modules; new modules stay off until configured).
+  // An explicitly-saved configuration is a deliberate section set, so the
+  // homepage-upgrade modules (SHIP_ON) append OFF here — they only ship on
+  // for never-configured sites in the legacy path above.
   for (const id of HOME_MODULE_IDS) {
     if (!seen.has(id)) {
       const m = defaultFor(id)
+      if ((SHIP_ON as readonly string[]).includes(id)) m.enabled = false
       modules.push(m)
     }
   }

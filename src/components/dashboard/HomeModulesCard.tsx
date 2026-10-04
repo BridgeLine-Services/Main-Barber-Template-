@@ -37,6 +37,11 @@ const MODULE_META: Record<HomeModuleId, { label: string; description: string; ha
     description: 'The top banner with your shop name and booking call-to-action.',
     hasSettings: false,
   },
+  quickBook: {
+    label: 'Quick booking',
+    description: 'A service / barber / date finder that shows real openings and hands off to full booking.',
+    hasSettings: false,
+  },
   shopStatus: {
     label: 'Open/Closed status',
     description: 'A compact strip showing whether the shop is open right now.',
@@ -75,6 +80,11 @@ const MODULE_META: Record<HomeModuleId, { label: string; description: string; ha
   shopExperience: {
     label: 'Inside the shop',
     description: 'Photos of your shop interior (Upload Media → shop photos).',
+    hasSettings: true,
+  },
+  faq: {
+    label: 'FAQ',
+    description: 'Answers from your FAQ manager. Hidden automatically when no FAQs exist.',
     hasSettings: true,
   },
   visit: {
