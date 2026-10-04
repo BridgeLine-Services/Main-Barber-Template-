@@ -22,7 +22,9 @@ const STATES = [
   ['empty', 0],        // none published
 ]
 const PRESETS = ['modern-classic', 'black-label', 'barber-heritage', 'street-cut', 'clean-club', 'warm-premium', 'high-energy-urban', 'single-chair']
-const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
+const business = await prisma.business.findUnique({ where: { slug: 'second-test-shop' } })
+if (!business) throw new Error('second-test-shop business not found; run seed scripts')
+const BUSINESS_ID = business.id
 
 const fs = await import('fs')
 fs.mkdirSync(OUT, { recursive: true })
