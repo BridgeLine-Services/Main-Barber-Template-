@@ -79,7 +79,7 @@ export default async function WebsitePreviewPage() {
           untouched; inside, the customer visual system applies exactly as
           on the public site (colors, fonts, preset shape/typography). */}
       <div
-        className="brand-theme rounded-lg border border-border"
+        className="brand-theme bg-background text-foreground rounded-lg border border-border"
         data-visual-style={draftPreset}
       >
         <ThemeStyle business={business} />

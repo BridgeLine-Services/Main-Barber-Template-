@@ -9,12 +9,13 @@
    4. Restore the original preset. */
 import { chromium } from 'playwright'
 import { PrismaClient } from '@prisma/client'
-import fs from 'fs'
 
 const prisma = new PrismaClient()
 const BASE = 'http://second-test-shop:3000'
 const OUT = '/app/conversations/6ab6cc4fb3b8526e5be9ca03/repo/.qa-screens'
 const BUSINESS_ID = 'cmuhdcubh0003j3z5enty7epw'
+const LOGIN_EMAIL = 'owner2@master-template-test.local'
+const LOGIN_PASSWORD = 'QaOwner2!2026'
 const PRESETS = ['black-label', 'barber-heritage', 'street-cut', 'clean-club', 'modern-classic']
 const PAGES = [
   ['/dashboard', 'overview'],
@@ -23,28 +24,12 @@ const PAGES = [
   ['/dashboard/inventory', 'inventory'],
   ['/dashboard/factory-launch', 'factory-launch'],
   ['/dashboard/audit-log', 'audit-log'],
+  ['/dashboard/website-preview', 'website-preview'],
 ]
 const WIDTHS = [320, 390, 768, 1280]
 
-fs.mkdirSync(OUT, { recursive: true })
+import fs from "fs"; fs.mkdirSync(OUT, { recursive: true })
 
-// --- load owner2 session cookies from the curl jar into Playwright ---
-const jar = fs.readFileSync('/tmp/cj2.txt', 'utf8')
-const cookies = jar.split('\n')
-  .filter((l) => l && !l.startsWith('# ') && l.trim() !== '' && !l.startsWith('# Netscape') && !l.startsWith('# https'))
-  .map((l) => l.replace(/^#HttpOnly_/, ''))
-  .map((l) => {
-    const [domain, , path, secure, expires, name, value] = l.split('\t')
-    const isSecure = String(secure).toLowerCase() === 'true'
-    return {
-      name, value,
-      domain: domain.replace(/^\./, ''),
-      path: path || '/',
-      expires: Number(expires) || -1,
-      secure: isSecure,
-      httpOnly: true,
-    }
-  })
 
 const orig = await prisma.websiteContent.findUnique({ where: { businessId: BUSINESS_ID } })
 const origSnap = orig.publishedContent
@@ -61,7 +46,13 @@ async function publish(preset) {
 
 const browser = await chromium.launch()
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-await ctx.addCookies(cookies)
+const loginPage = await ctx.newPage()
+await loginPage.goto(BASE + '/login', { waitUntil: 'networkidle' })
+await loginPage.getByPlaceholder('you@example.com').fill(LOGIN_EMAIL)
+await loginPage.getByPlaceholder('••••••••').fill(LOGIN_PASSWORD)
+await loginPage.getByRole('button', { name: 'Login', exact: true }).click()
+await loginPage.waitForURL(/dashboard/, { timeout: 20000 })
+await loginPage.close()
 
 const lum = (r, g, b) => {
   const f = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
@@ -97,7 +88,12 @@ for (const preset of PRESETS) {
       if (m.sw - m.cw > 0) overflow.push({ preset, route, w, by: m.sw - m.cw, wide: m.wide })
       if (w === 1280) {
         await page.screenshot({ path: `${OUT}/dash-${preset}-${name}.png` })
-        // contrast read-through on the rendered page
+        // contrast read-through on the rendered page.
+        // The website-preview route is SKIPPED: it faithfully renders the
+        // tenant's own brand palette (their site, their colors) inside the
+        // dashboard; dashboard-chrome contrast rules don't apply to it.
+        // Overflow + screenshot checks still run for it.
+        if (name === 'website-preview') { await page.close(); continue }
         const c = await page.evaluate(() => {
           const effBg = (el) => {
             // walk to the nearest OPAQUE surface; skip translucent overlays
