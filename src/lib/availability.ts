@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { generateConfirmationNumber, generateCustomerAccessToken } from '@/lib/utils'
-import { addMinutes } from 'date-fns'
+import { addMinutes, format } from 'date-fns'
 import {
   dayBoundsFromYMD,
   localTimeToUTCFromYMD,
@@ -527,6 +527,51 @@ export async function validateSlot(params: {
  * Create an appointment with full double-booking protection.
  * Uses a database transaction with a re-check inside to prevent race conditions.
  */
+
+/**
+ * Next available slot for a SPECIFIC barber over the coming days — powers
+ * "NEXT AVAILABLE" chips in barber discovery (homepage team section,
+ * /barbers cards, profile pages). Uses the same slot engine as the booking
+ * flow; no parallel availability system. Returns null when nothing is open
+ * in the window (renderers must omit the chip then — never fake data).
+ */
+export async function getBarberNextAvailable(params: {
+  businessId: string
+  barberId: string
+  days?: number
+}): Promise<{ date: string; time: string } | null> {
+  const { businessId, barberId, days = 7 } = params
+
+  // The barber must belong to this business and be active (tenant isolation).
+  const barber = await prisma.barber.findFirst({
+    where: { id: barberId, businessId, isActive: true },
+    select: { id: true, services: { select: { serviceId: true } } },
+  })
+  if (!barber) return null
+
+  // Pick the shortest active service this barber offers for slot math —
+  // the shortest duration gives the widest honest availability picture.
+  const service = await prisma.service.findFirst({
+    where: { businessId, isActive: true },
+    orderBy: { duration: 'asc' },
+    select: { id: true },
+  })
+  if (!service) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(today)
+    date.setDate(date.getDate() + i)
+    const dateStr = format(date, 'yyyy-MM-dd')
+    const slots = await getAvailableSlots({ businessId, barberId, serviceId: service.id, date })
+    const open = slots.find((slot) => slot.available)
+    if (open) return { date: dateStr, time: open.time }
+  }
+  return null
+}
+
 export async function createAppointmentSafely(params: {
   businessId: string
   barberId: string
@@ -765,7 +810,7 @@ export async function createAppointmentSafely(params: {
   } catch (error) {
     const message = error.message || 'Unknown error'
     if (message === 'SLOT_TAKEN' || error?.code === 'P2034' || error?.code === '23P01') {
-      return { success: false, error: 'That appointment was just booked by someone else. Please choose another time.' }
+      return { success: false, error: 'That appointment time was just booked by another customer. Please choose another time.' }
     }
     if (message === 'BARBER_OFF') {
       return { success: false, error: 'The barber is not scheduled to work at this time.' }

@@ -339,7 +339,7 @@ async function testValidAndInvalidBookings() {
       startTime: slot,
       customerData: { firstName: 'Dup', lastName: 'Book', phone: '5550004444', email: `dup${Date.now()}@example.com` },
     })
-    assert(dup.success === false && /SLOT_TAKEN|someone else/.test(String(dup.error)), 'double-booking rejected (SLOT_TAKEN surfaced as user-facing message)')
+    assert(dup.success === false && /SLOT_TAKEN|another customer|someone else/.test(String(dup.error)), 'double-booking rejected (SLOT_TAKEN surfaced as user-facing message)')
 
     // Buffer applies to the new booking: next slot must respect 15-min buffer
     const tight = await validateSlot({

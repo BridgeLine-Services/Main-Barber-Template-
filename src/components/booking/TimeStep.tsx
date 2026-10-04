@@ -25,7 +25,10 @@ interface TimeStepProps {
   serviceId: string
   selectedDate: Date | null
   selectedTime: string | null
+  /** Marks the chosen time (does NOT advance — the wizard's Continue does). */
   onSelect: (time: string, specificBarberId?: string) => void
+  /** Clears a preselected time that no longer exists in the live slots. */
+  onClearInvalidTime?: (reason: string) => void
 }
 
 export function TimeStep({
@@ -34,6 +37,7 @@ export function TimeStep({
   selectedDate,
   selectedTime,
   onSelect,
+  onClearInvalidTime,
 }: TimeStepProps) {
   const [slots, setSlots] = useState<Slot[]>([])
   const [earliest, setEarliest] = useState<EarliestInfo | null>(null)
@@ -72,8 +76,23 @@ export function TimeStep({
         throw new Error(data.error || 'Failed to load availability')
       }
 
-      setSlots(data.slots || [])
+      const loaded = data.slots || []
+      setSlots(loaded)
       setEarliest(data.earliest || null)
+
+      // A preselected time (e.g. deep-linked from quick booking) only stays
+      // selected when it still exists. If it vanished we clear it and tell
+      // the customer why — never silently swap in another time.
+      if (selectedTime && onClearInvalidTime) {
+        const stillThere = loaded.some(
+          (slot: Slot) => slot.time === selectedTime && slot.available
+        )
+        if (!stillThere) {
+          onClearInvalidTime(
+            `${selectedTime} is no longer available for this date. Please choose another time below.`
+          )
+        }
+      }
     } catch (err) {
       console.error('TimeStep fetch error:', err)
       setError(err.message || 'Error loading available times. Please try again.')
@@ -136,6 +155,45 @@ export function TimeStep({
           <Loader2 className="w-8 h-8 text-accent animate-spin" />
           <p className="text-sm">Checking real-time schedule availability...</p>
         </Card>
+      )}
+
+      {/* Selected-time confirmation — the customer sees exactly what is
+          selected and stays free to change it. No auto-advance here; the
+          wizard's Continue button moves the flow forward. */}
+      {!loading && !error && selectedTime && (
+        <div
+          role="status"
+          aria-label="Selected time"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/[0.06] px-4 py-3.5"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Clock className="h-4.5 w-4.5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Selected
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                {format(selectedDate, 'EEEE, MMMM d')}{' '}
+                <span className="tabular-nums">{selectedTime}</span>
+                {(() => {
+                  const slot = slots.find((sl) => sl.time === selectedTime)
+                  return slot?.barberName ? (
+                    <span className="font-normal text-muted-foreground"> · {slot.barberName}</span>
+                  ) : null
+                })()}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSelect('')}
+            className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-ring"
+          >
+            Change Time
+          </button>
+        </div>
       )}
 
       {error && !loading && (

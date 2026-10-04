@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         { status: 400 }
       )
     }
-    const { name, specialty, bio, photo, isActive, order, serviceIds } = parseResult.data
+    const { name, specialty, bio, photo, isActive, order, serviceIds, yearsExperience } = parseResult.data
     // Tenant isolation: linked services must belong to THIS business
     if (serviceIds?.length) {
       const owned = await prisma.service.count({
@@ -75,6 +75,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       data: {
         ...(name !== undefined && { name }),
         ...(specialty !== undefined && { specialty }),
+        ...(yearsExperience !== undefined && { yearsExperience }),
         ...(bio !== undefined && { bio }),
         ...(photo !== undefined && { photo }),
         ...(isActive !== undefined && { isActive }),

@@ -13,6 +13,7 @@ interface BarberFormProps {
     id: string
     name: string
     specialty?: string | null
+    yearsExperience?: number | null
     bio?: string | null
     photo?: string | null
     isActive?: boolean
@@ -28,6 +29,9 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
 
   const [name, setName] = useState(barber?.name || '')
   const [specialty, setSpecialty] = useState(barber?.specialty || '')
+  const [yearsExperience, setYearsExperience] = useState<string>(
+    barber?.yearsExperience != null ? String(barber.yearsExperience) : ''
+  )
   const [bio, setBio] = useState(barber?.bio || '')
   const [photo, setPhoto] = useState(barber?.photo || '')
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -92,6 +96,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           body: JSON.stringify({
             name: name.trim(),
             specialty: specialty.trim() || null,
+            yearsExperience: yearsExperience.trim() === '' ? null : Number(yearsExperience),
             bio: bio.trim() || null,
             photo: photo.trim() || null,
             isActive,
@@ -109,6 +114,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           body: JSON.stringify({
             name: name.trim(),
             specialty: specialty.trim() || null,
+            yearsExperience: yearsExperience.trim() === '' ? null : Number(yearsExperience),
             bio: bio.trim() || null,
             photo: photo.trim() || null,
             email: email.trim(),
@@ -165,6 +171,19 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
               placeholder="e.g. Master Barber • Skin Fades & Hot Towel Shaves"
+              className="bg-card border-border text-xs focus:border-ring"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-foreground/85">Years of experience</Label>
+            <Input
+              type="number"
+              min={0}
+              max={80}
+              value={yearsExperience}
+              onChange={(e) => setYearsExperience(e.target.value)}
+              placeholder="e.g. 8 — leave empty if unknown"
               className="bg-card border-border text-xs focus:border-ring"
             />
           </div>

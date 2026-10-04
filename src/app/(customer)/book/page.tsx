@@ -10,8 +10,13 @@ import { DateStep } from '@/components/booking/DateStep'
 import { TimeStep } from '@/components/booking/TimeStep'
 import { CustomerInfoStep } from '@/components/booking/CustomerInfoStep'
 import { ReviewStep } from '@/components/booking/ReviewStep'
-import { ArrowLeft, ArrowRight, Scissors, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Scissors, AlertCircle, Info, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import {
+  applyServiceChange,
+  applyBarberChange,
+  applyDateChange,
+} from '@/lib/booking-flow'
 
 interface Service {
   id: string
@@ -66,6 +71,9 @@ function BookingFlow() {
   const [firstAvailableEnabled, setFirstAvailableEnabled] = useState(true)
   const [policyVersion, setPolicyVersion] = useState<string | null>(null)
   const [policyAccepted, setPolicyAccepted] = useState(false)
+  // Customer-facing explanations (invalidated selections, hand-offs from
+  // quick booking). Never used to justify a silent selection change.
+  const [notice, setNotice] = useState('')
 
   // ─── State persistence (localStorage) ─────────────────────────────
   // Saves booking progress so a page refresh doesn't lose selections.
@@ -106,20 +114,37 @@ function BookingFlow() {
   }, [step, selectedServiceId, selectedBarberId, selectedDate, selectedTime])
 
   // Pre-fill from URL params (service/barber from service menus and barber
-  // cards; date from the homepage quick-booking finder)
+  // cards; date from the homepage quick-booking finder; time from a quick-
+  // booking slot). Everything stays editable — preselecting is a convenience,
+  // never a lock-in.
   useEffect(() => {
     const serviceParam = searchParams.get('serviceId')
     const barberParam = searchParams.get('barberId')
     const dateParam = searchParams.get('date')
+    const timeParam = searchParams.get('time')
     if (serviceParam) setSelectedServiceId(serviceParam)
     if (barberParam) setSelectedBarberId(barberParam)
+    let parsedDate: Date | null = null
     if (dateParam) {
       // Strict YYYY-MM-DD parse — anything else is ignored, never guessed.
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateParam)
       if (m) {
         const parsed = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-        if (!Number.isNaN(parsed.getTime())) setSelectedDate(parsed)
+        if (!Number.isNaN(parsed.getTime())) {
+          parsedDate = parsed
+          setSelectedDate(parsed)
+        }
       }
+    }
+    // Quick-booking handoff: a full service/barber/date/time selection lands
+    // on the Time step so the customer SEES the chosen time preselected and
+    // can change it before continuing. Never auto-advances past it.
+    if (serviceParam && parsedDate && timeParam) {
+      setSelectedTime(timeParam)
+      setStep(4)
+      setNotice(
+        `${timeParam} is preselected from your search. Change it below if you'd like — nothing is booked yet.`
+      )
     }
   }, [searchParams])
 
@@ -168,28 +193,45 @@ function BookingFlow() {
     }
   }
 
-  // ─── Bug Fix #1: Handle "First Available" selection ──────────────────────────
-  // When the user clicks "First Available", the BarberStep returns an EarliestSlot
-  // containing the specific barber, date, and time of the earliest available slot.
-  // We store the specific barber ID (so the customer books with the right person),
-  // pre-select the date, and jump directly to the Time step so they can confirm
-  // or pick a different time on that date.
-  const handleFirstAvailable = (slot: EarliestSlot) => {
-    // "First Available" resolves the earliest real slot across all barbers.
-    // Set barber + date + time from the computed slot and jump straight to
-    // Customer Info — all three selections are handled automatically.
+  // ─── "First Available" — a suggestion the customer explicitly accepts ──────
+  // The barber/date/time are prefilled ONLY when the customer clicks
+  // "Use This Appointment". Even then everything stays editable: the flow
+  // continues through the normal wizard, and the Review step exposes an
+  // Edit control for every selection.
+  const handleUseFirstAvailable = (slot: EarliestSlot) => {
     setSelectedBarberId(slot.barberId)
     setResolvedBarberName(slot.barberName)
     setSelectedDate(new Date(slot.date + 'T00:00:00'))
-    setSelectedTime(slot.time) // Auto-select the earliest available time
-    setStep(5) // Jump to Customer Info step
+    setSelectedTime(slot.time)
+    setStep(5) // Continue the normal flow at Customer Information
+    setNotice(
+      `Suggested appointment preselected: ${slot.barberName}, ${slot.time}. You can change any of it before confirming.`
+    )
   }
 
-  // ─── Bug Fix #2: Capture specificBarberId from TimeStep ──────────────────────
-  // When the user selects a time under "Any Available Barber" or "First Available",
-  // the TimeStep returns (time, specificBarberId). We must capture the barber ID
-  // so the booking goes to the correct barber, not "any".
+  // "Choose Another Date" from the suggestion: keep the customer in 'any
+  // barber' mode (no barber chosen for them) and let them pick a date; the
+  // Time step will show every barber's open times for that date.
+  const handleFirstAvailableOtherDate = (slot: EarliestSlot) => {
+    setSelectedBarberId('any')
+    setResolvedBarberName('')
+    setSelectedDate(new Date(slot.date + 'T00:00:00'))
+    setSelectedTime('')
+    setStep(3)
+    setNotice(
+      'Pick any date — we’ll show open times across the whole team for the day you choose.'
+    )
+  }
+
+  // ─── Time selection — marks the choice, never auto-advances ─────────────────
+  // Under "Any Available Barber" the chosen slot resolves to a specific
+  // barber; we capture that id so the review shows the real barber.
   const handleTimeSelect = (time: string, specificBarberId?: string) => {
+    if (time === '') {
+      // "Change Time" — deselect only; the customer stays on this step.
+      setSelectedTime('')
+      return
+    }
     if (specificBarberId && specificBarberId !== selectedBarberId) {
       // Resolve the barber name for the review step
       const barber = barbers.find(b => b.id === specificBarberId)
@@ -197,7 +239,71 @@ function BookingFlow() {
       setSelectedBarberId(specificBarberId)
     }
     setSelectedTime(time)
-    setStep(5)
+    // No setStep here — the customer reviews their choice and presses
+    // Continue when ready.
+  }
+
+  // A preselected time that no longer exists in the live slot list is
+  // cleared (never silently replaced with another time) and explained.
+  const handleClearInvalidTime = (reason: string) => {
+    setSelectedTime('')
+    setNotice(reason)
+  }
+
+  // ─── Selection changes with invalidation ────────────────────────────────
+  // When a change invalidates a later selection, clear ONLY the invalid part
+  // and explain why (booking-flow.ts holds the pure rules, unit-tested).
+
+  const handleServiceSelect = (id: string) => {
+    const result = applyServiceChange(
+      {
+        serviceId: selectedServiceId,
+        barberId: selectedBarberId,
+        dateISO: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        time: selectedTime,
+      },
+      id,
+      barbers
+    )
+    setSelectedServiceId(result.selections.serviceId)
+    if (result.selections.barberId !== selectedBarberId) setSelectedBarberId(result.selections.barberId)
+    setSelectedTime(result.selections.time)
+    if (result.selections.barberId === '') setResolvedBarberName('')
+    setNotice(result.notice ?? '')
+    setStep(2)
+  }
+
+  const handleBarberSelect = (id: string) => {
+    const result = applyBarberChange(
+      {
+        serviceId: selectedServiceId,
+        barberId: selectedBarberId,
+        dateISO: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        time: selectedTime,
+      },
+      id
+    )
+    setSelectedBarberId(result.selections.barberId)
+    setSelectedTime(result.selections.time)
+    setResolvedBarberName('')
+    setNotice('')
+    setStep(3)
+  }
+
+  const handleDateSelect = (d: Date) => {
+    const result = applyDateChange(
+      {
+        serviceId: selectedServiceId,
+        barberId: selectedBarberId,
+        dateISO: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        time: selectedTime,
+      },
+      d.toISOString().split('T')[0]
+    )
+    setSelectedDate(d)
+    setSelectedTime(result.selections.time)
+    setNotice('')
+    setStep(4)
   }
 
   const handleConfirm = async () => {
@@ -311,6 +417,24 @@ function BookingFlow() {
         {/* Step surface — editorial: hairline top, generous padding, no
             card-in-card chrome. Steps carry their own internal structure. */}
         <div className="mt-8 border-t-2 border-primary/60 pt-8 sm:pt-10">
+              {notice && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mb-6 flex items-start gap-3 rounded-md border border-primary/30 bg-primary/[0.05] px-4 py-3"
+                >
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <p className="text-sm text-foreground/90">{notice}</p>
+                  <button
+                    type="button"
+                    onClick={() => setNotice('')}
+                    aria-label="Dismiss message"
+                    className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-ring"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
               <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={step}
@@ -323,7 +447,7 @@ function BookingFlow() {
                 <ServiceStep
                   services={services}
                   selectedId={selectedServiceId}
-                  onSelect={(id) => { setSelectedServiceId(id); setStep(2) }}
+                  onSelect={handleServiceSelect}
                 />
               )}
 
@@ -331,8 +455,9 @@ function BookingFlow() {
                 <BarberStep
                   barbers={barbers}
                   selectedId={selectedBarberId}
-                  onSelect={(id) => { setSelectedBarberId(id); setStep(3) }}
-                  onSelectFirstAvailable={firstAvailableEnabled ? handleFirstAvailable : undefined}
+                  onSelect={handleBarberSelect}
+                  onUseFirstAvailable={firstAvailableEnabled ? handleUseFirstAvailable : undefined}
+                  onChooseAnotherDate={firstAvailableEnabled ? handleFirstAvailableOtherDate : undefined}
                   serviceId={selectedServiceId}
                   serviceName={services.find(svc => svc.id === selectedServiceId)?.name ?? null}
                 />
@@ -341,7 +466,7 @@ function BookingFlow() {
               {step === 3 && (
                 <DateStep
                   selectedDate={selectedDate}
-                  onSelect={(d) => { setSelectedDate(d); setStep(4) }}
+                  onSelect={handleDateSelect}
                   serviceId={selectedServiceId}
                   barberId={selectedBarberId}
                 />
@@ -354,6 +479,7 @@ function BookingFlow() {
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
                   onSelect={handleTimeSelect}
+                  onClearInvalidTime={handleClearInvalidTime}
                 />
               )}
 
@@ -378,6 +504,12 @@ function BookingFlow() {
                   onConfirm={handleConfirm}
                   isSubmitting={isSubmitting}
                   error={bookingError}
+                  onBackToTime={() => { setStep(4); setBookingError('') }}
+                  onEditService={() => { setNotice(''); setStep(1) }}
+                  onEditBarber={() => { setNotice(''); setStep(2) }}
+                  onEditDate={() => { setNotice(''); setStep(3) }}
+                  onEditTime={() => { setNotice(''); setStep(4) }}
+                  onEditInfo={() => { setNotice(''); setStep(5) }}
                 />
               )}
               </motion.div>
@@ -398,9 +530,9 @@ function BookingFlow() {
             <div />
           )}
 
-          {step < 5 && canProceed() && step !== 1 && step !== 2 && (
+          {step < 5 && canProceed() && (
             <Button
-              onClick={() => setStep(step + 1)}
+              onClick={() => { setNotice(''); setStep(step + 1) }}
               className="bg-accent text-accent-foreground hover:brightness-110"
             >
               Continue <ArrowRight className="ml-2 h-4 w-4" />
@@ -412,10 +544,14 @@ function BookingFlow() {
           <div className="mt-4 text-center">
             <Button
               variant="outline"
-              onClick={() => { setStep(4); setBookingError('') }}
+              onClick={() => {
+                setStep(4)
+                setBookingError('')
+                setNotice('That time was just taken — here are the times available now.')
+              }}
               className="border-destructive/40 text-destructive hover:bg-destructive/10"
             >
-              Select a different time
+              See available times
             </Button>
           </div>
         )}

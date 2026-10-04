@@ -28,7 +28,13 @@ interface BarberStepProps {
   barbers: BarberItem[]
   selectedId: string | null
   onSelect: (barberId: string) => void
-  onSelectFirstAvailable?: (slot: EarliestSlot) => void
+  /**
+   * First Available is a RECOMMENDATION, never an auto-selection. The
+   * customer explicitly confirms with "Use This Appointment" or keeps
+   * browsing with the other two actions.
+   */
+  onUseFirstAvailable?: (slot: EarliestSlot) => void
+  onChooseAnotherDate?: (slot: EarliestSlot) => void
   serviceId?: string | null
   /** Name of the selected service — used for specialty-match ranking. */
   serviceName?: string | null
@@ -94,15 +100,16 @@ function FlexRow({ icon, title, badge, selected, onClick, children }: FlexRowPro
 // portrait-forward where photos exist, with specialty/bio where available.
 // All selection logic (earliest-slot fetch, service filtering,
 // specialty-match ranking) is unchanged from the previous implementation.
-export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailable, serviceId, serviceName }: BarberStepProps) {
+export function BarberStep({ barbers, selectedId, onSelect, onUseFirstAvailable, onChooseAnotherDate, serviceId, serviceName }: BarberStepProps) {
   const [earliestSlot, setEarliestSlot] = useState<EarliestSlot | null>(null)
   const [loadingEarliest, setLoadingEarliest] = useState(false)
+  const [showSuggestion, setShowSuggestion] = useState(false)
 
   // Fetch earliest available slot across all barbers (searches next 30 days).
   // Skipped entirely when the "First available" option is disabled for this
   // business (the wizard passes no onSelectFirstAvailable handler).
   useEffect(() => {
-    if (!serviceId || !onSelectFirstAvailable) return
+    if (!serviceId || !onUseFirstAvailable) return
 
     setLoadingEarliest(true)
     fetch(`/api/availability/earliest?serviceId=${encodeURIComponent(serviceId)}`)
@@ -121,7 +128,7 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
       })
       .catch(() => setEarliestSlot(null))
       .finally(() => setLoadingEarliest(false))
-  }, [serviceId, onSelectFirstAvailable])
+  }, [serviceId, onUseFirstAvailable])
 
   // Filter barbers client-side based on whether they offer the selected service
   const filteredBarbers = barbers.filter((barber) => {
@@ -136,14 +143,6 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
     })
   })
 
-  const handleFirstAvailable = () => {
-    if (earliestSlot && onSelectFirstAvailable) {
-      onSelectFirstAvailable(earliestSlot)
-    } else {
-      onSelect('any')
-    }
-  }
-
   return (
     <div>
       <div className="mb-8">
@@ -155,16 +154,19 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
       </div>
 
       <div className="border-t border-border/60">
-        {/* First Available — earliest slot across all barbers.
+        {/* First Available — a RECOMMENDATION, not an auto-selection.
+            The row reveals a suggestion card; the customer explicitly picks
+            "Use This Appointment" (which they can still edit at Review) or
+            keeps browsing barbers/dates themselves.
             Rendered only when the owner allows it (handler passed). */}
-        {onSelectFirstAvailable && (
+        {onUseFirstAvailable && (
           <div className="border-b border-border/60">
             <FlexRow
               icon={<Zap className="h-5 w-5" aria-hidden="true" />}
               title="First Available"
-              badge="Earliest"
-              selected={selectedId === 'first-available'}
-              onClick={handleFirstAvailable}
+              badge="Suggested"
+              selected={showSuggestion}
+              onClick={() => setShowSuggestion((v) => !v)}
             >
               {loadingEarliest ? (
                 <div className="flex items-center gap-2 mt-1">
@@ -173,13 +175,15 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
                 </div>
               ) : earliestSlot ? (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold text-primary">{earliestSlot.time}</span>
-                  {' on '}
+                  Earliest opening:{' '}
                   <span className="font-semibold text-primary">
                     {format(parseISO(earliestSlot.date), 'EEE, MMM d')}
                   </span>
+                  {' at '}
+                  <span className="font-semibold text-primary">{earliestSlot.time}</span>
                   {' with '}
                   <span className="font-medium text-foreground/80">{earliestSlot.barberName}</span>
+                  {' — see it as a suggestion, you stay in control.'}
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground mt-1">
@@ -187,6 +191,59 @@ export function BarberStep({ barbers, selectedId, onSelect, onSelectFirstAvailab
                 </p>
               )}
             </FlexRow>
+
+            {/* Suggestion card — revealed by the customer, never auto-open */}
+            {showSuggestion && earliestSlot && (
+              <div
+                role="group"
+                aria-label="First available suggestion"
+                className="mx-2 mb-4 rounded-lg border border-primary/30 bg-primary/[0.05] p-4 sm:p-5"
+              >
+                <p className="eyebrow-accent mb-3">First Available</p>
+                <div className="flex items-baseline justify-between gap-4">
+                  <div>
+                    <p className="font-display text-lg font-semibold text-foreground">
+                      {earliestSlot.barberName}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {format(parseISO(earliestSlot.date), 'EEEE, MMMM d')}
+                    </p>
+                  </div>
+                  <p className="font-display text-2xl font-bold text-foreground tabular-nums">
+                    {earliestSlot.time}
+                  </p>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Nothing is booked yet. Use this suggestion or keep choosing yourself —
+                  you can change anything before confirming.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUseFirstAvailable(earliestSlot)}
+                    className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-ring"
+                  >
+                    Use This Appointment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuggestion(false)}
+                    className="inline-flex min-h-10 items-center rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-ring"
+                  >
+                    Choose Another Barber
+                  </button>
+                  {onChooseAnotherDate && (
+                    <button
+                      type="button"
+                      onClick={() => onChooseAnotherDate(earliestSlot)}
+                      className="inline-flex min-h-10 items-center rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-ring"
+                    >
+                      Choose Another Date
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

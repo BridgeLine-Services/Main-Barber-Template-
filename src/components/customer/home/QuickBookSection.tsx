@@ -59,8 +59,8 @@ export function QuickBookSection({ services, barbers, buttonShape }: QuickBookSe
 
   // Everything the booking page needs as query params — the single handoff
   // point into the existing flow.
-  const bookHref = (chosenDate: string, chosenBarber: string) =>
-    `/book?serviceId=${encodeURIComponent(serviceId)}${chosenBarber !== 'any' ? `&barberId=${encodeURIComponent(chosenBarber)}` : ''}&date=${encodeURIComponent(chosenDate)}`
+  const bookHref = (chosenDate: string, chosenBarber: string, chosenTime?: string) =>
+    `/book?serviceId=${encodeURIComponent(serviceId)}${chosenBarber !== 'any' ? `&barberId=${encodeURIComponent(chosenBarber)}` : ''}&date=${encodeURIComponent(chosenDate)}${chosenTime ? `&time=${encodeURIComponent(chosenTime)}` : ''}`
 
   const findTimes = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -191,7 +191,7 @@ export function QuickBookSection({ services, barbers, buttonShape }: QuickBookSe
                   {state.slots.map((slot) => (
                     <a
                       key={slot}
-                      href={bookHref(date, liveBarberId)}
+                      href={bookHref(date, liveBarberId, slot)}
                       className="inline-flex min-h-10 items-center rounded-md border border-border/70 bg-card px-4 py-2 text-sm font-medium tabular-nums text-foreground transition-colors hover:border-accent/50 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {slot}

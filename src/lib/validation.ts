@@ -95,6 +95,7 @@ export const updateServiceSchema = z.object({
 export const createBarberSchema = z.object({
   name: z.string().min(1).max(100),
   specialty: z.string().max(200).nullable().optional(),
+  yearsExperience: z.number().int().min(0).max(80).nullable().optional(),
   bio: z.string().max(2000).nullable().optional(),
   photo: z.string().url('Photo must be a valid URL (https://...)').nullable().optional(),
   isActive: z.boolean().optional(),
@@ -105,6 +106,7 @@ export const createBarberSchema = z.object({
 export const updateBarberSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   specialty: z.string().max(200).nullable().optional(),
+  yearsExperience: z.number().int().min(0).max(80).nullable().optional(),
   bio: z.string().max(2000).nullable().optional(),
   photo: z.string().url('Photo must be a valid URL (https://...)').nullable().optional(),
   isActive: z.boolean().optional(),

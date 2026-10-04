@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { name, specialty, bio, photo, isActive, order, serviceIds } = parseResult.data
+    const { name, specialty, bio, photo, isActive, order, serviceIds, yearsExperience } = parseResult.data
     const { email, password } = body
     // Tenant isolation: linked services must belong to THIS business
     if (serviceIds?.length) {
@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
           businessId,
           name,
           specialty: specialty || null,
+          yearsExperience: yearsExperience ?? null,
           bio: bio || null,
           photo: photo || null,
           isActive: isActive ?? true,

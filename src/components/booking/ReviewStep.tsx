@@ -26,6 +26,32 @@ interface ReviewStepProps {
   isSubmitting: boolean
   error: string | null
   onBackToTime?: () => void
+  /** Edit paths — the review step is never a dead end. Each returns the
+   *  customer to that step while the page preserves the other selections. */
+  onEditService?: () => void
+  onEditBarber?: () => void
+  onEditDate?: () => void
+  onEditTime?: () => void
+  onEditInfo?: () => void
+}
+
+
+/**
+ * Small secondary "Edit" control for review rows — visible but quiet, so it
+ * never competes with the primary Confirm action.
+ */
+function EditLink({ label, onClick }: { label: string; onClick?: () => void }) {
+  if (!onClick) return null
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-8 items-center rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring shrink-0"
+      aria-label={`Edit ${label}`}
+    >
+      Edit
+    </button>
+  )
 }
 
 // Final stage: a polished appointment summary — the service leads with
@@ -46,6 +72,11 @@ export function ReviewStep({
   isSubmitting,
   error,
   onBackToTime,
+  onEditService,
+  onEditBarber,
+  onEditDate,
+  onEditTime,
+  onEditInfo,
 }: ReviewStepProps) {
   return (
     <div className="max-w-xl">
@@ -95,31 +126,48 @@ export function ReviewStep({
         <p className="mt-1 text-sm text-muted-foreground">
           {service ? `${formatDuration(service.duration)} in the chair` : ''}
         </p>
+        {onEditService && (
+          <div className="mt-3">
+            <EditLink label="service" onClick={onEditService} />
+          </div>
+        )}
       </div>
 
       {/* Details as quiet definition rows across hairlines */}
       <dl className="divide-y divide-border/60">
         <div className="py-4 flex items-baseline justify-between gap-4">
           <dt className="eyebrow">Barber</dt>
-          <dd className="text-sm font-semibold text-foreground text-right">
-            {barber?.name || 'Any Available Barber'}
-            {barber?.specialty ? (
-              <span className="block text-xs font-normal text-muted-foreground">{barber.specialty}</span>
-            ) : null}
+          <dd className="flex items-center gap-3 text-sm font-semibold text-foreground text-right">
+            <span>
+              {barber?.name || 'Any Available Barber'}
+              {barber?.specialty ? (
+                <span className="block text-xs font-normal text-muted-foreground">{barber.specialty}</span>
+              ) : null}
+            </span>
+            <EditLink label="barber" onClick={onEditBarber} />
           </dd>
         </div>
         <div className="py-4 flex items-baseline justify-between gap-4">
           <dt className="eyebrow">Date</dt>
-          <dd className="text-sm font-semibold text-foreground">{date ? formatFullDate(date) : '-'}</dd>
+          <dd className="flex items-center gap-3 text-sm font-semibold text-foreground">
+            <span>{date ? formatFullDate(date) : '-'}</span>
+            <EditLink label="date" onClick={onEditDate} />
+          </dd>
         </div>
         <div className="py-4 flex items-baseline justify-between gap-4">
           <dt className="eyebrow">Time</dt>
-          <dd className="font-display text-lg font-semibold text-foreground tabular-nums">{time || '-'}</dd>
+          <dd className="flex items-center gap-3 font-display text-lg font-semibold text-foreground tabular-nums">
+            <span>{time || '-'}</span>
+            <EditLink label="time" onClick={onEditTime} />
+          </dd>
         </div>
         <div className="py-4 flex items-baseline justify-between gap-4">
           <dt className="eyebrow">Name</dt>
-          <dd className="text-sm font-semibold text-foreground">
-            {customerInfo.firstName} {customerInfo.lastName}
+          <dd className="flex items-center gap-3 text-sm font-semibold text-foreground">
+            <span>
+              {customerInfo.firstName} {customerInfo.lastName}
+            </span>
+            <EditLink label="customer information" onClick={onEditInfo} />
           </dd>
         </div>
         <div className="py-4 flex items-baseline justify-between gap-4">
@@ -165,6 +213,41 @@ export function ReviewStep({
             </span>
           </span>
         </label>
+      )}
+
+      {/* Full edit path — the customer is never trapped here. Quiet
+          secondary controls; the Confirm button below stays primary. */}
+      {(onEditService || onEditBarber || onEditDate || onEditTime || onEditInfo) && (
+        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border/60 pt-5">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Need a change?
+          </span>
+          {onEditService && (
+            <button type="button" onClick={onEditService} className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring">
+              Edit Service
+            </button>
+          )}
+          {onEditBarber && (
+            <button type="button" onClick={onEditBarber} className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring">
+              Edit Barber
+            </button>
+          )}
+          {onEditDate && (
+            <button type="button" onClick={onEditDate} className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring">
+              Edit Date
+            </button>
+          )}
+          {onEditTime && (
+            <button type="button" onClick={onEditTime} className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring">
+              Edit Time
+            </button>
+          )}
+          {onEditInfo && (
+            <button type="button" onClick={onEditInfo} className="inline-flex min-h-9 items-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary focus-ring">
+              Edit Information
+            </button>
+          )}
+        </div>
       )}
 
       {/* Confirm — the confident end of the flow */}
