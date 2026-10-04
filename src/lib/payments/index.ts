@@ -1,34 +1,38 @@
 /**
  * Payment provider registry (Requirement 23).
  *
- * Resolves the PaymentProvider for a business. Today the template ships
- * exactly one provider: pay-at-shop (in_person), matching
- * Business.paymentInPerson. When a deployment adds an online provider
- * (Stripe etc.), register it here and extend the business-level
- * payment configuration — booking logic does not change.
- * See docs/PAYMENTS.md for the integration contract.
+ * Resolves the PaymentProvider for a business. The template ships
+ * pay-at-shop (in_person) by default. The Stripe provider registers
+ * only when STRIPE_SECRET_KEY is configured — a shop with online
+ * payments requested but no key fails closed (pay-at-shop), never
+ * invents a provider. Booking logic never changes: see docs/PAYMENTS.md.
  */
 import type { PaymentProvider } from './types'
 import { inPersonProvider } from './providers/in-person'
+import { stripeProvider } from './providers/stripe'
+import { stripeConfigured } from './providers/stripe-client'
 
 export * from './types'
 export * from './state-machine'
-export { inPersonProvider }
+export { inPersonProvider, stripeProvider, stripeConfigured }
 
 const REGISTRY: Record<string, PaymentProvider> = {
   [inPersonProvider.id]: inPersonProvider,
+  [stripeProvider.id]: stripeProvider,
 }
 
 /**
  * Resolve the provider for a business based on its payment configuration.
- * `paymentInPerson === false` without a registered online provider is a
- * configuration error: we fail closed rather than inventing a provider.
+ * `paymentInPerson === false` requires a registered ONLINE provider that
+ * is actually configured — otherwise we fail closed rather than invent
+ * a provider.
  */
 export function resolvePaymentProvider(opts: { paymentInPerson: boolean }): PaymentProvider {
   if (opts.paymentInPerson) return inPersonProvider
+  if (stripeConfigured()) return stripeProvider
   throw new Error(
     'Business has online payments enabled but no payment provider is configured. ' +
-    'Register the provider in src/lib/payments/index.ts (see docs/PAYMENTS.md).'
+    'Set STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET (see docs/PAYMENTS.md).',
   )
 }
 

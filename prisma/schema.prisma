@@ -100,16 +100,17 @@ model Business {
   portalVerificationChallenges PortalVerificationChallenge[]
   portalSessions               PortalSession[]
 
-  walkInsWelcome                   Boolean @default(true)
-  firstAvailableBookingEnabled     Boolean @default(true) // allow "First available" option in the booking flow
-  parkingAvailable                 Boolean @default(false)
-  paymentInPerson                  Boolean @default(true)
+  walkInsWelcome                   Boolean          @default(true)
+  firstAvailableBookingEnabled     Boolean          @default(true) // allow "First available" option in the booking flow
+  parkingAvailable                 Boolean          @default(false)
+  paymentInPerson                  Boolean          @default(true)
+  paymentSettings                  PaymentSettings?
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
   // Existing boolean columns above stay authoritative for their feature.
   featureOverrides                 Json?
-  customerRescheduleEnabled        Boolean @default(true)
-  customerRescheduleMinNoticeHours Int     @default(24)
+  customerRescheduleEnabled        Boolean          @default(true)
+  customerRescheduleMinNoticeHours Int              @default(24)
   customerRescheduleWindowDays     Int?
 
   // Booking rules (server-side enforced in src/lib/availability.ts)
@@ -166,26 +167,29 @@ model User {
 // ─── Barbers ───────────────────────────────────────────────────────────────
 
 model Barber {
-  id         String   @id @default(cuid())
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  name       String
-  slug       String?  @unique // URL slug for /barbers/[slug] pages, auto-generated from name
-  photo      String?
-  specialty  String? // e.g. "Fades • Tapers • Beard Work"
-  bio        String?  @db.Text
+  payments        Payment[] @relation("PaymentBarber")
+  commissionRate  Float? // per-barber commission % override; null = use PaymentSettings default
+  tipsOptOut      Boolean   @default(false) // barber-level payment preference: decline tips at checkout
+  id              String    @id @default(cuid())
+  businessId      String
+  business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String?   @unique // URL slug for /barbers/[slug] pages, auto-generated from name
+  photo           String?
+  specialty       String? // e.g. "Fades • Tapers • Beard Work"
+  bio             String?   @db.Text
   yearsExperience Int? // years behind the chair — optional, shown when set
-  isActive   Boolean  @default(true)
-  order      Int      @default(0)
+  isActive        Boolean   @default(true)
+  order           Int       @default(0)
   // Barber contact / social (self-editable via barber portal)
-  phone      String?
-  email      String?
-  instagram  String?
-  facebook   String?
-  tiktok     String?
-  website    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  phone           String?
+  email           String?
+  instagram       String?
+  facebook        String?
+  tiktok          String?
+  website         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   schedules             Schedule[]
   appointments          Appointment[]
@@ -411,6 +415,8 @@ model RetentionSettings {
 // ─── Customers ────────────────────────────────────────────────────────────
 
 model Customer {
+  stripeCustomerId String? // Stripe Customer id for card-on-file (never raw card data)
+
   payments        Payment[]
   id              String    @id @default(cuid())
   businessId      String
@@ -1014,11 +1020,14 @@ enum PaymentKind {
   DEPOSIT // required upfront deposit
   TIP // gratuity
   REFUND // reversal of a previous payment
+  CANCELLATION_FEE // late-cancel fee charged by policy
+  NO_SHOW_FEE // missed-appointment fee charged by policy
 }
 
 enum PaymentMethod {
   IN_PERSON // pay at the shop (default template behavior)
-  CARD // online card payment (future provider, e.g. Stripe)
+  CARD // online card payment (e.g. Stripe)
+  CASH // cash collected at the shop (POS)
 }
 
 enum PaymentStatus {
@@ -1028,6 +1037,7 @@ enum PaymentStatus {
   FAILED // declined/errored (retryable)
   CANCELED // abandoned/canceled before settlement
   REFUNDED // fully reversed after succeeding
+  PARTIALLY_REFUNDED // reversed for less than the full amount
 }
 
 enum BookingQuestionType {
@@ -1093,11 +1103,15 @@ model Payment {
   appointment       Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   customerId        String?
   customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  barberId          String? // barber who performed the work (commission + history filter)
+  barber            Barber?       @relation("PaymentBarber", fields: [barberId], references: [id], onDelete: SetNull)
   kind              PaymentKind
   method            PaymentMethod
   provider          String // provider id, e.g. "in_person", "stripe"
   providerRefId     String? // provider's transaction/intent id — never card data
   amount            Float
+  taxAmount         Float         @default(0) // tax collected on this line (settings rate at sale time)
+  refundedAmount    Float         @default(0) // running total reversed against this payment
   currency          String        @default("USD")
   status            PaymentStatus @default(PENDING)
   failureReason     String?
@@ -1113,7 +1127,51 @@ model Payment {
   @@index([businessId])
   @@index([appointmentId])
   @@index([customerId])
+  @@index([barberId])
   @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([businessId, barberId, createdAt])
+}
+
+// ─── Payments & POS (optional; owner-controlled) ──────────────────────────
+// Owner master switch + granular POS configuration. When `enabled` is
+// false the shop operates purely in pay-at-shop mode (the template
+// default): booking never requires payment, no payment UI is shown, and
+// the Payment ledger stays untouched. One row per business.
+model PaymentSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  enabled                Boolean @default(false) // master "Payments & POS" switch (owner-only)
+  allowBarberCheckout    Boolean @default(true) // barbers may run checkout on their own appointments
+  tipsEnabled            Boolean @default(true)
+  tipPresets             Json? // [15,18,20,25] percent options; custom always allowed
+  taxEnabled             Boolean @default(false)
+  taxRatePercent         Float   @default(0)
+  depositsEnabled        Boolean @default(false)
+  depositType            String  @default("PERCENT") // PERCENT | FLAT
+  depositValue           Float   @default(20)
+  cancellationFeeEnabled Boolean @default(false)
+  cancellationFeeAmount  Float   @default(0)
+  noShowFeeEnabled       Boolean @default(false)
+  noShowFeeAmount        Float   @default(0)
+  cardOnFileEnabled      Boolean @default(false) // save cards via Stripe only, never stored locally
+  commissionEnabled      Boolean @default(false)
+  commissionRatePercent  Float? // default % of service revenue; Barber.commissionRate overrides
+  receiptsEmailEnabled   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Stripe webhook idempotency: every processed event id is recorded so
+// replays (Stripe retries, duplicate deliveries) are no-ops.
+model StripeEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  type        String
+  processedAt DateTime @default(now())
 }
 
 model RescheduleHistory {

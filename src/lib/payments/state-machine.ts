@@ -10,10 +10,13 @@ import type { PaymentStatus } from './types'
 const TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   PENDING:    ['PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELED'],
   PROCESSING: ['SUCCEEDED', 'FAILED', 'CANCELED'],
-  SUCCEEDED:  ['REFUNDED'],
+  SUCCEEDED:  ['REFUNDED', 'PARTIALLY_REFUNDED'],
   FAILED:     ['PENDING'], // retryable
   CANCELED:   [],
   REFUNDED:   [],
+  // A partially refunded payment can take further partial refunds
+  // (self-loop) or be fully refunded.
+  PARTIALLY_REFUNDED: ['REFUNDED', 'PARTIALLY_REFUNDED'],
 }
 
 export function canTransition(from: PaymentStatus, to: PaymentStatus): boolean {

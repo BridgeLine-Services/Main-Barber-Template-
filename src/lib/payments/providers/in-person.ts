@@ -56,20 +56,32 @@ export const inPersonProvider: PaymentProvider = {
     const payment = await getPayment(ctx, input.paymentId)
     if (!payment) return { ok: false, payment: null as never, error: 'Payment not found' }
     if (payment.kind === 'REFUND') return { ok: false, payment, error: 'Cannot refund a refund' }
-    if (payment.status !== 'SUCCEEDED') {
+    if (payment.status !== 'SUCCEEDED' && payment.status !== 'PARTIALLY_REFUNDED') {
       return { ok: false, payment, error: transitionError(payment.status, 'REFUNDED') }
     }
+
+    // Partial refunds: `amount` on the input reverses only that much;
+    // omitting it refunds the full remaining balance.
+    const refundAmount =
+      Math.round((((input as RefundInput & { amount?: number }).amount ?? payment.amount - payment.refundedAmount) as number) * 100) / 100
+    const remaining = Math.round((payment.amount - payment.refundedAmount) * 100) / 100
+    if (refundAmount <= 0 || refundAmount > remaining) {
+      return { ok: false, payment, error: `Refund amount must be between 0 and ${remaining.toFixed(2)}` }
+    }
+
     // Refund row (kind=REFUND, negative amount) + original marked
-    // REFUNDED, atomically inside the caller's transaction.
+    // REFUNDED / PARTIALLY_REFUNDED, atomically inside the caller's
+    // transaction. refundedAmount tracks everything reversed so far.
     const refund = await ctx.tx.payment.create({
       data: {
         businessId: ctx.businessId,
         appointmentId: payment.appointmentId,
         customerId: payment.customerId,
+        barberId: payment.barberId,
         kind: 'REFUND',
         method: payment.method,
         provider: this.id,
-        amount: -payment.amount,
+        amount: -refundAmount,
         currency: payment.currency,
         status: 'SUCCEEDED',
         originalPaymentId: payment.id,
@@ -77,8 +89,14 @@ export const inPersonProvider: PaymentProvider = {
         metadata: { reason: input.reason ?? null } as never,
       },
     })
+    const newRefunded = Math.round((payment.refundedAmount + refundAmount) * 100) / 100
+    const fully = newRefunded >= payment.amount - 0.005
+    if (!canTransition(payment.status, (fully ? 'REFUNDED' : 'PARTIALLY_REFUNDED') as PaymentStatus)) {
+      throw new Error(transitionError(payment.status, fully ? 'REFUNDED' : 'PARTIALLY_REFUNDED'))
+    }
     await ctx.tx.payment.update({
-      where: { id: payment.id }, data: { status: 'REFUNDED' },
+      where: { id: payment.id },
+      data: { refundedAmount: newRefunded, status: fully ? 'REFUNDED' : 'PARTIALLY_REFUNDED' },
     })
     return { ok: true, payment: refund }
   },
