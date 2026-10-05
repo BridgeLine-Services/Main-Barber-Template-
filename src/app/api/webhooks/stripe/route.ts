@@ -59,6 +59,14 @@ export async function POST(request: Request) {
           providerRefId: (intentId as string) ?? payment.providerRefId,
         },
       })
+      if (payment.kind === 'NO_SHOW_FEE') {
+        try {
+          const { recordCommissionForFeePayment } = await import('@/lib/commissions')
+          await prisma.$transaction((tx) => recordCommissionForFeePayment(tx, payment.businessId, payment.id))
+        } catch (err) {
+          console.error('no-show fee commission failed', err)
+        }
+      }
     } else if (type === 'payment_intent.payment_failed' && canTransition(payment.status, 'FAILED')) {
       await prisma.payment.update({
         where: { id: payment.id },
@@ -79,6 +87,13 @@ export async function POST(request: Request) {
           where: { id: payment.id },
           data: { refundedAmount: Math.round(refundedTotal * 100) / 100, status: target },
         })
+        // Keep commission payouts in sync with dashboard-initiated refunds.
+        try {
+          const { adjustCommissionsForRefund } = await import('@/lib/commissions')
+          await prisma.$transaction((tx) => adjustCommissionsForRefund(tx, payment.businessId, payment.id))
+        } catch (err) {
+          console.error('commission refund adjustment failed', err)
+        }
       } else if (payment.status !== 'SUCCEEDED') {
         console.warn(`stripe webhook: illegal refund transition ${payment.status} -> ${target}: ${transitionError(payment.status, target)}`)
       }

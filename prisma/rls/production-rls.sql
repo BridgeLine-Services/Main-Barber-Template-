@@ -53,7 +53,8 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   BusinessRewardProgram, CustomerTagAssignment, CancellationRecord,
 --   NoShowPolicy, InventoryItem, MarketingCampaign, WebsiteContent,
 --   BookingQuestion, RescheduleHistory, BeforeAfterPair, PortalVerificationChallenge,
---   PortalSession, Faq
+--   PortalSession, Faq, Payment, PaymentSettings,
+--   CommissionSettings, CommissionRule, BarberCommissionParticipation, CommissionEntry
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -78,7 +79,13 @@ DECLARE
     -- trigger-maintained from the parent record, never app-supplied.
     'BarberService','BarberRewardProgram','AppointmentIntakeResponse',
     -- Payment ledger (migration 20260927163000)
-    'Payment'
+    'Payment',
+    -- POS settings (migration 20260927163000) — financial config, one row per tenant
+    'PaymentSettings',
+    -- Barber commissions (migration 20261004233250): settings, rate
+    -- rules, participation preferences and the immutable ledger.
+    'CommissionSettings','CommissionRule',
+    'BarberCommissionParticipation','CommissionEntry'
   ];
   tbl TEXT;
 BEGIN
@@ -121,7 +128,10 @@ BEGIN
   END LOOP;
 END $$;
 
--- (c) The formerly indirectly-scoped tables (BarberService,
+-- (c) Tables deliberately NOT RLS-scoped: StripeEvent is a global
+--     webhook idempotency ledger (no tenant data — eventId dedupe only).
+
+-- (d) The formerly indirectly-scoped tables (BarberService,
 --     BarberRewardProgram, AppointmentIntakeResponse) now carry a
 --     trigger-maintained businessId (migration 20260927153000) and are
 --     included in t_direct above — no documented gap remains.

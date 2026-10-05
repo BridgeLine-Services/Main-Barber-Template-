@@ -5,7 +5,8 @@
  *   - pay-at-shop mode (POS disabled: no checkout, ledger untouched)
  *   - owner-controlled settings resolution + defaults
  *   - checkout: totals, tax, discounts, line items, tips (separate row),
- *     commission, receipt shape
+ *     commission summary + atomic ledger rows (full system: tests/commissions.test.ts),
+ *     receipt shape
  *   - refunds: full + partial, state-machine legality, ledger integrity
  *   - cancellation / no-show fees
  *   - role permissions: owner / admin / barber-own / barber-other
@@ -124,11 +125,14 @@ async function main() {
       taxRatePercent: 8.875,
       tipsEnabled: true,
       tipPresets: [15, 18, 20, 25],
-      commissionEnabled: true,
-      commissionRatePercent: 30,
     },
   })
   assert(enabledSettings.enabled === true, 'owner can enable Payments & POS')
+  // Commission is its own owner-controlled system (see docs/COMMISSIONS.md):
+  // enable the shop's CommissionSettings so checkout commissions fire.
+  await prisma.commissionSettings.create({
+    data: { businessId: business.id, enabled: true, defaultRateType: 'PERCENT', defaultRatePercent: 30 },
+  })
   assert(JSON.stringify(tipPresets(enabledSettings)) === '[15,18,20,25]', 'tip presets resolve')
   const noPresets = await prisma.paymentSettings.update({ where: { businessId: business.id }, data: { tipPresets: undefined } })
   void noPresets
@@ -168,7 +172,11 @@ async function main() {
     assert(result.tax === 4.88, 'tax computed at settings rate')
     assert(result.tip === 10, 'tip recorded')
     assert(!!result.tipPaymentId, 'tip stored as a SEPARATE payment row')
-    assert(result.commission?.amount === 12, 'commission = 30% of service revenue ($40 → $12)')
+    assert(result.commission?.amount === 10.5, 'commission = 30% of post-discount service revenue ($40 − $5 → $10.50)')
+    assert(result.commission?.rateLabel === '30%', 'checkout snapshot includes the resolved rate label')
+    const ledger = await prisma.commissionEntry.findMany({ where: { businessId: business.id, appointmentId: appointment.id } })
+    assert(ledger.some((e) => e.source === 'SERVICE' && e.commissionAmount === 10.5), 'checkout writes the SERVICE commission ledger row atomically')
+    assert(ledger.every((e) => e.status === 'PENDING'), 'ledger entries start PENDING')
 
     const charge = await prisma.payment.findUnique({ where: { id: chargeId } })
     assert(charge!.kind === 'CHARGE' && charge!.method === 'CASH' && charge!.status === 'SUCCEEDED', 'charge row: CHARGE/CASH/SUCCEEDED')
@@ -204,7 +212,7 @@ async function main() {
       method: 'CASH', tipAmount: 15,
     })
     assert(noTip.tip === 0, 'barber-level tip opt-out wins over a requested tip')
-    assert(noTip.commission === undefined || noTip.commission.amount === 12, 'commission still computed when tips opt out')
+    assert(noTip.commission?.amount === 12, 'commission still computed when tips opt out')
     await prisma.barber.update({ where: { id: barber.id }, data: { tipsOptOut: false } })
   }
 
@@ -341,6 +349,8 @@ async function main() {
   await prisma.business.delete({ where: { id: business.id } }) // cascades payments/settings/appointment
   const remaining = await prisma.payment.count({ where: { businessId: business.id } })
   assert(remaining === 0, 'cascade cleanup removed all test payments')
+  const remainingCommission = await prisma.commissionEntry.count({ where: { businessId: business.id } })
+  assert(remainingCommission === 0, 'cascade cleanup removed all commission ledger rows')
 
   console.log(`\n${'─'.repeat(50)}\n  Results: ${passed} passed, ${failed} failed\n`)
   await prisma.$disconnect()

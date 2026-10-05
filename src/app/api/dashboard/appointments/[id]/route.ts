@@ -213,6 +213,17 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         ipAddress: getClientIP(req),
         userAgent: req.headers.get('user-agent') || undefined,
       })
+      // Optional owner opt-in: commission completed-but-unpaid
+      // appointments (pay-later shops). No-op unless the shop's
+      // commission system is on with calculateOnUnpaid enabled.
+      if (updateData.status === 'COMPLETED') {
+        try {
+          const { recordCommissionForUnpaidCompletion } = await import('@/lib/commissions')
+          await recordCommissionForUnpaidCompletion(businessId, params.id)
+        } catch (error) {
+          console.error('[appointment-mutation] commission hook failed', error)
+        }
+      }
       return NextResponse.json(updated)
     } catch (error) {
       if (error?.message === 'SLOT_TAKEN' || error?.code === 'P2034' || error?.code === '23P01') {

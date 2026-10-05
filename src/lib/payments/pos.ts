@@ -9,6 +9,7 @@
  * dashboard — always tenant-isolated by businessId.
  */
 import { prisma } from '@/lib/prisma'
+import { createCommissionsForCheckout } from '@/lib/commissions'
 import type { PaymentSettings, Barber, Appointment, Service } from '@prisma/client'
 
 export type PosSettings = PaymentSettings
@@ -235,16 +236,19 @@ export interface CheckoutResult {
   total: number
   tax: number
   tip: number
-  commission?: { ratePercent: number; amount: number }
+  /** commission ledger summary (only when the shop's commission system is
+   *  enabled and the barber participates) — see src/lib/commissions.ts */
+  commission?: { rateLabel: string; amount: number }
   receipt: Record<string, unknown>
 }
 
 /**
  * Settle an appointment at the shop (cash / in-person / manual card
- * entry on a terminal). Runs in one transaction; commission (if
- * enabled) is computed on service revenue only and stored on the
- * charge's metadata; tips become a SEPARATE ledger row so tip revenue
- * is never mixed with service revenue.
+ * entry on a terminal). Runs in one transaction. Commission rows (if the
+ * shop's commission system is enabled) are created in the same
+ * transaction via src/lib/commissions.ts, with a summary snapshot kept
+ * on the charge's metadata; tips become a SEPARATE ledger row so tip
+ * revenue is never mixed with service revenue.
  */
 export async function completeCheckout(input: CompleteCheckoutInput): Promise<CheckoutResult> {
   const settings = await getPosSettings(input.businessId)
@@ -272,16 +276,6 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
     else if (input.tipPercent != null && input.tipPercent > 0) tip = round2((servicePrice * input.tipPercent) / 100)
   }
 
-  const commission =
-    settings.commissionEnabled && appointment.barberId
-      ? (() => {
-          const barberRate = (appointment.barber as Barber | null)?.commissionRate
-          const rate = barberRate ?? settings.commissionRatePercent
-          if (rate == null || !(rate > 0)) return undefined
-          return { ratePercent: rate, amount: round2((servicePrice * rate) / 100) }
-        })()
-      : undefined
-
   const idempotencyKey = `checkout:${appointment.id}:${Date.now()}:${input.actorId}`
 
   return prisma.$transaction(async (tx) => {
@@ -302,7 +296,6 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
           lineItems,
           discount,
           serviceSubtotal: servicePrice,
-          ...(commission ? { commissionRate: commission.ratePercent, commissionAmount: commission.amount } : {}),
           completedBy: input.actorId,
           completedByRole: input.actorRole,
         } as never,
@@ -328,6 +321,49 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
       })
       tipPaymentId = tipRow.id
     }
+
+    // Commission ledger (optional, owner-controlled): rows are created in
+    // the SAME transaction as the charge so payment and commission always
+    // commit together. No-op when the shop's commission system is off.
+    const commissionEntries = await createCommissionsForCheckout(tx, {
+      businessId: input.businessId,
+      barberId: appointment.barberId,
+      appointmentId: appointment.id,
+      serviceId: appointment.serviceId,
+      servicePrice,
+      discount,
+      lineItems,
+      tip,
+      chargePaymentId: charge.id,
+      tipPaymentId,
+    })
+    const serviceCommission = commissionEntries.find((e) => e.source === 'SERVICE')
+    if (serviceCommission) {
+      const label =
+        serviceCommission.rateType === 'FIXED'
+          ? `$${(serviceCommission.rateFixed ?? 0).toFixed(2)} flat`
+          : `${serviceCommission.ratePercent ?? 0}%`
+      await tx.payment.update({
+        where: { id: charge.id },
+        data: {
+          metadata: {
+            lineItems,
+            discount,
+            serviceSubtotal: servicePrice,
+            commissionRate: label,
+            commissionAmount: serviceCommission.commissionAmount,
+            completedBy: input.actorId,
+            completedByRole: input.actorRole,
+          } as never,
+        },
+      })
+    }
+    const commission = serviceCommission
+      ? { rateLabel: serviceCommission.rateType === 'FIXED'
+            ? `$${(serviceCommission.rateFixed ?? 0).toFixed(2)} flat`
+            : `${serviceCommission.ratePercent ?? 0}%`,
+          amount: serviceCommission.commissionAmount }
+      : undefined
 
     const receipt = await buildReceipt(tx, charge.id, tipPaymentId)
     return { chargePaymentId: charge.id, tipPaymentId, total, tax, tip, commission, receipt }
@@ -367,8 +403,13 @@ export async function chargeFee(opts: {
   if (!result.ok) throw new Error(result.error ?? 'Fee charge failed')
   const clientSecret = (result.payment.metadata as Record<string, unknown> | null)?.clientSecret as string | undefined
   if (!opts.online) {
-    // Cash/manual fee: settle immediately.
+    // Cash/manual fee: settle immediately, then commission it if the
+    // owner opted into no-show fee commissions (see commissions.ts).
     await prisma.payment.update({ where: { id: result.payment.id }, data: { status: 'SUCCEEDED' } })
+    if (opts.kind === 'NO_SHOW_FEE') {
+      const { recordCommissionForFeePayment } = await import('@/lib/commissions')
+      await prisma.$transaction((tx) => recordCommissionForFeePayment(tx, opts.businessId, result.payment.id))
+    }
   }
   return { paymentId: result.payment.id, clientSecret }
 }

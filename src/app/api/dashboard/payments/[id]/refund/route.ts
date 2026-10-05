@@ -5,6 +5,7 @@ import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
 import { getPaymentProvider } from '@/lib/payments'
 import { getPosSettings } from '@/lib/payments/pos'
+import { adjustCommissionsForRefund } from '@/lib/commissions'
 
 /** Refund (full or partial). Owner/admin only — never exposed to barbers. */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -32,8 +33,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const amount = body.amount != null ? Math.round(body.amount * 100) / 100 : undefined
-    const result = await prisma.$transaction((tx) =>
-      provider.refund(
+    const result = await prisma.$transaction(async (tx) => {
+      const res = await provider.refund(
         { businessId, tx },
         {
           paymentId: payment.id,
@@ -41,8 +42,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           idempotencyKey: `refund:${payment.id}:${amount ?? 'full'}:${Date.now()}`,
           ...(amount !== undefined ? { amount } : {}),
         } as never,
-      ),
-    )
+      )
+      // Refunds reduce the commissioned barber's payout in the same
+      // transaction (idempotent — recomputed from refundedAmount).
+      if (res.ok) await adjustCommissionsForRefund(tx, businessId, payment.id)
+      return res
+    })
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ refund: result.payment })
   } catch (error) {

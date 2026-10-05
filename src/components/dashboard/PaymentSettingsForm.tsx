@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -37,8 +38,6 @@ interface PaymentSettings {
   noShowFeeEnabled: boolean
   noShowFeeAmount: number
   cardOnFileEnabled: boolean
-  commissionEnabled: boolean
-  commissionRatePercent: number
   receiptsEmailEnabled: boolean
 }
 
@@ -62,8 +61,6 @@ export function PaymentSettingsForm() {
     noShowFeeEnabled: false,
     noShowFeeAmount: 50,
     cardOnFileEnabled: false,
-    commissionEnabled: false,
-    commissionRatePercent: 60,
     receiptsEmailEnabled: true,
   })
 
@@ -503,34 +500,16 @@ export function PaymentSettingsForm() {
             />
           </div>
 
-          <div className="border-t border-border/60 pt-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium text-foreground">Track Barber Commission</Label>
-                <p className="text-xs text-muted-foreground">Calculate barber commission splits on service checkouts.</p>
-              </div>
-              <Switch
-                checked={settings.commissionEnabled}
-                onCheckedChange={(checked) => setSettings({ ...settings, commissionEnabled: checked })}
-              />
+          <div className="border-t border-border/60 pt-3">
+            <div>
+              <Label className="text-sm font-medium text-foreground">Barber Commissions</Label>
+              <p className="text-xs text-muted-foreground">
+                Commission rates, rules per barber/service, the payout ledger and reports now live in the dedicated Commissions system.
+              </p>
             </div>
-
-            {settings.commissionEnabled && (
-              <div className="max-w-xs space-y-1.5 pt-1">
-                <Label className="text-xs font-semibold text-foreground">Default Commission Rate (%)</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={settings.commissionRatePercent}
-                    onChange={(e) => setSettings({ ...settings, commissionRatePercent: Number(e.target.value) })}
-                    className="bg-card border-border font-mono text-sm pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
-                </div>
-              </div>
-            )}
+            <Button asChild variant="outline" size="sm" className="mt-2">
+              <Link href="/dashboard/commissions">Open Commissions</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

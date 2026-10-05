@@ -80,6 +80,9 @@ jobs:
       SEED_ALLOW_DESTRUCTIVE: 'true'
       E2E_OWNER_EMAIL: owner@yourbarbershop.com
       E2E_OWNER_PASSWORD: E2eOwner!Passw0rd
+      # The 17-test suite registers several accounts within one minute;
+      # keep the register limiter headroom high enough for that burst.
+      RATE_LIMIT_REGISTER_MAX: '25'
     services:
       postgres:
         image: postgres:15

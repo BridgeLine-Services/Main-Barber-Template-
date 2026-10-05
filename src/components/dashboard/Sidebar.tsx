@@ -38,6 +38,7 @@ import {
   Activity,
   Rocket,
   ArrowLeftRight,
+  BadgePercent,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -135,6 +136,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
         { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
         { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
+        { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
       ],
@@ -160,6 +162,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
         { name: 'Services', href: '/dashboard/services', icon: Scissors },
         { name: 'Portfolio / My Work', href: '/dashboard/portfolio', icon: ImageIcon },
+        { name: 'My Commissions', href: '/dashboard/my-commissions', icon: BadgePercent },
       ],
     },
   ]

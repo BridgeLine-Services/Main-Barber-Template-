@@ -22,6 +22,9 @@ const TENANT_TABLES = [
   'BookingQuestion','RescheduleHistory','PortalVerificationChallenge',
   'PortalSession','Faq','BarberService','BarberRewardProgram',
   'AppointmentIntakeResponse','Payment','BeforeAfterPair',
+  // POS + commissions (settings, rate rules, participation, immutable ledger)
+  'PaymentSettings','CommissionSettings','CommissionRule',
+  'BarberCommissionParticipation','CommissionEntry',
   // tenant roots
   'Business','Schedule',
 ]

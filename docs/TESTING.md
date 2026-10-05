@@ -11,9 +11,11 @@ These need only a Postgres database (CI provisions `postgres:15` as a
 service; locally just have Postgres up and `DATABASE_URL` set):
 
 architecture, barber-mode, booking, calendar-export, cancellation-fill,
-customer-history, daily-operations, factory-launch, factory-readiness,
-feature-flags (lib-level parts), marketing, payment-transitions,
-portfolio, queue, reliability, role-permissions,
+commissions (settings, rate priority, ledger, tips modes, refunds,
+fees, unpaid completions, tenant isolation), customer-history,
+daily-operations, factory-launch, factory-readiness, feature-flags
+(lib-level parts), marketing, payment-transitions, payments (POS
+end-to-end), portfolio, queue, reliability, role-permissions,
 specialty-match, tenant-isolation, tenant-key-sync.
 
 Run all: `npm run test:ci`
@@ -69,6 +71,12 @@ Playwright starts the production server itself (`webServer` in
 an already-running instance. Staff-login credentials come from env —
 seed a dedicated E2E staff account; do not use production accounts.
 
+The full suite registers several customer accounts within a single
+minute, so raise the signup limiter for the run
+(`RATE_LIMIT_REGISTER_MAX=25`; the production default of 3/min stays
+intact) — without it the last staff-invitation test fails on rate
+limiting, not on a real defect.
+
 **Accessibility caveat:** an axe pass is necessary but not sufficient.
 The manual checklist (screen-reader walkthrough, reduced-motion,
 dialog focus trapping, date/time controls) must be performed per
@@ -85,7 +93,7 @@ release; record results per client deployment.
 - GitHub Actions ("Template CI") runs four jobs: template validation
   (architecture check, lint, typecheck, prisma validate/generate,
   production build); server tests against a real PostgreSQL service
-  (`migrate deploy` + `test:ci`, 20 suites); browser E2E + accessibility
+  (`migrate deploy` + `test:ci`, 22 suites); browser E2E + accessibility
   (chromium + Playwright: guest booking, staff login, security bypass,
   WCAG 2.1 AA axe scan against the production build with the seed and
   E2E prep scripts applied); and a report-only production dependency

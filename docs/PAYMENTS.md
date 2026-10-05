@@ -112,8 +112,7 @@ in `src/lib/payments/pos.ts` is the single guard used by every route.
 
 tips (presets + per-barber `Barber.tipsOptOut`), tax (rate %), deposits
 (PERCENT/FLAT), cancellation fee, no-show fee, card-on-file (Stripe
-references only — never raw card data), commission (default % with
-per-barber override, computed on service revenue at checkout), receipt
+references only — never raw card data), commission (a full owner-controlled system — see docs/COMMISSIONS.md), receipt
 emails (via the app's SMTP configuration).
 
 ## Stripe integration

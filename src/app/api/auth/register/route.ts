@@ -25,7 +25,11 @@ const registerSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const rateLimitResult = checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: 3 })
+  // 3 signups/min per IP by default; test environments (E2E suites make
+  // several signup calls back-to-back) can raise it via env without
+  // weakening the production default.
+  const registerLimit = Number(process.env.RATE_LIMIT_REGISTER_MAX ?? 3) || 3
+  const rateLimitResult = checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many attempts. Please wait a minute and try again.' },

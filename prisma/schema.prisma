@@ -100,17 +100,21 @@ model Business {
   portalVerificationChallenges PortalVerificationChallenge[]
   portalSessions               PortalSession[]
 
-  walkInsWelcome                   Boolean          @default(true)
-  firstAvailableBookingEnabled     Boolean          @default(true) // allow "First available" option in the booking flow
-  parkingAvailable                 Boolean          @default(false)
-  paymentInPerson                  Boolean          @default(true)
+  walkInsWelcome                   Boolean                         @default(true)
+  firstAvailableBookingEnabled     Boolean                         @default(true) // allow "First available" option in the booking flow
+  parkingAvailable                 Boolean                         @default(false)
+  paymentInPerson                  Boolean                         @default(true)
   paymentSettings                  PaymentSettings?
+  commissionSettings               CommissionSettings?
+  commissionRules                  CommissionRule[]
+  barberCommissionParticipations   BarberCommissionParticipation[]
+  commissionEntries                CommissionEntry[]
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
   // Existing boolean columns above stay authoritative for their feature.
   featureOverrides                 Json?
-  customerRescheduleEnabled        Boolean          @default(true)
-  customerRescheduleMinNoticeHours Int              @default(24)
+  customerRescheduleEnabled        Boolean                         @default(true)
+  customerRescheduleMinNoticeHours Int                             @default(24)
   customerRescheduleWindowDays     Int?
 
   // Booking rules (server-side enforced in src/lib/availability.ts)
@@ -191,17 +195,20 @@ model Barber {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  schedules             Schedule[]
-  appointments          Appointment[]
-  blockedTimes          BlockedTime[]
-  services              BarberService[]
-  waitlistEntries       WaitlistEntry[]
-  rewardPrograms        BarberRewardProgram[]
-  inventoryItems        InventoryItem[]
-  reviews               Review[]
-  mediaAssets           MediaAsset[]
-  beforeAfterPairs      BeforeAfterPair[]
-  availabilityOverrides AvailabilityOverride[]
+  schedules               Schedule[]
+  appointments            Appointment[]
+  blockedTimes            BlockedTime[]
+  services                BarberService[]
+  waitlistEntries         WaitlistEntry[]
+  rewardPrograms          BarberRewardProgram[]
+  inventoryItems          InventoryItem[]
+  reviews                 Review[]
+  mediaAssets             MediaAsset[]
+  beforeAfterPairs        BeforeAfterPair[]
+  availabilityOverrides   AvailabilityOverride[]
+  commissionRules         CommissionRule[]
+  commissionParticipation BarberCommissionParticipation?
+  commissionEntries       CommissionEntry[]
 
   @@index([businessId])
 }
@@ -271,6 +278,8 @@ model Service {
   waitlistEntries  WaitlistEntry[]
   mediaAssets      MediaAsset[] // portfolio / example work linked to this service
   beforeAfterPairs BeforeAfterPair[]
+
+  commissionRules CommissionRule[]
 
   @@index([businessId])
 }
@@ -492,6 +501,8 @@ model Appointment {
   intakeResponses    AppointmentIntakeResponse[]
   rescheduleHistory  RescheduleHistory[]
 
+  commissionEntries CommissionEntry[]
+
   @@index([businessId, startTime])
   @@index([businessId, barberId, startTime])
   @@index([businessId, status])
@@ -678,6 +689,14 @@ enum AuditAction {
   INVENTORY_UPDATED
   CUSTOMER_TAG_ADDED
   CUSTOMER_TAG_REMOVED
+  COMMISSION_ENABLED
+  COMMISSION_DISABLED
+  COMMISSION_RATE_CHANGED
+  COMMISSION_MANUAL_ADJUSTMENT
+  COMMISSION_REFUND_ADJUSTED
+  COMMISSION_PAYOUT_UPDATED
+  COMMISSION_ENTRY_DELETED
+  COMMISSION_PARTICIPATION_CHANGED
   CANCELLATION_RECORDED
   NO_SHOW_POLICY_UPDATED
   AVAILABILITY_OVERRIDE_ADDED
@@ -1163,6 +1182,141 @@ model PaymentSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Barber Commissions (optional; owner-controlled) ─────────────────────────
+// Commission ledger + configuration. The OWNER is the final authority:
+// CommissionSettings.enabled is the shop-level master switch. When it is
+// off, calculations stop and commission dashboards hide, but historical
+// CommissionEntry rows are never deleted — financial history is immutable.
+// A barber-level participation preference (BarberCommissionParticipation)
+// can only further restrict; it can never override an owner-disabled shop.
+enum CommissionRateType {
+  PERCENT // percent of the commissioned base
+  FIXED // flat amount per completed service/product
+}
+
+enum CommissionSource {
+  SERVICE
+  PRODUCT
+  TIP
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  ADJUSTED
+}
+
+enum TipsCommissionMode {
+  EXCLUDED // tips are the barber's own, never commissioned (default)
+  PASS_THROUGH // full tip is added to the barber's payout
+  PERCENT // tips commissioned at tipsCommissionPercent
+}
+
+// One row per business: owner master switch + default rates. Rule rows
+// (CommissionRule) override these defaults per barber and/or per service.
+model CommissionSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  enabled                  Boolean            @default(false) // OWNER master switch — off = everyone off
+  barberSelfViewEnabled    Boolean            @default(false) // owner allows barbers to view their own commissions
+  defaultRateType          CommissionRateType @default(PERCENT)
+  defaultRatePercent       Float              @default(40)
+  defaultRateFixed         Float              @default(0)
+  productCommissionEnabled Boolean            @default(false) // commission POS product line items
+  productRateType          CommissionRateType @default(PERCENT)
+  productRatePercent       Float              @default(10)
+  productRateFixed         Float              @default(0)
+  tipsMode                 TipsCommissionMode @default(EXCLUDED)
+  tipsCommissionPercent    Float              @default(0)
+  includeNoShowFees        Boolean            @default(false) // commission NO_SHOW_FEE revenue
+  calculateOnUnpaid        Boolean            @default(false) // commission completed-but-unpaid appointments (owner opt-in)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Commission rate overrides. Resolution priority (highest first):
+//   (barber + service) > (barber + any service) > (any barber + service) > defaults
+// A null barberId matches any barber; a null serviceId matches any service.
+// scopeKey (`barberId|serviceId`, '' for null) exists because Postgres treats
+// NULLs as distinct in unique indexes — it keeps at most one rule per scope.
+model CommissionRule {
+  id          String             @id @default(cuid())
+  businessId  String
+  business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId    String?
+  barber      Barber?            @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  service     Service?           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  scopeKey    String
+  rateType    CommissionRateType @default(PERCENT)
+  ratePercent Float? // required when rateType = PERCENT
+  rateFixed   Float? // required when rateType = FIXED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, scopeKey])
+  @@index([businessId])
+}
+
+// Barber-level participation preference. Owner setting always wins:
+// shop OFF = everyone off regardless of this row; shop ON = a barber who
+// opts out here is excluded from commission calculations.
+model BarberCommissionParticipation {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId     String   @unique // one participation preference per barber (1:1 relation)
+  barber       Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  participates Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, barberId])
+}
+
+// One ledger row per commissioned event. Rows are immutable history:
+// refunds/voids adjust `refundAdjustment` (automatic) and owner corrections
+// adjust `adjustment` (manual) rather than rewriting amounts, so the original
+// calculation stays auditable.
+// Effective payout = commissionAmount + adjustment + refundAdjustment.
+model CommissionEntry {
+  id               String             @id @default(cuid())
+  businessId       String
+  business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId         String
+  barber           Barber             @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  appointmentId    String?
+  appointment      Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  paymentId        String? // originating Payment row (charges/tips; refunds reference the original charge)
+  source           CommissionSource
+  grossAmount      Float // commissioned base (post-discount, excl. tax)
+  discountAmount   Float              @default(0)
+  rateType         CommissionRateType
+  ratePercent      Float?
+  rateFixed        Float?
+  commissionAmount Float // originally computed commission
+  refundAdjustment Float              @default(0) // automatic reduction from refunds/voids (always <= 0)
+  adjustment       Float              @default(0) // net manual correction by the owner (either sign)
+  status           CommissionStatus   @default(PENDING)
+  paidAt           DateTime?
+  paidByUserId     String? // user id of whoever marked it paid (plain column — audit trail, no FK needed)
+  paidAmount       Float              @default(0)
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([businessId, barberId, createdAt])
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([paymentId])
 }
 
 // Stripe webhook idempotency: every processed event id is recorded so
