@@ -40,6 +40,16 @@ interface CardRow {
 
 const money = (n: number) => `$${(n ?? 0).toFixed(2)}`
 
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-lg border bg-card p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold">{value}</p>
+      {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
+    </div>
+  )
+}
+
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
   PENDING: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
@@ -133,14 +143,6 @@ export function GiftCardsClient({ enabled }: { enabled: boolean }) {
     setMsg('Adjustment applied')
     void load()
   }
-
-  const Stat: React.FC<{ label: string; value: string; sub?: string }> = ({ label, value, sub }) => (
-    <div className="rounded-lg border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
-    </div>
-  )
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
