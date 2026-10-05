@@ -4,9 +4,9 @@ Per-barber clock in / clock out, unpaid breaks, owner corrections with a
 full audit trail, configurable daily/weekly overtime, pay periods, and a
 payroll-ready CSV export.
 
-**Spec:** `spec/features/TIME-CLOCK-SPEC.md` · **Tests:**
-`tests/time-clock.test.ts` (61 assertions, CI suite `npm run test:time-clock`)
-plus database-level RLS coverage in `tests/rls-enforcement.test.ts`.
+**Tests:** `tests/time-clock.test.ts` (61 assertions, CI suite
+`npm run test:time-clock`) plus database-level RLS coverage in
+`tests/rls-enforcement.test.ts`.
 
 ## Owner is the final authority
 
