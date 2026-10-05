@@ -111,6 +111,8 @@ model Business {
   commissionEntries                CommissionEntry[]
   timeClockSettings                TimeClockSettings?
   timeClockEntries                 TimeClockEntry[]
+  payrollSettings                  PayrollSettings?
+  payrollReports                   PayrollReport[]
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
   // Existing boolean columns above stay authoritative for their feature.
@@ -214,6 +216,8 @@ model Barber {
   commissionEntries       CommissionEntry[]
   timeClockAccess         BarberTimeClockAccess?
   timeClockEntries        TimeClockEntry[]
+  payrollReportLines      PayrollReportLine[]
+  payrollAdjustments      PayrollReportAdjustment[]
 
   @@index([businessId])
 }
@@ -741,6 +745,13 @@ enum AuditAction {
   STAFF_DEACTIVATED
   STAFF_ROLE_CHANGED
   CUSTOMER_LINKED
+  PAYROLL_REPORTING_ENABLED
+  PAYROLL_REPORTING_DISABLED
+  PAYROLL_SETTINGS_UPDATED
+  PAYROLL_REPORT_CREATED
+  PAYROLL_REPORT_STATUS_CHANGED
+  PAYROLL_REPORT_EXPORTED
+  PAYROLL_REPORT_ADJUSTMENT
 }
 
 // ─── Staff invitation lifecycle ──────────────────────────────────────────────
@@ -1521,4 +1532,140 @@ model TimeClockEntryRevision {
   createdAt       DateTime @default(now())
 
   @@index([businessId, entryId, createdAt])
+}
+
+// ============================================================================
+// PAYROLL-READY REPORTING (optional shop feature — owner has final authority)
+//
+// This is NOT a payroll processor. It never pays anyone, never withholds
+// taxes, and never becomes a payroll provider: it aggregates payroll-ready
+// information (time clock hours, completed-service revenue, tips,
+// commissions, adjustments) into per-barber period reports with a CSV
+// export for the owner to hand to their actual payroll provider.
+//
+// Shop-level PayrollSettings.enabled is the owner's master switch: OFF
+// hides all payroll reporting (no report generation, no list, barber
+// self-view off) while historical report rows remain untouched in the
+// database. Appointments, payments, commissions, and the time clock keep
+// working independently either way.
+//
+// Reports are immutable snapshots: PayrollReportLine freezes the numbers
+// at generation time, and corrections after finalization append
+// PayrollReportAdjustment rows (who, when, amount, reason) instead of
+// rewriting finalized data.
+// ============================================================================
+
+enum PayrollPeriodType {
+  WEEKLY // Monday-based week
+  BIWEEKLY // two-week periods from the anchor Monday
+  MONTHLY // calendar month in the shop timezone
+  CUSTOM // owner-defined length in days
+}
+
+enum PayrollReportStatus {
+  DRAFT
+  REVIEWED
+  EXPORTED
+  FINALIZED
+}
+
+// Owner-defined shop configuration. One row per business (lazily created
+// with the safe defaults below).
+model PayrollSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // OWNER master switch — off = reporting hidden, generation blocked,
+  // history preserved.
+  enabled Boolean @default(false)
+
+  // Owner-defined pay period for report generation.
+  payPeriodType       PayrollPeriodType @default(WEEKLY)
+  payPeriodAnchorDate DateTime          @default("2024-01-01T00:00:00Z") // a Monday; periods count forward from it
+  customPeriodDays    Int               @default(14) // used when payPeriodType = CUSTOM
+
+  // Owner-controlled: may an individual barber see THEIR OWN payroll
+  // summary? Never other barbers' data, never shop totals.
+  barberSelfView Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One payroll-ready report per generated pay period. The lines are a
+// frozen snapshot; status moves forward only (DRAFT → REVIEWED →
+// EXPORTED → FINALIZED, with direct finalization allowed from any
+// non-finalized state).
+model PayrollReport {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  status      PayrollReportStatus @default(DRAFT)
+  periodType  PayrollPeriodType
+  periodStart DateTime
+  periodEnd   DateTime // exclusive end
+  periodLabel String // human snapshot, e.g. "Oct 1 – Oct 7, 2026"
+
+  createdByUserId String
+  reviewedAt      DateTime?
+  exportedAt       DateTime?
+  finalizedAt     DateTime?
+
+  notes String?
+
+  lines       PayrollReportLine[]
+  adjustments PayrollReportAdjustment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, periodStart])
+  @@index([businessId, status, createdAt])
+}
+
+// Per-barber frozen line of a report. Values are snapshots at generation
+// time; later source-data changes never rewrite a stored line.
+model PayrollReportLine {
+  id         String       @id @default(cuid())
+  businessId String // tenant key (RLS-enforced; no opposite relation needed)
+  reportId   String
+  report     PayrollReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  barberId   String
+  barber     Barber       @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  barberName String // display snapshot at generation time
+
+  serviceRevenue  Float
+  tips            Float
+  commission      Float
+  adjustments     Float // commission-era adjustments (manual + refund) at generation
+  regularHours    Float
+  overtimeHours   Float
+  totalHours      Float
+  estimatedPayout Float // commission + tips + adjustments
+
+  @@unique([reportId, barberId])
+  @@index([businessId, reportId])
+}
+
+// Post-generation manual adjustments — the ONLY way to change a finalized
+// report's effective numbers. Rows append (never rewrite lines), carry
+// the author and a required reason, and are applied on top of the line
+// snapshot when the report is displayed or exported.
+model PayrollReportAdjustment {
+  id         String       @id @default(cuid())
+  businessId String // tenant key (RLS-enforced; no opposite relation needed)
+  reportId   String
+  report     PayrollReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  barberId   String
+  barber     Barber       @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  amount          Float // net manual correction (either sign)
+  reason          String // owner-supplied, required
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  @@index([businessId, reportId, barberId])
 }

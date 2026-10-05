@@ -27,6 +27,9 @@ const TENANT_TABLES = [
   'BarberCommissionParticipation','CommissionEntry',
   'TimeClockSettings','BarberTimeClockAccess','TimeClockEntry',
   'TimeClockBreak','TimeClockEntryRevision',
+  // payroll-ready reporting (settings, immutable report snapshots, adjustments)
+  'PayrollSettings','PayrollReport','PayrollReportLine',
+  'PayrollReportAdjustment',
   // tenant roots
   'Business','Schedule',
 ]

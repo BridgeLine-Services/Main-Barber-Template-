@@ -57,6 +57,7 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   CommissionSettings, CommissionRule, BarberCommissionParticipation, CommissionEntry,
 --   TimeClockSettings, BarberTimeClockAccess, TimeClockEntry, TimeClockBreak,
 --   TimeClockEntryRevision
+--   PayrollSettings, PayrollReport, PayrollReportLine, PayrollReportAdjustment
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -91,7 +92,11 @@ DECLARE
     -- Barber time clock (migration 20261005002142): settings, per-barber
     -- access, shift ledger, breaks and the correction trail.
     'TimeClockSettings','BarberTimeClockAccess',
-    'TimeClockEntry','TimeClockBreak','TimeClockEntryRevision'
+    'TimeClockEntry','TimeClockBreak','TimeClockEntryRevision',
+    -- Payroll-ready reporting (migration 20261005011936): owner-gated
+    -- settings, immutable report snapshots and the adjustment trail.
+    'PayrollSettings','PayrollReport',
+    'PayrollReportLine','PayrollReportAdjustment'
   ];
   tbl TEXT;
 BEGIN
