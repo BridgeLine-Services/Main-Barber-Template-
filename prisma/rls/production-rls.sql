@@ -54,7 +54,9 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   NoShowPolicy, InventoryItem, MarketingCampaign, WebsiteContent,
 --   BookingQuestion, RescheduleHistory, BeforeAfterPair, PortalVerificationChallenge,
 --   PortalSession, Faq, Payment, PaymentSettings,
---   CommissionSettings, CommissionRule, BarberCommissionParticipation, CommissionEntry
+--   CommissionSettings, CommissionRule, BarberCommissionParticipation, CommissionEntry,
+--   TimeClockSettings, BarberTimeClockAccess, TimeClockEntry, TimeClockBreak,
+--   TimeClockEntryRevision
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -85,7 +87,11 @@ DECLARE
     -- Barber commissions (migration 20261004233250): settings, rate
     -- rules, participation preferences and the immutable ledger.
     'CommissionSettings','CommissionRule',
-    'BarberCommissionParticipation','CommissionEntry'
+    'BarberCommissionParticipation','CommissionEntry',
+    -- Barber time clock (migration 20261005002142): settings, per-barber
+    -- access, shift ledger, breaks and the correction trail.
+    'TimeClockSettings','BarberTimeClockAccess',
+    'TimeClockEntry','TimeClockBreak','TimeClockEntryRevision'
   ];
   tbl TEXT;
 BEGIN

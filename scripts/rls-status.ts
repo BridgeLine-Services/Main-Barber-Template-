@@ -25,6 +25,8 @@ const TENANT_TABLES = [
   // POS + commissions (settings, rate rules, participation, immutable ledger)
   'PaymentSettings','CommissionSettings','CommissionRule',
   'BarberCommissionParticipation','CommissionEntry',
+  'TimeClockSettings','BarberTimeClockAccess','TimeClockEntry',
+  'TimeClockBreak','TimeClockEntryRevision',
   // tenant roots
   'Business','Schedule',
 ]

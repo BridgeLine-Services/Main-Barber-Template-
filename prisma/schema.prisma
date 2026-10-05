@@ -109,6 +109,8 @@ model Business {
   commissionRules                  CommissionRule[]
   barberCommissionParticipations   BarberCommissionParticipation[]
   commissionEntries                CommissionEntry[]
+  timeClockSettings                TimeClockSettings?
+  timeClockEntries                 TimeClockEntry[]
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
   // Existing boolean columns above stay authoritative for their feature.
@@ -118,10 +120,11 @@ model Business {
   customerRescheduleWindowDays     Int?
 
   // Booking rules (server-side enforced in src/lib/availability.ts)
-  minAdvanceBookingMinutes  Int  @default(0) // customer must book at least N minutes ahead (0 = off)
+  minAdvanceBookingMinutes  Int                     @default(0) // customer must book at least N minutes ahead (0 = off)
   maxBookingWindowDays      Int? // appointments cannot start more than N days out (null = no limit)
-  bufferMinutes             Int  @default(0) // buffer after each appointment (business default)
-  cancellationDeadlineHours Int  @default(2) // customer cancellation cutoff before start (0 = no deadline)
+  bufferMinutes             Int                     @default(0) // buffer after each appointment (business default)
+  cancellationDeadlineHours Int                     @default(2) // customer cancellation cutoff before start (0 = no deadline)
+  barberTimeClockAccesses   BarberTimeClockAccess[]
 
   @@index([slug])
 }
@@ -209,6 +212,8 @@ model Barber {
   commissionRules         CommissionRule[]
   commissionParticipation BarberCommissionParticipation?
   commissionEntries       CommissionEntry[]
+  timeClockAccess         BarberTimeClockAccess?
+  timeClockEntries        TimeClockEntry[]
 
   @@index([businessId])
 }
@@ -697,6 +702,11 @@ enum AuditAction {
   COMMISSION_PAYOUT_UPDATED
   COMMISSION_ENTRY_DELETED
   COMMISSION_PARTICIPATION_CHANGED
+  TIME_CLOCK_ENABLED
+  TIME_CLOCK_DISABLED
+  TIME_CLOCK_OVERTIME_RULES_UPDATED
+  TIME_CLOCK_ACCESS_UPDATED
+  TIME_CLOCK_ENTRY_CORRECTED
   CANCELLATION_RECORDED
   NO_SHOW_POLICY_UPDATED
   AVAILABILITY_OVERRIDE_ADDED
@@ -1389,4 +1399,126 @@ model Faq {
   updatedAt  DateTime @updatedAt
 
   @@index([businessId, isActive, sortOrder])
+}
+
+// ============================================================================
+// BARBER TIME CLOCK (optional shop feature — owner has final authority)
+//
+// Shop-level TimeClockSettings.enabled is the master switch: OFF hides all
+// time-clock UI and blocks new clock-in/out records, but NEVER deletes or
+// hides historical entries (payroll history stays intact). Scheduling,
+// appointments, and commissions continue independently.
+// ============================================================================
+
+// How pay periods are anchored for "this pay period" reporting.
+enum PayPeriodType {
+  WEEKLY // every pay period starts Monday
+  BIWEEKLY // two-week periods starting the anchor Monday
+}
+
+// Shop-level configuration. One row per business (lazily created with the
+// defaults below). Thresholds are DATA, not code: 0 disables that rule.
+model TimeClockSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // OWNER master switch — off = everyone off, UI hidden, no new records
+  enabled Boolean @default(false)
+
+  // Overtime rules (hours). 0 = that rule is disabled. Defaults are
+  // configurable per shop; nothing here is hard-coded in code.
+  dailyOvertimeThresholdHours  Float @default(8) // hours/day beyond which daily OT accrues
+  weeklyOvertimeThresholdHours Float @default(40) // hours/week beyond which weekly OT accrues
+
+  // Pay-period definition for the owner dashboard and payroll export
+  payPeriodType       PayPeriodType @default(WEEKLY)
+  payPeriodAnchorDate DateTime      @default("2024-01-01T00:00:00Z") // any Monday; periods count forward from it
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Owner-authorized per-barber access. A barber row defaults to eligible
+// when the feature is on; the owner can exclude specific barbers or
+// explicitly authorize a barber to view TEAM time records (default off —
+// barbers otherwise see only their own hours).
+model BarberTimeClockAccess {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId   String   @unique // one access row per barber (1:1)
+  barber     Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  eligible           Boolean @default(true) // may clock in/out (owner decision)
+  canViewTeamRecords Boolean @default(false) // may view other barbers' hours
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, barberId])
+}
+
+// One row per shift. Rows are immutable history: clock-out and breaks are
+// state transitions, and owner corrections append TimeClockEntryRevision
+// rows (original → new value, who, when, reason) instead of silently
+// rewriting values. `breakMinutes` is the total unpaid-break minutes for the
+// shift (sum of closed break rows), deducted from worked hours.
+model TimeClockEntry {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barberId   String
+  barber     Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  clockInAt    DateTime
+  clockOutAt   DateTime? // null = still on the clock (open shift)
+  breakMinutes Int       @default(0)
+  notes        String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  breaks    TimeClockBreak[]
+  revisions TimeClockEntryRevision[]
+
+  @@index([businessId, barberId, clockInAt])
+  @@index([businessId, clockInAt])
+}
+
+// Break rows. At most ONE open break per entry — enforced app-side plus a
+// partial unique index (see migration) so a crashed client can't produce
+// overlapping breaks.
+model TimeClockBreak {
+  id         String         @id @default(cuid())
+  businessId String
+  entryId    String
+  entry      TimeClockEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  startedAt  DateTime
+  endedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, entryId])
+}
+
+// Immutable correction trail. One row per changed field per correction:
+// original value, new value, who changed it, when, and why.
+model TimeClockEntryRevision {
+  id         String         @id @default(cuid())
+  businessId String
+  entryId    String
+  entry      TimeClockEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  changedByUserId String
+  changedByName   String // display snapshot at edit time
+  changedByEmail  String // identity snapshot at edit time
+  field           String // clockInAt | clockOutAt | breakMinutes | notes
+  originalValue   String // serialized before-value (ISO timestamp / text)
+  newValue        String // serialized after-value
+  reason          String // owner-supplied, required
+  createdAt       DateTime @default(now())
+
+  @@index([businessId, entryId, createdAt])
 }

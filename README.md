@@ -83,6 +83,7 @@ database access, provider accounts, and the final booking test.
 - **Service & Menu Management**: Add, edit, reorder, or toggle active status for haircut and beard services.
 - **Customer CRM**: Client list with booking history, contact info, notes, and SMS opt-in status.
 - **Staff Management**: Invite staff, link staff accounts to barber profiles, reset passwords, deactivate accounts, and transfer business ownership to another member (atomic role swap with full audit trail).
+- **Time Clock**: Per-barber clock in/out with unpaid breaks, owner-only corrections with an immutable audit trail, configurable daily/weekly overtime, and a payroll-ready CSV export — gated by an owner-controlled master switch ([docs/TIME-CLOCK.md](docs/TIME-CLOCK.md)).
 - **Login Throttle**: Sign-in attempts are rate limited per IP and per account to blunt credential stuffing and brute-force attacks.
 - **Shop Deactivation**: Owner-only soft close — staff sign-ins and public bookings are blocked, all data preserved, one-click reactivation with full audit trail.
 

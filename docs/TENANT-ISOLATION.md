@@ -102,7 +102,7 @@ Reproducible application + verification (Master Task Part 2):
 `scripts/apply-rls.ts` refuses to run without `DATABASE_ADMIN_URL` and
 refuses if it equals `DATABASE_URL`, so a deployment cannot silently
 enable FORCE RLS against the connection the app still uses as owner.
-`scripts/rls-status.ts` reports per-table policy coverage across all 39
+`scripts/rls-status.ts` reports per-table policy coverage across all 44
 tenant tables.
 
 The policies themselves are regression-tested against the real engine by
