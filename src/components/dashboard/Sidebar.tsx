@@ -138,6 +138,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
         { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
         { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
+        { name: 'Payroll', href: '/dashboard/payroll', icon: BadgePercent },
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
       ],
@@ -165,6 +166,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Portfolio / My Work', href: '/dashboard/portfolio', icon: ImageIcon },
         { name: 'My Commissions', href: '/dashboard/my-commissions', icon: BadgePercent },
         { name: 'My Time Clock', href: '/dashboard/my-time-clock', icon: Clock },
+        { name: 'My Payroll', href: '/dashboard/my-payroll', icon: BadgePercent },
       ],
     },
   ]

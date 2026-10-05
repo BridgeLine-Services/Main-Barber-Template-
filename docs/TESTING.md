@@ -15,6 +15,8 @@ commissions (settings, rate priority, ledger, tips modes, refunds,
 fees, unpaid completions, tenant isolation), customer-history,
 time-clock (master switch, punches, breaks, corrections, overtime,
 pay periods, report/CSV, permissions, tenant isolation),
+payroll (master switch, pay periods, aggregation, frozen snapshots,
+forward-only status, adjustments, CSV, self-view, tenant isolation),
 daily-operations, factory-launch, factory-readiness, feature-flags
 (lib-level parts), marketing, payment-transitions, payments (POS
 end-to-end), portfolio, queue, reliability, role-permissions,

@@ -84,6 +84,7 @@ database access, provider accounts, and the final booking test.
 - **Customer CRM**: Client list with booking history, contact info, notes, and SMS opt-in status.
 - **Staff Management**: Invite staff, link staff accounts to barber profiles, reset passwords, deactivate accounts, and transfer business ownership to another member (atomic role swap with full audit trail).
 - **Time Clock**: Per-barber clock in/out with unpaid breaks, owner-only corrections with an immutable audit trail, configurable daily/weekly overtime, and a payroll-ready CSV export — gated by an owner-controlled master switch ([docs/TIME-CLOCK.md](docs/TIME-CLOCK.md)).
+- **Payroll Reporting**: Owner-only per-barber period reports combining hours, completed-service revenue, tips, commissions, and adjustments into frozen snapshots with forward-only status (draft → reviewed → exported → finalized), an audited adjustment mechanism, and a CSV export for the shop's actual payroll provider — never a payroll processor — gated by an owner-controlled master switch ([docs/PAYROLL.md](docs/PAYROLL.md)).
 - **Login Throttle**: Sign-in attempts are rate limited per IP and per account to blunt credential stuffing and brute-force attacks.
 - **Shop Deactivation**: Owner-only soft close — staff sign-ins and public bookings are blocked, all data preserved, one-click reactivation with full audit trail.
 
