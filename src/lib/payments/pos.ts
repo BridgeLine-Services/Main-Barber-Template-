@@ -10,6 +10,7 @@
  */
 import { prisma } from '@/lib/prisma'
 import { createCommissionsForCheckout } from '@/lib/commissions'
+import { redeemGiftCardInTx } from '@/lib/gift-cards'
 import type { PaymentSettings, Barber, Appointment, Service } from '@prisma/client'
 
 export type PosSettings = PaymentSettings
@@ -228,6 +229,9 @@ export interface CompleteCheckoutInput {
   discountAmount?: number
   tipAmount?: number
   tipPercent?: number
+  /** Optional gift card tender: applied first (up to its balance), the
+   * remainder is charged via `method`. See src/lib/gift-cards.ts. */
+  giftCardCode?: string
 }
 
 export interface CheckoutResult {
@@ -239,6 +243,7 @@ export interface CheckoutResult {
   /** commission ledger summary (only when the shop's commission system is
    *  enabled and the barber participates) — see src/lib/commissions.ts */
   commission?: { rateLabel: string; amount: number }
+  giftCard?: { code: string; applied: number; balanceAfter: number }
   receipt: Record<string, unknown>
 }
 
@@ -279,7 +284,20 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
   const idempotencyKey = `checkout:${appointment.id}:${Date.now()}:${input.actorId}`
 
   return prisma.$transaction(async (tx) => {
-    const charge = await tx.payment.create({
+    // Gift card tender (optional): applied first, race-safe, recorded as a
+    // GIFT_CARD payment row so receipts/refunds/reporting keep working.
+    let giftRedemption: Awaited<ReturnType<typeof redeemGiftCardInTx>> | undefined
+    if (input.giftCardCode) {
+      giftRedemption = await redeemGiftCardInTx(
+        tx,
+        { businessId: input.businessId, appointmentId: appointment.id, actorUserId: input.actorId },
+        input.giftCardCode,
+        total,
+      )
+    }
+    const chargeAmount = round2(total - (giftRedemption?.applied ?? 0))
+
+    const charge = chargeAmount > 0 ? await tx.payment.create({
       data: {
         businessId: input.businessId,
         appointmentId: appointment.id,
@@ -288,7 +306,7 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
         kind: 'CHARGE',
         method: input.method,
         provider: 'in_person',
-        amount: total,
+        amount: chargeAmount,
         taxAmount: tax,
         status: 'SUCCEEDED',
         idempotencyKey,
@@ -296,11 +314,12 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
           lineItems,
           discount,
           serviceSubtotal: servicePrice,
+          giftCardApplied: giftRedemption?.applied ?? 0,
           completedBy: input.actorId,
           completedByRole: input.actorRole,
         } as never,
       },
-    })
+    }) : null
 
     let tipPaymentId: string | undefined
     if (tip > 0) {
@@ -334,11 +353,11 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
       discount,
       lineItems,
       tip,
-      chargePaymentId: charge.id,
+      chargePaymentId: charge?.id ?? giftRedemption!.paymentId,
       tipPaymentId,
     })
     const serviceCommission = commissionEntries.find((e) => e.source === 'SERVICE')
-    if (serviceCommission) {
+    if (serviceCommission && charge) {
       const label =
         serviceCommission.rateType === 'FIXED'
           ? `$${(serviceCommission.rateFixed ?? 0).toFixed(2)} flat`
@@ -365,8 +384,19 @@ export async function completeCheckout(input: CompleteCheckoutInput): Promise<Ch
           amount: serviceCommission.commissionAmount }
       : undefined
 
-    const receipt = await buildReceipt(tx, charge.id, tipPaymentId)
-    return { chargePaymentId: charge.id, tipPaymentId, total, tax, tip, commission, receipt }
+    const receipt = await buildReceipt(tx, charge?.id ?? giftRedemption!.paymentId, tipPaymentId)
+    return {
+      chargePaymentId: charge?.id ?? giftRedemption!.paymentId,
+      tipPaymentId,
+      total,
+      tax,
+      tip,
+      commission,
+      giftCard: giftRedemption
+        ? { code: giftRedemption.code, applied: giftRedemption.applied, balanceAfter: giftRedemption.balanceAfter }
+        : undefined,
+      receipt,
+    }
   })
 }
 

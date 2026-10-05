@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getPaymentProvider } from '@/lib/payments'
 import { getPosSettings } from '@/lib/payments/pos'
 import { adjustCommissionsForRefund } from '@/lib/commissions'
+import { adjustGiftCardForRefund } from '@/lib/gift-cards'
 
 /** Refund (full or partial). Owner/admin only — never exposed to barbers. */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +46,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       )
       // Refunds reduce the commissioned barber's payout in the same
       // transaction (idempotent — recomputed from refundedAmount).
-      if (res.ok) await adjustCommissionsForRefund(tx, businessId, payment.id)
+      if (res.ok) {
+        await adjustCommissionsForRefund(tx, businessId, payment.id)
+        // Gift cards: restore balance for refunded redemptions, remove
+        // value for refunded purchases. Idempotent.
+        await adjustGiftCardForRefund(tx, businessId, payment.id)
+      }
       return res
     })
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })

@@ -63,6 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ app
       discountAmount?: number
       tipAmount?: number
       tipPercent?: number
+      giftCardCode?: string
     }
     const method = body.method
     if (method !== 'CASH' && method !== 'IN_PERSON' && method !== 'CARD') {
@@ -79,6 +80,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ app
       discountAmount: body.discountAmount,
       tipAmount: body.tipAmount,
       tipPercent: body.tipPercent,
+      giftCardCode: typeof body.giftCardCode === 'string' && body.giftCardCode.trim() ? body.giftCardCode : undefined,
     })
     return NextResponse.json(result)
   } catch (error) {

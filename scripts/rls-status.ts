@@ -30,6 +30,8 @@ const TENANT_TABLES = [
   // payroll-ready reporting (settings, immutable report snapshots, adjustments)
   'PayrollSettings','PayrollReport','PayrollReportLine',
   'PayrollReportAdjustment',
+  // gift cards (settings, cards, balance ledger)
+  'GiftCardSettings','GiftCard','GiftCardTransaction',
   // tenant roots
   'Business','Schedule',
 ]

@@ -39,6 +39,7 @@ import {
   Rocket,
   ArrowLeftRight,
   BadgePercent,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -139,6 +140,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
         { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
         { name: 'Payroll', href: '/dashboard/payroll', icon: BadgePercent },
+        { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
       ],

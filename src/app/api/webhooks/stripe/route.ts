@@ -59,6 +59,16 @@ export async function POST(request: Request) {
           providerRefId: (intentId as string) ?? payment.providerRefId,
         },
       })
+      // A settled gift-card PURCHASE payment activates its card (online
+      // customer purchases — POS sales are already ACTIVE).
+      if ((payment.metadata as Record<string, unknown> | null)?.giftCardPurchase === true) {
+        try {
+          const { activateGiftCardForPayment } = await import('@/lib/gift-cards')
+          await activateGiftCardForPayment(payment.id)
+        } catch (err) {
+          console.error('gift card activation failed', err)
+        }
+      }
       if (payment.kind === 'NO_SHOW_FEE') {
         try {
           const { recordCommissionForFeePayment } = await import('@/lib/commissions')
@@ -90,7 +100,11 @@ export async function POST(request: Request) {
         // Keep commission payouts in sync with dashboard-initiated refunds.
         try {
           const { adjustCommissionsForRefund } = await import('@/lib/commissions')
-          await prisma.$transaction((tx) => adjustCommissionsForRefund(tx, payment.businessId, payment.id))
+          const { adjustGiftCardForRefund } = await import('@/lib/gift-cards')
+          await prisma.$transaction(async (tx) => {
+            await adjustCommissionsForRefund(tx, payment.businessId, payment.id)
+            await adjustGiftCardForRefund(tx, payment.businessId, payment.id)
+          })
         } catch (err) {
           console.error('commission refund adjustment failed', err)
         }

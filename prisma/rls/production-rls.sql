@@ -58,6 +58,7 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   TimeClockSettings, BarberTimeClockAccess, TimeClockEntry, TimeClockBreak,
 --   TimeClockEntryRevision
 --   PayrollSettings, PayrollReport, PayrollReportLine, PayrollReportAdjustment
+--   GiftCardSettings, GiftCard, GiftCardTransaction
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -96,7 +97,10 @@ DECLARE
     -- Payroll-ready reporting (migration 20261005011936): owner-gated
     -- settings, immutable report snapshots and the adjustment trail.
     'PayrollSettings','PayrollReport',
-    'PayrollReportLine','PayrollReportAdjustment'
+    'PayrollReportLine','PayrollReportAdjustment',
+    -- Gift cards (migration 20261005014500): settings, cards and the
+    -- append-only balance ledger.
+    'GiftCardSettings','GiftCard','GiftCardTransaction'
   ];
   tbl TEXT;
 BEGIN

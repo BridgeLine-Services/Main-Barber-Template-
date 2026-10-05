@@ -112,6 +112,9 @@ model Business {
   timeClockSettings                TimeClockSettings?
   timeClockEntries                 TimeClockEntry[]
   payrollSettings                  PayrollSettings?
+  giftCardSettings                 GiftCardSettings?
+  giftCards                         GiftCard[]
+  giftCardTransactions              GiftCardTransaction[]
   payrollReports                   PayrollReport[]
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
@@ -436,6 +439,7 @@ model Customer {
   stripeCustomerId String? // Stripe Customer id for card-on-file (never raw card data)
 
   payments        Payment[]
+  giftCards       GiftCard[] @relation("GiftCardPurchaser")
   id              String    @id @default(cuid())
   businessId      String
   business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -1068,6 +1072,26 @@ enum PaymentMethod {
   IN_PERSON // pay at the shop (default template behavior)
   CARD // online card payment (e.g. Stripe)
   CASH // cash collected at the shop (POS)
+  GIFT_CARD // tendered from a shop gift card's balance
+}
+
+enum GiftCardType {
+  DIGITAL // sold online / emailed
+  PHYSICAL // manual card sold or entered at the shop
+}
+
+enum GiftCardStatus {
+  PENDING // online purchase awaiting payment settlement
+  ACTIVE
+  DEPLETED // fully redeemed
+}
+
+enum GiftCardTransactionType {
+  PURCHASE
+  REDEMPTION
+  REFUND
+  ADJUSTMENT // owner manual balance correction (audit trail)
+
 }
 
 enum PaymentStatus {
@@ -1668,4 +1692,88 @@ model PayrollReportAdjustment {
   createdAt       DateTime @default(now())
 
   @@index([businessId, reportId, barberId])
+}
+
+// ─── Gift cards (optional, owner-controlled) ─────────────────────────────────
+// Owner master switch: GiftCardSettings.enabled. OFF = no purchases or
+// redemptions, history preserved. See docs/GIFT-CARDS.md.
+model GiftCardSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // OWNER master switch — off = no gift card purchases or redemptions;
+  // existing cards and history always remain intact.
+  enabled Boolean @default(false)
+
+  // Suggested purchase amounts in the UI ($25/$50/$75/$100 by default);
+  // any custom amount within limits is always allowed.
+  denominations Json? // number[]
+
+  // Months of validity for newly sold cards. 0 = no expiration.
+  defaultValidityMonths Int @default(12)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GiftCard {
+  id         String        @id @default(cuid())
+  businessId String
+  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer   Customer?     @relation("GiftCardPurchaser", fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Server-generated, globally unique, unambiguous charset (no 0/O/1/I),
+  // e.g. "7K2M-9WQ4-XY3Z-6B8D". 16 chars from a 32-symbol alphabet.
+  code String @unique
+
+  type                GiftCardType    @default(DIGITAL)
+  initialValue        Float
+  remainingBalance    Float
+  status              GiftCardStatus @default(ACTIVE)
+  purchaserName       String
+  purchaserEmail      String?
+  purchaserCustomerId String? // known shop customer record of the purchaser
+  customerId          String?
+  recipientName       String?
+  recipientEmail      String?
+  message             String? @db.Text
+
+  // Payment that purchased the card (PENDING status cards activate when
+  // this payment settles — see activateGiftCardForPayment).
+  purchasePaymentId String? @unique
+  soldByUserId      String? // staff user who sold it (POS)
+
+  expiresAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  transactions GiftCardTransaction[]
+
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+}
+
+// Append-only ledger: every balance change on a gift card, with the
+// resulting balance for a provable history.
+model GiftCardTransaction {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  giftCard   GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  giftCardId String
+
+  type         GiftCardTransactionType
+  amount       Float // magnitude (always >= 0)
+  balanceAfter Float
+  note         String? @db.Text
+
+  paymentId     String? // Payment that triggered this (purchase/redemption/refund)
+  appointmentId String? // appointment the redemption was applied to
+  actorUserId   String? // staff member who performed it
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, giftCardId])
+  @@index([businessId, type, createdAt])
 }
