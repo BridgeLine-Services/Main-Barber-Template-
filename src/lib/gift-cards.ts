@@ -253,11 +253,69 @@ export async function sellGiftCard(input: SellGiftCardInput): Promise<SoldGiftCa
 /** Activate a PENDING card once its purchase payment settles (online
  * purchases). Idempotent — no-op for already-active/depleted cards. */
 export async function activateGiftCardForPayment(paymentId: string): Promise<void> {
+  let activated: {
+    id: string; businessId: string; code: string; amount: number; expiresAt: Date | null
+    purchaserName: string; purchaserEmail: string | null
+    recipientName: string | null; recipientEmail: string | null
+    message: string | null
+  } | null = null
+
   await prisma.$transaction(async (tx) => {
     const card = await tx.giftCard.findFirst({ where: { purchasePaymentId: paymentId } })
     if (!card || card.status !== 'PENDING') return
     await tx.giftCard.update({ where: { id: card.id }, data: { status: 'ACTIVE' } })
+    activated = {
+      id: card.id, businessId: card.businessId, code: card.code, amount: card.initialValue,
+      expiresAt: card.expiresAt, purchaserName: card.purchaserName,
+      purchaserEmail: card.purchaserEmail, recipientName: card.recipientName,
+      recipientEmail: card.recipientEmail, message: card.message,
+    }
   })
+
+  // Digital cards bought online must reach the purchaser — email the card
+  // (to the recipient when provided, else the purchaser). Best-effort:
+  // a mail outage never rolls back or blocks the activation itself.
+  if (activated) {
+    const card = activated
+    try {
+      const to = card.recipientEmail?.trim() || card.purchaserEmail?.trim()
+      if (to) {
+        const business = await prisma.business.findUnique({
+          where: { id: card.businessId },
+          select: { name: true },
+        })
+        const { sendGiftCardDeliveryEmail } = await import('@/lib/notifications')
+        await sendGiftCardDeliveryEmail({
+          to,
+          businessName: business?.name ?? 'the barbershop',
+          purchaserName: card.purchaserName,
+          recipientName: card.recipientName,
+          code: card.code,
+          amount: card.amount,
+          expiresAt: card.expiresAt,
+          message: card.message,
+        })
+      }
+    } catch {
+      // Email delivery is best-effort; activation already committed.
+    }
+  }
+}
+
+/**
+ * Public status lookup (website purchase flow): returns ONLY the card's
+ * status for the given tenant — never the code or balance. Used by the
+ * success screen to poll until the payment webhook activates the card.
+ */
+export async function getGiftCardStatus(
+  businessId: string,
+  giftCardId: string,
+): Promise<'PENDING' | 'ACTIVE' | 'DEPLETED' | null> {
+  const card = await prisma.giftCard.findFirst({
+    where: { id: giftCardId, businessId },
+    select: { status: true },
+  })
+  return card?.status ?? null
 }
 
 // ─── Redemption (race-safe) ──────────────────────────────────────────────────

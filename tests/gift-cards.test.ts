@@ -43,6 +43,7 @@ import {
   listGiftCards,
   getGiftCardDetail,
   giftCardDenominations,
+  getGiftCardStatus,
 } from '../src/lib/gift-cards'
 
 let passed = 0
@@ -541,6 +542,35 @@ async function main() {
       () => adjustGiftCardBalance(otherBiz.id, mine[0].id, 5, 'theft attempt', owner.id),
       'NOT_FOUND',
       'other shop cannot adjust our card',
+    )
+  }
+
+  // ─── 16. Public status lookup (website purchase flow) ─────────────
+  console.log('\n🛜 Public status lookup: tenant-scoped, status-only')
+  {
+    const payment = await prisma.payment.create({
+      data: {
+        businessId: business.id, kind: 'CHARGE', method: 'CARD', provider: 'stripe',
+        amount: 30, status: 'PROCESSING', metadata: {} as never,
+      },
+    })
+    const { giftCard } = await sellGiftCard({
+      businessId: business.id, amount: 30, purchaserName: 'Poller',
+      purchaserEmail: 'poller@t.test', purchasePaymentId: payment.id,
+    })
+    assert(
+      (await getGiftCardStatus(business.id, giftCard.id)) === 'PENDING',
+      'status lookup returns PENDING before settlement',
+    )
+    await prisma.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } })
+    await activateGiftCardForPayment(payment.id)
+    assert(
+      (await getGiftCardStatus(business.id, giftCard.id)) === 'ACTIVE',
+      'status lookup returns ACTIVE after webhook activation',
+    )
+    assert(
+      (await getGiftCardStatus(otherBiz.id, giftCard.id)) === null,
+      'foreign shop cannot poll our card status',
     )
   }
 

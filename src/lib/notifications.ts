@@ -471,6 +471,56 @@ export async function sendStaffInviteEmail(params: {
 // Includes a secure claim link so the customer can book the released slot.
 // ============================================================================
 
+/**
+ * Gift card delivery email — sent when an online purchase is activated by
+ * the payment webhook (digital cards). Best-effort: returns false when
+ * email is not configured, and the caller swallows errors so a mail
+ * outage never blocks card activation.
+ */
+export async function sendGiftCardDeliveryEmail(params: {
+  to: string
+  businessName: string
+  purchaserName: string
+  recipientName?: string | null
+  code: string
+  amount: number
+  expiresAt?: Date | null
+  message?: string | null
+}): Promise<boolean> {
+  if (!isEmailConfigured()) return false
+  if (!params.to) return false
+
+  const expiry = params.expiresAt
+    ? formatFullDate(params.expiresAt)
+    : null
+  const greetingName = params.recipientName?.trim() || params.purchaserName
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #1a1a1a;">Your Gift Card is Ready</h1>
+      <p>Hi ${greetingName},</p>
+      <p>Here is your gift card for <strong>${params.businessName}</strong>:</p>
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+        <p style="font-size: 24px; letter-spacing: 2px; margin: 5px 0;"><strong>${params.code}</strong></p>
+        <p style="margin: 5px 0;">Value: <strong>$${params.amount.toFixed(2)}</strong></p>
+        ${expiry ? `<p style="margin: 5px 0; color: #666;">Expires: ${expiry}</p>` : ''}
+      </div>
+      ${params.message?.trim() ? `<div style="border-left: 3px solid #ccc; padding-left: 12px; margin: 16px 0; font-style: italic;">"${params.message.replace(/</g, '&lt;')}"</div>` : ''}
+      <p style="font-size: 14px; color: #666;">
+        To use it, simply give the code at checkout. See you soon!
+      </p>
+    </div>
+  `
+
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM,
+    to: params.to,
+    subject: `Your ${params.businessName} gift card`,
+    html,
+  })
+  return true
+}
+
 export async function sendWaitlistSlotNotification(params: {
   businessId?: string
   entryId: string

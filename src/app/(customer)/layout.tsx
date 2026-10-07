@@ -9,6 +9,7 @@ import { SEO } from '@/components/customer/SEO'
 import { ThemeStyle } from '@/components/customer/ThemeStyle'
 import { MotionProvider } from '@/components/motion/MotionProvider'
 import { visualConfigFromContent } from '@/lib/visual-config'
+import { getGiftCardSettings } from '@/lib/gift-cards'
 
 export default async function CustomerLayout({
   children,
@@ -34,6 +35,9 @@ export default async function CustomerLayout({
       </div>
     )
   }
+
+  // Gift cards nav link only when the shop enabled them
+  const giftCardSettings = await getGiftCardSettings(business.id).catch(() => null)
 
   // Fetch SEO settings for this business
   const seo = await prisma.businessSEO.findUnique({
@@ -70,9 +74,10 @@ export default async function CustomerLayout({
           logo={business.logo}
           phone={business.phone}
           walkInsWelcome={business.walkInsWelcome !== false}
+          giftCardsEnabled={giftCardSettings?.enabled === true}
         />
         <main className="flex-1">{children}</main>
-        <Footer business={business} />
+        <Footer business={business} giftCardsEnabled={giftCardSettings?.enabled === true} />
         <MobileBottomNav
           mode={visual.mobileNavMode}
           walkInsWelcome={business.walkInsWelcome !== false}

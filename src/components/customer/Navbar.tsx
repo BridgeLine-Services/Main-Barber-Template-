@@ -12,13 +12,16 @@ interface NavbarProps {
   phone?: string | null
   /** Walk-in queue page is only linked when the business welcomes walk-ins */
   walkInsWelcome?: boolean
+  /** Gift cards page is only linked when the shop has gift cards enabled */
+  giftCardsEnabled?: boolean
 }
 
-export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome }: NavbarProps) {
+export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome, giftCardsEnabled }: NavbarProps) {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/services', label: 'Services' },
     { href: '/barbers', label: 'Barbers' },
+    ...(giftCardsEnabled ? [{ href: '/gift-cards', label: 'Gift Cards' }] : []),
     ...(walkInsWelcome ? [{ href: '/queue', label: 'Walk-In Queue' }] : []),
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },

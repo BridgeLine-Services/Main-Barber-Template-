@@ -58,6 +58,17 @@ transaction history.
   when the shop has no online provider — customers cannot mint cards for
   money the shop cannot collect online.
 - Purchaser supplies recipient name/email and an optional message.
+- **Website page** (`/gift-cards`): public purchase page with Stripe Payment
+  Element. Denomination chips + custom amount, purchaser/recipient fields,
+  and a success screen that reveals the code only after payment confirms
+  and polls the card status until activation. The nav and footer links are
+  rendered only while the owner has gift cards enabled. When online
+  payments aren't configured the page falls back to an "available in-store"
+  card with the shop's contact details — it never shows a broken form.
+- **Delivery email**: on webhook activation of an online purchase, the card
+  (code, value, expiry, personal message) is emailed to the recipient when
+  provided, else the purchaser. Best-effort — activation never rolls back
+  on a mail outage, and is skipped when SMTP isn't configured.
 
 ## Redemption (checkout)
 
@@ -114,6 +125,7 @@ row. The ledger is append-only: history is never rewritten.
 | `/api/dashboard/gift-cards/[id]` | GET | owner/admin | card detail + transaction history |
 | `/api/dashboard/gift-cards/[id]/adjust` | POST | owner | manual balance adjustment |
 | `/api/gift-cards/purchase` | POST | public | customer digital purchase (online only) |
+| `/api/gift-cards/status?id=` | GET | public | status-only lookup for the success screen (never returns the code) |
 | `/api/dashboard/payments/checkout/[appointmentId]` | POST | POS | `giftCardCode` field applies a card |
 
 \* barbers only when the owner enabled barber checkout.

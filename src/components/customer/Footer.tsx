@@ -3,6 +3,8 @@ import { Scissors, MapPin, Phone, Mail, Instagram, Facebook, Video, Youtube, Twi
 import type { BusinessHours } from '@/lib/business-hours'
 
 interface FooterProps {
+  /** Gift cards page is only linked when the shop has gift cards enabled */
+  giftCardsEnabled?: boolean
   business?: {
     name?: string
     phone?: string | null
@@ -25,7 +27,7 @@ interface FooterProps {
   } | null
 }
 
-export function Footer({ business }: FooterProps) {
+export function Footer({ business, giftCardsEnabled }: FooterProps) {
   const shopName = business?.name || 'Barber Shop'
   const fullAddress = [business?.address, business?.city, business?.state, business?.zipCode]
     .filter(Boolean)
@@ -158,6 +160,11 @@ export function Footer({ business }: FooterProps) {
               <li>
                 <Link href="/gallery" className="hover:text-accent transition">Gallery</Link>
               </li>
+              {giftCardsEnabled ? (
+                <li>
+                  <Link href="/gift-cards" className="hover:text-accent transition">Gift Cards</Link>
+                </li>
+              ) : null}
               <li>
                 <Link href="/book" className="text-accent hover:underline font-medium">Book Appointment</Link>
               </li>
