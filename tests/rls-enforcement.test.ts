@@ -7,6 +7,14 @@
  * is not an authenticated API request), which must set the tenant
  * context per transaction via set_config('app.business_id', ..., true).
  *
+ * DEV ENVIRONMENT CAVEAT: these assertions require the test connection
+ * to be a NON-superuser role. PostgreSQL superusers bypass row-level
+ * security entirely (even with FORCE ROW LEVEL SECURITY), so on a sandbox
+ * whose DATABASE_URL uses a superuser account the cross-tenant /
+ * context-less sections report FAIL even though the policies are
+ * correct. Run against a deployment using the non-owner runtime role
+ * from prisma/rls/production-rls.sql for a true enforcement check.
+ *
  * How it runs safely on the dev database:
  *   The policies are applied and all assertions execute inside ONE
  *   interactive transaction that is deliberately rolled back at the end,
