@@ -114,6 +114,10 @@ model Business {
   payrollSettings                  PayrollSettings?
   giftCardSettings                 GiftCardSettings?
   giftCards                         GiftCard[]
+  membershipSettings                MembershipSettings?
+  membershipPlans                   MembershipPlan[]
+  memberships                       Membership[]
+  membershipUsages                  MembershipUsage[]
   giftCardTransactions              GiftCardTransaction[]
   payrollReports                   PayrollReport[]
   // Centralized feature configuration (Requirement 27): sparse map of
@@ -439,6 +443,7 @@ model Customer {
   stripeCustomerId String? // Stripe Customer id for card-on-file (never raw card data)
 
   payments        Payment[]
+  memberships     Membership[]
   giftCards       GiftCard[] @relation("GiftCardPurchaser")
   id              String    @id @default(cuid())
   businessId      String
@@ -1104,6 +1109,26 @@ enum PaymentStatus {
   PARTIALLY_REFUNDED // reversed for less than the full amount
 }
 
+enum MembershipBillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum MembershipStatus {
+  PENDING // enrolled, awaiting first payment confirmation
+  ACTIVE // paid, benefits available
+  PAST_DUE // period ended, renewal not yet confirmed
+  PAYMENT_FAILED // renewal charge failed; retry window
+  CANCELED // canceled; benefits end at period end
+  EXPIRED // past due beyond grace, or canceled period ended
+}
+
+enum MembershipBenefitType {
+  SERVICE_DISCOUNT
+  INCLUDED_VISIT
+}
+
 enum BookingQuestionType {
   SHORT_TEXT
   LONG_TEXT
@@ -1202,6 +1227,116 @@ model Payment {
 // false the shop operates purely in pay-at-shop mode (the template
 // default): booking never requires payment, no payment UI is shown, and
 // the Payment ledger stays untouched. One row per business.
+// ============================================================================
+// MEMBERSHIPS — optional, owner-controlled paid membership system
+// (see docs/MEMBERSHIPS.md). Master switch: MembershipSettings.enabled +
+// feature flag 'memberships' (Business.featureOverrides). A membership is
+// never ACTIVE until its first payment is verified (Stripe webhook or POS).
+// ============================================================================
+
+model MembershipSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // OWNER master switch — off = no new enrollments or renewals; existing
+  // memberships and history always remain intact and viewable.
+  enabled Boolean @default(false)
+
+  // Days before period end to send a renewal notice (0 = no notice).
+  renewalNoticeDays Int @default(3)
+
+  // Days a membership may stay PAST_DUE before it expires.
+  pastDueGraceDays Int @default(7)
+
+  // Human-readable terms shown at enrollment (billing, renewal, cancellation).
+  terms String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+
+  name        String
+  description String?
+  active      Boolean  @default(true) // hidden from new enrollment when false
+  sortOrder   Int      @default(0)
+
+  billingInterval MembershipBillingInterval @default(MONTHLY)
+  price           Float
+  currency        String @default("USD")
+
+  // Benefit: % discount on services (0-100).
+  serviceDiscountPercent Float @default(0)
+  // Benefit: included visits per period (0 = none; -1 = unlimited).
+  includedVisitsPerPeriod Int @default(0)
+  // Rolling window (days) for counting included visits.
+  visitWindowDays Int @default(30)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, active])
+}
+
+model Membership {
+  id          String         @id @default(cuid())
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  planId      String
+  plan        MembershipPlan  @relation(fields: [planId], references: [id], onDelete: Restrict)
+  usages      MembershipUsage[]
+
+  status      MembershipStatus @default(PENDING)
+  startedAt   DateTime // first confirmed period start (set on activation)
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime? // null until ACTIVE
+  autoRenew   Boolean  @default(true)
+
+  canceledAt   DateTime?
+  cancelReason String?
+  endedAt      DateTime?
+
+  // Provider subscription reference (e.g. Stripe subscription id). Never
+  // card data — card handling stays inside the provider.
+  subscriptionRef String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([customerId])
+  @@index([planId])
+}
+
+model MembershipUsage {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  // The appointment the benefit was applied to. Unique with membershipId +
+  // benefitType, so the same appointment can never redeem twice.
+  appointmentId String?
+  benefitType   MembershipBenefitType
+  amount        Float @default(0) // discount value applied, or 0 for included visit
+  usedAt        DateTime @default(now())
+
+  @@unique([membershipId, appointmentId, benefitType])
+  @@index([membershipId])
+  @@index([businessId])
+}
+
 model PaymentSettings {
   id         String   @id @default(cuid())
   businessId String   @unique

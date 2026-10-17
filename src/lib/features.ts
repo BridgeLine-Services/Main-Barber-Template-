@@ -36,6 +36,7 @@ export const FEATURE_KEYS = [
   'emailNotifications',
   'smsNotifications',
   'onlinePayments',     // online settlement (requires a registered provider)
+  'memberships',        // paid membership plans (see docs/MEMBERSHIPS.md)
 ] as const
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number]
@@ -59,6 +60,7 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   emailNotifications: true,
   smsNotifications: true,
   onlinePayments: false, // fail closed: no online provider ships with the template
+  memberships: false, // off by default: owner enables via settings + override
 }
 
 export class FeatureDisabledError extends Error {

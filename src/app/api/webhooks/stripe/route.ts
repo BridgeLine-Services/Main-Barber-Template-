@@ -69,6 +69,16 @@ export async function POST(request: Request) {
           console.error('gift card activation failed', err)
         }
       }
+      // A settled membership enrollment payment activates the membership
+      // (PENDING -> ACTIVE). Idempotent: re-delivery is a no-op.
+      if ((payment.metadata as Record<string, unknown> | null)?.membershipEnrollment === true) {
+        try {
+          const { activateMembershipForPayment } = await import('@/lib/memberships')
+          await activateMembershipForPayment(payment.id)
+        } catch (err) {
+          console.error('membership activation failed', err)
+        }
+      }
       if (payment.kind === 'NO_SHOW_FEE') {
         try {
           const { recordCommissionForFeePayment } = await import('@/lib/commissions')
