@@ -38,6 +38,7 @@ export const FEATURE_KEYS = [
   'onlinePayments',     // online settlement (requires a registered provider)
   'memberships',        // paid membership plans (see docs/MEMBERSHIPS.md)
   'ecommerce',          // product storefront (see docs/ECOMMERCE.md)
+  'reviewRequests',     // automated post-appointment review requests (see docs/REVIEW-REQUESTS.md)
 ] as const
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number]
@@ -63,6 +64,7 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   onlinePayments: false, // fail closed: no online provider ships with the template
   memberships: false, // off by default: owner enables via settings + override
   ecommerce: false, // off by default: owner enables via settings + override
+  reviewRequests: false, // off by default: owner enables via settings + override
 }
 
 export class FeatureDisabledError extends Error {
