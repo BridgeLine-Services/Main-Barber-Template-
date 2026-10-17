@@ -71,29 +71,57 @@ Owner/staff (dashboard, role-checked, tenant-scoped via session business):
 - `POST /api/dashboard/memberships/:id/cancel`
 - `GET /api/dashboard/memberships` — stats + list
 
-## Recurring billing — REQUIRED EXTERNAL SETUP (not yet live)
+## Recurring billing (Stripe Subscriptions)
 
-Recurring charges need a **Stripe Subscriptions** configuration: STRIPE
-secret key + webhook secret, a Stripe Customer per member
-(`Customer.stripeCustomerId`), a Stripe Price per plan, and handling of
-`invoice.paid`, `invoice.payment_failed` and
-`customer.subscription.deleted` webhooks. Until that setup exists the
-system **never fabricates a renewal charge**: lapsed memberships move to
-PAST_DUE and expire per the grace policy above. The activation path
-(`activateMembershipForPayment`) and the `subscriptionRef` field are ready
-to receive subscription invoice events unchanged.
+Implemented end-to-end server-side (`src/lib/payments/stripe-subscriptions.ts`
++ lifecycle handlers in `src/lib/memberships.ts`). With STRIPE_SECRET_KEY
+configured:
 
-## Scheduling
+1. `enrollWithSubscription` creates the PENDING membership, then the real
+   Stripe Customer (reusing `Customer.stripeCustomerId` when present),
+   Product + Price per plan (Price id cached on `MembershipPlan.providerPriceRef`),
+   and Subscription (idempotency-keyed). The membership still activates
+   ONLY on a signature-verified webhook — never on a redirect.
+2. Webhooks (all idempotent; the StripeEvent unique table dedups event
+   deliveries, handlers add state-level idempotency):
+   - `invoice.paid` → period advances ONLY forward (replayed or stale
+     invoices can neither duplicate nor rewind a period)
+   - `invoice.payment_failed` → PAST_DUE (ACTIVE) or PAYMENT_FAILED (PENDING);
+     never a free period
+   - `customer.subscription.updated` → syncs `cancel_at_period_end`
+     (autoRenew) and provider past_due/canceled state
+   - `customer.subscription.deleted` → CANCELED (or PAYMENT_FAILED when
+     never activated). Webhooks for ended memberships are refused and
+     flagged for reconciliation (no resurrection).
+3. Provider cancellation: `cancelSubscription` (immediate) and
+   `scheduleSubscriptionCancelAtPeriodEnd` (period-end, mirrors owner-side
+   cancellation).
 
-Add a scheduled job (e.g. daily cron calling
-`processMembershipPeriodEnds` per business) — see the Superagent/workflow
-scheduler or any external cron hitting a protected admin endpoint.
+Fail-closed: without STRIPE_SECRET_KEY the subscription path throws a clear
+`RECURRING_NOT_CONFIGURED` error and NEVER simulates a charge. Lapsed
+memberships still move to PAST_DUE and expire per the grace policy. The
+one-time first-period POS path is unchanged.
+
+## Scheduling (durable period processing)
+
+`GET /api/cron/memberships` — Vercel Cron hourly (see `vercel.json`), same
+CRON_SECRET Bearer protection as the reminders job. Per business with the
+memberships flag enabled, runs `processMembershipPeriodEnds`:
+ACTIVE+ended+autoRenew → PAST_DUE (a renewal ONLY happens via a verified
+invoice webhook — the job never invents a charge), ACTIVE+ended+!autoRenew
+→ CANCELED, PAST_DUE beyond grace → EXPIRED. Every transition is guarded
+by status + period timestamps, so missed runs converge safely on catch-up.
+Returns `{ok, businesses, processed, errors, detail}` for monitoring.
 
 ## Tests
 
 ```
-npm run test:memberships   # 31 assertions: gate, activation, benefits,
-                           # dedup, isolation, cancellation, period-end, stats
+npm run test:memberships           # 31 assertions: gate, activation, benefits,
+                                   # dedup, isolation, cancellation, period-end, stats
+npm run test:memberships-renewals  # 30 assertions: subscription lifecycle
+                                   # (renew/replay/out-of-order, failed renewal,
+                                   # delete/update sync, period-end job, grace,
+                                   # idempotent re-runs, isolation, no-resurrect)
 ```
 
 Runs in CI (`npm run test:ci`). All fixtures are created and removed by the

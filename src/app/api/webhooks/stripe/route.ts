@@ -35,6 +35,51 @@ export async function POST(request: Request) {
     }
 
     const data = (event.data as { object?: Record<string, unknown> })?.object ?? {}
+
+    // ── Membership subscription lifecycle (prompt 6C) ─────────────────────
+    // These events have no Payment row: the membership resolves by its
+    // stored subscriptionRef. The event was already signature-verified and
+    // deduped above; each handler is additionally idempotent at state level
+    // so replayed or out-of-order events cannot duplicate or rewind periods.
+    if (type === 'invoice.paid' || type === 'invoice.payment_failed' ||
+        type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') {
+      const { subscription: sub, lines, status } = data as {
+        subscription?: string | Record<string, unknown>
+        lines?: { data?: Array<{ subscription?: string }> }
+        status?: string
+        cancel_at_period_end?: boolean
+      }
+      const subscriptionRef =
+        typeof sub === 'string'
+          ? sub
+          : (sub as { id?: string } | undefined)?.id ??
+            lines?.data?.[0]?.subscription ??
+            (data.id as string | undefined)
+      if (!subscriptionRef) {
+        return NextResponse.json({ received: true, ignored: true })
+      }
+      try {
+        const mb = await import('@/lib/memberships')
+        if (type === 'invoice.paid') {
+          const periodEnd = new Date((data.period_end as number) * 1000)
+          await mb.handleSubscriptionInvoicePaid(String(subscriptionRef), periodEnd)
+        } else if (type === 'invoice.payment_failed') {
+          await mb.handleSubscriptionInvoiceFailed(String(subscriptionRef))
+        } else if (type === 'customer.subscription.updated') {
+          await mb.handleSubscriptionUpdated(
+            String(subscriptionRef),
+            String(status ?? 'unknown'),
+            data.cancel_at_period_end === true
+          )
+        } else {
+          await mb.handleSubscriptionDeleted(String(subscriptionRef))
+        }
+      } catch (err) {
+        console.error('membership subscription webhook failed', err)
+      }
+      return NextResponse.json({ received: true })
+    }
+
     const paymentId =
       ((data.metadata as Record<string, unknown> | undefined)?.paymentId as string | undefined) ??
       undefined

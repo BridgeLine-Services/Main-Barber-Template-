@@ -413,6 +413,197 @@ export async function processMembershipPeriodEnds(businessId: string, now = new 
   return outcome
 }
 
+// ─── Recurring billing (Stripe Subscriptions) — see stripe-subscriptions.ts ──
+
+export interface SubscriptionEnrollmentResult {
+  membership: Membership
+  clientSecret: string | null
+  /** True when the provider subscription was created (recurring billing live). */
+  recurring: boolean
+}
+
+/**
+ * Enrollment for the SUBSCRIPTION path (prompt 6C). Creates the PENDING
+ * membership, then — when the provider is configured — creates the real
+ * Stripe Customer + Price + Subscription and stores the provider refs.
+ * The membership still activates ONLY on a verified invoice.paid webhook.
+ * When Stripe is not configured the call fails closed with a clear error
+ * (callers then use the existing one-time payment path).
+ */
+export async function enrollWithSubscription(input: {
+  businessId: string
+  customerId: string
+  planId: string
+  email: string
+  name?: string | null
+  now?: Date
+}): Promise<SubscriptionEnrollmentResult> {
+  if (!(await isMembershipSystemUsable(input.businessId))) {
+    throw new MembershipError(MEMBERSHIP_ERRORS.DISABLED, 'MEMBERSHIP_DISABLED')
+  }
+  const { subscriptionsConfigured, createSubscriptionForMembership } =
+    await import('@/lib/payments/stripe-subscriptions')
+  if (!subscriptionsConfigured()) {
+    throw new MembershipError(
+      'Recurring billing is not configured (STRIPE_SECRET_KEY missing)',
+      'RECURRING_NOT_CONFIGURED'
+    )
+  }
+
+  const { membership } = await enrollCustomer(input)
+  const plan = await prisma.membershipPlan.findFirstOrThrow({ where: { id: input.planId, businessId: input.businessId } })
+  // Reuse the existing per-customer provider ref when present (shared with
+  // the card-on-file flow) so one shop-customer = one provider customer.
+  const customer = await prisma.customer.findFirst({
+    where: { id: input.customerId, businessId: input.businessId },
+    select: { stripeCustomerId: true },
+  })
+  try {
+    const sub = await createSubscriptionForMembership({
+      businessId: input.businessId,
+      membershipId: membership.id,
+      customerId: input.customerId,
+      email: input.email,
+      name: input.name,
+      plan,
+      existingPriceRef: plan.providerPriceRef,
+      existingCustomerRef: customer?.stripeCustomerId ?? null,
+    })
+    if (customer && !customer.stripeCustomerId) {
+      await prisma.customer.update({
+        where: { id: input.customerId },
+        data: { stripeCustomerId: sub.providerCustomerRef },
+      })
+    }
+    const updated = await prisma.membership.update({
+      where: { id: membership.id },
+      data: { subscriptionRef: sub.subscriptionRef, providerCustomerRef: sub.providerCustomerRef },
+    })
+    if (plan.providerPriceRef !== sub.providerPriceRef) {
+      await prisma.membershipPlan.update({
+        where: { id: plan.id },
+        data: { providerPriceRef: sub.providerPriceRef },
+      })
+    }
+    return { membership: updated, clientSecret: sub.clientSecret, recurring: true }
+  } catch (err) {
+    // Provider failed: keep the PENDING membership (no refs) — the customer
+    // can retry or the owner settles the first period via POS.
+    console.error('subscription enrollment failed', err)
+    throw new MembershipError(
+      'Could not start recurring billing. The membership stays pending; try again or pay in shop.',
+      'SUBSCRIPTION_FAILED'
+    )
+  }
+}
+
+// ─── Subscription lifecycle webhooks (all idempotent, tenant-safe) ───────────
+
+/**
+ * invoice.paid (subscription mode): the verified renewal for the current
+ * period. Membership resolves via subscriptionRef — the tenant identity
+ * comes from the stored membership, never from the event body alone.
+ * Idempotent + out-of-order safe: the period only ever moves FORWARD
+ * (advance only when the invoice period end is beyond the stored one), so
+ * replayed or stale invoices can neither duplicate nor rewind periods.
+ * The StripeEvent unique table already dedups identical event deliveries.
+ */
+export async function handleSubscriptionInvoicePaid(
+  subscriptionRef: string,
+  periodEnd: Date,
+  now = new Date()
+): Promise<boolean> {
+  const membership = await prisma.membership.findFirst({
+    where: { subscriptionRef },
+    include: { plan: true },
+  })
+  if (!membership) return false
+  if (membership.status === 'CANCELED' || membership.status === 'EXPIRED') {
+    // Provider charged a period for a membership we already ended — do not
+    // resurrect it from a webhook; flag for manual reconciliation instead.
+    console.warn(`invoice.paid for ended membership ${membership.id} — needs reconciliation`)
+    return false
+  }
+  if (membership.currentPeriodEnd && periodEnd.getTime() <= membership.currentPeriodEnd.getTime()) {
+    return false // stale/replayed invoice: period already covered
+  }
+  await prisma.membership.update({
+    where: { id: membership.id },
+    data: {
+      status: 'ACTIVE',
+      currentPeriodStart: membership.currentPeriodEnd ?? now,
+      currentPeriodEnd: periodEnd,
+    },
+  })
+  return true
+}
+
+/** invoice.payment_failed: renewal charge failed — PAST_DUE (never a free period). */
+export async function handleSubscriptionInvoiceFailed(subscriptionRef: string): Promise<boolean> {
+  const membership = await prisma.membership.findFirst({ where: { subscriptionRef } })
+  if (!membership) return false
+  if (membership.status !== 'PENDING' && membership.status !== 'ACTIVE' && membership.status !== 'PAST_DUE') {
+    return false
+  }
+  if (membership.status === 'PENDING') {
+    await prisma.membership.update({ where: { id: membership.id }, data: { status: 'PAYMENT_FAILED' } })
+    return true
+  }
+  if (membership.status === 'ACTIVE') {
+    await prisma.membership.update({ where: { id: membership.id }, data: { status: 'PAST_DUE' } })
+    return true
+  }
+  return false
+}
+
+/** customer.subscription.deleted: the provider ended the subscription. */
+export async function handleSubscriptionDeleted(subscriptionRef: string, now = new Date()): Promise<boolean> {
+  const membership = await prisma.membership.findFirst({ where: { subscriptionRef } })
+  if (!membership || membership.status === 'CANCELED' || membership.status === 'EXPIRED') return false
+  await prisma.membership.update({
+    where: { id: membership.id },
+    data: {
+      status: membership.status === 'PENDING' ? 'PAYMENT_FAILED' : 'CANCELED',
+      autoRenew: false,
+      canceledAt: membership.canceledAt ?? now,
+      endedAt: membership.status === 'PENDING' ? null : now,
+    },
+  })
+  return true
+}
+
+/**
+ * customer.subscription.updated: sync provider state. cancel_at_period_end
+ * maps to autoRenew=false; a past_due subscription maps to PAST_DUE. Never
+ * moves a period backward; never fabricates a charge.
+ */
+export async function handleSubscriptionUpdated(
+  subscriptionRef: string,
+  providerStatus: string,
+  cancelAtPeriodEnd: boolean
+): Promise<boolean> {
+  const membership = await prisma.membership.findFirst({ where: { subscriptionRef } })
+  if (!membership) return false
+  const data: Prisma.MembershipUpdateInput = {}
+  if (membership.autoRenew !== !cancelAtPeriodEnd) data.autoRenew = !cancelAtPeriodEnd
+  if (providerStatus === 'past_due' && membership.status === 'ACTIVE') {
+    data.status = 'PAST_DUE'
+    data.currentPeriodEnd = membership.currentPeriodEnd // unchanged; grace applies
+  }
+  if (providerStatus === 'canceled' || providerStatus === 'unpaid') {
+    data.status = membership.status === 'PENDING' ? 'PAYMENT_FAILED' : 'PAST_DUE'
+    data.autoRenew = false
+  }
+  if (providerStatus === 'active' && membership.status === 'PAST_DUE') {
+    // Authoritative provider state says paid — but only an invoice.paid
+    // webhook may ADVANCE the period; here we just clear the lapsed flag.
+    data.status = 'ACTIVE'
+  }
+  if (Object.keys(data).length === 0) return false
+  await prisma.membership.update({ where: { id: membership.id }, data })
+  return true
+}
+
 // ─── Views ────────────────────────────────────────────────────────────────────
 
 export async function listCustomerMemberships(businessId: string, customerId: string): Promise<

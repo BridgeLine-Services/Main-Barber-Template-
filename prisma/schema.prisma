@@ -1288,6 +1288,8 @@ model MembershipPlan {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   ecommerceSettingsId String?
+  // Cached provider Price id for recurring billing (created once per plan).
+  providerPriceRef    String?
 
   @@index([businessId])
   @@index([businessId, active])
@@ -1315,7 +1317,10 @@ model Membership {
 
   // Provider subscription reference (e.g. Stripe subscription id). Never
   // card data — card handling stays inside the provider.
-  subscriptionRef String?
+  subscriptionRef     String?
+  // Provider customer reference for recurring charges (same rule: no card
+  // data, only the provider's customer id).
+  providerCustomerRef String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
