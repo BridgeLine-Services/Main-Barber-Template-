@@ -5,6 +5,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { AppointmentStatus } from '@prisma/client'
+import { DateTime } from 'luxon'
+import { resolveBusinessTimezone } from '@/lib/timezone'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,23 +62,29 @@ export interface AnalyticsResult {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function startOfDay(date: Date): Date {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
+function businessDayBounds(timezone: string, date: Date) {
+  const local = DateTime.fromJSDate(date).setZone(timezone)
+  return {
+    start: local.startOf('day').toUTC().toJSDate(),
+    end: local.endOf('day').toUTC().toJSDate(),
+  }
 }
 
-function endOfDay(date: Date): Date {
-  const d = new Date(date)
-  d.setHours(23, 59, 59, 999)
-  return d
+export interface AnalyticsRange {
+  start?: Date
+  end?: Date
 }
 
-function daysAgo(days: number): Date {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  d.setHours(0, 0, 0, 0)
-  return d
+function resolveRange(timezone: string, rangeDays: number, range?: AnalyticsRange) {
+  if (range?.start && range?.end) {
+    if (range.start > range.end) throw new Error('Analytics range start must precede end')
+    return { start: range.start, end: range.end }
+  }
+  const now = DateTime.now().setZone(timezone)
+  return {
+    start: now.minus({ days: Math.max(1, rangeDays) - 1 }).startOf('day').toUTC().toJSDate(),
+    end: now.endOf('day').toUTC().toJSDate(),
+  }
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -92,12 +100,21 @@ function formatHour(hour: number): string {
 
 export async function getAnalytics(
   businessId: string,
-  rangeDays: number = 30
+  rangeDays: number = 30,
+  range?: AnalyticsRange
 ): Promise<AnalyticsResult> {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { timezone: true },
+  })
+  const timezone = resolveBusinessTimezone(business)
   const now = new Date()
-  const todayStart = startOfDay(now)
-  const todayEnd = endOfDay(now)
-  const rangeStart = daysAgo(rangeDays)
+  const todayBounds = businessDayBounds(timezone, now)
+  const selectedRange = resolveRange(timezone, rangeDays, range)
+  const todayStart = todayBounds.start
+  const todayEnd = todayBounds.end
+  const rangeStart = selectedRange.start
+  const rangeEnd = selectedRange.end
 
   // ── Today's stats ──────────────────────────────────────────────────────────
   const [
@@ -173,34 +190,34 @@ export async function getAnalytics(
     prisma.appointment.count({
       where: {
         businessId,
-        startTime: { gte: rangeStart },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
     }),
     prisma.appointment.count({
       where: {
         businessId,
         status: AppointmentStatus.COMPLETED,
-        startTime: { gte: rangeStart },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
     }),
     prisma.appointment.count({
       where: {
         businessId,
         status: AppointmentStatus.CANCELLED,
-        startTime: { gte: rangeStart },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
     }),
     prisma.appointment.count({
       where: {
         businessId,
         status: AppointmentStatus.NO_SHOW,
-        startTime: { gte: rangeStart },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
     }),
     prisma.customer.count({
       where: {
         businessId,
-        createdAt: { gte: rangeStart },
+        createdAt: { gte: rangeStart, lte: rangeEnd },
       },
     }),
     prisma.customer.count({
@@ -210,7 +227,7 @@ export async function getAnalytics(
       where: {
         businessId,
         status: AppointmentStatus.COMPLETED,
-        startTime: { gte: rangeStart },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
       select: {
         customerId: true,
@@ -220,7 +237,7 @@ export async function getAnalytics(
     prisma.payment.findMany({
       where: {
         businessId,
-        createdAt: { gte: rangeStart },
+        createdAt: { gte: rangeStart, lte: rangeEnd },
         status: { in: ['SUCCEEDED', 'PARTIALLY_REFUNDED'] },
         kind: { in: ['CHARGE', 'DEPOSIT', 'CANCELLATION_FEE', 'NO_SHOW_FEE'] },
       },
@@ -274,7 +291,7 @@ export async function getAnalytics(
     where: {
       businessId,
       status: AppointmentStatus.COMPLETED,
-      startTime: { gte: rangeStart },
+      startTime: { gte: rangeStart, lte: rangeEnd },
     },
     include: {
       service: { select: { name: true } },
@@ -327,7 +344,7 @@ export async function getAnalytics(
   const allRangeAppts = await prisma.appointment.findMany({
     where: {
       businessId,
-      startTime: { gte: rangeStart },
+      startTime: { gte: rangeStart, lte: rangeEnd },
     },
     include: {
       barber: { select: { name: true } },
