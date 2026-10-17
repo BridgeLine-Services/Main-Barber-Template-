@@ -589,6 +589,8 @@ export async function createAppointmentSafely(params: {
     answers?: Record<string, string | boolean | string[]>
     policiesAcceptedAt?: Date | null
     policyVersion?: string | null
+    bookingSource?: string | null
+    bookingSourceRef?: string | null
   }
   /** When the booking is made by an authenticated CUSTOMER account, the
    *  account→customer-record link is established here, server-side. */
@@ -781,6 +783,11 @@ export async function createAppointmentSafely(params: {
           startTime,
           endTime,
           status: 'CONFIRMED',
+      customerNotes: customerData.notes ?? null,
+      policiesAcceptedAt: customerData.policiesAcceptedAt ?? null,
+      policyVersion: customerData.policyVersion ?? null,
+      bookingSource: customerData.bookingSource ?? null,
+      bookingSourceRef: customerData.bookingSourceRef ?? null,
           customerNotes: customerData.notes ?? null,
           policiesAcceptedAt: customerData.policiesAcceptedAt ?? null,
           policyVersion: customerData.policyVersion ?? null,
