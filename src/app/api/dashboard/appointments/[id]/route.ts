@@ -10,6 +10,7 @@ import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
 import { AuditAction } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
+import { scheduleReviewRequest } from '@/lib/review-requests'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -213,6 +214,9 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         ipAddress: getClientIP(req),
         userAgent: req.headers.get('user-agent') || undefined,
       })
+      if (updateData.status === 'COMPLETED') {
+        try { await scheduleReviewRequest(params.id) } catch (error) { console.error('[appointment-mutation] review request scheduling failed', error) }
+      }
       // Optional owner opt-in: commission completed-but-unpaid
       // appointments (pay-later shops). No-op unless the shop's
       // commission system is on with calculateOnUnpaid enabled.

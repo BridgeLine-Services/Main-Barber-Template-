@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Save, Building2, Phone,MapPin, Clock, Globe, Monitor, Palette, Users,
-  Search, FileText, Image as ImageIcon,HelpCircle
+  Search, FileText, Image as ImageIcon,HelpCircle, Star
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
@@ -93,6 +93,10 @@ type SettingsBusiness = {
   timezone?: string | null
   hours?: Record<string, DayHours> | null
   parkingAvailable?: boolean | null
+  reviewRequestEnabled?: boolean | null
+  reviewRequestDelayMinutes?: number | null
+  reviewRequestUrl?: string | null
+  reviewRequestCooldownDays?: number | null
 }
 
 type SettingsSeo = {
@@ -110,12 +114,12 @@ type SettingsSeo = {
 
 type WebsiteContentMap = Record<string, unknown>
 
-type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking'
+type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking' | 'reviews'
 
 // Single source of truth for the selected tab: the ?tab= URL parameter.
 // The component derives the active tab from it — no duplicated state that can
 // drift. Invalid values fall back to the default tab.
-const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'social', 'policies', 'seo', 'faq', 'website', 'booking'] as const
+const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'social', 'policies', 'seo', 'faq', 'website', 'booking', 'reviews'] as const
 const DEFAULT_TAB: Tab = 'business'
 
 export default function SettingsPage() {
@@ -225,6 +229,7 @@ export default function SettingsPage() {
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
     { id: 'website', label: 'Website Content', icon: FileText },
     { id: 'booking', label: 'Booking Questions', icon: HelpCircle },
+    { id: 'reviews', label: 'Review Requests', icon: Star },
   ]
 
   const addBookingQuestion = async () => {
@@ -925,8 +930,29 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {activeTab === 'booking' && (
-        <Card className="bg-card border-border">
+  {activeTab === 'reviews' && (
+  <Card className="bg-card border-border">
+    <CardHeader><CardTitle>Review Requests</CardTitle></CardHeader>
+    <CardContent>
+      <form className="space-y-5" onSubmit={async (event) => {
+        event.preventDefault()
+        const form = new FormData(event.currentTarget)
+        const response = await fetch('/api/dashboard/review-requests/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: form.get('enabled') === 'on', reviewUrl: form.get('reviewUrl'), delayMinutes: Number(form.get('delayMinutes')), cooldownDays: Number(form.get('cooldownDays')) }) })
+        const data = await response.json()
+        if (response.ok) { setBusiness((current) => current ? { ...current, ...data } : current); toast({ title: 'Review settings saved' }) }
+        else toast({ title: data.error || 'Unable to save review settings', variant: 'destructive' })
+      }}>
+        <p className="text-sm text-muted-foreground">Automatically email customers after completed appointments. Requests are rate-limited per customer and retried safely.</p>
+        <div className="flex items-center justify-between rounded-lg border border-border p-4"><div><Label htmlFor="review-enabled">Enable review requests</Label><p className="text-xs text-muted-foreground">Only completed appointments with a valid email are eligible.</p></div><Switch id="review-enabled" name="enabled" defaultChecked={business?.reviewRequestEnabled ?? false} /></div>
+        <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="review-url">Review URL</Label><Input id="review-url" name="reviewUrl" type="url" placeholder="https://g.page/r/.../review" defaultValue={business?.reviewRequestUrl ?? ''} /></div><div><Label htmlFor="review-delay">Delay (minutes)</Label><Input id="review-delay" name="delayMinutes" type="number" min="15" max="10080" defaultValue={business?.reviewRequestDelayMinutes ?? 60} /></div><div><Label htmlFor="review-cooldown">Cooldown (days)</Label><Input id="review-cooldown" name="cooldownDays" type="number" min="1" max="365" defaultValue={business?.reviewRequestCooldownDays ?? 30} /></div></div>
+        <Button type="submit"><Save className="mr-2 h-4 w-4" />Save review settings</Button>
+      </form>
+    </CardContent>
+  </Card>
+  )}
+
+  {activeTab === 'booking' && (
+  <Card className="bg-card border-border">
           <CardHeader><CardTitle>Booking Questions</CardTitle></CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">Add the questions customers should answer before confirming a booking.</p>
