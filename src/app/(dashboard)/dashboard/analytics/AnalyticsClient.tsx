@@ -30,7 +30,7 @@ interface BusinessPerformance {
   completedAppointments: number
   cancelledAppointments: number
   noShowAppointments: number
-  revenueEstimate: number
+  collectedRevenue: number
   averageTicket: number
   cancellationRate: number
   noShowRate: number
@@ -186,9 +186,9 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
           />
           <StatCard
             icon={DollarSign}
-            label="Revenue Estimate"
-            value={`$${performance.revenueEstimate.toFixed(0)}`}
-            subtext={`Avg $${performance.averageTicket.toFixed(2)}/visit`}
+            label="Collected Revenue"
+            value={`$${performance.collectedRevenue.toFixed(0)}`}
+            subtext={`Avg $${performance.averageTicket.toFixed(2)}/completed visit`}
             color="green"
           />
           <StatCard
