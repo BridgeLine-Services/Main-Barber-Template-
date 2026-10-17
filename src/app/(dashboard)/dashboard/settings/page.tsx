@@ -131,6 +131,8 @@ export default function SettingsPage() {
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentMap>({})
   const [bookingQuestions, setBookingQuestions] = useState<BookingQuestion[]>([])
   const [newQuestion, setNewQuestion] = useState({ label: '', key: '', type: 'SHORT_TEXT', required: false })
+  const [reviewReport, setReviewReport] = useState<{ eligible: number; scheduled: number; sent: number; pending: number; failed: number; skipped: number; sendRate: number } | null>(null)
+  const [reviewReportLoading, setReviewReportLoading] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
   // Derived from the URL — refresh, direct links, back/forward, and in-app
@@ -231,6 +233,20 @@ export default function SettingsPage() {
     { id: 'booking', label: 'Booking Questions', icon: HelpCircle },
     { id: 'reviews', label: 'Review Requests', icon: Star },
   ]
+
+  const loadReviewReport = async () => {
+    setReviewReportLoading(true)
+    try {
+      const response = await fetch('/api/dashboard/review-requests/report?days=30')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setReviewReport(data)
+    } catch (error) {
+      toast({ title: 'Unable to load review report', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' })
+    } finally {
+      setReviewReportLoading(false)
+    }
+  }
 
   const addBookingQuestion = async () => {
     if (!newQuestion.label.trim() || !newQuestion.key.trim()) return
@@ -947,6 +963,15 @@ export default function SettingsPage() {
         <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="review-url">Review URL</Label><Input id="review-url" name="reviewUrl" type="url" placeholder="https://g.page/r/.../review" defaultValue={business?.reviewRequestUrl ?? ''} /></div><div><Label htmlFor="review-delay">Delay (minutes)</Label><Input id="review-delay" name="delayMinutes" type="number" min="15" max="10080" defaultValue={business?.reviewRequestDelayMinutes ?? 60} /></div><div><Label htmlFor="review-cooldown">Cooldown (days)</Label><Input id="review-cooldown" name="cooldownDays" type="number" min="1" max="365" defaultValue={business?.reviewRequestCooldownDays ?? 30} /></div></div>
         <Button type="submit"><Save className="mr-2 h-4 w-4" />Save review settings</Button>
       </form>
+      <div className="mt-6 border-t border-border pt-5">
+        <div className="flex items-center justify-between gap-3">
+          <div><h3 className="font-medium text-foreground">Last 30 days</h3><p className="text-xs text-muted-foreground">Delivery reporting is based only on recorded queue outcomes.</p></div>
+          <Button type="button" variant="outline" size="sm" onClick={loadReviewReport} disabled={reviewReportLoading}>{reviewReportLoading ? 'Loading...' : 'Load report'}</Button>
+        </div>
+        {reviewReport && <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[['Eligible', reviewReport.eligible], ['Scheduled', reviewReport.scheduled], ['Sent', reviewReport.sent], ['Failed', reviewReport.failed], ['Skipped', reviewReport.skipped], ['Pending', reviewReport.pending], ['Send rate', `${reviewReport.sendRate}%`]].map(([label, value]) => <div key={String(label)} className="rounded-lg border border-border bg-muted/40 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold text-foreground">{value}</p></div>)}
+        </div>}
+      </div>
     </CardContent>
   </Card>
   )}
