@@ -22,7 +22,7 @@ export interface BusinessPerformance {
   completedAppointments: number
   cancelledAppointments: number
   noShowAppointments: number
-  revenueEstimate: number
+  collectedRevenue: number
   averageTicket: number
   cancellationRate: number
   noShowRate: number
@@ -168,6 +168,7 @@ export async function getAnalytics(
     rangeNewCustomers,
     totalCustomers,
     rangeCompletedWithService,
+    rangePayments,
   ] = await Promise.all([
     prisma.appointment.count({
       where: {
@@ -216,14 +217,24 @@ export async function getAnalytics(
         service: { select: { price: true } },
       },
     }),
+    prisma.payment.findMany({
+      where: {
+        businessId,
+        createdAt: { gte: rangeStart },
+        status: { in: ['SUCCEEDED', 'PARTIALLY_REFUNDED'] },
+        kind: { in: ['CHARGE', 'DEPOSIT', 'CANCELLATION_FEE', 'NO_SHOW_FEE'] },
+      },
+      select: { amount: true, refundedAmount: true },
+    }),
   ])
 
-  // Revenue estimate: sum of completed appointment service prices
-  const revenueEstimate = rangeCompletedWithService.reduce(
-    (sum, a) => sum + (a.service?.price || 0),
-    0
+  // Financial reporting uses settled ledger rows, not listed service prices.
+  // Refunds are subtracted from the original payment and tips are excluded.
+  const collectedRevenue = rangePayments.reduce(
+    (sum, payment) => sum + Math.max(0, payment.amount - payment.refundedAmount),
+    0,
   )
-  const averageTicket = rangeCompleted > 0 ? revenueEstimate / rangeCompleted : 0
+  const averageTicket = rangeCompleted > 0 ? collectedRevenue / rangeCompleted : 0
 
   // Retention rate: customers who had >1 completed appointment in range
   const customerVisitCounts = new Map<string, number>()
@@ -248,7 +259,7 @@ export async function getAnalytics(
     completedAppointments: rangeCompleted,
     cancelledAppointments: rangeCancelled,
     noShowAppointments: rangeNoShow,
-    revenueEstimate,
+    collectedRevenue,
     averageTicket,
     cancellationRate,
     noShowRate,

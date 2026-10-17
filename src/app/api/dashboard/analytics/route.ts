@@ -16,7 +16,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden — owner access required' }, { status: 403 })
     }
     const { searchParams } = new URL(request.url)
-    const rangeDays = parseInt(searchParams.get('days') || '30', 10)
+    const parsedDays = Number.parseInt(searchParams.get('days') || '30', 10)
+    const rangeDays = Number.isInteger(parsedDays) ? Math.min(Math.max(parsedDays, 1), 366) : 30
     try {
       const result = await getAnalytics(user.businessId, rangeDays)
       return NextResponse.json(result)
