@@ -25,6 +25,8 @@ export const createBookingSchema = z.object({
   }),
   policiesAcceptedAt: z.string().datetime().optional(),
   policyVersion: z.string().max(100).optional(),
+  bookingSource: z.enum(['direct', 'google', 'instagram', 'facebook', 'other']).optional(),
+  bookingSourceRef: z.string().max(200).optional(),
 })
 
 export const cancelByTokenSchema = z.object({

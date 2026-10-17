@@ -183,7 +183,10 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         }
         return tx.appointment.update({
           where: { id: params.id, businessId },
-          data: updateData,
+          data: {
+            ...updateData,
+            ...(updateData.status === 'COMPLETED' && !appointment.completedAt ? { completedAt: new Date() } : {}),
+          },
           include: { customer: true, barber: true, service: true },
         })
       }, { isolationLevel: 'Serializable' })

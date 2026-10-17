@@ -228,6 +228,8 @@ export async function POST(req: NextRequest) {
         ...customer,
         policiesAcceptedAt: parseResult.data.policiesAcceptedAt ? new Date(parseResult.data.policiesAcceptedAt) : null,
         policyVersion: policiesRequired ? (businessPolicies?.updatedAt.toISOString() ?? null) : null,
+        bookingSource: parseResult.data.bookingSource ?? 'direct',
+        bookingSourceRef: parseResult.data.bookingSourceRef ?? null,
       },
       customerUserId,
     })
