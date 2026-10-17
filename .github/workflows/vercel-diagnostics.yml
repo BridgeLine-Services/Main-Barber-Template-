@@ -1,0 +1,70 @@
+# Dispatch-only diagnostics for Vercel deployment failures.
+#
+# Purpose: when the Vercel dashboard is not accessible, this workflow uses the
+# repository's stored VERCEL_TOKEN secret (if configured in
+# Settings → Secrets and variables → Actions) to print the build logs of a
+# specific deployment, the recent deployment list, and the project's
+# environment-variable NAMES (values are never exposed by the CLI) into this
+# Actions run log, which all repository administrators can read.
+#
+# If no VERCEL_TOKEN secret is stored, the run exits cleanly with an
+# explanation instead of failing, so this workflow is always safe to trigger.
+
+name: Vercel Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'Vercel deployment id to inspect'
+        required: false
+        default: 'dpl_ByuTn3SJJMw2pzDCrYJ312t2tnR3'
+
+concurrency:
+  group: vercel-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check whether a VERCEL_TOKEN secret is configured
+        id: token
+        env:
+          VERCEL_TOKEN_SECRET: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN_SECRET" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo 'No VERCEL_TOKEN secret is configured in this repository.'
+            echo 'Add one under Settings → Secrets and variables → Actions'
+            echo '(Vercel dashboard → Settings → Tokens), then re-run this workflow.'
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo 'A VERCEL_TOKEN secret is configured; continuing.'
+          fi
+
+      - name: Check out repository
+        if: steps.token.outputs.available == 'true'
+        uses: actions/checkout@v4
+
+      - name: Inspect failed deployment build logs
+        if: steps.token.outputs.available == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+        run: npx --yes vercel@latest inspect "$DEPLOYMENT_ID" --logs --scope bridge-line-services-projects
+
+      - name: List recent deployments
+        if: steps.token.outputs.available == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest ls main-barber-template --scope bridge-line-services-projects
+
+      - name: List production environment variable names
+        if: steps.token.outputs.available == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx --yes vercel@latest link --project main-barber-template --scope bridge-line-services-projects --yes
+          npx --yes vercel@latest env ls production
