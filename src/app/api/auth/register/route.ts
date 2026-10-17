@@ -6,28 +6,19 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
-
-// ============================================================================
-// PUBLIC SIGNUP — creates a CUSTOMER account.
-//
-// The role is determined SERVER-SIDE and is always CUSTOMER. Any role value
-// supplied by the browser is ignored (and rejected by the schema — this
-// endpoint accepts no role field at all). Staff accounts are created only
-// through the invitation lifecycle; owner accounts only through the
-// token-gated provisioning endpoint (/api/auth/register-owner).
-// ============================================================================
+import { isOwnerRegistrationOpen } from '@/lib/owner-registration'
 
 const registerSchema = z.object({
   email: z.string().trim().email().transform(normalizeEmail),
   password: passwordPolicySchema,
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-  // Deliberately NO role field: a public request can never select a role.
 })
 
+class RegistrationConflict extends Error {
+  status = 409
+}
+
 export async function POST(req: NextRequest) {
-  // 3 signups/min per IP by default; test environments (E2E suites make
-  // several signup calls back-to-back) can raise it via env without
-  // weakening the production default.
   const registerLimit = Number(process.env.RATE_LIMIT_REGISTER_MAX ?? 3) || 3
   const rateLimitResult = checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
   if (rateLimitResult) {
@@ -49,45 +40,70 @@ export async function POST(req: NextRequest) {
 
     const { email, password, name } = parsed.data
 
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 409 }
-      )
-    }
+    const shouldCreateOwner = await prisma.user
+      .findFirst({
+        where: { role: 'OWNER' },
+        select: { id: true },
+      })
+      .then((owner) => isOwnerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE, !!owner))
 
-    const passwordHash = await bcrypt.hash(password, 10)
+    const createdUser = await prisma.$transaction(async (tx) => {
+      if (shouldCreateOwner) {
+        const existingOwner = await tx.user.findFirst({
+          where: { role: 'OWNER' },
+          select: { id: true },
+        })
+        if (existingOwner) {
+          throw Object.assign(new RegistrationConflict('Owner registration is no longer open'), {
+            code: 'OWNER_EXISTS',
+          })
+        }
+      }
 
-    // Role is fixed server-side: a public signup is ALWAYS a customer.
-    const customer = await prisma.user.create({
-      data: {
-        email,
-        name,
-        passwordHash,
-        role: 'CUSTOMER',
-      },
-      select: { id: true, email: true, name: true, role: true },
+      const existing = await tx.user.findUnique({ where: { email } })
+      if (existing) {
+        throw Object.assign(new RegistrationConflict('An account with this email already exists'), {
+          code: 'EMAIL_EXISTS',
+        })
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10)
+      return tx.user.create({
+        data: {
+          email,
+          name,
+          passwordHash,
+          role: shouldCreateOwner ? 'OWNER' : 'CUSTOMER',
+        },
+        select: { id: true, email: true, name: true, role: true },
+      })
     })
 
     return NextResponse.json({
       success: true,
-      user: { id: customer.id, email: customer.email, name: customer.name, role: customer.role },
-      message: 'Account created. You can now sign in.',
+      user: { id: createdUser.id, email: createdUser.email, name: createdUser.name, role: createdUser.role },
+      message: shouldCreateOwner
+        ? 'Owner account created. You can now complete setup.'
+        : 'Account created. You can now sign in.',
     }, { status: 201 })
-
   } catch (error) {
-    console.error('Customer registration error:', error)
+    console.error('Registration error:', error)
 
-    if (error?.code === 'P1001' || error?.code === 'P1017') {
+    if ((error as { code?: string })?.code === 'P1001' || (error as { code?: string })?.code === 'P1017') {
       return NextResponse.json(
         { error: 'Registration service is temporarily unavailable. Please try again later.' },
         { status: 503 }
       )
     }
-    if (error.code === 'P2002') {
+    if ((error as { status?: number })?.status === 409 || (error as { code?: string })?.code === 'EMAIL_EXISTS') {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
+        { status: 409 }
+      )
+    }
+    if ((error as { code?: string })?.code === 'OWNER_EXISTS') {
+      return NextResponse.json(
+        { error: 'Owner registration is already complete for this shop.' },
         { status: 409 }
       )
     }
