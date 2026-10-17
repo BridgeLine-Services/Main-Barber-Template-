@@ -59,6 +59,9 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   TimeClockEntryRevision
 --   PayrollSettings, PayrollReport, PayrollReportLine, PayrollReportAdjustment
 --   GiftCardSettings, GiftCard, GiftCardTransaction
+--   StaffInvitation, MembershipSettings, MembershipPlan, Membership,
+--   MembershipUsage, EcommerceSettings, Product, ShopOrder,
+--   ReviewRequestSettings, ReviewRequest
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -100,7 +103,18 @@ DECLARE
     'PayrollReportLine','PayrollReportAdjustment',
     -- Gift cards (migration 20261005014500): settings, cards and the
     -- append-only balance ledger.
-    'GiftCardSettings','GiftCard','GiftCardTransaction'
+    'GiftCardSettings','GiftCard','GiftCardTransaction',
+    -- Staff invitations (pre-existing): scoped invites, expire per tenant.
+    'StaffInvitation',
+    -- Memberships (migration 20261017061911): plans, subscriptions, usage
+    -- ledger and per-tenant billing settings.
+    'MembershipSettings','MembershipPlan','Membership','MembershipUsage',
+    -- Ecommerce (migration 20261017070617): catalog, per-tenant store
+    -- settings and the order ledger.
+    'EcommerceSettings','Product','ShopOrder',
+    -- Review requests (migration 20261017203707): per-tenant delivery
+    -- settings and the request ledger.
+    'ReviewRequestSettings','ReviewRequest'
   ];
   tbl TEXT;
 BEGIN
