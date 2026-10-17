@@ -117,7 +117,6 @@ model Business {
   giftCards                        GiftCard[]
   membershipSettings               MembershipSettings?
   reviewRequestSettings            ReviewRequestSettings?
-  reviewRequests                   ReviewRequest[]
   membershipPlans                  MembershipPlan[]
   memberships                      Membership[]
   membershipUsages                 MembershipUsage[]
@@ -140,11 +139,6 @@ model Business {
   ecommerceSettings         EcommerceSettings?
   products                  Product[]
   shopOrders                      ShopOrder[]
-  reviewRequests                  ReviewRequest[]
-  reviewRequestEnabled            Boolean                         @default(false)
-  reviewRequestDelayMinutes       Int                             @default(60)
-  reviewRequestUrl                String?
-  reviewRequestCooldownDays       Int                             @default(30)
 
   @@index([slug])
 }
@@ -600,8 +594,6 @@ model Appointment {
   noShowReason        String?
   noShowAt            DateTime?
   noShowMarkedBy      String?
-  completedAt         DateTime?
-  bookingSource       String? // direct, google, instagram, facebook, other
   bookingSourceRef    String?
   completedAt         DateTime? // set on the canonical COMPLETED transition — drives review-request eligibility
   bookingSource       BookingSource? // null = pre-§8 history; reported as UNKNOWN, never fabricated
@@ -619,8 +611,6 @@ model Appointment {
   reviewRequest      ReviewRequest?
 
   commissionEntries CommissionEntry[]
-  reviewRequests  ReviewRequest[]
-  reviewRequest     ReviewRequest?
 
   @@index([businessId, startTime])
   @@index([businessId, barberId, startTime])
@@ -674,38 +664,6 @@ model Review {
 }
 
 // ─── Automated review requests ────────────────────────────────────────────
-
-enum ReviewRequestStatus {
-  PENDING
-  SENT
-  CLICKED
-  COMPLETED
-  FAILED
-}
-
-model ReviewRequest {
-  id             String              @id @default(cuid())
-  businessId     String
-  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  appointmentId  String              @unique
-  appointment    Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  customerId     String
-  customer       Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  channel        NotificationChannel
-  destination    String
-  token          String              @unique
-  status         ReviewRequestStatus @default(PENDING)
-  scheduledAt    DateTime
-  sentAt         DateTime?
-  clickedAt      DateTime?
-  completedAt    DateTime?
-  failureReason  String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  @@index([businessId, status, scheduledAt])
-  @@index([customerId])
-}
 
 // ─── Waitlist ─────────────────────────────────────────────────────────────
 
@@ -775,40 +733,6 @@ enum NotificationStatus {
   PROCESSING
   SENT
   FAILED
-}
-
-enum ReviewRequestStatus {
-  PENDING
-  PROCESSING
-  SENT
-  FAILED
-  SKIPPED
-  CANCELED
-}
-
-model ReviewRequest {
-  id                String             @id @default(cuid())
-  businessId        String
-  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  appointmentId     String
-  appointment       Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  customerId        String
-  customer         Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  recipient         String
-  status            ReviewRequestStatus @default(PENDING)
-  scheduledAt       DateTime
-  attemptCount      Int                @default(0)
-  lastAttemptAt     DateTime?
-  nextAttemptAt     DateTime?
-  providerMessageId String?
-  failureReason     String?
-  skipReason        String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  @@unique([appointmentId, recipient])
-  @@index([businessId, status, scheduledAt])
-  @@index([customerId, createdAt])
 }
 
 model NotificationLog {

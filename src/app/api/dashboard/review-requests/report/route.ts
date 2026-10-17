@@ -15,16 +15,11 @@ export async function GET(request: NextRequest) {
   const businessId = await getBusinessIdForUser(auth.user)
   const since = periodStart(request.nextUrl.searchParams.get('days'))
 
-  const [eligible, requests, skippedReasons] = await Promise.all([
-    prisma.appointment.count({ where: { businessId, status: 'COMPLETED', updatedAt: { gte: since } } }),
+  const [completed, requests] = await Promise.all([
+    prisma.appointment.count({ where: { businessId, status: 'COMPLETED', completedAt: { gte: since } } }),
     prisma.reviewRequest.groupBy({
       by: ['status'],
       where: { businessId, createdAt: { gte: since } },
-      _count: { _all: true },
-    }),
-    prisma.reviewRequest.groupBy({
-      by: ['skipReason'],
-      where: { businessId, status: 'SKIPPED', createdAt: { gte: since } },
       _count: { _all: true },
     }),
   ])
@@ -33,15 +28,15 @@ export async function GET(request: NextRequest) {
   const scheduled = Object.values(counts).reduce((sum, count) => sum + count, 0)
   return NextResponse.json({
     since: since.toISOString(),
-    eligible,
+    completed,
     scheduled,
     pending: counts.pending ?? 0,
+    processing: counts.processing ?? 0,
     sent: counts.sent ?? 0,
     failed: counts.failed ?? 0,
-    skipped: counts.skipped ?? 0,
-    canceled: counts.canceled ?? 0,
+    suppressed: counts.suppressed ?? 0,
+    cancelled: counts.cancelled ?? 0,
     sendRate: scheduled ? Math.round(((counts.sent ?? 0) / scheduled) * 100) : 0,
-    skippedReasons: skippedReasons.map((row) => ({ reason: row.skipReason || 'Unspecified', count: row._count._all })),
     deliveryTracking: false,
     clickTracking: false,
   })

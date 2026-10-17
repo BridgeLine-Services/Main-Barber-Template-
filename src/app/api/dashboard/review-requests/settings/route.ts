@@ -1,39 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireBusinessAdmin, getBusinessIdForUser } from '@/lib/auth-helpers'
-import { clampReviewDelay, validateReviewUrl } from '@/lib/review-requests'
-export async function GET() {
-  const auth = await requireBusinessAdmin(); if (!auth.success) return auth.response
-  const businessId = await getBusinessIdForUser(auth.user)
-  const business = await prisma.business.findUnique({ where: { id: businessId }, select: { reviewRequestEnabled: true, reviewRequestDelayMinutes: true, reviewRequestUrl: true, reviewRequestCooldownDays: true } })
-  return NextResponse.json(business)
-}
-export async function PATCH(req: NextRequest) {
-  const auth = await requireBusinessAdmin(); if (!auth.success) return auth.response
-  const businessId = await getBusinessIdForUser(auth.user)
-  const body = await req.json()
-  const enabled = Boolean(body.enabled)
-  const url = body.reviewUrl ? validateReviewUrl(body.reviewUrl) : null
-  if (enabled && !url) return NextResponse.json({ error: 'A valid HTTPS review URL is required when enabled' }, { status: 400 })
-  const business = await prisma.business.update({ where: { id: businessId }, data: { reviewRequestEnabled: enabled, reviewRequestDelayMinutes: clampReviewDelay(body.delayMinutes), reviewRequestUrl: url, reviewRequestCooldownDays: Math.min(365, Math.max(1, Math.round(Number(body.cooldownDays) || 30))) }, select: { reviewRequestEnabled: true, reviewRequestDelayMinutes: true, reviewRequestUrl: true, reviewRequestCooldownDays: true } })
-  return NextResponse.json(business)
-/**
- * Review Requests (Prompt 9) — shop-level configuration.
- *
- * GET  /api/dashboard/review-requests/settings — current config + summary
- * PUT  /api/dashboard/review-requests/settings — update config
- *
- * The system is fail-closed: BOTH the platform feature flag
- * ('reviewRequests') and the owner master switch (settings.enabled) must be
- * on before anything is enqueued or sent. The destination must be a real
- * HTTPS review page the owner pasted — the system never invents one.
- */
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { z } from 'zod'
-import { authOptions } from '@/lib/auth'
+import { requireBusinessAdmin, getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
-import { prisma } from '@/lib/prisma'
 import {
   getReviewRequestSettings,
   getReviewRequestSummary,
@@ -51,14 +19,11 @@ const settingsSchema = z.object({
   messageTemplate: z.string().trim().max(2000).nullable().optional(),
 })
 
-type SessionUser = { role: string; businessId?: string | null }
-
 export async function GET() {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = user.businessId
+    const auth = await requireBusinessAdmin()
+    if (!auth.success) return auth.response
+    const businessId = await getBusinessIdForUser(auth.user)
     const [settings, summary] = await Promise.all([
       getReviewRequestSettings(businessId),
       getReviewRequestSummary(businessId),
@@ -71,12 +36,10 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = user.businessId
-
-    const body = await req.json().catch(() => ({}))
+    const auth = await requireBusinessAdmin()
+    if (!auth.success) return auth.response
+    const businessId = await getBusinessIdForUser(auth.user)
+    const body = await req.json().catch(() => null)
     const parsed = settingsSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid settings payload' }, { status: 400 })

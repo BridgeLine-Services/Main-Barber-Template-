@@ -1,35 +1,18 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
-import { processReviewRequests } from '@/lib/review-requests'
-export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
-  if (req.headers.get('authorization') !== `Bearer ${secret}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  try { return NextResponse.json({ success: true, summary: await processReviewRequests() }) }
-  catch (error) { console.error('[cron] review requests failed', error); return NextResponse.json({ error: 'Failed to process review requests' }, { status: 500 }) }
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { enqueueDueReviewRequests, processDueReviewRequests } from '@/lib/review-requests'
 
 /**
- * GET /api/cron/review-requests
- * Two-phase worker (Prompt 9):
- *   1. enqueue — scan recently COMPLETED appointments and create the due
- *      queue (idempotent; one row per appointment ever)
- *   2. process — atomically claim + send due requests with bounded retries
- *
- * Protected by CRON_SECRET — must match Authorization header.
- * Safe to run at any cadence and safe under concurrent invocation (the claim
- * is a compare-and-set; concurrent workers cannot double-send).
- *
- * Vercel cron config (vercel.json):
- *   { "crons": [{ "path": "/api/cron/review-requests", "schedule": "0 * * * *" }] }
+ * Enqueue and deliver due review requests. The worker is idempotent and safe
+ * under concurrent invocations; CRON_SECRET protects this endpoint.
  */
-
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
   if (req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

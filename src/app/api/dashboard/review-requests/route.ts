@@ -7,22 +7,18 @@
  *   customer emails, or raw provider payloads).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireBusinessAdmin, getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { ReviewRequestStatus } from '@prisma/client'
 import { getReviewRequestSummary, listReviewRequests } from '@/lib/review-requests'
 
 const VALID_STATUSES = ['PENDING', 'PROCESSING', 'SENT', 'FAILED', 'SUPPRESSED', 'CANCELLED'] as const
 
-type SessionUser = { role: string; businessId?: string | null }
-
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const businessId = user.businessId
+    const auth = await requireBusinessAdmin()
+    if (!auth.success) return auth.response
+    const businessId = await getBusinessIdForUser(auth.user)
 
     const statusParam = req.nextUrl.searchParams.get('status')
     const status =

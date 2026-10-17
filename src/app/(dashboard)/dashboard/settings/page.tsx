@@ -1,7 +1,7 @@
 'use client'
 
 import type { BookingQuestion } from '@prisma/client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -93,10 +93,14 @@ type SettingsBusiness = {
   timezone?: string | null
   hours?: Record<string, DayHours> | null
   parkingAvailable?: boolean | null
-  reviewRequestEnabled?: boolean | null
-  reviewRequestDelayMinutes?: number | null
-  reviewRequestUrl?: string | null
-  reviewRequestCooldownDays?: number | null
+}
+
+type ReviewRequestSettings = {
+  enabled: boolean
+  destinationUrl: string | null
+  delayHours: number
+  emailSubject: string | null
+  messageTemplate: string | null
 }
 
 type SettingsSeo = {
@@ -131,7 +135,15 @@ export default function SettingsPage() {
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentMap>({})
   const [bookingQuestions, setBookingQuestions] = useState<BookingQuestion[]>([])
   const [newQuestion, setNewQuestion] = useState({ label: '', key: '', type: 'SHORT_TEXT', required: false })
-  const [reviewReport, setReviewReport] = useState<{ eligible: number; scheduled: number; sent: number; pending: number; failed: number; skipped: number; sendRate: number } | null>(null)
+  const [reviewSettings, setReviewSettings] = useState<ReviewRequestSettings>({
+    enabled: false,
+    destinationUrl: null,
+    delayHours: 24,
+    emailSubject: null,
+    messageTemplate: null,
+  })
+  const [reviewSettingsSaving, setReviewSettingsSaving] = useState(false)
+  const [reviewReport, setReviewReport] = useState<{ completed: number; scheduled: number; sent: number; pending: number; processing: number; failed: number; suppressed: number; cancelled: number; sendRate: number } | null>(null)
   const [reviewReportLoading, setReviewReportLoading] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -154,7 +166,21 @@ export default function SettingsPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [])
+
+    fetch('/api/dashboard/review-requests/settings')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load review settings')
+        setReviewSettings(data.settings)
+      })
+      .catch(error => {
+        toast({
+          title: 'Unable to load review settings',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
+        })
+      })
+  }, [toast])
 
   const handleSave = async () => {
     setSaving(true)
@@ -245,6 +271,33 @@ export default function SettingsPage() {
       toast({ title: 'Unable to load review report', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' })
     } finally {
       setReviewReportLoading(false)
+    }
+  }
+
+  const saveReviewSettings = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setReviewSettingsSaving(true)
+    try {
+      const response = await fetch('/api/dashboard/review-requests/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewSettings),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to save review settings')
+      setReviewSettings(data.settings)
+      toast({
+        title: 'Review settings saved',
+        description: data.warnings?.join(' '),
+      })
+    } catch (error) {
+      toast({
+        title: 'Unable to save review settings',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setReviewSettingsSaving(false)
     }
   }
 
@@ -950,18 +1003,11 @@ export default function SettingsPage() {
   <Card className="bg-card border-border">
     <CardHeader><CardTitle>Review Requests</CardTitle></CardHeader>
     <CardContent>
-      <form className="space-y-5" onSubmit={async (event) => {
-        event.preventDefault()
-        const form = new FormData(event.currentTarget)
-        const response = await fetch('/api/dashboard/review-requests/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: form.get('enabled') === 'on', reviewUrl: form.get('reviewUrl'), delayMinutes: Number(form.get('delayMinutes')), cooldownDays: Number(form.get('cooldownDays')) }) })
-        const data = await response.json()
-        if (response.ok) { setBusiness((current) => current ? { ...current, ...data } : current); toast({ title: 'Review settings saved' }) }
-        else toast({ title: data.error || 'Unable to save review settings', variant: 'destructive' })
-      }}>
-        <p className="text-sm text-muted-foreground">Automatically email customers after completed appointments. Requests are rate-limited per customer and retried safely.</p>
-        <div className="flex items-center justify-between rounded-lg border border-border p-4"><div><Label htmlFor="review-enabled">Enable review requests</Label><p className="text-xs text-muted-foreground">Only completed appointments with a valid email are eligible.</p></div><Switch id="review-enabled" name="enabled" defaultChecked={business?.reviewRequestEnabled ?? false} /></div>
-        <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="review-url">Review URL</Label><Input id="review-url" name="reviewUrl" type="url" placeholder="https://g.page/r/.../review" defaultValue={business?.reviewRequestUrl ?? ''} /></div><div><Label htmlFor="review-delay">Delay (minutes)</Label><Input id="review-delay" name="delayMinutes" type="number" min="15" max="10080" defaultValue={business?.reviewRequestDelayMinutes ?? 60} /></div><div><Label htmlFor="review-cooldown">Cooldown (days)</Label><Input id="review-cooldown" name="cooldownDays" type="number" min="1" max="365" defaultValue={business?.reviewRequestCooldownDays ?? 30} /></div></div>
-        <Button type="submit"><Save className="mr-2 h-4 w-4" />Save review settings</Button>
+      <form className="space-y-5" onSubmit={saveReviewSettings}>
+        <p className="text-sm text-muted-foreground">Automatically email customers after completed appointments. Each appointment is queued once, and failed deliveries are retried safely. The delivery worker runs daily, so requests may arrive up to 24 hours after the configured delay.</p>
+        <div className="flex items-center justify-between rounded-lg border border-border p-4"><div><Label htmlFor="review-enabled">Enable review requests</Label><p className="text-xs text-muted-foreground">Only completed appointments with a valid email are eligible.</p></div><Switch id="review-enabled" checked={reviewSettings.enabled} onCheckedChange={enabled => setReviewSettings(current => ({ ...current, enabled }))} /></div>
+        <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="review-url">Review URL</Label><Input id="review-url" type="url" placeholder="https://g.page/r/.../review" value={reviewSettings.destinationUrl ?? ''} onChange={event => setReviewSettings(current => ({ ...current, destinationUrl: event.target.value || null }))} /></div><div><Label htmlFor="review-delay">Delay (hours)</Label><Input id="review-delay" type="number" min="0" max="168" value={reviewSettings.delayHours} onChange={event => setReviewSettings(current => ({ ...current, delayHours: Number(event.target.value) }))} /></div><div><Label htmlFor="review-subject">Email subject</Label><Input id="review-subject" value={reviewSettings.emailSubject ?? ''} onChange={event => setReviewSettings(current => ({ ...current, emailSubject: event.target.value || null }))} maxLength={200} /></div><div><Label htmlFor="review-template">Email message</Label><Textarea id="review-template" value={reviewSettings.messageTemplate ?? ''} onChange={event => setReviewSettings(current => ({ ...current, messageTemplate: event.target.value || null }))} maxLength={2000} /></div></div>
+        <Button type="submit" disabled={reviewSettingsSaving}><Save className="mr-2 h-4 w-4" />{reviewSettingsSaving ? 'Saving...' : 'Save review settings'}</Button>
       </form>
       <div className="mt-6 border-t border-border pt-5">
         <div className="flex items-center justify-between gap-3">
@@ -969,7 +1015,7 @@ export default function SettingsPage() {
           <Button type="button" variant="outline" size="sm" onClick={loadReviewReport} disabled={reviewReportLoading}>{reviewReportLoading ? 'Loading...' : 'Load report'}</Button>
         </div>
         {reviewReport && <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[['Eligible', reviewReport.eligible], ['Scheduled', reviewReport.scheduled], ['Sent', reviewReport.sent], ['Failed', reviewReport.failed], ['Skipped', reviewReport.skipped], ['Pending', reviewReport.pending], ['Send rate', `${reviewReport.sendRate}%`]].map(([label, value]) => <div key={String(label)} className="rounded-lg border border-border bg-muted/40 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold text-foreground">{value}</p></div>)}
+          {[['Completed', reviewReport.completed], ['Enqueued', reviewReport.scheduled], ['Sent', reviewReport.sent], ['Failed', reviewReport.failed], ['Suppressed', reviewReport.suppressed], ['Pending', reviewReport.pending], ['Processing', reviewReport.processing], ['Cancelled', reviewReport.cancelled], ['Send rate', `${reviewReport.sendRate}%`]].map(([label, value]) => <div key={String(label)} className="rounded-lg border border-border bg-muted/40 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold text-foreground">{value}</p></div>)}
         </div>}
       </div>
     </CardContent>

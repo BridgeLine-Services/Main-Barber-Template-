@@ -20,9 +20,10 @@ This guide walks you through deploying the Barber Booking System to Vercel.
 > non-commercial use. A shop booking site or a deployment created/hosted for
 > a client is commercial use; select a provider/plan whose terms allow that
 > use before launch. See [Vercel's commercial-usage guidelines](https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage).
-> Hobby cron jobs must run no more than once per day. This template keeps both
-> scheduled jobs daily; the membership period processor is safe to run once
-> daily and does not create or simulate renewal charges.
+> Hobby cron jobs must run no more than once per day. This template keeps all
+> scheduled jobs daily. Review-request emails may arrive up to 24 hours after
+> their configured delay; the membership period processor does not create or
+> simulate renewal charges.
 
 ---
 
@@ -47,6 +48,7 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 | `SMS_ENABLED` | `false` | Set `true` only with all `TWILIO_*` values below |
 | `GOOGLE_ENABLED` | `false` | Set `true` only with Google credentials |
 | `REMINDERS_ENABLED` | `false` | Set `true` only with `CRON_SECRET` |
+| `CRON_SECRET` | Run `openssl rand -base64 32` | Required to authorize scheduled jobs |
 | `STRIPE_SECRET_KEY` | unset | Required together with the publishable and webhook keys to enable online payments |
 | `STRIPE_PUBLISHABLE_KEY` | unset | Public Stripe key used by browser checkout |
 | `STRIPE_WEBHOOK_SECRET` | unset | Required to verify payment settlement webhooks |
