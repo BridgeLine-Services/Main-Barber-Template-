@@ -15,12 +15,14 @@ export interface LoginFormProps {
   businessName?: string | null
   ownerRegistrationMode?: OwnerRegistrationMode
   ownerRegistrationOpen?: boolean
+  customerRegistrationOpen?: boolean
 }
 
 export default function LoginForm({
   businessName,
   ownerRegistrationMode = 'onboarding',
   ownerRegistrationOpen = true,
+  customerRegistrationOpen = false,
 }: LoginFormProps) {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -30,7 +32,8 @@ export default function LoginForm({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const canRegister = ownerRegistrationMode === 'onboarding' && ownerRegistrationOpen
+  const ownerOnboardingOpen = ownerRegistrationMode === 'onboarding' && ownerRegistrationOpen
+  const canRegister = ownerOnboardingOpen || customerRegistrationOpen
   const effectiveMode = canRegister ? mode : 'login'
   const authError = searchParams.get('error') ? 'Authentication error. Please try again.' : null
 

@@ -6,7 +6,11 @@
 import { resolveBusiness } from '@/lib/tenant'
 import { ThemeStyle } from '@/components/customer/ThemeStyle'
 import { prisma } from '@/lib/prisma'
-import { isOwnerRegistrationOpen, parseOwnerRegistrationMode } from '@/lib/owner-registration'
+import {
+  isCustomerRegistrationOpen,
+  isOwnerRegistrationOpen,
+  parseOwnerRegistrationMode,
+} from '@/lib/owner-registration'
 import LoginForm from './LoginForm'
 
 export default async function LoginPage() {
@@ -23,6 +27,7 @@ export default async function LoginPage() {
         businessName={business?.name ?? null}
         ownerRegistrationMode={ownerRegistrationMode}
         ownerRegistrationOpen={isOwnerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE, hasOwner)}
+        customerRegistrationOpen={isCustomerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE)}
       />
     </>
   )

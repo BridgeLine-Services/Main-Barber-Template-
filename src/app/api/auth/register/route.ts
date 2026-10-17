@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
-import { isOwnerRegistrationOpen } from '@/lib/owner-registration'
+import { isCustomerRegistrationOpen, isOwnerRegistrationOpen } from '@/lib/owner-registration'
 
 const registerSchema = z.object({
   email: z.string().trim().email().transform(normalizeEmail),
@@ -40,20 +40,30 @@ export async function POST(req: NextRequest) {
 
     const { email, password, name } = parsed.data
 
-    const shouldCreateOwner = await prisma.user
-      .findFirst({
-        where: { role: 'OWNER' },
-        select: { id: true },
-      })
-      .then((owner) => isOwnerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE, !!owner))
+    const existingOwner = await prisma.user.findFirst({
+      where: { role: 'OWNER' },
+      select: { id: true },
+    })
+    const ownerOnboardingOpen = isOwnerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE, !!existingOwner)
+    const customerRegistrationOpen = isCustomerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE)
+    const shouldCreateOwner = ownerOnboardingOpen && !existingOwner
+
+    if (!shouldCreateOwner && !customerRegistrationOpen) {
+      return NextResponse.json(
+        { error: 'Registration is disabled for this public entry point.' },
+        { status: 403 }
+      )
+    }
 
     const createdUser = await prisma.$transaction(async (tx) => {
       if (shouldCreateOwner) {
-        const existingOwner = await tx.user.findFirst({
-          where: { role: 'OWNER' },
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('owner-registration'))`
+
+        const currentOwner = await tx.user.findFirst({
+          where: { role: 'OWNER', businessId: null },
           select: { id: true },
         })
-        if (existingOwner) {
+        if (currentOwner) {
           throw Object.assign(new RegistrationConflict('Owner registration is no longer open'), {
             code: 'OWNER_EXISTS',
           })

@@ -12,3 +12,7 @@ export function parseOwnerRegistrationMode(raw: string | null | undefined): Owne
 export function isOwnerRegistrationOpen(mode: string | null | undefined, hasOwner: boolean): boolean {
   return parseOwnerRegistrationMode(mode) === 'onboarding' && !hasOwner
 }
+
+export function isCustomerRegistrationOpen(mode: string | null | undefined): boolean {
+  return parseOwnerRegistrationMode(mode) !== 'disabled'
+}
