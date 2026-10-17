@@ -96,7 +96,7 @@ async function main() {
       confirmationNumber: `PAY-${stamp}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       customerAccessToken: `tok-${stamp}-${Math.random().toString(36).slice(2, 10)}`,
     }})
-  const makePayment = (data: { kind: 'CHARGE' | 'TIP'; amount: number; barberId: string; appointmentId: string; refundedAmount?: number; status?: 'PENDING' | 'SUCCEEDED' }) =>
+  const makePayment = (data: { kind: 'CHARGE' | 'TIP'; amount: number; barberId: string; appointmentId: string; refundedAmount?: number; status?: 'PENDING' | 'SUCCEEDED'; createdAt?: Date }) =>
     prisma.payment.create({ data: {
       businessId: business.id, customerId: customer.id, method: 'CARD' as never, provider: 'in_person',
       status: data.status ?? 'SUCCEEDED', ...data,
@@ -192,18 +192,22 @@ async function main() {
   const genFrom = at('2026-09-28T07:00:00Z') // Mon Sep 28, 00:00 LA
   const genTo = new Date(genFrom.getTime() + 7 * day(1))
   {
-    const appt = await makeAppt(barber.id, new Date(Date.now() - 3600e3))
-    const charge = await makePayment({ kind: 'CHARGE', amount: 100, barberId: barber.id, appointmentId: appt.id })
-    await makePayment({ kind: 'TIP', amount: 20, barberId: barber.id, appointmentId: appt.id })
+    // Deterministic fixtures: every payment and ledger entry gets an explicit
+    // createdAt INSIDE the fixed period. DB-default "now" would fall outside
+    // the period whenever this suite runs after the period ends.
+    const appt = await makeAppt(barber.id, new Date(genFrom.getTime() + 2 * 3600e3))
+    const charge = await makePayment({ kind: 'CHARGE', amount: 100, barberId: barber.id, appointmentId: appt.id, createdAt: new Date(genFrom.getTime() + 3 * 3600e3) })
+    await makePayment({ kind: 'TIP', amount: 20, barberId: barber.id, appointmentId: appt.id, createdAt: new Date(genFrom.getTime() + 3 * 3600e3 + 60e3) })
     // refunded charge: net = amount - refundedAmount
-    await makePayment({ kind: 'CHARGE', amount: 60, barberId: barber.id, appointmentId: appt.id, refundedAmount: 15, status: 'SUCCEEDED' })
+    await makePayment({ kind: 'CHARGE', amount: 60, barberId: barber.id, appointmentId: appt.id, refundedAmount: 15, status: 'SUCCEEDED', createdAt: new Date(genFrom.getTime() + 4 * 3600e3) })
     // unsettled payment must NOT count
-    await makePayment({ kind: 'CHARGE', amount: 999, barberId: barber.id, appointmentId: appt.id, status: 'PENDING' })
+    await makePayment({ kind: 'CHARGE', amount: 999, barberId: barber.id, appointmentId: appt.id, status: 'PENDING', createdAt: new Date(genFrom.getTime() + 5 * 3600e3) })
 
     // commission ledger for this tenant
     await prisma.commissionEntry.create({ data: {
       businessId: business.id, barberId: barber.id, source: 'SERVICE', rateType: 'PERCENT', ratePercent: 50,
       grossAmount: 100, commissionAmount: 50, appointmentId: appt.id, paymentId: charge.id,
+      createdAt: new Date(genFrom.getTime() + 6 * 3600e3),
     }})
     await prisma.commissionEntry.update({
       where: { id: (await prisma.commissionEntry.findFirstOrThrow({ where: { businessId: business.id, barberId: barber.id } })).id },
@@ -247,9 +251,10 @@ async function main() {
     await prisma.commissionEntry.create({ data: {
       businessId: business.id, barberId: barber2.id, source: 'TIP', rateType: 'PERCENT', ratePercent: 100,
       grossAmount: 20, commissionAmount: 20,
+      createdAt: new Date(genFrom.getTime() + 7 * 3600e3),
     }})
-    const appt2 = await makeAppt(barber2.id, new Date(Date.now() - 3600e3))
-    await makePayment({ kind: 'TIP', amount: 20, barberId: barber2.id, appointmentId: appt2.id })
+    const appt2 = await makeAppt(barber2.id, new Date(genFrom.getTime() + 7 * 3600e3))
+    await makePayment({ kind: 'TIP', amount: 20, barberId: barber2.id, appointmentId: appt2.id, createdAt: new Date(genFrom.getTime() + 7 * 3600e3 + 60e3) })
     const lines = await import('../src/lib/payroll').then((m) =>
       m.buildPayrollLines(business.id, { from: genFrom, to: genTo, tz: TZ })
     )
@@ -278,8 +283,8 @@ async function main() {
     assert(report.lineCount > 0, 'report includes barber lines')
 
     // snapshot freeze: new money after generation never rewrites the line
-    const appt3 = await makeAppt(barber.id, new Date(genFrom.getTime() + 2 * day(1)))
-    await makePayment({ kind: 'CHARGE', amount: 500, barberId: barber.id, appointmentId: appt3.id })
+    const appt3 = await makeAppt(barber.id, new Date(genFrom.getTime() + 4 * day(1)))
+    await makePayment({ kind: 'CHARGE', amount: 500, barberId: barber.id, appointmentId: appt3.id, createdAt: new Date(genFrom.getTime() + 4 * day(1) + 3600e3) })
     const { lines } = await getPayrollReport(business.id, reportId)
     const rosa = lines.find((l) => l.barberId === barber.id)
     assert(!!rosa && Math.abs(rosa.serviceRevenue - 145) < 0.01, 'stored line is frozen — post-generation payment ignored')
