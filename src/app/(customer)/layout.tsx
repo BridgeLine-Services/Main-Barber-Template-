@@ -11,6 +11,8 @@ import { MotionProvider } from '@/components/motion/MotionProvider'
 import { visualConfigFromContent } from '@/lib/visual-config'
 import { getGiftCardSettings } from '@/lib/gift-cards'
 import { isStorefrontUsable } from '@/lib/ecommerce'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export default async function CustomerLayout({
   children,
@@ -22,15 +24,25 @@ export default async function CustomerLayout({
   // No business configured — show a simple "not yet set up" page
   // instead of redirecting to /setup (which no longer exists)
   if (!business) {
+    const session = await getServerSession(authOptions)
+    const isOwner = session?.user?.role === 'OWNER'
+
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <h1 className="display-heading text-display-3 text-foreground mb-4">Shop Coming Soon</h1>
+          <h1 className="display-heading text-display-3 text-foreground mb-4">
+            {isOwner ? 'Your Shop Setup Is Incomplete' : 'Shop Coming Soon'}
+          </h1>
           <p className="text-muted-foreground">
-            This barbershop hasn't been set up yet. The owner needs to log in and complete the setup.
+            {isOwner
+              ? 'Continue setup to finish configuring your shop.'
+              : "This barbershop hasn't been set up yet. The owner needs to log in and complete the setup."}
           </p>
-          <a href="/login" className="inline-block mt-6 text-primary hover:brightness-125 transition-colors">
-            Owner Login →
+          <a
+            href={isOwner ? '/dashboard' : '/login'}
+            className="inline-block mt-6 text-primary hover:brightness-125 transition-colors"
+          >
+            {isOwner ? 'Continue Setup →' : 'Owner Login →'}
           </a>
         </div>
       </div>

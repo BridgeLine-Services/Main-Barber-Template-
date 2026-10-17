@@ -19,7 +19,7 @@ for (const [mode, hasOwner, expected] of cases) {
 }
 
 assert.equal(isCustomerRegistrationOpen('onboarding'), true)
-assert.equal(isCustomerRegistrationOpen('invite_only'), true)
+assert.equal(isCustomerRegistrationOpen('invite_only'), false)
 assert.equal(isCustomerRegistrationOpen('disabled'), false)
 assert.equal(isCustomerRegistrationOpen(undefined), true)
 assert.equal(isCustomerRegistrationOpen('bogus'), false)

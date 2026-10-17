@@ -119,6 +119,9 @@ async function main() {
       assert(await bcrypt.compare(password, owner.passwordHash), 'bcrypt hash verifies against the original password')
       assert(owner.businessId === null, 'first owner starts with no business (onboarding pending)')
 
+      const wrongPasswordLogin = await login(ownerEmail, 'Wrong-Owner-Password-123!')
+      assert(!wrongPasswordLogin.ok, 'incorrect password cannot authenticate')
+
       // duplicate email rejected
       const dup = await register('Dup', ownerEmail, password)
       createdEmails.push()
@@ -156,6 +159,27 @@ async function main() {
           headers: { cookie: cookiePairs(ownerLogin.cookie) },
         })
         assert(wizard.status === 200, `onboarding wizard is reachable for the gated owner (got ${wizard.status})`)
+
+        const loginPage = await fetch(`${BASE}/login`, {
+          redirect: 'manual',
+          headers: { cookie: cookiePairs(ownerLogin.cookie) },
+        })
+        assert(
+          [302, 307, 308].includes(loginPage.status) &&
+            (loginPage.headers.get('location') || '').includes('/auth/redirect'),
+          `authenticated owner is routed away from login (got ${loginPage.status} → ${loginPage.headers.get('location') || 'no location'})`
+        )
+
+        const publicShop = await fetch(BASE, {
+          headers: { cookie: cookiePairs(ownerLogin.cookie) },
+        })
+        const publicShopHtml = await publicShop.text()
+        assert(
+          publicShop.status === 200 &&
+            publicShopHtml.includes('Your Shop Setup Is Incomplete') &&
+            publicShopHtml.includes('href="/dashboard"'),
+          'incomplete public shop directs its authenticated owner to setup instead of back to login'
+        )
       }
     } else {
       console.log('\n⏭️  Phase A/B: owner already exists — first-owner race phases not applicable (verified above on a clean DB)')

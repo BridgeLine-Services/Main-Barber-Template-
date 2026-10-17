@@ -6,6 +6,9 @@
 import { resolveBusiness } from '@/lib/tenant'
 import { ThemeStyle } from '@/components/customer/ThemeStyle'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/lib/auth'
 import {
   isCustomerRegistrationOpen,
   isOwnerRegistrationOpen,
@@ -14,9 +17,12 @@ import {
 import LoginForm from './LoginForm'
 
 export default async function LoginPage() {
+  const session = await getServerSession(authOptions)
+  if (session?.user) redirect('/auth/redirect')
+
   const business = await resolveBusiness().catch(() => null)
   const ownerRegistrationMode = parseOwnerRegistrationMode(process.env.OWNER_REGISTRATION_MODE)
-  const hasOwner = !!(await prisma.user.findFirst({ where: { role: 'OWNER' }, select: { id: true } }).catch(() => null))
+  const hasOwner = !!(await prisma.user.findFirst({ where: { role: 'OWNER' }, select: { id: true } }))
 
   return (
     <>

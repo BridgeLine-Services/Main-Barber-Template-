@@ -59,7 +59,7 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 | `NEXT_PUBLIC_APP_NAME` | `Your Barbershop` | Public app name (set per customer deployment) |
 | `SINGLE_BUSINESS_ID` | *(recommended)* | The database ID of this deployment's business. Set after onboarding so the public website resolves even when the hostname doesn't match the business slug. If unset, the site falls back to the sole business when exactly one exists. |
 | `APP_MODE` | *(unset)* or `production` | `demo` enables the demo dataset — **never use `demo` on a customer deployment** |
-| `OWNER_REGISTRATION_MODE` | `onboarding` | `onboarding` = public owner sign-up (default) · `invite_only` = sign-up closed, invitation notice shown · `disabled` = registration hidden, existing users only. Unknown values fail safe to `disabled`. |
+| `OWNER_REGISTRATION_MODE` | `onboarding` | `onboarding` = permit the initial public owner signup, then customer signup remains available · `invite_only` = all public signup is closed; invited staff use their invitation link · `disabled` = all public registration is closed. Unknown values fail safe to `disabled`. |
 
 > ⚠️ **Important:** Set `NEXTAUTH_URL` to your final production URL once you have a custom domain. Otherwise use the Vercel-generated URL.
 >

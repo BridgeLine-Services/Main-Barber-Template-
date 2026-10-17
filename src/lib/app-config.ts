@@ -91,12 +91,10 @@ export function isKnownWeakPassword(password: string): boolean {
 // ============================================================================
 // OWNER PROVISIONING TOKEN
 //
-// Owner accounts are created ONLY through the authorized provisioning
-// endpoint (POST /api/auth/register-owner), which requires a request header
-// matching this server-side secret. There is no public owner sign-up: the
-// shared Login / Sign-Up form always creates a CUSTOMER account, and staff
-// accounts come only from the invitation lifecycle. If this secret is not
-// configured, owner provisioning is fully closed (fail-closed).
+// The initial owner may be created through the public first-owner onboarding
+// flow when OWNER_REGISTRATION_MODE=onboarding. The separate operator
+// provisioning endpoint (POST /api/auth/register-owner) requires the
+// OWNER_PROVISIONING_TOKEN and remains closed when that secret is unset.
 // ============================================================================
 
 // SMTP SENDER — the From address for every outbound system email.

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('owner-registration'))`
 
         const currentOwner = await tx.user.findFirst({
-          where: { role: 'OWNER', businessId: null },
+          where: { role: 'OWNER' },
           select: { id: true },
         })
         if (currentOwner) {
