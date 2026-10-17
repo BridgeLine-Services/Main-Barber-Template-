@@ -48,6 +48,14 @@ export async function scheduleReviewRequest(appointmentId: string) {
 function escapeHtml(value: string) { return value.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!) }
 
 export async function processReviewRequests(now = new Date()) {
+  // Recover jobs left in-flight by a timed-out cron invocation. The atomic
+  // claim below still prevents two workers from processing the same row.
+  const staleProcessingAt = new Date(now.getTime() - 15 * 60 * 1000)
+  await prisma.reviewRequest.updateMany({
+    where: { status: 'PROCESSING', lastAttemptAt: { lt: staleProcessingAt } },
+    data: { status: 'PENDING', nextAttemptAt: now },
+  })
+
   const due = await prisma.reviewRequest.findMany({ where: { status: 'PENDING', scheduledAt: { lte: now }, OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }, take: 100 })
   const summary = { processed: 0, sent: 0, skipped: 0, failed: 0 }
   for (const request of due) {
