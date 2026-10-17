@@ -1,7 +1,31 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CORRECTIVE MIGRATION — 2026-10-17 migration-conflict repair (root cause P3018)
+--
+-- The superseded prototype migration `20261017170000_automated_review_requests`
+-- creates `ReviewRequestStatus` (PENDING|SENT|CLICKED|COMPLETED|FAILED) and a
+-- `ReviewRequest` table with a channel/destination/token shape. Because that
+-- migration runs earlier in every history path and has already been APPLIED to
+-- databases that attempted deployment on 2026-10-17 (it may not be rewritten —
+-- rewriting it would invalidate the applied checksums on those databases), this
+-- migration must CONVERT that prototype into the canonical implementation.
+--
+-- Data safety:
+--   * The prototype `ReviewRequest` table cannot hold data on any reachable
+--     database: it was created by 20261017170000, and no application build or
+--     deployment ever succeeded while that migration was in the applied state
+--     (this migration failed everywhere it was attempted, and the Vercel build
+--     runs `prisma migrate deploy` before `next build`).
+--   * Pre-existing business, appointment, and customer data is untouched.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Remove the superseded prototype objects (created by 20261017170000)
+DROP TABLE "ReviewRequest";
+DROP TYPE "ReviewRequestStatus";
+
 -- CreateEnum
 CREATE TYPE "BookingSource" AS ENUM ('WEBSITE', 'GOOGLE', 'INSTAGRAM', 'FACEBOOK', 'DIRECT', 'REFERRAL', 'UNKNOWN');
 
--- CreateEnum
+-- CreateEnum (canonical)
 CREATE TYPE "ReviewRequestStatus" AS ENUM ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'SUPPRESSED', 'CANCELLED');
 
 -- AlterTable

@@ -188,3 +188,76 @@ test('reports Next.js build failures and never reports success', async () => {
   )
   assert.equal(harness.calls.length, 3)
 })
+
+test('recovers the known P3009 failed-migration state once, then completes in order', async () => {
+  const harness = createHarness([
+    {
+      status: 1,
+      stdout: `Error P3009: migrate found failed migrations in the target database, new migrations will not be applied. The 20261017203707_review_requests_booking_source_analytics migration started at 2026-10-17 22:52:21.731895 UTC failed`,
+      stderr: '',
+    },
+    { status: 0, stdout: 'Migration ... marked as rolled back.', stderr: '' },
+    { status: 0, stdout: 'All migrations have been successfully applied.', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'migrate resolve --rolled-back 20261017203707_review_requests_booking_source_analytics'],
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'generate'],
+    ['next', 'build'],
+  ])
+  assert.match(harness.logs.stderr, /known recoverable failure/)
+  assert.doesNotMatch(harness.logs.stdout + harness.logs.stderr, /test-password/)
+})
+
+test('does not attempt P3009 recovery for unrelated failed migrations', async () => {
+  const harness = createHarness([
+    { status: 1, stdout: 'Error P3009: The 20300101000000_some_other_migration migration failed', stderr: '' },
+  ])
+
+  await assert.rejects(
+    runVercelBuild({
+      environment: baseEnvironment,
+      spawn: harness.spawn,
+      sleep: harness.sleep,
+      stdout: harness.stdout,
+      stderr: harness.stderr,
+    }),
+    /stopped after a migration history or SQL failure/
+  )
+  assert.equal(harness.calls.length, 1)
+})
+
+test('reports an actionable error when P3009 recovery itself fails', async () => {
+  const harness = createHarness([
+    {
+      status: 1,
+      stdout: 'Error P3009: The 20261017203707_review_requests_booking_source_analytics migration failed',
+      stderr: '',
+    },
+    { status: 1, stdout: 'Error P3010', stderr: '' },
+  ])
+
+  await assert.rejects(
+    runVercelBuild({
+      environment: baseEnvironment,
+      spawn: harness.spawn,
+      sleep: harness.sleep,
+      stdout: harness.stdout,
+      stderr: harness.stderr,
+    }),
+    (error) => /Migration recovery failed/.test(error) && /migrate resolve --rolled-back/.test(error)
+  )
+  assert.equal(harness.calls.length, 2)
+})

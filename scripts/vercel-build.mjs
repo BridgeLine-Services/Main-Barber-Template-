@@ -4,6 +4,17 @@ import { fileURLToPath } from 'node:url'
 
 const MIGRATION_RETRY_DELAYS_MS = [2_000, 5_000, 10_000]
 const MIGRATION_ATTEMPTS = MIGRATION_RETRY_DELAYS_MS.length + 1
+
+// One-shot self-healing for the 2026-10-17 migration conflict (P3018/P3009):
+// the superseded prototype migration 20261017170000 applied cleanly, but the
+// follow-up 20261017203707 failed on every database that attempted it, leaving
+// a failed-migration record that blocks future `migrate deploy` runs (P3009).
+// The failed migration executed inside a transaction and rolled back
+// completely (Postgres DDL is transactional; it aborted at its first CREATE
+// TYPE), so marking it rolled back is factually accurate. The corrected
+// migration file is then re-applied for real — nothing is marked applied
+// without its SQL actually running.
+export const RECOVERABLE_FAILED_MIGRATION = '20261017203707_review_requests_booking_source_analytics'
 const DATABASE_URL_VARIABLES = ['DATABASE_URL', 'NEON_POSTGRES_PRISMA_URL', 'NEON_POSTGRES_URL']
 
 function firstValue(environment, variables) {
@@ -109,6 +120,7 @@ export async function runVercelBuild({
   const buildEnvironment = validateBuildEnvironment(environment)
   const databaseUrl = buildEnvironment.DATABASE_URL
   let migrated = false
+  let migrationRecoveryUsed = false
 
   for (let attempt = 1; attempt <= MIGRATION_ATTEMPTS; attempt += 1) {
     const result = spawn('prisma', ['migrate', 'deploy'], {
@@ -130,6 +142,40 @@ export async function runVercelBuild({
 
     const failure = classifyMigrationFailure(output)
     stderr(`Prisma migration ${failure.category} failure (attempt ${attempt}/${MIGRATION_ATTEMPTS}).\n`)
+
+    // One-shot recovery for the known repairable P3009 state left by the
+    // 2026-10-17 migration conflict (see RECOVERABLE_FAILED_MIGRATION above).
+    if (
+      !migrationRecoveryUsed
+      && /\bP3009\b/i.test(output)
+      && output.includes(RECOVERABLE_FAILED_MIGRATION)
+    ) {
+      migrationRecoveryUsed = true
+      stderr(
+        `The known recoverable failure for \`${RECOVERABLE_FAILED_MIGRATION}\` is present.\n` +
+        'Its SQL rolled back in a transaction when it failed, so it is being marked rolled back\n' +
+        'for one clean re-application of the corrected migration.\n'
+      )
+      const resolveResult = spawn('prisma', ['migrate', 'resolve', '--rolled-back', RECOVERABLE_FAILED_MIGRATION], {
+        env: buildEnvironment,
+        encoding: 'utf8',
+        shell: process.platform === 'win32',
+      })
+      const resolveOutput = `${resolveResult.stdout || ''}\n${resolveResult.stderr || ''}`
+      if (resolveResult.stdout) stdout(redactDatabaseUrl(resolveResult.stdout, databaseUrl))
+      if (resolveResult.stderr) stderr(redactDatabaseUrl(resolveResult.stderr, databaseUrl))
+      if (resolveResult.error) {
+        throw new Error(`Migration recovery could not start (dependency failure): ${resolveResult.error.message}`)
+      }
+      if (resolveResult.status !== 0) {
+        throw new Error(
+          `Migration recovery failed with exit status ${resolveResult.status ?? 'unknown'}. ` +
+          'Run `prisma migrate resolve --rolled-back ' + RECOVERABLE_FAILED_MIGRATION + '` against the database, then redeploy.'
+        )
+      }
+      continue
+    }
+
     const delay = MIGRATION_RETRY_DELAYS_MS[attempt - 1]
     if (!failure.retryable || delay === undefined) {
       throw new Error(`Prisma migrate deploy stopped after a ${failure.category} failure.`)
