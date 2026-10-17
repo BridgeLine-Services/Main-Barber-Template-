@@ -79,6 +79,16 @@ export async function POST(request: Request) {
           console.error('membership activation failed', err)
         }
       }
+      // A settled shop order payment marks the order PAID. Idempotent:
+      // re-delivery is a no-op (status guard inside).
+      if ((payment.metadata as Record<string, unknown> | null)?.shopOrder === true) {
+        try {
+          const { markOrderPaidForPayment } = await import('@/lib/ecommerce')
+          await markOrderPaidForPayment(payment.id)
+        } catch (err) {
+          console.error('shop order activation failed', err)
+        }
+      }
       if (payment.kind === 'NO_SHOW_FEE') {
         try {
           const { recordCommissionForFeePayment } = await import('@/lib/commissions')
@@ -95,8 +105,24 @@ export async function POST(request: Request) {
           failureReason: ((data.last_payment_error as Record<string, unknown> | undefined)?.message as string | undefined)?.slice(0, 280) ?? 'Payment failed',
         },
       })
+      if ((payment.metadata as Record<string, unknown> | null)?.shopOrder === true) {
+        try {
+          const { markOrderPaymentFailed } = await import('@/lib/ecommerce')
+          await markOrderPaymentFailed(payment.id)
+        } catch (err) {
+          console.error('shop order failure handling failed', err)
+        }
+      }
     } else if (type === 'payment_intent.canceled' && canTransition(payment.status, 'CANCELED')) {
       await prisma.payment.update({ where: { id: payment.id }, data: { status: 'CANCELED' } })
+      if ((payment.metadata as Record<string, unknown> | null)?.shopOrder === true) {
+        try {
+          const { markOrderPaymentFailed } = await import('@/lib/ecommerce')
+          await markOrderPaymentFailed(payment.id)
+        } catch (err) {
+          console.error('shop order cancellation handling failed', err)
+        }
+      }
     } else if (type === 'charge.refunded') {
       // Refunds initiated in Stripe (dashboard) sync back into the ledger.
       const refundedTotal = ((data.amount_refunded as number) ?? 0) / 100

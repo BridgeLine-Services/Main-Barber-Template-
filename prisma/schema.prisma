@@ -113,12 +113,12 @@ model Business {
   timeClockEntries                 TimeClockEntry[]
   payrollSettings                  PayrollSettings?
   giftCardSettings                 GiftCardSettings?
-  giftCards                         GiftCard[]
-  membershipSettings                MembershipSettings?
-  membershipPlans                   MembershipPlan[]
-  memberships                       Membership[]
-  membershipUsages                  MembershipUsage[]
-  giftCardTransactions              GiftCardTransaction[]
+  giftCards                        GiftCard[]
+  membershipSettings               MembershipSettings?
+  membershipPlans                  MembershipPlan[]
+  memberships                      Membership[]
+  membershipUsages                 MembershipUsage[]
+  giftCardTransactions             GiftCardTransaction[]
   payrollReports                   PayrollReport[]
   // Centralized feature configuration (Requirement 27): sparse map of
   // feature key -> enabled, validated against FEATURE_KEYS in src/lib/features.ts.
@@ -134,6 +134,9 @@ model Business {
   bufferMinutes             Int                     @default(0) // buffer after each appointment (business default)
   cancellationDeadlineHours Int                     @default(2) // customer cancellation cutoff before start (0 = no deadline)
   barberTimeClockAccesses   BarberTimeClockAccess[]
+  ecommerceSettings         EcommerceSettings?
+  products                  Product[]
+  shopOrders                ShopOrder[]
 
   @@index([slug])
 }
@@ -444,23 +447,23 @@ model Customer {
 
   payments        Payment[]
   memberships     Membership[]
-  giftCards       GiftCard[] @relation("GiftCardPurchaser")
-  id              String    @id @default(cuid())
+  giftCards       GiftCard[]   @relation("GiftCardPurchaser")
+  id              String       @id @default(cuid())
   businessId      String
-  business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business        Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   firstName       String
   lastName        String
   phone           String
   email           String
-  notes           String?   @db.Text
-  smsConsent      Boolean   @default(false)
-  tags            String[]  @default([])
+  notes           String?      @db.Text
+  smsConsent      Boolean      @default(false)
+  tags            String[]     @default([])
   preferences     Json?
   emailVerifiedAt DateTime?
   phoneVerifiedAt DateTime?
   archivedAt      DateTime? // soft-delete support
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   appointments        Appointment[]
   waitlistEntries     WaitlistEntry[]
@@ -469,6 +472,7 @@ model Customer {
   notificationHistory NotificationLog[]       @relation("CustomerNotificationLogs")
   portalSessions      PortalSession[]
   linkedUser          User?
+  shopOrders          ShopOrder[]
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -1096,7 +1100,6 @@ enum GiftCardTransactionType {
   REDEMPTION
   REFUND
   ADJUSTMENT // owner manual balance correction (audit trail)
-
 }
 
 enum PaymentStatus {
@@ -1209,6 +1212,7 @@ model Payment {
   originalPaymentId String? // set on REFUND rows: the payment being reversed
   originalPayment   Payment?      @relation("PaymentRefunds", fields: [originalPaymentId], references: [id], onDelete: SetNull)
   refunds           Payment[]     @relation("PaymentRefunds")
+  shopOrders        ShopOrder[]   @relation("ShopOrderPayment")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1237,7 +1241,7 @@ model Payment {
 model MembershipSettings {
   id         String   @id @default(cuid())
   businessId String   @unique
-  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   // OWNER master switch — off = no new enrollments or renewals; existing
   // memberships and history always remain intact and viewable.
@@ -1257,49 +1261,53 @@ model MembershipSettings {
 }
 
 model MembershipPlan {
-  id          String   @id @default(cuid())
-  businessId  String
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  memberships Membership[]
+  id                String             @id @default(cuid())
+  businessId        String
+  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  memberships       Membership[]
+  ecommerceSettings EcommerceSettings? @relation(fields: [ecommerceSettingsId], references: [id])
+  products          Product[]
+  shopOrders        ShopOrder[]
 
   name        String
   description String?
-  active      Boolean  @default(true) // hidden from new enrollment when false
-  sortOrder   Int      @default(0)
+  active      Boolean @default(true) // hidden from new enrollment when false
+  sortOrder   Int     @default(0)
 
   billingInterval MembershipBillingInterval @default(MONTHLY)
   price           Float
-  currency        String @default("USD")
+  currency        String                    @default("USD")
 
   // Benefit: % discount on services (0-100).
-  serviceDiscountPercent Float @default(0)
+  serviceDiscountPercent  Float @default(0)
   // Benefit: included visits per period (0 = none; -1 = unlimited).
-  includedVisitsPerPeriod Int @default(0)
+  includedVisitsPerPeriod Int   @default(0)
   // Rolling window (days) for counting included visits.
-  visitWindowDays Int @default(30)
+  visitWindowDays         Int   @default(30)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  ecommerceSettingsId String?
 
   @@index([businessId])
   @@index([businessId, active])
 }
 
 model Membership {
-  id          String         @id @default(cuid())
-  businessId  String
-  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customerId  String
-  customer    Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  planId      String
-  plan        MembershipPlan  @relation(fields: [planId], references: [id], onDelete: Restrict)
-  usages      MembershipUsage[]
+  id         String            @id @default(cuid())
+  businessId String
+  business   Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       MembershipPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  usages     MembershipUsage[]
 
-  status      MembershipStatus @default(PENDING)
-  startedAt   DateTime // first confirmed period start (set on activation)
+  status             MembershipStatus @default(PENDING)
+  startedAt          DateTime // first confirmed period start (set on activation)
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime? // null until ACTIVE
-  autoRenew   Boolean  @default(true)
+  autoRenew          Boolean          @default(true)
 
   canceledAt   DateTime?
   cancelReason String?
@@ -1319,9 +1327,9 @@ model Membership {
 }
 
 model MembershipUsage {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   businessId   String
-  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business     Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   membershipId String
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
@@ -1329,8 +1337,8 @@ model MembershipUsage {
   // benefitType, so the same appointment can never redeem twice.
   appointmentId String?
   benefitType   MembershipBenefitType
-  amount        Float @default(0) // discount value applied, or 0 for included visit
-  usedAt        DateTime @default(now())
+  amount        Float                 @default(0) // discount value applied, or 0 for included visit
+  usedAt        DateTime              @default(now())
 
   @@unique([membershipId, appointmentId, benefitType])
   @@index([membershipId])
@@ -1769,7 +1777,7 @@ model PayrollReport {
 
   createdByUserId String
   reviewedAt      DateTime?
-  exportedAt       DateTime?
+  exportedAt      DateTime?
   finalizedAt     DateTime?
 
   notes String?
@@ -1787,12 +1795,12 @@ model PayrollReport {
 // Per-barber frozen line of a report. Values are snapshots at generation
 // time; later source-data changes never rewrite a stored line.
 model PayrollReportLine {
-  id         String       @id @default(cuid())
+  id         String        @id @default(cuid())
   businessId String // tenant key (RLS-enforced; no opposite relation needed)
   reportId   String
   report     PayrollReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   barberId   String
-  barber     Barber       @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber     Barber        @relation(fields: [barberId], references: [id], onDelete: Cascade)
 
   barberName String // display snapshot at generation time
 
@@ -1814,12 +1822,12 @@ model PayrollReportLine {
 // the author and a required reason, and are applied on top of the line
 // snapshot when the report is displayed or exported.
 model PayrollReportAdjustment {
-  id         String       @id @default(cuid())
+  id         String        @id @default(cuid())
   businessId String // tenant key (RLS-enforced; no opposite relation needed)
   reportId   String
   report     PayrollReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   barberId   String
-  barber     Barber       @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  barber     Barber        @relation(fields: [barberId], references: [id], onDelete: Cascade)
 
   amount          Float // net manual correction (either sign)
   reason          String // owner-supplied, required
@@ -1853,16 +1861,16 @@ model GiftCardSettings {
 }
 
 model GiftCard {
-  id         String        @id @default(cuid())
+  id         String    @id @default(cuid())
   businessId String
-  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer   Customer?     @relation("GiftCardPurchaser", fields: [customerId], references: [id], onDelete: SetNull)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer   Customer? @relation("GiftCardPurchaser", fields: [customerId], references: [id], onDelete: SetNull)
 
   // Server-generated, globally unique, unambiguous charset (no 0/O/1/I),
   // e.g. "7K2M-9WQ4-XY3Z-6B8D". 16 chars from a 32-symbol alphabet.
   code String @unique
 
-  type                GiftCardType    @default(DIGITAL)
+  type                GiftCardType   @default(DIGITAL)
   initialValue        Float
   remainingBalance    Float
   status              GiftCardStatus @default(ACTIVE)
@@ -1872,7 +1880,7 @@ model GiftCard {
   customerId          String?
   recipientName       String?
   recipientEmail      String?
-  message             String? @db.Text
+  message             String?        @db.Text
 
   // Payment that purchased the card (PENDING status cards activate when
   // this payment settles — see activateGiftCardForPayment).
@@ -1880,8 +1888,8 @@ model GiftCard {
   soldByUserId      String? // staff user who sold it (POS)
 
   expiresAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   transactions GiftCardTransaction[]
 
@@ -1901,7 +1909,7 @@ model GiftCardTransaction {
   type         GiftCardTransactionType
   amount       Float // magnitude (always >= 0)
   balanceAfter Float
-  note         String? @db.Text
+  note         String?                 @db.Text
 
   paymentId     String? // Payment that triggered this (purchase/redemption/refund)
   appointmentId String? // appointment the redemption was applied to
@@ -1911,4 +1919,126 @@ model GiftCardTransaction {
 
   @@index([businessId, giftCardId])
   @@index([businessId, type, createdAt])
+}
+
+// ─── ECOMMERCE (prompt 7) ─────────────────────────────────────────────────────
+// Optional storefront for products (haircare, merch, digital downloads).
+// Fail-closed: feature flag 'ecommerce' (Business.featureOverrides) AND
+// EcommerceSettings.enabled must both be true. Orders never trust client
+// prices: unit prices are snapshotted server-side at order creation.
+
+model EcommerceSettings {
+  id                    String           @id @default(cuid())
+  businessId            String           @unique
+  business              Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  enabled               Boolean          @default(false)
+  currency              String           @default("USD")
+  // Simple, documented tax/shipping rules. No provider is simulated: the
+  // owner configures flat rates; anything more advanced is a documented
+  // extension point (docs/ECOMMERCE.md).
+  taxRatePercent        Float            @default(0) // 0-100, applied to subtotal
+  shippingFlatRate      Float            @default(0)
+  freeShippingThreshold Float?
+  supportEmail          String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  membershipPlans       MembershipPlan[]
+}
+
+enum ProductType {
+  PHYSICAL
+  DIGITAL
+}
+
+model Product {
+  id                String      @id @default(cuid())
+  businessId        String
+  business          Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name              String
+  slug              String      @unique // combined with businessId below
+  description       String?     @db.Text
+  category          String?
+  productType       ProductType @default(PHYSICAL)
+  price             Float
+  compareAtPrice    Float? // optional "was" price for display only
+  images            String[]    @default([])
+  published         Boolean     @default(false) // unpublished = hidden from storefront
+  digitalAssetUrl   String? // download link for DIGITAL products; delivered only after payment
+  stock             Int         @default(0) // -1 = untracked/unlimited
+  lowStockThreshold Int         @default(5)
+  sku               String?
+  sortOrder         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  orderItems       OrderItem[]
+  membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
+  membershipPlanId String?
+
+  @@unique([businessId, slug])
+  @@index([businessId, published])
+  @@index([businessId, category])
+}
+
+enum OrderStatus {
+  PENDING // created, awaiting payment confirmation
+  PAID // payment settled (webhook or POS)
+  PROCESSING // owner accepted and is preparing the order
+  SHIPPED // physical fulfillment with tracking
+  DELIVERED
+  CANCELED // before/without payment; stock released
+  PAYMENT_FAILED
+  REFUNDED
+}
+
+model ShopOrder {
+  id              String      @id @default(cuid())
+  businessId      String
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderNumber     String      @unique // human-readable, e.g. ORD-8F42K
+  customerId      String? // null = guest checkout (public visitors need no account)
+  customer        Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  email           String // required contact for confirmation + receipts
+  shippingAddress Json? // structured address; null for digital-only orders
+  subtotal        Float
+  shippingAmount  Float       @default(0)
+  taxAmount       Float       @default(0)
+  total           Float
+  currency        String      @default("USD")
+  status          OrderStatus @default(PENDING)
+  trackingNumber  String?
+  adminNote       String?     @db.Text
+  paymentId       String?     @unique // settled Payment that paid this order
+  payment         Payment?    @relation("ShopOrderPayment", fields: [paymentId], references: [id], onDelete: SetNull)
+  idempotencyKey  String?     @unique // deduplicates duplicate checkout submissions
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items            OrderItem[]
+  membershipPlan   MembershipPlan? @relation(fields: [membershipPlanId], references: [id])
+  membershipPlanId String?
+
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([email])
+}
+
+model OrderItem {
+  id        String    @id @default(cuid())
+  orderId   String
+  order     ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull) // SetNull keeps line snapshots after product deletion
+  // Price/name are SNAPSHOTS at purchase time. The server recomputes every
+  // total from the database product price; client-supplied numbers are
+  // never trusted.
+  name      String
+  unitPrice Float
+  quantity  Int
+  lineTotal Float
+
+  @@index([orderId])
+  @@index([productId])
 }
