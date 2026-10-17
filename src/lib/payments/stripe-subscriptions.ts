@@ -4,7 +4,7 @@
  * Server-side only. Builds on the existing raw `stripeApi` helper (no SDK
  * dependency, form-encoded REST calls with Idempotency-Key support).
  *
- * Fail-closed: every call throws unless STRIPE_SECRET_KEY is configured —
+ * Fail-closed: every call throws unless the required Stripe credentials are configured —
  * callers surface a clear "recurring billing not configured" message and
  * NEVER simulate a subscription. A membership becomes ACTIVE only when a
  * signature-verified `invoice.paid` / first-payment webhook confirms it
@@ -16,7 +16,7 @@
  * (`providerCustomerRef`). Only provider references are stored — never
  * card data or tokens.
  */
-import { stripeApi, stripeConfigured } from '@/lib/payments/providers/stripe-client'
+import { missingStripeConfiguration, stripeApi, stripeConfigured } from '@/lib/payments/providers/stripe-client'
 import type { MembershipPlan } from '@prisma/client'
 
 export function subscriptionsConfigured(): boolean {
@@ -120,7 +120,7 @@ export async function createSubscriptionForMembership(opts: {
   existingPriceRef?: string | null
 }): Promise<CreatedSubscription> {
   if (!subscriptionsConfigured()) {
-    throw new Error('Recurring billing is not configured (STRIPE_SECRET_KEY missing)')
+    throw new Error(`Recurring billing is not fully configured (missing ${missingStripeConfiguration().join(', ')})`)
   }
   const customerRef = await ensureStripeCustomer({
     businessId: opts.businessId,
@@ -166,7 +166,7 @@ export async function createSubscriptionForMembership(opts: {
  */
 export async function cancelSubscription(subscriptionRef: string): Promise<void> {
   if (!subscriptionsConfigured()) {
-    throw new Error('Recurring billing is not configured (STRIPE_SECRET_KEY missing)')
+    throw new Error(`Recurring billing is not fully configured (missing ${missingStripeConfiguration().join(', ')})`)
   }
   await stripeApi(`/v1/subscriptions/${encodeURIComponent(subscriptionRef)}`, {
     method: 'DELETE',
@@ -177,7 +177,7 @@ export async function cancelSubscription(subscriptionRef: string): Promise<void>
 /** Period-end cancellation (autoRenew = false) via the UPDATE endpoint. */
 export async function scheduleSubscriptionCancelAtPeriodEnd(subscriptionRef: string): Promise<void> {
   if (!subscriptionsConfigured()) {
-    throw new Error('Recurring billing is not configured (STRIPE_SECRET_KEY missing)')
+    throw new Error(`Recurring billing is not fully configured (missing ${missingStripeConfiguration().join(', ')})`)
   }
   await stripeApi(`/v1/subscriptions/${encodeURIComponent(subscriptionRef)}`, {
     method: 'POST',

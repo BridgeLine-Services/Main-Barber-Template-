@@ -62,7 +62,7 @@ export const INTERNAL_ENV_VARS = [
 ]
 
 const FEATURE_REQUIREMENTS: Record<FeatureName, string[]> = {
-  email: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'],
+  email: ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'],
   sms: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
   google: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GBP_ACCOUNT_ID', 'GBP_LOCATION_ID'],
   reminders: ['CRON_SECRET'],

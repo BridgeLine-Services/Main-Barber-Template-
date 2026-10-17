@@ -14,6 +14,8 @@ src/lib/payments/
   state-machine.ts Legal PaymentStatus transitions (single source of truth)
   providers/
     in-person.ts    Pay-at-shop provider (default)
+    stripe.ts       Stripe PaymentIntents provider (optional)
+    stripe-client.ts server-side Stripe REST + webhook signature helpers
   index.ts          Provider registry + resolvePaymentProvider()
 prisma/schema.prisma
   model Payment     Provider-agnostic ledger (migration 20260927163000)
@@ -49,13 +51,13 @@ mark the original `REFUNDED`, atomically in one transaction.
 - `idempotencyKey` is unique per row: provider retries and webhook
   replays cannot double-charge.
 
-## Adding an online provider (e.g. Stripe)
+## Adding another online provider
 
 The provider contract (`src/lib/payments/types.ts`) is the only thing a
 new provider implements:
 
-1. Create `src/lib/payments/providers/stripe.ts` implementing
-   `PaymentProvider` (`id: 'stripe'`, `online: true`). Requirements:
+1. Implement `PaymentProvider` (`online: true`) alongside the existing
+   Stripe provider. Requirements:
    - Server-side operations only; secret keys in environment variables
      (`STRIPE_SECRET_KEY`) — never in the browser.
    - Never accept or store raw card numbers or CVV; use the provider's
@@ -80,9 +82,10 @@ only to `resolvePaymentProvider()` and the `Payment` ledger.
 
 ## Environment variables
 
-None required for the default pay-at-shop provider. An online provider
-adds its own (e.g. `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) —
-never commit them; see `.gitignore` and `docs/OPERATIONS.md`.
+None required for the default pay-at-shop provider. Stripe online payments
+require `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and
+`STRIPE_WEBHOOK_SECRET`; never commit them. See `.gitignore` and
+`docs/OPERATIONS.md`.
 
 ## Tests
 
@@ -126,7 +129,9 @@ emails (via the app's SMTP configuration).
   the same state machine as everything else.
 - Idempotency keys on every ledger write make provider retries safe.
 - Enabling the master switch fails closed (`400`) when
-  `STRIPE_SECRET_KEY` is absent from the environment.
+  any required credential is absent: `STRIPE_SECRET_KEY`,
+  `STRIPE_PUBLISHABLE_KEY`, or `STRIPE_WEBHOOK_SECRET`. Pay-at-shop remains
+  available without Stripe.
 
 ## Checkout math
 

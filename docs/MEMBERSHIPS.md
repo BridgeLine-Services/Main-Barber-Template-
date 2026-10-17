@@ -74,8 +74,8 @@ Owner/staff (dashboard, role-checked, tenant-scoped via session business):
 ## Recurring billing (Stripe Subscriptions)
 
 Implemented end-to-end server-side (`src/lib/payments/stripe-subscriptions.ts`
-+ lifecycle handlers in `src/lib/memberships.ts`). With STRIPE_SECRET_KEY
-configured:
++ lifecycle handlers in `src/lib/memberships.ts`). With the required Stripe
+secret, publishable, and webhook credentials configured:
 
 1. `enrollWithSubscription` creates the PENDING membership, then the real
    Stripe Customer (reusing `Customer.stripeCustomerId` when present),
@@ -97,14 +97,14 @@ configured:
    `scheduleSubscriptionCancelAtPeriodEnd` (period-end, mirrors owner-side
    cancellation).
 
-Fail-closed: without STRIPE_SECRET_KEY the subscription path throws a clear
-`RECURRING_NOT_CONFIGURED` error and NEVER simulates a charge. Lapsed
+Fail-closed: with any required Stripe credential missing, the subscription
+path throws a clear `RECURRING_NOT_CONFIGURED` error and NEVER simulates a charge. Lapsed
 memberships still move to PAST_DUE and expire per the grace policy. The
 one-time first-period POS path is unchanged.
 
 ## Scheduling (durable period processing)
 
-`GET /api/cron/memberships` — Vercel Cron hourly (see `vercel.json`), same
+`GET /api/cron/memberships` — Vercel Cron daily (see `vercel.json`), same
 CRON_SECRET Bearer protection as the reminders job. Per business with the
 memberships flag enabled, runs `processMembershipPeriodEnds`:
 ACTIVE+ended+autoRenew → PAST_DUE (a renewal ONLY happens via a verified

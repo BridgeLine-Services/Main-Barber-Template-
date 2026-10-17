@@ -173,10 +173,10 @@ export function PaymentSettingsForm() {
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 space-y-1">
           <div className="flex items-center gap-2 font-semibold text-sm">
             <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Stripe Secret Key Required to Enable Online / Card Processing</span>
+            <span>Stripe Credentials Required to Enable Online / Card Processing</span>
           </div>
           <p className="text-xs text-amber-300/80 leading-relaxed">
-            <code className="font-mono bg-amber-950/50 px-1 py-0.5 rounded">STRIPE_SECRET_KEY</code> is not configured on this server. The shop currently runs in pay-at-shop mode. Once server environment variables are added, you can toggle Payments &amp; POS on below.
+            Configure <code className="font-mono bg-amber-950/50 px-1 py-0.5 rounded">STRIPE_SECRET_KEY</code>, <code className="font-mono bg-amber-950/50 px-1 py-0.5 rounded">STRIPE_PUBLISHABLE_KEY</code>, and <code className="font-mono bg-amber-950/50 px-1 py-0.5 rounded">STRIPE_WEBHOOK_SECRET</code> on the server. The shop currently runs in pay-at-shop mode.
           </p>
         </div>
       )}

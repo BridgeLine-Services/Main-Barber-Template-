@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer'
 import { contactFormSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { getSmtpFromAddress } from '@/lib/app-config'
+import { getFeatureConfig } from '@/lib/env-check'
 
 export async function POST(req: NextRequest) {
   // Rate limit contact form — 3 per minute per IP
@@ -33,8 +34,16 @@ export async function POST(req: NextRequest) {
     // Log without PII for production safety
     console.info('[Contact Form] New submission received')
 
-    // If SMTP environment variables exist, send email notification
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    const emailConfig = getFeatureConfig('email')
+    if (emailConfig.enabled && !emailConfig.configured) {
+      return NextResponse.json(
+        { success: false, error: `Email notifications are enabled but missing required configuration: ${emailConfig.missing.join(', ')}` },
+        { status: 503 }
+      )
+    }
+
+    // Contact submissions remain available when optional email is disabled.
+    if (emailConfig.enabled) {
       try {
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,

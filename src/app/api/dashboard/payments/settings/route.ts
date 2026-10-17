@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
 import { canManageSettings, getPosSettings, tipPresets } from '@/lib/payments/pos'
+import { missingStripeConfiguration, stripeConfigured } from '@/lib/payments/providers/stripe-client'
 
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
     const settings = await getPosSettings(session.user.businessId!)
     return NextResponse.json({
       settings: { ...settings, tipPresets: tipPresets(settings) },
-      stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
+      stripeConfigured: stripeConfigured(),
     })
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/payments/settings')
@@ -41,9 +42,10 @@ export async function PATCH(request: Request) {
     const enabled = B('enabled')
     if (enabled !== undefined) {
       // Fail closed: the switch cannot be ON without a configured provider.
-      if (enabled && !process.env.STRIPE_SECRET_KEY) {
+      const missingStripeEnv = missingStripeConfiguration()
+      if (enabled && missingStripeEnv.length > 0) {
         return NextResponse.json(
-          { error: 'STRIPE_SECRET_KEY is not configured on this server — Payments & POS cannot be enabled' },
+          { error: `Stripe is not fully configured on this server — missing ${missingStripeEnv.join(', ')}. Payments & POS cannot be enabled.` },
           { status: 400 },
         )
       }

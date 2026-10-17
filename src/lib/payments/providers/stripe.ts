@@ -16,7 +16,7 @@ import type {
   PaymentProvider, ProviderContext, ProviderResult, RefundInput,
 } from '../types'
 import { canTransition, transitionError } from '../state-machine'
-import { stripeApi, stripeConfigured } from './stripe-client'
+import { missingStripeConfiguration, stripeApi, stripeConfigured } from './stripe-client'
 
 const AMOUNT_SCALE = 100 // Stripe takes cents
 
@@ -37,7 +37,7 @@ export const stripeProvider: PaymentProvider = {
   async createCharge(ctx, input: CreateChargeInput): Promise<ProviderResult> {
     if (input.amount <= 0) return { ok: false, payment: null as never, error: 'Amount must be positive' }
     if (!stripeConfigured()) {
-      return { ok: false, payment: null as never, error: 'Stripe is not configured (missing STRIPE_SECRET_KEY)' }
+      return { ok: false, payment: null as never, error: `Stripe is not fully configured (missing ${missingStripeConfiguration().join(', ')})` }
     }
     // Ledger row first (PENDING → PROCESSING once the intent exists).
     const payment = await ctx.tx.payment.create({

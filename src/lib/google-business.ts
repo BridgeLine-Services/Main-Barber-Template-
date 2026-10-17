@@ -42,6 +42,8 @@ export interface SyncResult {
  * Get a valid access token, refreshing if needed.
  */
 async function getAccessToken(): Promise<string | null> {
+  if (!isGoogleEnabled()) return null
+
   const accessToken = process.env.GBP_ACCESS_TOKEN
   const refreshToken = process.env.GBP_REFRESH_TOKEN
 
@@ -186,6 +188,10 @@ export async function prepareBusinessSyncPayload(businessId: string) {
  * Requires GBP_ACCESS_TOKEN (or GBP_REFRESH_TOKEN) + GBP_ACCOUNT_ID + GBP_LOCATION_ID.
  */
 export async function syncBusinessToGoogle(businessId: string): Promise<SyncResult> {
+  if (!isGoogleEnabled()) {
+    return { success: false, syncedFields: [], errors: ['Google Business integration is disabled'] }
+  }
+
   const accessToken = await getAccessToken()
   const locationPath = getLocationPath()
 
@@ -251,6 +257,10 @@ export async function syncBusinessToGoogle(businessId: string): Promise<SyncResu
 export async function importGoogleReviewsFromAPI(
   businessId: string
 ): Promise<{ imported: number; skipped: number; errors: string[] }> {
+  if (!isGoogleEnabled()) {
+    return { imported: 0, skipped: 0, errors: ['Google Business integration is disabled'] }
+  }
+
   const accessToken = await getAccessToken()
   const locationPath = getLocationPath()
 
@@ -389,6 +399,7 @@ export function isGBPConfigured(): boolean {
  * Check if GBP is connected (has a valid access/refresh token + location configured)
  */
 export function isGBPConnected(): boolean {
+  if (!isGoogleEnabled()) return false
   return !!(
     (process.env.GBP_ACCESS_TOKEN || process.env.GBP_REFRESH_TOKEN) &&
     process.env.GBP_ACCOUNT_ID &&
@@ -423,8 +434,11 @@ export function isGBPConnected(): boolean {
    * Build the OAuth URL for connecting Google Business Profile
    */
   export function getGBPOAuthUrl(userId: string, businessId: string, redirectUri: string): string {
+  if (!isGoogleEnabled()) throw new Error('Google Business integration is disabled')
   const clientId = process.env.GOOGLE_CLIENT_ID
-  if (!clientId) throw new Error('GOOGLE_CLIENT_ID not configured')
+  if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google Business integration is enabled but GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required')
+  }
 
   const scopes = [
     'https://www.googleapis.com/auth/business.manage',

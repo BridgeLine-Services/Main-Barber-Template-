@@ -1,6 +1,6 @@
 # Testing
 
-## Test suites (32 files, `tests/*.test.ts`)
+## Test suites (33 TypeScript suites plus the Vercel build runner test)
 
 Each suite is a standalone tsx script with its own harness — run any with
 `npx tsx tests/<name>.test.ts`. Full runner reference: `package.json`.
@@ -31,6 +31,15 @@ end-to-end), portfolio, queue, reliability, role-permissions,
 specialty-match, tenant-isolation, tenant-key-sync.
 
 Run all: `npm run test:ci`
+
+`npm run test:vercel-build` runs the isolated, database-free tests for
+Vercel build configuration, migration error classification/retries, and
+fail-closed build sequencing.
+
+`npm run test:optional-integrations` verifies disabled email, SMS, and Google
+providers make no outbound calls, enabled providers report missing
+configuration, pay-at-shop remains available without Stripe, and Vercel cron
+jobs stay within a once-daily schedule.
 
 Also in CI: `tests/memberships-renewals.test.ts` (subscription lifecycle —
 renewal replay/out-of-order safety, failed renewals, cancel sync, durable
@@ -113,12 +122,12 @@ release; record results per client deployment.
 - `npx tsx scripts/perf-check.ts` — N+1 pattern scanner (REVIEW mode;
   `--strict` fails on untriaged findings and runs inside master:check;
   see docs/PERFORMANCE.md).
-- GitHub Actions ("Template CI") runs four jobs: template validation
-  (architecture check, lint, typecheck, prisma validate/generate,
-  production build); server tests against a real PostgreSQL service
-  (`migrate deploy` + `test:ci`, 22 suites); browser E2E + accessibility
-  (chromium + Playwright: guest booking, staff login, security bypass,
-  WCAG 2.1 AA axe scan against the production build with the seed and
-  E2E prep scripts applied); and a report-only production dependency
-  audit. The Architecture Constitution workflow separately enforces the
-  architecture rules on every PR.
+- GitHub Actions ("Template CI") has two jobs. `Validate template` runs the
+  Vercel build runner and optional integration tests, a critical-severity production dependency audit,
+  architecture checks, lint, typecheck, Prisma validation, database-backed
+  tests, a production build, and the owner-registration journey against a
+  health-checked production server. `E2E browser tests` uses a separate
+  PostgreSQL service and deterministic demo-only configuration for Chromium
+  browser tests. The Architecture Constitution workflow separately enforces
+  the architecture rules on every PR. Obsolete runs on the same PR/ref are
+  cancelled; neither workflow runs production migrations.

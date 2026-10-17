@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { verifyGBPOAuthState } from '@/lib/google-business'
 import { handleApiError } from '@/lib/api-errors'
+import { isGoogleEnabled } from '@/lib/env-check'
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +18,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
+    if (!isGoogleEnabled()) {
+      return NextResponse.redirect(new URL('/dashboard/settings?gbp_error=disabled', req.url))
+    }
     const { searchParams } = req.nextUrl
     const code = searchParams.get('code')
     const state = searchParams.get('state') // businessId

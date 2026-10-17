@@ -8,6 +8,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { normalizeEmail } from '@/lib/validation'
 import { isDevelopmentMode } from '@/lib/app-config'
 import { getAbsoluteUrl } from '@/lib/app-url'
+import { getFeatureConfig } from '@/lib/env-check'
 
 const forgotSchema = z.object({
   email: z.string().email('Valid email required').transform(normalizeEmail),
@@ -24,7 +25,8 @@ function hashResetToken(raw: string): string {
 
 /** SMTP is considered configured when host + user + from are all present. */
 function isSmtpConfigured(): boolean {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_FROM)
+  const email = getFeatureConfig('email')
+  return email.enabled && email.configured
 }
 
 /** The generic, enumeration-safe response — identical for every email. */
@@ -75,6 +77,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: GENERIC_MESSAGE })
     }
 
+    if (!smtpConfigured && !canReturnDevLink) {
+      return unavailableResponse
+    }
+
     // Find user — don't reveal whether email exists
     const user = await prisma.user.findUnique({
       where: { email: parsed.data.email },
@@ -87,10 +93,6 @@ export async function POST(req: NextRequest) {
 
     // Production without SMTP: don't create a token we cannot deliver,
     // don't pretend an email was sent.
-    if (!smtpConfigured && !canReturnDevLink) {
-      return unavailableResponse
-    }
-
     // Generate token — raw token only lives in the email link / dev response
     const rawToken = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour

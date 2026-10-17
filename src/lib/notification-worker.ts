@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 import { isTwilioConfigured, sendSms } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
-import {sanitizeErrorMessage } from '@/lib/notifications'
+import { emailConfigurationIssue, sanitizeErrorMessage } from '@/lib/notifications'
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -58,6 +58,14 @@ export async function processDueNotifications(limit = 50) {
         if (!result.success) throw new Error(result.error || 'SMS delivery failed')
         await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'SENT', sentAt: new Date(), providerMessageId: result.messageId || null } }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
       } else {
+        const emailIssue = emailConfigurationIssue()
+        if (emailIssue) {
+          await prisma.notificationLog.update({
+            where: { id: row.id },
+            data: { status: 'FAILED', errorMessage: emailIssue, failureReason: emailIssue },
+          }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
+          continue
+        }
         await getTransporter().sendMail({ from: getSmtpFromAddress(), to: notification.recipient, subject: 'Message from your barber', text: notification.content || '' })
         await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'SENT', sentAt: new Date() } }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
       }

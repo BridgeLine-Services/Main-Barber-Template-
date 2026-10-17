@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
 import { resolvePaymentProvider, stripeConfigured } from '@/lib/payments'
+import { missingStripeConfiguration } from '@/lib/payments/providers/stripe-client'
 import { canRunCheckout, getPosSettings } from '@/lib/payments/pos'
 
 /**
@@ -23,7 +24,10 @@ export async function POST(request: Request) {
     const settings = await getPosSettings(businessId)
     if (!settings.enabled) return NextResponse.json({ error: 'Payments & POS is disabled' }, { status: 400 })
     if (!stripeConfigured()) {
-      return NextResponse.json({ error: 'Stripe is not configured on this server (STRIPE_SECRET_KEY)' }, { status: 400 })
+      return NextResponse.json(
+        { error: `Stripe is not fully configured on this server — missing ${missingStripeConfiguration().join(', ')}` },
+        { status: 400 },
+      )
     }
 
     const body = (await request.json()) as {

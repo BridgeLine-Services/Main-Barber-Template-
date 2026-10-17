@@ -445,7 +445,7 @@ export async function enrollWithSubscription(input: {
     await import('@/lib/payments/stripe-subscriptions')
   if (!subscriptionsConfigured()) {
     throw new MembershipError(
-      'Recurring billing is not configured (STRIPE_SECRET_KEY missing)',
+      'Recurring billing is not fully configured (missing required Stripe credentials)',
       'RECURRING_NOT_CONFIGURED'
     )
   }

@@ -6,9 +6,14 @@
  * Bearer auth, and a required Idempotency-Key header for every write.
  */
 const STRIPE_API = 'https://api.stripe.com/v1'
+const REQUIRED_STRIPE_ENV = ['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET'] as const
+
+export function missingStripeConfiguration(): string[] {
+  return REQUIRED_STRIPE_ENV.filter((name) => !process.env[name]?.trim())
+}
 
 export function stripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY)
+  return missingStripeConfiguration().length === 0
 }
 
 export async function stripeApi(
@@ -19,7 +24,7 @@ export async function stripeApi(
     idempotencyKey?: string
   },
 ): Promise<Record<string, unknown>> {
-  const key = process.env.STRIPE_SECRET_KEY
+  const key = process.env.STRIPE_SECRET_KEY?.trim()
   if (!key) throw new Error('STRIPE_SECRET_KEY is not configured')
 
   const headers: Record<string, string> = {

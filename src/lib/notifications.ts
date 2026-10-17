@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 import { sendSms, isTwilioConfigured, buildReminderMessage, buildConfirmationMessage } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
-import { isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
+import { getFeatureConfig, isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
 
 // ============================================================================
 // Notification System
@@ -17,8 +17,16 @@ import { isEmailEnabled, isSmsEnabled } from '@/lib/env-check'
 let transporter: Transporter | null = null
 
 export function isEmailConfigured(): boolean {
-  if (!isEmailEnabled()) return false
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_FROM)
+  return emailConfigurationIssue() === null
+}
+
+export function emailConfigurationIssue(): string | null {
+  const config = getFeatureConfig('email')
+  if (!config.enabled) return 'Email notifications are disabled (set EMAIL_ENABLED=true to enable)'
+  if (!config.configured) {
+    return `Email notifications are enabled but missing required configuration: ${config.missing.join(', ')}`
+  }
+  return null
 }
 
 export function notificationStatus() {
@@ -148,7 +156,8 @@ export async function scheduleAppointmentReminders(appointment: AppointmentWithR
   reminder2HoursEnabled?: boolean
   sameDayReminderEnabled?: boolean
 } = {}) {
-  if (!isEmailConfigured()) return { scheduled: 0, skipped: true, reason: 'Email notifications are not configured' }
+  const emailIssue = emailConfigurationIssue()
+  if (emailIssue) return { scheduled: 0, skipped: true, reason: emailIssue }
 
   const reminders = [
     settings.reminder24HoursEnabled !== false ? { type: 'BOOKING_REMINDER' as const, hours: 24 } : null,
@@ -325,25 +334,8 @@ export async function sendAppointmentReminder(appointment: AppointmentWithRelati
     </div>
   `
 
-  // Email reminder
-  try {
-    const transport = getTransporter()
-    await transport.sendMail({
-      from: getSmtpFromAddress(),
-      to: appointment.customer.email,
-      subject: `Appointment Reminder — ${appointment.business.name}`,
-      html,
-    })
-    await logNotification({
-      businessId: appointment.business.id,
-      appointmentId: appointment.id,
-      recipient: appointment.customer.email,
-      channel: 'EMAIL',
-      type: 'BOOKING_REMINDER',
-      status: 'SENT',
-    })
-  } catch (error) {
-    console.error('Reminder email error:', error)
+  const emailIssue = emailConfigurationIssue()
+  if (emailIssue && isEmailEnabled()) {
     await logNotification({
       businessId: appointment.business.id,
       appointmentId: appointment.id,
@@ -351,8 +343,37 @@ export async function sendAppointmentReminder(appointment: AppointmentWithRelati
       channel: 'EMAIL',
       type: 'BOOKING_REMINDER',
       status: 'FAILED',
-      errorMessage: sanitizeErrorMessage(error),
+      errorMessage: emailIssue,
     })
+  } else if (!emailIssue) {
+    try {
+      const transport = getTransporter()
+      await transport.sendMail({
+        from: getSmtpFromAddress(),
+        to: appointment.customer.email,
+        subject: `Appointment Reminder — ${appointment.business.name}`,
+        html,
+      })
+      await logNotification({
+        businessId: appointment.business.id,
+        appointmentId: appointment.id,
+        recipient: appointment.customer.email,
+        channel: 'EMAIL',
+        type: 'BOOKING_REMINDER',
+        status: 'SENT',
+      })
+    } catch (error) {
+      console.error('Reminder email error:', error)
+      await logNotification({
+        businessId: appointment.business.id,
+        appointmentId: appointment.id,
+        recipient: appointment.customer.email,
+        channel: 'EMAIL',
+        type: 'BOOKING_REMINDER',
+        status: 'FAILED',
+        errorMessage: sanitizeErrorMessage(error),
+      })
+    }
   }
 
   // SMS reminder if Twilio is configured
@@ -420,7 +441,20 @@ export async function sendStaffInviteEmail(params: {
   tempPassword: string
   loginUrl: string
 }): Promise<boolean> {
-  if (!isEmailConfigured()) return false
+  const emailIssue = emailConfigurationIssue()
+  if (emailIssue) {
+    if (isEmailEnabled()) {
+      await logNotification({
+        businessId: params.businessId,
+        recipient: params.to,
+        channel: 'EMAIL',
+        type: 'STAFF_INVITE',
+        status: 'FAILED',
+        errorMessage: emailIssue,
+      })
+    }
+    return false
+  }
   try {
     const transport = getTransporter()
     await transport.sendMail({
@@ -553,32 +587,43 @@ export async function sendWaitlistSlotNotification(params: {
     </div>
   `
 
-  // Email
-  try {
-    const transport = getTransporter()
-    await transport.sendMail({
-      from: getSmtpFromAddress(),
-      to: params.customer.email,
-      subject: `Slot Available — ${params.business.name}`,
-      html,
-    })
-    await logNotification({
-      businessId: params.businessId,
-      recipient: params.customer.email,
-      channel: 'EMAIL',
-      type: 'WAITLIST_NOTIFICATION',
-      status: 'SENT',
-    })
-  } catch (error) {
-    console.error('Waitlist email error:', error)
+  const emailIssue = emailConfigurationIssue()
+  if (emailIssue && isEmailEnabled()) {
     await logNotification({
       businessId: params.businessId,
       recipient: params.customer.email,
       channel: 'EMAIL',
       type: 'WAITLIST_NOTIFICATION',
       status: 'FAILED',
-      errorMessage: sanitizeErrorMessage(error),
+      errorMessage: emailIssue,
     })
+  } else if (!emailIssue) {
+    try {
+      const transport = getTransporter()
+      await transport.sendMail({
+        from: getSmtpFromAddress(),
+        to: params.customer.email,
+        subject: `Slot Available — ${params.business.name}`,
+        html,
+      })
+      await logNotification({
+        businessId: params.businessId,
+        recipient: params.customer.email,
+        channel: 'EMAIL',
+        type: 'WAITLIST_NOTIFICATION',
+        status: 'SENT',
+      })
+    } catch (error) {
+      console.error('Waitlist email error:', error)
+      await logNotification({
+        businessId: params.businessId,
+        recipient: params.customer.email,
+        channel: 'EMAIL',
+        type: 'WAITLIST_NOTIFICATION',
+        status: 'FAILED',
+        errorMessage: sanitizeErrorMessage(error),
+      })
+    }
   }
 
   // SMS for waitlist notification

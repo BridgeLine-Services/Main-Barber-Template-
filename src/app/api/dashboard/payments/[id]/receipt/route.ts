@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer'
 import { getSmtpFromAddress } from '@/lib/app-config'
 import { prisma } from '@/lib/prisma'
 import { buildReceipt, getPosSettings } from '@/lib/payments/pos'
+import { getFeatureConfig } from '@/lib/env-check'
 
 /** GET receipt — staff can view; barbers only for their own payments. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +39,16 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const settings = await getPosSettings(businessId)
     if (!settings.receiptsEmailEnabled) {
       return NextResponse.json({ error: 'Receipt emails are disabled in Payments settings' }, { status: 400 })
+    }
+    const email = getFeatureConfig('email')
+    if (!email.enabled) {
+      return NextResponse.json({ error: 'Email notifications are disabled' }, { status: 400 })
+    }
+    if (!email.configured) {
+      return NextResponse.json(
+        { error: `Email notifications are enabled but missing required configuration: ${email.missing.join(', ')}` },
+        { status: 503 },
+      )
     }
     const payment = await prisma.payment.findFirst({ where: { id, businessId } })
     if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })

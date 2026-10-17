@@ -14,6 +14,9 @@ import { canTransition, transitionError } from '@/lib/payments'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
+  if (!process.env.STRIPE_WEBHOOK_SECRET?.trim()) {
+    return NextResponse.json({ error: 'Stripe webhook is not configured (STRIPE_WEBHOOK_SECRET is missing)' }, { status: 503 })
+  }
   const rawBody = await request.text()
   const event = verifyStripeSignature(rawBody, request.headers.get('stripe-signature'))
   if (!event) {

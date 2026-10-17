@@ -3,14 +3,14 @@
  *
  * Resolves the PaymentProvider for a business. The template ships
  * pay-at-shop (in_person) by default. The Stripe provider registers
- * only when STRIPE_SECRET_KEY is configured — a shop with online
+ * only when all required Stripe credentials are configured — a shop with online
  * payments requested but no key fails closed (pay-at-shop), never
  * invents a provider. Booking logic never changes: see docs/PAYMENTS.md.
  */
 import type { PaymentProvider } from './types'
 import { inPersonProvider } from './providers/in-person'
 import { stripeProvider } from './providers/stripe'
-import { stripeConfigured } from './providers/stripe-client'
+import { missingStripeConfiguration, stripeConfigured } from './providers/stripe-client'
 
 export * from './types'
 export * from './state-machine'
@@ -30,9 +30,9 @@ const REGISTRY: Record<string, PaymentProvider> = {
 export function resolvePaymentProvider(opts: { paymentInPerson: boolean }): PaymentProvider {
   if (opts.paymentInPerson) return inPersonProvider
   if (stripeConfigured()) return stripeProvider
+  const missing = missingStripeConfiguration()
   throw new Error(
-    'Business has online payments enabled but no payment provider is configured. ' +
-    'Set STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET (see docs/PAYMENTS.md).',
+    `Business has online payments enabled but Stripe is not fully configured. Missing: ${missing.join(', ')} (see docs/PAYMENTS.md).`,
   )
 }
 

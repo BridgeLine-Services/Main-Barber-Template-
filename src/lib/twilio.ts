@@ -33,6 +33,10 @@ export function isTwilioConfigured(): boolean {
  * @param body - Message text (max 1600 chars per segment; 160 for non-segmented)
  */
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
+  if (!isSmsEnabled()) {
+    return { success: false, error: 'SMS notifications are disabled (set SMS_ENABLED=true to enable)' }
+  }
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const fromNumber = process.env.TWILIO_PHONE_NUMBER

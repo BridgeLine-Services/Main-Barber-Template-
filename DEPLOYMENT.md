@@ -16,6 +16,14 @@ This guide walks you through deploying the Barber Booking System to Vercel.
 2. A [PostgreSQL database](https://vercel.com/docs/storage/vercel-postgres) (Vercel Postgres, Neon, Supabase, Railway, or any external PostgreSQL instance)
 3. An SMTP email provider only if email notifications or password recovery will be enabled
 
+> **Commercial deployment:** Vercel Hobby is restricted to personal,
+> non-commercial use. A shop booking site or a deployment created/hosted for
+> a client is commercial use; select a provider/plan whose terms allow that
+> use before launch. See [Vercel's commercial-usage guidelines](https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage).
+> Hobby cron jobs must run no more than once per day. This template keeps both
+> scheduled jobs daily; the membership period processor is safe to run once
+> daily and does not create or simulate renewal charges.
+
 ---
 
 ## Step 1: Create the Project on Vercel
@@ -39,6 +47,9 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 | `SMS_ENABLED` | `false` | Set `true` only with all `TWILIO_*` values below |
 | `GOOGLE_ENABLED` | `false` | Set `true` only with Google credentials |
 | `REMINDERS_ENABLED` | `false` | Set `true` only with `CRON_SECRET` |
+| `STRIPE_SECRET_KEY` | unset | Required together with the publishable and webhook keys to enable online payments |
+| `STRIPE_PUBLISHABLE_KEY` | unset | Public Stripe key used by browser checkout |
+| `STRIPE_WEBHOOK_SECRET` | unset | Required to verify payment settlement webhooks |
 | `OBSERVABILITY_WEBHOOK_URL` | unset | Set to a JSON webhook collector to enable active error reporting (no-op when unset) |
 | `SMTP_HOST` | `smtp.gmail.com` | Your SMTP host |
 | `SMTP_PORT` | `587` | SMTP port |
@@ -66,21 +77,26 @@ In the Vercel dashboard, go to **Settings → Environment Variables** and add:
 ## Step 3: Deploy
 
 1. Click **Deploy**
-2. Vercel will run `npm install` and `prisma generate && next build`
-3. Wait for the build to complete
+2. Vercel runs a configuration preflight before installing dependencies.
+   The install command is `npm ci`, so a stale or inconsistent lockfile fails
+   instead of being rewritten.
+3. The build command runs `prisma migrate deploy`, generates Prisma Client,
+   then runs `next build`. Migrations must succeed before the deployment can
+   become ready; permanent authentication, configuration, schema, or migration
+   errors fail without retry. Only bounded database-connectivity and migration
+   lock-timeout failures are retried.
+4. Wait for the deployment to reach **Ready** and review its build output.
 
-## Step 4: Apply the Production Database
+## Step 4: Verify the Production Database
 
-Run reviewed migrations from a trusted deployment environment:
+The Vercel build applies committed migrations using the database URL configured
+in the Vercel environment. Do not separately run the same migration as an
+uncoordinated manual step. Review migration SQL before deployment, keep
+production migrations backward-compatible with the currently deployed code,
+and confirm `prisma migrate deploy` completed in the deployment build log.
 
-```bash
-npx prisma migrate deploy
-```
-
-This updates the client database without creating demo records. The command
-must run with the production `DATABASE_URL` supplied through the provider's
-secret environment, never committed to the repository. Success means the
-migration command completes without an error.
+Production database credentials belong only in the hosting provider's secret
+environment; never expose them to pull-request workflows or commit them.
 
 Do not use `prisma db push` or `npm run db:seed` for a customer production
 database. Those commands are for local development only.
@@ -128,10 +144,20 @@ in a customer deployment.
 ## Troubleshooting
 
 ### Build fails: "Prisma Client not generated"
-The `vercel.json` build command runs `prisma generate` before `next build`. If issues persist, add a `postinstall` script:
-```json
-"postinstall": "prisma generate"
-```
+The build runs `prisma generate` after migrations and before `next build`.
+Check the Prisma generation output and confirm that dependency installation
+completed with `npm ci`.
+
+### Build fails during migration
+- `Configuration error`: add the named database/auth/public URL variables to
+  the Vercel project's environment without sharing their values in logs.
+- `authentication` or `connectivity`: verify the database credential and
+  network access in Vercel; authentication errors are not retried.
+- `schema baseline mismatch`, `migration history`, or SQL failure: inspect
+  the recorded migration and database state, then prepare a reviewed,
+  forward-only migration. Do not use `prisma db push` or skip migrations.
+- A transient connection or Prisma advisory-lock timeout is retried at most
+  three times with short backoff (17 seconds total maximum wait).
 
 ### 500 error: "Database connection failed"
 - Verify `DATABASE_URL` is set in Vercel env vars

@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "node scripts/vercel-build.mjs",
-  "installCommand": "npm install",
+  "installCommand": "node scripts/vercel-build.mjs --validate-only && npm ci",
   "crons": [
     {
       "path": "/api/cron/reminders",
@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/memberships",
-      "schedule": "0 * * * *"
+      "schedule": "15 9 * * *"
     }
   ]
 }

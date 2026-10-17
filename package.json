@@ -7,6 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "build:vercel": "node scripts/vercel-build.mjs",
+    "test:vercel-build": "node --test tests/vercel-build.test.mjs",
+    "test:optional-integrations": "tsx tests/optional-integrations.test.ts",
     "start": "next start",
     "lint": "eslint .",
     "architecture:check": "node scripts/check-template-architecture.mjs",

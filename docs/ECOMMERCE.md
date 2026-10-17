@@ -76,8 +76,9 @@ extension point — see "Extending" below.
 
 ## Provider setup required before LIVE billing
 
-Same as the rest of the template: `STRIPE_SECRET_KEY` +
-`STRIPE_WEBHOOK_SECRET` and the `onlinePayments` flag. Without them the
+Same as the rest of the template: `STRIPE_SECRET_KEY`,
+`STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, and the `onlinePayments`
+flag. Without them the
 storefront shows a clear disabled state for online payment, and POS
 (IN_PERSON) checkout works for in-shop sales. **No purchase is ever
 simulated.**
