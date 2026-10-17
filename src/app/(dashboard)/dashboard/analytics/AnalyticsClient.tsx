@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import {
+  ExternalLink,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -31,6 +32,8 @@ interface BusinessPerformance {
   cancelledAppointments: number
   noShowAppointments: number
   collectedRevenue: number
+  serviceValueEstimate: number
+  revenueDelta: number
   averageTicket: number
   cancellationRate: number
   noShowRate: number
@@ -52,6 +55,11 @@ interface PeakHour {
   count: number
 }
 
+interface BookingSourceBreakdown {
+  source: string
+  count: number
+}
+
 interface BarberPerformance {
   barberName: string
   appointments: number
@@ -66,6 +74,7 @@ interface AnalyticsData {
   servicesPerBarber: ServiceBarberBreakdown[]
   peakHours: PeakHour[]
   barberPerformance: BarberPerformance[]
+  bookingSourceBreakdown: BookingSourceBreakdown[]
 }
 
 interface AnalyticsClientProps {
@@ -108,7 +117,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
     )
   }
 
-  const { today, performance, servicesPerBarber, peakHours, barberPerformance } = data
+  const { today, performance, servicesPerBarber, peakHours, barberPerformance, bookingSourceBreakdown } = data
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8">
@@ -188,7 +197,7 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
             icon={DollarSign}
             label="Collected Revenue"
             value={`$${performance.collectedRevenue.toFixed(0)}`}
-            subtext={`Avg $${performance.averageTicket.toFixed(2)}/completed visit`}
+            subtext={`Avg $${performance.averageTicket.toFixed(2)}/completed visit · ${performance.revenueDelta >= 0 ? '+' : ''}${performance.revenueDelta.toFixed(0)} vs estimate`}
             color="green"
           />
           <StatCard
@@ -308,6 +317,29 @@ export function AnalyticsClient({ initialData }: AnalyticsClientProps) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Booking Sources (Prompt 8 attribution) */}
+      <div className="bg-card/50 border border-border rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-foreground/85 mb-4 uppercase tracking-wide flex items-center gap-2">
+          <ExternalLink className="w-4 h-4 text-[var(--dash-brand)]" />
+          Booking Sources
+        </h2>
+        <p className="text-xs text-muted-foreground -mt-3 mb-4">
+          Where this period&apos;s appointments came from. Untagged history shows as UNKNOWN — sources are recorded from the moment they are enabled.
+        </p>
+        {(bookingSourceBreakdown ?? []).length === 0 ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">No data for this period</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            {bookingSourceBreakdown.map((src) => (
+              <div key={src.source} className="border border-border rounded-lg p-3 text-center">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">{src.source}</div>
+                <div className="text-xl font-semibold text-foreground mt-1">{src.count}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Services Per Barber */}

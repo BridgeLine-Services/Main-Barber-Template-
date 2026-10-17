@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import type { BookingSource } from '@prisma/client'
 import { generateConfirmationNumber, generateCustomerAccessToken } from '@/lib/utils'
 import { addMinutes, format } from 'date-fns'
 import {
@@ -588,12 +589,20 @@ export async function createAppointmentSafely(params: {
     answers?: Record<string, string | boolean | string[]>
     policiesAcceptedAt?: Date | null
     policyVersion?: string | null
+    bookingSource?: string | null
+    bookingSourceRef?: string | null
   }
   /** When the booking is made by an authenticated CUSTOMER account, the
    *  account→customer-record link is established here, server-side. */
   customerUserId?: string
+  /** Prompt 8: canonical booking-source attribution, normalized server-side
+   *  against the allowlist in src/lib/booking-source.ts. Absent = WEBSITE for
+   *  the public flow (dashboard/manual bookings pass DIRECT themselves). */
+  bookingSource?: BookingSource
+  /** Optional validated campaign token ([A-Za-z0-9_-]{1,64}). */
+  bookingCampaign?: string | null
 }): Promise<{ success: boolean; appointment?: Prisma.AppointmentGetPayload<{ include: { service: true; barber: true } }>; error?: string; customerAccessToken?: string }> {
-  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId } = params
+  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign } = params
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -774,9 +783,16 @@ export async function createAppointmentSafely(params: {
           startTime,
           endTime,
           status: 'CONFIRMED',
+      customerNotes: customerData.notes ?? null,
+      policiesAcceptedAt: customerData.policiesAcceptedAt ?? null,
+      policyVersion: customerData.policyVersion ?? null,
+      bookingSource: customerData.bookingSource ?? null,
+      bookingSourceRef: customerData.bookingSourceRef ?? null,
           customerNotes: customerData.notes ?? null,
           policiesAcceptedAt: customerData.policiesAcceptedAt ?? null,
           policyVersion: customerData.policyVersion ?? null,
+          bookingSource: bookingSource ?? 'WEBSITE',
+          bookingCampaign: bookingCampaign ?? null,
         },
         include: {
           service: true,

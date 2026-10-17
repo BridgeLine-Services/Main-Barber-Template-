@@ -25,6 +25,10 @@ export interface BusinessPerformance {
   cancelledAppointments: number
   noShowAppointments: number
   collectedRevenue: number
+  /** Prompt 10 reconciliation: legacy service-price sum (estimate only) and
+   * its delta vs ledger revenue. Never displayed as revenue. */
+  serviceValueEstimate: number
+  revenueDelta: number
   averageTicket: number
   cancellationRate: number
   noShowRate: number
@@ -51,6 +55,9 @@ export interface AnalyticsResult {
   performance: BusinessPerformance
   servicesPerBarber: ServiceBarberBreakdown[]
   peakHours: PeakHour[]
+  /** Prompt 8: booking-source attribution for range appointments. Rows with
+   * no source (pre-§8 history) are bucketed as UNKNOWN — never fabricated. */
+  bookingSourceBreakdown: { source: string; count: number }[]
   barberPerformance: {
     barberName: string
     appointments: number
@@ -253,6 +260,15 @@ export async function getAnalytics(
   )
   const averageTicket = rangeCompleted > 0 ? collectedRevenue / rangeCompleted : 0
 
+  // Prompt 10: reconciliation delta — ledger revenue vs the legacy
+  // service-price estimate. Positive = collected beyond listed prices
+  // (fees, upgrades); negative = completed visits with no settled payment.
+  const serviceValueEstimate = rangeCompletedWithService.reduce(
+    (sum, a) => sum + (a.service?.price || 0),
+    0,
+  )
+  const revenueDelta = collectedRevenue - serviceValueEstimate
+
   // Retention rate: customers who had >1 completed appointment in range
   const customerVisitCounts = new Map<string, number>()
   for (const a of rangeCompletedWithService) {
@@ -277,6 +293,8 @@ export async function getAnalytics(
     cancelledAppointments: rangeCancelled,
     noShowAppointments: rangeNoShow,
     collectedRevenue,
+    serviceValueEstimate,
+    revenueDelta,
     averageTicket,
     cancellationRate,
     noShowRate,
@@ -370,11 +388,26 @@ export async function getAnalytics(
     .map(([barberName, data]) => ({ barberName, ...data }))
     .sort((a, b) => b.revenue - a.revenue)
 
+  // ── Prompt 8: booking-source breakdown ─────────────────────────────────────
+  const sourceRows = await prisma.appointment.findMany({
+    where: { businessId, startTime: { gte: rangeStart, lte: rangeEnd } },
+    select: { bookingSource: true },
+  })
+  const sourceCounts = new Map<string, number>()
+  for (const a of sourceRows) {
+    const key = a.bookingSource ?? 'UNKNOWN'
+    sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1)
+  }
+  const bookingSourceBreakdown = Array.from(sourceCounts.entries())
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count)
+
   return {
     today,
     performance,
     servicesPerBarber,
     peakHours,
     barberPerformance,
+    bookingSourceBreakdown,
   }
 }

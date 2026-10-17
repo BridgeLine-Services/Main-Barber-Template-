@@ -12,6 +12,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { localTimeToUTCFromYMD,resolveBusinessTimezone } from '@/lib/timezone'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
 import { isFeatureEnabled } from '@/lib/features'
+import { normalizeBookingSource, normalizeCampaign, PUBLIC_BOOKING_SOURCES } from '@/lib/booking-source'
 
 // Cache business timezone lookups within a request
 async function getBusinessTimezone(businessId: string): Promise<string> {
@@ -104,6 +105,10 @@ export async function POST(req: NextRequest) {
 
     const { barberId: reqBarberId, serviceId, date, time } = parseResult.data
     const customer = { ...parseResult.data.customer }
+    // Prompt 8: server-side normalization — only public allowlist values are
+    // accepted; anything else degrades to WEBSITE (never throws, never stored raw).
+    const bookingSource = normalizeBookingSource(parseResult.data.source, PUBLIC_BOOKING_SOURCES)
+    const bookingCampaign = normalizeCampaign(parseResult.data.campaign)
 
     // Authenticated CUSTOMER booking: the ACCOUNT email is the identity —
     // server-side override. A logged-in customer can never attach an
@@ -228,8 +233,12 @@ export async function POST(req: NextRequest) {
         ...customer,
         policiesAcceptedAt: parseResult.data.policiesAcceptedAt ? new Date(parseResult.data.policiesAcceptedAt) : null,
         policyVersion: policiesRequired ? (businessPolicies?.updatedAt.toISOString() ?? null) : null,
+        bookingSource: parseResult.data.bookingSource ?? 'direct',
+        bookingSourceRef: parseResult.data.bookingSourceRef ?? null,
       },
       customerUserId,
+      bookingSource,
+      bookingCampaign,
     })
 
     if (!result.success || !result.appointment) {

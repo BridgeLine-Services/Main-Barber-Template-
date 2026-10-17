@@ -82,7 +82,7 @@ async function logNotification(params: {
   appointmentId?: string
   recipient: string
   channel: 'EMAIL' | 'SMS'
-  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE' | 'SHOP_ORDER_CONFIRMATION'
+  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE' | 'SHOP_ORDER_CONFIRMATION' | 'REVIEW_REQUEST'
   status: 'PENDING' | 'SENT' | 'FAILED'
   content?: string
   errorMessage?: string
@@ -715,4 +715,40 @@ export async function sendOrderConfirmationEmail(params: {
     html,
   })
   return true
+}
+
+// ─── Prompt 9: review request email ──────────────────────────────────────────
+
+/** Send a post-visit review request through the shared SMTP transport.
+ * Returns the provider message id (for the durable queue) or null.
+ * Idempotency-keyed in the shared notification log for observability. */
+export async function sendReviewRequestEmail(params: {
+  businessId: string
+  to: string
+  subject: string
+  html: string
+  idempotencyKey: string
+}): Promise<string | null> {
+  if (!isEmailConfigured()) throw new Error('Email notifications are not configured')
+  if (!params.to?.trim()) throw new Error('Missing recipient email address')
+
+  const info = await getTransporter().sendMail({
+    from: getSmtpFromAddress(),
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+    // nodemailer's message-id doubles as the provider message id.
+    headers: { 'X-Entity-Ref': params.idempotencyKey },
+  })
+
+  await logNotification({
+    businessId: params.businessId,
+    recipient: params.to,
+    channel: 'EMAIL',
+    type: 'REVIEW_REQUEST',
+    status: 'SENT',
+    idempotencyKey: `${params.idempotencyKey}:SENT`,
+    providerMessageId: info.messageId || undefined,
+  })
+  return info.messageId || null
 }

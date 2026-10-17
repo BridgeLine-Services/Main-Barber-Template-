@@ -117,6 +117,11 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
       const updateData: Prisma.AppointmentUpdateInput = {}
       if (status) {
         updateData.status = status
+        // Canonical completion timestamp (drives review-request eligibility —
+        // never fall back to the scheduled start time).
+        if (status === 'COMPLETED' && appointment.status !== 'COMPLETED') {
+          updateData.completedAt = new Date()
+        }
       }
       if (cancellationReason !== undefined) {
         updateData.cancellationReason = cancellationReason
@@ -184,7 +189,10 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         }
         return tx.appointment.update({
           where: { id: params.id, businessId },
-          data: updateData,
+          data: {
+            ...updateData,
+            ...(updateData.status === 'COMPLETED' && !appointment.completedAt ? { completedAt: new Date() } : {}),
+          },
           include: { customer: true, barber: true, service: true },
         })
       }, { isolationLevel: 'Serializable' })

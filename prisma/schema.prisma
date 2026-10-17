@@ -87,6 +87,7 @@ model Business {
   cancellationRecords          CancellationRecord[]
   noShowPolicies               NoShowPolicy[]
   retentionSettings            RetentionSettings?
+  reviewRequests               ReviewRequest[]
   inventoryItems               InventoryItem[]
   marketingCampaigns           MarketingCampaign[]
   mediaAssets                  MediaAsset[]
@@ -115,6 +116,8 @@ model Business {
   giftCardSettings                 GiftCardSettings?
   giftCards                        GiftCard[]
   membershipSettings               MembershipSettings?
+  reviewRequestSettings            ReviewRequestSettings?
+  reviewRequests                   ReviewRequest[]
   membershipPlans                  MembershipPlan[]
   memberships                      Membership[]
   membershipUsages                 MembershipUsage[]
@@ -441,6 +444,9 @@ model RetentionSettings {
   inactiveAfterDays            Int      @default(90)
   rebookingAutomationEnabled   Boolean  @default(true)
   rebookingCooldownDays        Int      @default(21)
+  reviewRequestsEnabled        Boolean  @default(false)
+  reviewRequestDelayHours      Int      @default(2)
+  reviewDestinationUrl          String?
   createdAt                    DateTime @default(now())
   updatedAt                    DateTime @updatedAt
 }
@@ -462,6 +468,7 @@ model Customer {
   email           String
   notes           String?      @db.Text
   smsConsent      Boolean      @default(false)
+  emailOptOut     Boolean      @default(false) // global email do-not-contact (respected by ALL email sends)
   tags            String[]     @default([])
   preferences     Json?
   emailVerifiedAt DateTime?
@@ -496,6 +503,81 @@ enum AppointmentStatus {
   RESCHEDULED
 }
 
+// ─── Prompt 8: canonical booking-source attribution ─────────────────────────
+// Controlled vocabulary for where a booking originated. Historical rows have
+// no value and are reported as UNKNOWN — never backfilled.
+enum BookingSource {
+  WEBSITE // the shop's own public booking page (default for online booking)
+  GOOGLE // tracked external link (Google profile/ads → canonical booking page)
+  INSTAGRAM // tracked external link (Instagram profile/button → canonical booking page)
+  FACEBOOK // tracked external link (Facebook page/button → canonical booking page)
+  DIRECT // created by staff inside the dashboard (walk-in/phone)
+  REFERRAL // staff-tagged referral entry
+  UNKNOWN // missing/legacy value; also the safe fallback for bad input
+}
+
+// ─── Prompt 9: automated post-appointment review requests ────────────────────
+enum ReviewRequestStatus {
+  PENDING // waiting for delay to elapse (or a retry backoff window)
+  PROCESSING // atomically claimed by a worker; crashed claims are re-queued
+  SENT // provider accepted the send
+  FAILED // retries exhausted or permanent failure
+  SUPPRESSED // config/eligibility problem at enqueue or send time (never retried)
+  CANCELLED // owner cancelled delivery before send
+}
+
+model ReviewRequestSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // OWNER master switch — off = never enqueue or send. The 'reviewRequests'
+  // feature flag must ALSO be enabled (fail-closed, mirrors memberships).
+  enabled Boolean @default(false)
+
+  // External review destination. HTTPS-only, validated server-side.
+  destinationUrl String?
+
+  // Bounded post-completion delay before eligibility (hours, 0-168).
+  delayHours Int @default(24)
+
+  // Optional custom subject; falls back to the shop-branded default.
+  emailSubject String?
+
+  // Plain-text template. Allowlisted variables: {{customerFirstName}},
+  // {{shopName}}, {{serviceName}}, {{reviewLink}}. All values escaped.
+  messageTemplate String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReviewRequest {
+  id                String              @id @default(cuid())
+  businessId        String
+  business          Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointmentId     String              @unique // exactly one request per appointment — DB-level dedupe
+  appointment       Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customerId        String?
+  customer          Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  destinationUrl    String? // snapshot at enqueue/send-decision time
+  scheduledFor      DateTime
+  status            ReviewRequestStatus @default(PENDING)
+  attemptCount      Int                 @default(0)
+  lastAttemptAt     DateTime?
+  sentAt            DateTime?
+  providerMessageId String? // provider's message id when available
+  failureCategory   String? // sanitized: FEATURE_DISABLED | INVALID_DESTINATION | CUSTOMER_INELIGIBLE | PROVIDER_ERROR | EXHAUSTED_RETRIES | CONFIG_ERROR
+  failureDetail     String? // sanitized one-line diagnostic — never raw provider payloads
+  idempotencyKey    String              @unique // review-req:<appointmentId> — dedupes concurrent enqueues
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+  @@index([status, scheduledFor])
+}
+
 model Appointment {
   payments            Payment[]
   id                  String            @id @default(cuid())
@@ -518,6 +600,12 @@ model Appointment {
   noShowReason        String?
   noShowAt            DateTime?
   noShowMarkedBy      String?
+  completedAt         DateTime?
+  bookingSource       String? // direct, google, instagram, facebook, other
+  bookingSourceRef    String?
+  completedAt         DateTime? // set on the canonical COMPLETED transition — drives review-request eligibility
+  bookingSource       BookingSource? // null = pre-§8 history; reported as UNKNOWN, never fabricated
+  bookingCampaign     String? // validated short token (<=64 chars [A-Za-z0-9_-])
   policiesAcceptedAt  DateTime?
   policyVersion       String?
   createdBy           String? // "ONLINE" | "MANUAL" | userId
@@ -528,9 +616,11 @@ model Appointment {
   cancellationRecord CancellationRecord?
   intakeResponses    AppointmentIntakeResponse[]
   rescheduleHistory  RescheduleHistory[]
+  reviewRequest      ReviewRequest?
 
   commissionEntries CommissionEntry[]
   reviewRequests  ReviewRequest[]
+  reviewRequest     ReviewRequest?
 
   @@index([businessId, startTime])
   @@index([businessId, barberId, startTime])
@@ -583,14 +673,49 @@ model Review {
   @@index([barberId])
 }
 
+// ─── Automated review requests ────────────────────────────────────────────
+
+enum ReviewRequestStatus {
+  PENDING
+  SENT
+  CLICKED
+  COMPLETED
+  FAILED
+}
+
+model ReviewRequest {
+  id             String              @id @default(cuid())
+  businessId     String
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointmentId  String              @unique
+  appointment    Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  destination    String
+  token          String              @unique
+  status         ReviewRequestStatus @default(PENDING)
+  scheduledAt    DateTime
+  sentAt         DateTime?
+  clickedAt      DateTime?
+  completedAt    DateTime?
+  failureReason  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([businessId, status, scheduledAt])
+  @@index([customerId])
+}
+
 // ─── Waitlist ─────────────────────────────────────────────────────────────
 
 enum WaitlistStatus {
   WAITING
   NOTIFIED
-  BOOKED
+  CLAIMED
   EXPIRED
   CANCELLED
+  BOOKED
 }
 
 model WaitlistEntry {
@@ -628,6 +753,7 @@ model WaitlistEntry {
 
 enum NotificationType {
   BOOKING_CONFIRMATION
+  REVIEW_REQUEST
   BOOKING_REMINDER
   CANCELLATION_NOTICE
   RESCHEDULE_NOTICE
