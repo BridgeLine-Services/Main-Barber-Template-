@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { BookingProgress } from '@/components/booking/BookingProgress'
@@ -49,6 +49,8 @@ interface CustomerInfo {
 function BookingFlow() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  // Prompt 8: booking-source attribution read once from the URL, kept for the submit payload
+  const attributionRef = useRef<{ source?: string; campaign?: string }>({})
   const [step, setStep] = useState(1)
   const [services, setServices] = useState<Service[]>([])
   const [barbers, setBarbers] = useState<Barber[]>([])
@@ -120,6 +122,12 @@ function BookingFlow() {
   useEffect(() => {
     const serviceParam = searchParams.get('serviceId')
     const barberParam = searchParams.get('barberId')
+    // Prompt 8: external booking attribution (?source=google&campaign=...)
+    // survives the whole flow and is persisted server-side on creation.
+    attributionRef.current = {
+      source: searchParams.get('source') || undefined,
+      campaign: searchParams.get('campaign') || undefined,
+    }
     const dateParam = searchParams.get('date')
     const timeParam = searchParams.get('time')
     if (serviceParam) setSelectedServiceId(serviceParam)
@@ -348,6 +356,8 @@ function BookingFlow() {
           },
           policiesAcceptedAt: policyAccepted ? new Date().toISOString() : undefined,
           policyVersion: policyAccepted ? policyVersion : undefined,
+          source: attributionRef.current.source,
+          campaign: attributionRef.current.campaign,
         }),
       })
 

@@ -25,6 +25,10 @@ export const createBookingSchema = z.object({
   }),
   policiesAcceptedAt: z.string().datetime().optional(),
   policyVersion: z.string().max(100).optional(),
+  // Prompt 8: booking-source attribution. Loose strings here — normalized
+  // against the allowlist in the route + lib (never stored raw).
+  source: z.string().trim().max(32).optional(),
+  campaign: z.string().trim().max(64).optional(),
 })
 
 export const cancelByTokenSchema = z.object({
