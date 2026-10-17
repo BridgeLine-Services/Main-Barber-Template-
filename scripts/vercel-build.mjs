@@ -110,6 +110,32 @@ function runCommand(command, args, { environment, spawn, label, stdout, stderr }
   }
 }
 
+// Read-only diagnostic: surface the database's current migration state before
+// deploying so that any deploy failure can be correlated with the exact
+// applied/failed migration list visible directly in the build log. This step
+// is intentionally non-fatal: `prisma migrate status` legitimately exits
+// non-zero for states the deployment below knows how to handle (for example
+// the P3009 failed-migration state repaired by the recovery branch), and
+// `prisma migrate deploy` below remains the sole gatekeeper for whether the
+// build may proceed.
+function reportMigrationStatus({ environment, spawn, databaseUrl, stdout, stderr }) {
+  stdout('Reporting the database migration state (prisma migrate status)...\n')
+  const result = spawn('prisma', ['migrate', 'status'], {
+    env: environment,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  })
+  if (result.error) {
+    stderr(`The migration-state report was unavailable (prisma could not start): ${result.error.message}\n`)
+    return
+  }
+  if (result.stdout) stdout(redactDatabaseUrl(result.stdout, databaseUrl))
+  if (result.stderr) stderr(redactDatabaseUrl(result.stderr, databaseUrl))
+  if (!result.stdout && !result.stderr) {
+    stderr('The migration-state report returned no output. Continuing with the migration deployment.\n')
+  }
+}
+
 export async function runVercelBuild({
   environment = process.env,
   spawn = spawnSync,
@@ -121,6 +147,8 @@ export async function runVercelBuild({
   const databaseUrl = buildEnvironment.DATABASE_URL
   let migrated = false
   let migrationRecoveryUsed = false
+
+  reportMigrationStatus({ environment: buildEnvironment, spawn, databaseUrl, stdout, stderr })
 
   for (let attempt = 1; attempt <= MIGRATION_ATTEMPTS; attempt += 1) {
     const result = spawn('prisma', ['migrate', 'deploy'], {

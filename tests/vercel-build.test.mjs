@@ -32,6 +32,12 @@ function createHarness(responses) {
   }
 }
 
+const statusOk = {
+  status: 0,
+  stdout: `Datasource "db": PostgreSQL database "barber" for "${databaseUrl}"\n\n3 migrations found in Prisma Migrate\n\nAll migrations have been applied.\n`,
+  stderr: '',
+}
+
 test('validates required configuration before running any command', async () => {
   let commandStarted = false
   await assert.rejects(
@@ -83,8 +89,64 @@ test('classifies permanent auth, database configuration, schema, and migration e
   })
 })
 
+test('reports the database migration state before deploying, with redacted credentials', async () => {
+  const harness = createHarness([
+    statusOk,
+    { status: 0, stdout: 'migrations applied', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'generate'],
+    ['next', 'build'],
+  ])
+  assert.match(harness.logs.stdout, /Reporting the database migration state/)
+  assert.match(harness.logs.stdout, /3 migrations found in Prisma Migrate/)
+  assert.doesNotMatch(harness.logs.stdout + harness.logs.stderr, /test-password/)
+  assert.doesNotMatch(harness.logs.stdout + harness.logs.stderr, /postgresql:\/\/test-user/)
+})
+
+test('continues deploying when the migration-state report exits non-zero or is unavailable', async () => {
+  const statusBroken = {
+    status: 1,
+    stdout: `Error P3005: the migration state for "${databaseUrl}" could not be determined`,
+    stderr: '',
+  }
+  const harness = createHarness([
+    statusBroken,
+    { status: 0, stdout: 'migrations applied', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.match(harness.logs.stdout, /Reporting the database migration state/)
+  assert.match(harness.logs.stdout, /could not be determined/)
+  assert.equal(harness.calls.filter((call) => call.command === 'prisma' && call.args[1] === 'deploy').length, 1)
+  assert.doesNotMatch(harness.logs.stdout + harness.logs.stderr, /test-password/)
+})
+
 test('retries a transient connectivity failure and then completes in order', async () => {
   const harness = createHarness([
+    statusOk,
     { status: 1, stdout: `Error P1001: cannot connect using ${databaseUrl}`, stderr: '' },
     { status: 0, stdout: 'migrations applied', stderr: '' },
     { status: 0, stdout: '', stderr: '' },
@@ -100,6 +162,7 @@ test('retries a transient connectivity failure and then completes in order', asy
   })
 
   assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
     ['prisma', 'migrate deploy'],
     ['prisma', 'migrate deploy'],
     ['prisma', 'generate'],
@@ -116,7 +179,7 @@ test('does not retry permanent migration failures or start a build', async () =>
     ['Error P1003: database does not exist', 'database configuration'],
     ['Error P3018: migration failed', 'migration history or SQL failure'],
   ]) {
-    const harness = createHarness([{ status: 1, stdout: output, stderr: '' }])
+    const harness = createHarness([statusOk, { status: 1, stdout: output, stderr: '' }])
     await assert.rejects(
       runVercelBuild({
         environment: baseEnvironment,
@@ -127,15 +190,16 @@ test('does not retry permanent migration failures or start a build', async () =>
       }),
       new RegExp(`stopped after a ${category} failure`)
     )
-    assert.equal(harness.calls.length, 1)
+    assert.equal(harness.calls.length, 2)
     assert.deepEqual(harness.delays, [])
   }
 })
 
 test('bounds retries for transient migration failures', async () => {
-  const harness = createHarness(
-    Array.from({ length: 4 }, () => ({ status: 1, stdout: 'Error P1001', stderr: '' }))
-  )
+  const harness = createHarness([
+    statusOk,
+    ...Array.from({ length: 4 }, () => ({ status: 1, stdout: 'Error P1001', stderr: '' })),
+  ])
 
   await assert.rejects(
     runVercelBuild({
@@ -147,13 +211,14 @@ test('bounds retries for transient migration failures', async () => {
     }),
     /stopped after a database connectivity failure/
   )
-  assert.equal(harness.calls.length, 4)
+  assert.equal(harness.calls.length, 5)
   assert.deepEqual(harness.delays, [2_000, 5_000, 10_000])
   assert.doesNotMatch(harness.logs.stdout + harness.logs.stderr, /migrate deploy did not complete/)
 })
 
 test('stops when Prisma Client generation fails', async () => {
   const harness = createHarness([
+    statusOk,
     { status: 0, stdout: '', stderr: '' },
     { status: 1, stdout: '', stderr: '' },
   ])
@@ -167,11 +232,12 @@ test('stops when Prisma Client generation fails', async () => {
     }),
     /Prisma Client generation failed/
   )
-  assert.equal(harness.calls.length, 2)
+  assert.equal(harness.calls.length, 3)
 })
 
 test('reports Next.js build failures and never reports success', async () => {
   const harness = createHarness([
+    statusOk,
     { status: 0, stdout: '', stderr: '' },
     { status: 0, stdout: '', stderr: '' },
     { status: 1, stdout: '', stderr: '' },
@@ -186,11 +252,12 @@ test('reports Next.js build failures and never reports success', async () => {
     }),
     /Next.js production build .* failed/
   )
-  assert.equal(harness.calls.length, 3)
+  assert.equal(harness.calls.length, 4)
 })
 
 test('recovers the known P3009 failed-migration state once, then completes in order', async () => {
   const harness = createHarness([
+    statusOk,
     {
       status: 1,
       stdout: `Error P3009: migrate found failed migrations in the target database, new migrations will not be applied. The 20261017203707_review_requests_booking_source_analytics migration started at 2026-10-17 22:52:21.731895 UTC failed`,
@@ -211,6 +278,7 @@ test('recovers the known P3009 failed-migration state once, then completes in or
   })
 
   assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
     ['prisma', 'migrate deploy'],
     ['prisma', 'migrate resolve --rolled-back 20261017203707_review_requests_booking_source_analytics'],
     ['prisma', 'migrate deploy'],
@@ -223,6 +291,7 @@ test('recovers the known P3009 failed-migration state once, then completes in or
 
 test('does not attempt P3009 recovery for unrelated failed migrations', async () => {
   const harness = createHarness([
+    statusOk,
     { status: 1, stdout: 'Error P3009: The 20300101000000_some_other_migration migration failed', stderr: '' },
   ])
 
@@ -236,11 +305,12 @@ test('does not attempt P3009 recovery for unrelated failed migrations', async ()
     }),
     /stopped after a migration history or SQL failure/
   )
-  assert.equal(harness.calls.length, 1)
+  assert.equal(harness.calls.length, 2)
 })
 
 test('reports an actionable error when P3009 recovery itself fails', async () => {
   const harness = createHarness([
+    statusOk,
     {
       status: 1,
       stdout: 'Error P3009: The 20261017203707_review_requests_booking_source_analytics migration failed',
@@ -259,5 +329,5 @@ test('reports an actionable error when P3009 recovery itself fails', async () =>
     }),
     (error) => /Migration recovery failed/.test(error) && /migrate resolve --rolled-back/.test(error)
   )
-  assert.equal(harness.calls.length, 2)
+  assert.equal(harness.calls.length, 3)
 })
