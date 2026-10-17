@@ -1,18 +1,6 @@
 'use client'
 
-// Shared Login / Sign-Up form — the single public entry point for customers
-// and invited staff. Sign-Up always posts to /api/auth/register, which
-// assigns the CUSTOMER role server-side (staff roles come only from the
-// invitation lifecycle; owner accounts only from authorized provisioning).
-//
-// Design: editorial split layout (Sections 8/9). The left panel carries the
-// shop's brand (name, display typography, accent, theme colors injected by
-// ThemeStyle in page.tsx); the right panel is the authentication surface.
-// Everything renders from theme tokens — background, foreground, card,
-// primary, muted, border — so each shop's branding provides the voice and
-// the template provides the grammar. All auth logic is unchanged.
-
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Lock, Mail, AlertCircle, ArrowRight, ArrowLeft, User } from 'lucide-react'
@@ -20,13 +8,20 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { OwnerRegistrationMode } from '@/lib/owner-registration'
 
 export interface LoginFormProps {
   /** Resolved shop name for the brand panel (server-provided). */
   businessName?: string | null
+  ownerRegistrationMode?: OwnerRegistrationMode
+  ownerRegistrationOpen?: boolean
 }
 
-export default function LoginForm({ businessName }: LoginFormProps) {
+export default function LoginForm({
+  businessName,
+  ownerRegistrationMode = 'onboarding',
+  ownerRegistrationOpen = true,
+}: LoginFormProps) {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
@@ -35,12 +30,9 @@ export default function LoginForm({ businessName }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const errorParam = searchParams.get('error')
-    if (errorParam) {
-      setError('Authentication error. Please try again.')
-    }
-  }, [searchParams])
+  const canRegister = ownerRegistrationMode === 'onboarding' && ownerRegistrationOpen
+  const effectiveMode = canRegister ? mode : 'login'
+  const authError = searchParams.get('error') ? 'Authentication error. Please try again.' : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +40,7 @@ export default function LoginForm({ businessName }: LoginFormProps) {
     setLoading(true)
 
     try {
-      if (mode === 'register') {
+      if (effectiveMode === 'register') {
         // Unified public Sign-Up: the server always assigns CUSTOMER
         // (/api/auth/register accepts no role field), and staff roles come
         // only from the invitation lifecycle.
@@ -112,9 +104,12 @@ export default function LoginForm({ businessName }: LoginFormProps) {
   const shopName = businessName?.trim() || 'The Barbershop'
 
   const switchMode = () => {
+    if (!canRegister) return
     setMode(m => (m === 'login' ? 'register' : 'login'))
     setError(null)
   }
+
+  const visibleError = error ?? authError
 
   return (
     <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-[55%_45%]">
@@ -137,12 +132,14 @@ export default function LoginForm({ businessName }: LoginFormProps) {
 
         <div className="relative z-10 max-w-md">
           <h1 className="display-heading text-display-1 text-foreground">
-            {mode === 'login' ? 'Login' : 'Sign-Up'}
+            {effectiveMode === 'login' ? 'Login' : 'Sign-Up'}
           </h1>
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
-            {mode === 'login'
-              ? 'Customers and invited staff access their accounts on this same page.'
-              : 'Create a customer account to manage your bookings. Invited staff should use Login instead.'}
+            {effectiveMode === 'login'
+              ? canRegister
+                ? 'Create the initial owner account or sign in to continue setup.'
+                : 'Sign in to continue your account access.'
+              : 'Create the owner account for this shop and continue into the onboarding wizard.'}
           </p>
         </div>
 
@@ -156,12 +153,14 @@ export default function LoginForm({ businessName }: LoginFormProps) {
         {/* Compact brand intro for mobile */}
         <div className="lg:hidden mb-10">
           <h1 className="display-heading text-display-3 text-foreground">
-            {mode === 'login' ? 'Login' : 'Sign-Up'}
+            {effectiveMode === 'login' ? 'Login' : 'Sign-Up'}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === 'login'
-              ? 'Customers and invited staff use this same page.'
-              : 'Create a customer account to manage your bookings.'}
+            {effectiveMode === 'login'
+              ? canRegister
+                ? 'Create the initial owner account or sign in to continue setup.'
+                : 'Sign in to continue your account access.'
+              : 'Create the owner account for this shop and continue into the onboarding wizard.'}
           </p>
         </div>
 
@@ -169,27 +168,29 @@ export default function LoginForm({ businessName }: LoginFormProps) {
           {/* Desktop heading (mobile has its own above) */}
           <div className="hidden lg:block mb-8">
             <h2 className="display-heading text-display-3 text-foreground">
-              {mode === 'login' ? 'Login' : 'Sign-Up'}
+              {effectiveMode === 'login' ? 'Login' : 'Sign-Up'}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {mode === 'login'
-                ? 'Manage your bookings or access your staff account.'
-                : 'Create an account to manage your bookings. No account is needed to book an appointment — invited staff should use Login on this same page.'}
+              {effectiveMode === 'login'
+                ? canRegister
+                  ? 'Create the first owner account or sign in to resume setup.'
+                  : 'Manage your bookings or access your secure account.'
+                : 'Create the owner account for this shop and continue into onboarding.'}
             </p>
           </div>
 
-          {error && (
+          {visibleError && (
             <div
               role="alert"
               className="mb-6 p-3.5 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm flex items-start gap-3"
             >
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
-              <span>{error}</span>
+              <span>{visibleError}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
-            {mode === 'register' && (
+            {effectiveMode === 'register' && (
               <div className="space-y-2">
                 <Label htmlFor="name" className="eyebrow">
                   Your name
@@ -234,7 +235,7 @@ export default function LoginForm({ businessName }: LoginFormProps) {
                 <Label htmlFor="password" className="eyebrow">
                   Password
                 </Label>
-                {mode === 'login' && (
+                {effectiveMode === 'login' && (
                   <Link
                     href="/forgot-password"
                     className="text-xs text-muted-foreground hover:text-primary transition-colors duration-micro"
@@ -248,7 +249,7 @@ export default function LoginForm({ businessName }: LoginFormProps) {
                 <Input
                   id="password"
                   type="password"
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  autoComplete={effectiveMode === 'login' ? 'current-password' : 'new-password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -269,11 +270,11 @@ export default function LoginForm({ businessName }: LoginFormProps) {
                     className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin"
                     aria-hidden="true"
                   />
-                  <span>{mode === 'login' ? 'Logging in…' : 'Signing Up…'}</span>
+                  <span>{effectiveMode === 'login' ? 'Logging in…' : 'Signing Up…'}</span>
                 </span>
               ) : (
                 <>
-                  <span>{mode === 'login' ? 'Login' : 'Sign-Up'}</span>
+                  <span>{effectiveMode === 'login' ? 'Login' : 'Sign-Up'}</span>
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-micro group-hover:translate-x-0.5"
                     aria-hidden="true"
@@ -283,19 +284,25 @@ export default function LoginForm({ businessName }: LoginFormProps) {
             </Button>
           </form>
 
-          {/* Login / Sign-Up switch — one shared entry point */}
-          <div className="mt-8 hairline pt-5 text-center">
-            <button
-              onClick={switchMode}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
-            >
-              {mode === 'login' ? (
-                <>Don&apos;t have an account? <span className="text-primary font-medium">Sign-Up</span></>
-              ) : (
-                <>Already have an account? <span className="text-primary font-medium">Login</span></>
-              )}
-            </button>
-          </div>
+          {canRegister ? (
+            <div className="mt-8 hairline pt-5 text-center">
+              <button
+                type="button"
+                onClick={switchMode}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors duration-micro focus-ring rounded-sm px-2 py-1"
+              >
+                {effectiveMode === 'login' ? (
+                  <>Don&apos;t have an account? <span className="text-primary font-medium">Sign-Up</span></>
+                ) : (
+                  <>Already have an account? <span className="text-primary font-medium">Login</span></>
+                )}
+              </button>
+            </div>
+          ) : ownerRegistrationMode === 'invite_only' ? (
+            <div className="mt-8 hairline pt-5 text-center text-sm text-muted-foreground">
+              Account creation is currently by invitation. Existing owners and invited staff can sign in below.
+            </div>
+          ) : null}
 
           {/* Mobile-only return link (desktop has it in the brand panel) */}
           <div className="mt-8 text-center lg:hidden">
