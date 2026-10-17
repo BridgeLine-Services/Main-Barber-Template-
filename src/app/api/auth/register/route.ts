@@ -105,15 +105,17 @@ export async function POST(req: NextRequest) {
         { status: 503 }
       )
     }
-    if ((error as { status?: number })?.status === 409 || (error as { code?: string })?.code === 'EMAIL_EXISTS') {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 409 }
-      )
-    }
+    // Specific codes win over the generic 409 so a lost first-owner race is
+    // never misreported as a duplicate email (emails are unique per racer).
     if ((error as { code?: string })?.code === 'OWNER_EXISTS') {
       return NextResponse.json(
         { error: 'Owner registration is already complete for this shop.' },
+        { status: 409 }
+      )
+    }
+    if ((error as { status?: number })?.status === 409 || (error as { code?: string })?.code === 'EMAIL_EXISTS') {
+      return NextResponse.json(
+        { error: 'An account with this email already exists' },
         { status: 409 }
       )
     }

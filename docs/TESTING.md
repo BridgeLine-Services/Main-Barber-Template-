@@ -28,7 +28,7 @@ specialty-match, tenant-isolation, tenant-key-sync.
 
 Run all: `npm run test:ci`
 
-### Live-server suites (11) — run in dev against `next dev` on :3000
+### Live-server suites (12) — run in dev against `next dev` on :3000
 
 These exercise HTTP endpoints and/or session authentication end to end
 (login cookies, feature-gated routes, public pages). They need a running
@@ -38,7 +38,10 @@ business-admin-role, business-deactivation, cross-tenant-matrix,
 customer-data-lifecycle, customer-auth-security,
 customer-password-reset (customer identity matrix + token-based password
 recovery), feature-flags (HTTP part), fonts,
-notification-resilience, ownership-transfer, platform-owner, pwa,
+notification-resilience, owner-registration-journey (concurrent
+first-owner race, bcrypt hashing, login → onboarding gate, post-owner
+customer-only registration; needs `RATE_LIMIT_REGISTER_MAX=25`),
+ownership-transfer, platform-owner, pwa,
 website-publish, rls-enforcement.
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
