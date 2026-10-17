@@ -28,6 +28,14 @@ specialty-match, tenant-isolation, tenant-key-sync.
 
 Run all: `npm run test:ci`
 
+Also in CI: `tests/memberships-renewals.test.ts` (subscription lifecycle —
+renewal replay/out-of-order safety, failed renewals, cancel sync, durable
+period processing, isolation) runs inside `test:ci`; and the
+`owner-registration-journey` live-server suite runs as its own Validate-job
+step against the production build (`next start` on :3000 in onboarding mode
+with `RATE_LIMIT_REGISTER_MAX=25`) — it needs a running app, so it is NOT
+part of `test:ci`.
+
 ### Live-server suites (12) — run in dev against `next dev` on :3000
 
 These exercise HTTP endpoints and/or session authentication end to end

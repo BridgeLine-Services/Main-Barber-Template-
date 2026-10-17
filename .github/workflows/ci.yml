@@ -63,6 +63,26 @@ jobs:
       # at critical severity; does not fail the build on advisory noise.
       - run: npm audit --omit=dev --audit-level=critical || echo '::warning title=npm audit::production-dependency advisories found (critical)'
       - run: npm run build
+      # Owner-registration journey (live-server suite, docs/TESTING.md):
+      # boots the REAL production build on :3000 in onboarding mode with a
+      # test-only relaxed register rate limit, then races the first-owner
+      # registration end to end (exactly one OWNER wins; later registrations
+      # are CUSTOMER-only; the dashboard gate redirects properly).
+      - name: Owner-registration journey (production build)
+        run: |
+          OWNER_REGISTRATION_MODE=onboarding \
+          RATE_LIMIT_REGISTER_MAX=25 \
+          NEXTAUTH_URL=http://localhost:3000 \
+          npx next start -p 3000 > /tmp/next-server.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && break
+            sleep 1
+          done
+          npm run test:owner-registration
+          EXIT=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $EXIT
 
   # Browser-level E2E (final-audit requirement): real Chromium against the
   # production build. Docs/TESTING.md documents the local equivalent.
