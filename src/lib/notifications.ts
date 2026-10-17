@@ -74,7 +74,7 @@ async function logNotification(params: {
   appointmentId?: string
   recipient: string
   channel: 'EMAIL' | 'SMS'
-  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE'
+  type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE' | 'SHOP_ORDER_CONFIRMATION'
   status: 'PENDING' | 'SENT' | 'FAILED'
   content?: string
   errorMessage?: string
@@ -594,4 +594,80 @@ export async function sendWaitlistSlotNotification(params: {
       errorMessage: smsResult.success ? undefined : smsResult.error,
     })
   }
+}
+
+// ============================================================================
+// Shop order confirmation (transactional email)
+// ============================================================================
+
+interface OrderEmailItem {
+  name: string
+  quantity: number
+  price: number
+}
+
+/**
+ * Order confirmation email, sent when a shop order's payment settles
+ * (webhook → markOrderPaidForPayment). The webhook handler fires this
+ * AFTER the PAID transition commits and never lets an email failure break
+ * the payment flow. Idempotency: callers pass a NotificationLog idempotency
+ * key (the order id) so webhook retries cannot double-send.
+ */
+export async function sendOrderConfirmationEmail(params: {
+  businessId: string
+  to: string
+  businessName: string
+  orderNumber: string
+  items: OrderEmailItem[]
+  subtotal: number
+  shippingAmount: number
+  taxAmount: number
+  total: number
+  currency?: string
+}): Promise<boolean> {
+  if (!isEmailConfigured()) return false
+  if (!params.to?.trim()) return false
+
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const sym = params.currency === 'USD' || !params.currency ? '$' : `${params.currency} `
+  const money = (n: number) => `${sym}${n.toFixed(2)}`
+
+  const rows = params.items
+    .map(
+      (i) =>
+        `<tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${esc(i.name)} × ${i.quantity}</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; text-align: right;">${money(i.price * i.quantity)}</td></tr>`
+    )
+    .join('')
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #1a1a1a;">Order ${esc(params.orderNumber)} confirmed</h1>
+      <p>Thanks for your order at <strong>${esc(params.businessName)}</strong>. Here's your receipt:</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        ${rows}
+        <tr><td style="padding: 6px 0; text-align: right; color: #666;">Subtotal</td><td style="padding: 6px 0; text-align: right;">${money(params.subtotal)}</td></tr>
+        ${params.shippingAmount > 0 ? `<tr><td style="padding: 6px 0; text-align: right; color: #666;">Shipping</td><td style="padding: 6px 0; text-align: right;">${money(params.shippingAmount)}</td></tr>` : ''}
+        ${params.taxAmount > 0 ? `<tr><td style="padding: 6px 0; text-align: right; color: #666;">Tax</td><td style="padding: 6px 0; text-align: right;">${money(params.taxAmount)}</td></tr>` : ''}
+        <tr><td style="padding: 12px 0 0; text-align: right; font-weight: bold;">Total</td><td style="padding: 12px 0 0; text-align: right; font-weight: bold;">${money(params.total)}</td></tr>
+      </table>
+      <p style="font-size: 14px; color: #666;">If you have questions about this order, reply to this email or contact the shop.</p>
+    </div>
+  `
+
+  await logNotification({
+    businessId: params.businessId,
+    recipient: params.to,
+    channel: 'EMAIL',
+    type: 'SHOP_ORDER_CONFIRMATION',
+    status: 'SENT',
+    idempotencyKey: `${params.orderNumber}:ORDER_CONFIRMED`,
+  })
+
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM,
+    to: params.to,
+    subject: `Your ${params.businessName} order ${params.orderNumber}`,
+    html,
+  })
+  return true
 }

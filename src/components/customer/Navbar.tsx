@@ -14,14 +14,17 @@ interface NavbarProps {
   walkInsWelcome?: boolean
   /** Gift cards page is only linked when the shop has gift cards enabled */
   giftCardsEnabled?: boolean
+  /** Shop page is only linked when the online store is enabled */
+  shopEnabled?: boolean
 }
 
-export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome, giftCardsEnabled }: NavbarProps) {
+export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome, giftCardsEnabled, shopEnabled }: NavbarProps) {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/services', label: 'Services' },
     { href: '/barbers', label: 'Barbers' },
     ...(giftCardsEnabled ? [{ href: '/gift-cards', label: 'Gift Cards' }] : []),
+    ...(shopEnabled ? [{ href: '/shop', label: 'Shop' }] : []),
     ...(walkInsWelcome ? [{ href: '/queue', label: 'Walk-In Queue' }] : []),
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },

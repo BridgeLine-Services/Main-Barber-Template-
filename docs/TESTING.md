@@ -1,11 +1,11 @@
 # Testing
 
-## Test suites (31 files, `tests/*.test.ts`)
+## Test suites (32 files, `tests/*.test.ts`)
 
 Each suite is a standalone tsx script with its own harness — run any with
 `npx tsx tests/<name>.test.ts`. Full runner reference: `package.json`.
 
-### CI-safe suites (20) — run on every push/PR (Requirement 32)
+### CI-safe suites (21) — run on every push/PR (Requirement 32)
 
 These need only a Postgres database (CI provisions `postgres:15` as a
 service; locally just have Postgres up and `DATABASE_URL` set):
@@ -21,6 +21,10 @@ gift-cards (master switch, code security, purchase, full/partial/
 multiple redemption, invalid/expired codes, refunds, concurrent
 redemption race safety, adjustments, reporting, commissions
 integration, tenant isolation),
+shop-ui (order confirmation email fires once per settlement and never
+throws without SMTP, checkout payload carries no client prices, per-slug
+cart isolation, email-gated order status without enumeration, template
+escaping),
 daily-operations, factory-launch, factory-readiness, feature-flags
 (lib-level parts), marketing, payment-transitions, payments (POS
 end-to-end), portfolio, queue, reliability, role-permissions,

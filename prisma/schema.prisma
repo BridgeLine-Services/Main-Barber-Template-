@@ -629,6 +629,7 @@ enum NotificationType {
   REBOOKING_REMINDER
   MARKETING_CAMPAIGN
   STAFF_INVITE
+  SHOP_ORDER_CONFIRMATION
 }
 
 enum NotificationChannel {

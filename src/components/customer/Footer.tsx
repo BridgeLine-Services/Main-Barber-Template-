@@ -5,6 +5,8 @@ import type { BusinessHours } from '@/lib/business-hours'
 interface FooterProps {
   /** Gift cards page is only linked when the shop has gift cards enabled */
   giftCardsEnabled?: boolean
+  /** Shop page is only linked when the online store is enabled */
+  shopEnabled?: boolean
   business?: {
     name?: string
     phone?: string | null
@@ -27,7 +29,7 @@ interface FooterProps {
   } | null
 }
 
-export function Footer({ business, giftCardsEnabled }: FooterProps) {
+export function Footer({ business, giftCardsEnabled, shopEnabled }: FooterProps) {
   const shopName = business?.name || 'Barber Shop'
   const fullAddress = [business?.address, business?.city, business?.state, business?.zipCode]
     .filter(Boolean)
@@ -163,6 +165,11 @@ export function Footer({ business, giftCardsEnabled }: FooterProps) {
               {giftCardsEnabled ? (
                 <li>
                   <Link href="/gift-cards" className="hover:text-accent transition">Gift Cards</Link>
+                </li>
+              ) : null}
+              {shopEnabled ? (
+                <li>
+                  <Link href="/shop" className="hover:text-accent transition">Shop</Link>
                 </li>
               ) : null}
               <li>

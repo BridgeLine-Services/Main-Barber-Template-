@@ -266,6 +266,38 @@ export async function markOrderPaidForPayment(paymentId: string): Promise<boolea
   await prisma.$transaction([
     prisma.shopOrder.update({ where: { id: order.id }, data: { status: 'PAID', paymentId } }),
   ])
+
+  // Transactional confirmation email — fired AFTER the PAID transition
+  // commits. Fire-and-forget on purpose: an SMTP outage must never fail the
+  // webhook (Stripe would retry the whole event otherwise). The email itself
+  // is idempotent via its NotificationLog key, and this function only runs
+  // on the single PENDING→PAID transition, so webhook retries never
+  // double-send.
+  void (async () => {
+    try {
+      const [full, business] = await Promise.all([
+        prisma.shopOrder.findUnique({ where: { id: order.id }, include: { items: true } }),
+        prisma.business.findUnique({ where: { id: order.businessId }, select: { name: true } }),
+      ])
+      if (!full || !business) return
+      const { sendOrderConfirmationEmail } = await import('@/lib/notifications')
+      await sendOrderConfirmationEmail({
+        businessId: order.businessId,
+        to: full.email,
+        businessName: business.name,
+        orderNumber: full.orderNumber,
+        items: full.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.unitPrice })),
+        subtotal: full.subtotal,
+        shippingAmount: full.shippingAmount,
+        taxAmount: full.taxAmount,
+        total: full.total,
+        currency: full.currency,
+      })
+    } catch {
+      // Email delivery failed — the order remains PAID; logged downstream.
+    }
+  })()
+
   return true
 }
 

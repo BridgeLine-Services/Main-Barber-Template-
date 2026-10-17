@@ -100,3 +100,52 @@ npm run test:ecommerce   # 34 assertions: gate, price verification, inventory
 
 Runs in CI (`npm run test:ci`). Tests create and remove their own fixtures;
 no production data is ever touched.
+
+## Storefront & dashboard UI (migration 20261017161930_shop_order_confirmation_email)
+
+Public pages (tenant-scoped, gated on feature flag AND settings.enabled):
+
+- `/shop` — published-product catalog (server-rendered prices; the client
+  cart is display-only and keyed per business slug: `shopCart:<slug>`)
+- `/shop/cart` — quantity edit, subtotal preview, checkout entry
+- `/shop/checkout` — guest checkout (name + email + optional shipping
+  address) through Stripe Payment Element. The client submits ONLY
+  `productId` + `quantity` lines plus an `Idempotency-Key` header; every
+  price, tax and shipping amount is recomputed server-side.
+- `GET /api/ecommerce/order-status?slug=&orderId=&email=` — public
+  email-gated order lookup for the confirmation screen. Missing order and
+  wrong email share ONE response branch, so order ids cannot be enumerated.
+- Navbar/Footer link `/shop` only when `isStorefrontUsable` is true.
+
+Dashboard (`/dashboard/ecommerce`, owner/BUSINESS_ADMIN):
+
+- Storefront master switch + tax/shipping/support-email settings
+  (`PATCH /api/dashboard/ecommerce/settings`)
+- Product catalog: create/edit, publish/hide, stock with low-stock
+  highlighting (`/api/dashboard/ecommerce/products`)
+- Order management (`/dashboard/ecommerce/orders`): status filters + stats,
+  fulfillment state machine actions (PROCESSING/SHIPPED with tracking
+  number/DELIVERED), cancel + restock, refund via the payment provider
+  (`PATCH /api/dashboard/ecommerce/orders/[id]`)
+
+### Transactional order email
+
+When a payment settles (Stripe webhook → `markOrderPaidForPayment`), the
+PENDING→PAID transition fires a fire-and-forget order confirmation email
+after the transaction commits. Design constraints:
+
+- An SMTP outage can never fail the webhook (email runs detached, errors are
+  swallowed after logging)
+- Fires exactly once: only the single PENDING→PAID transition triggers it,
+  webhook retries hit the no-op path, and the notification log entry uses
+  the idempotency key `<orderNumber>:ORDER_CONFIRMED`
+- Logged under the new `SHOP_ORDER_CONFIRMATION` NotificationType
+  (migration `20261017161930_shop_order_confirmation_email`)
+- All interpolated customer input is HTML-escaped in the template
+
+### Tests
+
+`npm run test:shop-ui` (26 assertions, part of `test:ci`) covers the
+settlement→email hook (exactly-once, no-throw without SMTP), checkout
+payload hygiene (no client prices), per-slug cart isolation, email-gated
+order status with no enumeration, and email template escaping.
