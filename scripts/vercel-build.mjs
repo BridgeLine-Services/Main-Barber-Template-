@@ -17,6 +17,74 @@ const MIGRATION_ATTEMPTS = MIGRATION_RETRY_DELAYS_MS.length + 1
 export const RECOVERABLE_FAILED_MIGRATION = '20261017203707_review_requests_booking_source_analytics'
 const DATABASE_URL_VARIABLES = ['DATABASE_URL', 'NEON_POSTGRES_PRISMA_URL', 'NEON_POSTGRES_URL']
 
+// One-shot evidence-gated recovery for the confirmed 2026-10-18 production
+// incident: _prisma_migrations holds a failed record for the FIRST
+// review-request migration because its schema objects were created outside
+// migrations (the schema was pushed with `prisma db push` before the migration
+// ran, so `migrate deploy` fails with "already exists" and then P3009). The
+// repair — marking that migration applied — is only legal once its intended
+// objects are PROVEN present. scripts/check-review-request-state.mjs performs
+// the read-only verification; evaluatePreexistingObjectsRepair decides from
+// that report, and any mismatch stops the build with the observed evidence.
+// See docs/MIGRATION-RECOVERY.md (Case B).
+export const FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS = '20261017170000_automated_review_requests'
+const REVIEW_REQUEST_STATE_CHECK_SCRIPT = 'scripts/check-review-request-state.mjs'
+const PROTOTYPE_REVIEW_REQUEST_ENUM_VALUES = 'PENDING,SENT,CLICKED,COMPLETED,FAILED'
+const PROTOTYPE_REVIEW_REQUEST_COLUMNS = [
+  'id', 'businessId', 'appointmentId', 'customerId', 'channel', 'destination',
+  'token', 'status', 'scheduledAt', 'sentAt', 'clickedAt', 'completedAt',
+  'failureReason', 'createdAt', 'updatedAt',
+]
+
+export function evaluatePreexistingObjectsRepair(report) {
+  const reasons = []
+  if (report.failedRecordCount === null) {
+    reasons.push('the failed-migration record could not be read from _prisma_migrations')
+  } else {
+    if (report.failedRecordCount !== 1) {
+      reasons.push(`expected exactly one failed migration record, found ${report.failedRecordCount}`)
+    }
+    if (report.failedRecordName !== FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS) {
+      reasons.push(`the failed record names \`${report.failedRecordName}\`, not \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\``)
+    }
+  }
+  if (report.reviewRequestPresent !== true) {
+    reasons.push('the ReviewRequest table is absent, so the migration left no partial changes (docs/MIGRATION-RECOVERY.md Case B applies to a clean rollback, not this repair)')
+  } else if (report.reviewRequestRows !== 0) {
+    reasons.push(`the ReviewRequest table contains ${report.reviewRequestRows} row(s); the repair needs a human decision about that data first`)
+  }
+  if (report.enumValues !== PROTOTYPE_REVIEW_REQUEST_ENUM_VALUES) {
+    reasons.push(
+      `the ReviewRequestStatus enum values are \`${report.enumValues}\`, expected the prototype \`${PROTOTYPE_REVIEW_REQUEST_ENUM_VALUES}\`` +
+      ' (if the values match the current schema instead, the database was pushed from the current schema: follow docs/MIGRATION-RECOVERY.md Case A baselining)'
+    )
+  }
+  if (
+    !report.reviewRequestColumns
+    || report.reviewRequestColumns.join(',') !== PROTOTYPE_REVIEW_REQUEST_COLUMNS.join(',')
+  ) {
+    reasons.push(
+      `the ReviewRequest columns are \`${(report.reviewRequestColumns || []).join(',')}\`, expected the prototype column set of migration 20261017170000`
+    )
+  }
+  if (report.retentionReviewRequestsEnabledPresent !== true) {
+    reasons.push('RetentionSettings.reviewRequestsEnabled is absent, so the migration\'s effects are not present')
+  }
+  if (report.laterMigrationsApplied !== 0) {
+    reasons.push(`${report.laterMigrationsApplied} of the later review-request migrations are already applied; only the all-pending state is auto-repairable`)
+  }
+  if (report.bookingSourceEnumPresent === true) {
+    reasons.push('the BookingSource enum already exists, so later migrations\' effects are partially present (docs/MIGRATION-RECOVERY.md Case A applies)')
+  }
+  if (report.reviewRequestSettingsPresent === true) {
+    reasons.push('the ReviewRequestSettings table already exists, so later migrations\' effects are partially present (docs/MIGRATION-RECOVERY.md Case A applies)')
+  }
+  if (report.customerEmailOptOutPresent === true) {
+    reasons.push('Customer.emailOptOut already exists, so later migrations\' effects are partially present (docs/MIGRATION-RECOVERY.md Case A applies)')
+  }
+  return { ok: reasons.length === 0, reasons }
+}
+
 function firstValue(environment, variables) {
   for (const variable of variables) {
     const value = environment[variable]?.trim()
@@ -105,6 +173,17 @@ function redactDatabaseUrl(output, databaseUrl) {
   return String(output).split(databaseUrl).join('[REDACTED DATABASE_URL]')
 }
 
+// Parses the single JSON line printed by scripts/check-review-request-state.mjs.
+export function parseStateReport(output) {
+  const match = String(output).match(/\{.*\}/s)
+  if (!match) return null
+  try {
+    return JSON.parse(match[0])
+  } catch {
+    return null
+  }
+}
+
 function runCommand(command, args, { environment, spawn, label, stdout, stderr }) {
   stdout(`Running ${label}...\n`)
   const result = spawn(command, args, {
@@ -160,6 +239,7 @@ export async function runVercelBuild({
   const databaseUrl = buildEnvironment.DATABASE_URL
   let migrated = false
   let migrationRecoveryUsed = false
+  let preexistingObjectsRecoveryUsed = false
 
   reportMigrationStatus({ environment: buildEnvironment, spawn, databaseUrl, stdout, stderr })
 
@@ -212,6 +292,76 @@ export async function runVercelBuild({
         throw new Error(
           `Migration recovery failed with exit status ${resolveResult.status ?? 'unknown'}. ` +
           'Run `prisma migrate resolve --rolled-back ' + RECOVERABLE_FAILED_MIGRATION + '` against the database, then redeploy.'
+        )
+      }
+      continue
+    }
+
+    // One-shot evidence-gated recovery for the confirmed 2026-10-18 incident:
+    // a failed record for the FIRST review-request migration whose objects
+    // already exist from an out-of-band schema push. The read-only
+    // verification must prove the exact preconditions before anything is
+    // marked applied; otherwise the build stops with the observed evidence.
+    if (
+      !preexistingObjectsRecoveryUsed
+      && (/\bP3009\b/i.test(output) || /\bP3018\b/i.test(output))
+      && extractFailedMigrationName(output) === FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS
+      && (/\bP3009\b/i.test(output) || /already exists/i.test(output))
+    ) {
+      preexistingObjectsRecoveryUsed = true
+      stderr(
+        `A failed record for \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\` is present. ` +
+        'Verifying the database read-only before any repair (docs/MIGRATION-RECOVERY.md Case B)...\n'
+      )
+      const verification = spawn('node', [REVIEW_REQUEST_STATE_CHECK_SCRIPT], {
+        env: buildEnvironment,
+        encoding: 'utf8',
+        shell: process.platform === 'win32',
+      })
+      const verificationOutput = `${verification.stdout || ''}\n${verification.stderr || ''}`
+      if (verification.error || verification.status !== 0) {
+        throw new Error(
+          `The read-only state verification could not run (exit ${verification.status ?? 'unknown'}: ${verification.error?.message || 'see output above'}). ` +
+          'Perform the Step 1 checks in docs/MIGRATION-RECOVERY.md against the database before redeploying.'
+        )
+      }
+      const stateReport = parseStateReport(verificationOutput)
+      stdout(`${JSON.stringify(stateReport)}\n`)
+      if (!stateReport) {
+        throw new Error(
+          'The read-only state verification returned no report. ' +
+          'Perform the Step 1 checks in docs/MIGRATION-RECOVERY.md against the database before redeploying.'
+        )
+      }
+      const evaluation = evaluatePreexistingObjectsRepair(stateReport)
+      if (!evaluation.ok) {
+        throw new Error(
+          'The database state does not match the auto-repairable shape, so nothing was changed: ' +
+          `${evaluation.reasons.join('; ')}. ` +
+          'Read the migration-state report above and follow docs/MIGRATION-RECOVERY.md before redeploying.'
+        )
+      }
+      stderr(
+        'Verification passed: the failed migration\'s prototype objects are present exactly as migration ' +
+        `20261017170000 creates them, the ReviewRequest table holds no rows, and none of the later ` +
+        'review-request migrations have applied. Marking the migration as applied so the corrected ' +
+        'later migrations can run for real.\n'
+      )
+      const resolveResult = spawn('prisma', ['migrate', 'resolve', '--applied', FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS], {
+        env: buildEnvironment,
+        encoding: 'utf8',
+        shell: process.platform === 'win32',
+      })
+      const resolveOutput = `${resolveResult.stdout || ''}\n${resolveResult.stderr || ''}`
+      if (resolveResult.stdout) stdout(redactDatabaseUrl(resolveResult.stdout, databaseUrl))
+      if (resolveResult.stderr) stderr(redactDatabaseUrl(resolveResult.stderr, databaseUrl))
+      if (resolveResult.error) {
+        throw new Error(`Migration recovery could not start (dependency failure): ${resolveResult.error.message}`)
+      }
+      if (resolveResult.status !== 0) {
+        throw new Error(
+          `Migration recovery failed with exit status ${resolveResult.status ?? 'unknown'}. ` +
+          'Run `prisma migrate resolve --applied ' + FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS + '` against the database, then redeploy.'
         )
       }
       continue

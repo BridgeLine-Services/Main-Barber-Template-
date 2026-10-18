@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   classifyMigrationFailure,
+  evaluatePreexistingObjectsRepair,
   extractFailedMigrationName,
+  parseStateReport,
   runVercelBuild,
   validateBuildEnvironment,
 } from '../scripts/vercel-build.mjs'
@@ -375,4 +377,121 @@ test('reports an actionable error when P3009 recovery itself fails', async () =>
     (error) => /Migration recovery failed/.test(error) && /migrate resolve --rolled-back/.test(error)
   )
   assert.equal(harness.calls.length, 3)
+})
+
+const failedRecord17170000 = {
+  status: 1,
+  stdout: 'Applying migration `20261017170000_automated_review_requests`\nError P3018: A migration failed to apply. Migration name: 20261017170000_automated_review_requests\nDatabase error code: 42701\nDatabase error: ERROR: column "reviewRequestsEnabled" of relation "RetentionSettings" already exists',
+  stderr: '',
+}
+
+const stateReportOk = {
+  failedRecordCount: 1,
+  failedRecordName: '20261017170000_automated_review_requests',
+  enumValues: 'PENDING,SENT,CLICKED,COMPLETED,FAILED',
+  reviewRequestPresent: true,
+  reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'channel', 'destination', 'token', 'status', 'scheduledAt', 'sentAt', 'clickedAt', 'completedAt', 'failureReason', 'createdAt', 'updatedAt'],
+  reviewRequestRows: 0,
+  laterMigrationsApplied: 0,
+  bookingSourceEnumPresent: false,
+  reviewRequestSettingsPresent: false,
+  customerEmailOptOutPresent: false,
+  retentionReviewRequestsEnabledPresent: true,
+  notes: [],
+}
+
+test('auto-repairs the failed 20261017170000 record only after read-only verification passes', async () => {
+  const harness = createHarness([
+    statusOk,
+    failedRecord17170000,
+    { status: 0, stdout: JSON.stringify(stateReportOk), stderr: '' },
+    { status: 0, stdout: 'Migration 20261017170000_automated_review_requests marked as applied.', stderr: '' },
+    { status: 0, stdout: 'All migrations have been successfully applied.', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
+    ['prisma', 'migrate deploy'],
+    ['node', 'scripts/check-review-request-state.mjs'],
+    ['prisma', 'migrate resolve --applied 20261017170000_automated_review_requests'],
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'generate'],
+    ['next', 'build'],
+  ])
+  assert.match(harness.logs.stderr, /Verifying the database read-only/)
+  assert.match(harness.logs.stderr, /Verification passed/)
+  assert.match(harness.logs.stdout, /failedRecordCount/)
+})
+
+test('stops with observed evidence instead of repairing when the state does not match', async () => {
+  const stateReportCurrentSchemaPush = {
+    ...stateReportOk,
+    enumValues: 'PENDING,PROCESSING,SENT,FAILED,SUPPRESSED,CANCELLED',
+    reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'destinationUrl', 'scheduledFor', 'status', 'attemptCount', 'lastAttemptAt', 'sentAt', 'providerMessageId', 'failureCategory', 'failureDetail', 'idempotencyKey', 'createdAt', 'updatedAt'],
+    bookingSourceEnumPresent: true,
+    reviewRequestSettingsPresent: true,
+  }
+  const harness = createHarness([
+    statusOk,
+    {
+      status: 1,
+      stdout: 'Error P3009: migrate found failed migrations in the target database. The `20261017170000_automated_review_requests` migration started at 2026-10-18 00:12:03.832344 UTC failed',
+      stderr: '',
+    },
+    { status: 0, stdout: JSON.stringify(stateReportCurrentSchemaPush), stderr: '' },
+  ])
+
+  await assert.rejects(
+    runVercelBuild({
+      environment: baseEnvironment,
+      spawn: harness.spawn,
+      sleep: harness.sleep,
+      stdout: harness.stdout,
+      stderr: harness.stderr,
+    }),
+    /does not match the auto-repairable shape.*Case A baselining/s
+  )
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
+    ['prisma', 'migrate deploy'],
+    ['node', 'scripts/check-review-request-state.mjs'],
+  ])
+})
+
+test('evaluatePreexistingObjectsRepair gates every precondition', () => {
+  assert.equal(evaluatePreexistingObjectsRepair(stateReportOk).ok, true)
+
+  const withRows = evaluatePreexistingObjectsRepair({ ...stateReportOk, reviewRequestRows: 3 })
+  assert.equal(withRows.ok, false)
+  assert.match(withRows.reasons.join(' '), /contains 3 row/)
+
+  const withCurrentEnum = evaluatePreexistingObjectsRepair({
+    ...stateReportOk,
+    enumValues: 'PENDING,PROCESSING,SENT,FAILED,SUPPRESSED,CANCELLED',
+  })
+  assert.equal(withCurrentEnum.ok, false)
+  assert.match(withCurrentEnum.reasons.join(' '), /Case A baselining/)
+
+  const withLaterApplied = evaluatePreexistingObjectsRepair({ ...stateReportOk, laterMigrationsApplied: 2 })
+  assert.equal(withLaterApplied.ok, false)
+  assert.match(withLaterApplied.reasons.join(' '), /already applied/)
+
+  const withMissingTable = evaluatePreexistingObjectsRepair({ ...stateReportOk, reviewRequestPresent: false })
+  assert.equal(withMissingTable.ok, false)
+  assert.match(withMissingTable.reasons.join(' '), /ReviewRequest table is absent/)
+})
+
+test('parses the read-only state report and rejects garbage', () => {
+  assert.equal(parseStateReport(`${JSON.stringify(stateReportOk)}\n`).failedRecordName, '20261017170000_automated_review_requests')
+  assert.equal(parseStateReport('not json at all'), null)
 })
