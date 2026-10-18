@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   classifyMigrationFailure,
+  evaluateCurrentSchemaPush,
   evaluatePreexistingObjectsRepair,
   extractFailedMigrationName,
   parseStateReport,
@@ -433,14 +434,20 @@ test('auto-repairs the failed 20261017170000 record only after read-only verific
   assert.match(harness.logs.stdout, /failedRecordCount/)
 })
 
-test('stops with observed evidence instead of repairing when the state does not match', async () => {
-  const stateReportCurrentSchemaPush = {
-    ...stateReportOk,
-    enumValues: 'PENDING,PROCESSING,SENT,FAILED,SUPPRESSED,CANCELLED',
-    reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'destinationUrl', 'scheduledFor', 'status', 'attemptCount', 'lastAttemptAt', 'sentAt', 'providerMessageId', 'failureCategory', 'failureDetail', 'idempotencyKey', 'createdAt', 'updatedAt'],
-    bookingSourceEnumPresent: true,
-    reviewRequestSettingsPresent: true,
-  }
+const stateReportCaseA = {
+  ...stateReportOk,
+  enumValues: 'PENDING,PROCESSING,SENT,FAILED,SUPPRESSED,CANCELLED',
+  reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'destinationUrl', 'scheduledFor', 'status', 'attemptCount', 'lastAttemptAt', 'sentAt', 'providerMessageId', 'failureCategory', 'failureDetail', 'idempotencyKey', 'createdAt', 'updatedAt'],
+  bookingSourceEnumPresent: true,
+  reviewRequestSettingsPresent: true,
+  customerEmailOptOutPresent: true,
+  notificationReviewRequestPresent: true,
+  appointmentBookingCampaignPresent: true,
+  appointmentBookingSourceIsEnum: true,
+  waitlistClaimedPresent: true,
+}
+
+test('auto-baselines the current-schema-push state after every fingerprint passes', async () => {
   const harness = createHarness([
     statusOk,
     {
@@ -448,7 +455,52 @@ test('stops with observed evidence instead of repairing when the state does not 
       stdout: 'Error P3009: migrate found failed migrations in the target database. The `20261017170000_automated_review_requests` migration started at 2026-10-18 00:12:03.832344 UTC failed',
       stderr: '',
     },
-    { status: 0, stdout: JSON.stringify(stateReportCurrentSchemaPush), stderr: '' },
+    { status: 0, stdout: JSON.stringify(stateReportCaseA), stderr: '' },
+    { status: 0, stdout: 'marked as applied', stderr: '' },
+    { status: 0, stdout: 'marked as applied', stderr: '' },
+    { status: 0, stdout: 'marked as applied', stderr: '' },
+    { status: 0, stdout: 'marked as applied', stderr: '' },
+    { status: 0, stdout: 'marked as applied', stderr: '' },
+    { status: 0, stdout: 'No pending migrations to apply.', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
+    ['prisma', 'migrate deploy'],
+    ['node', 'scripts/check-review-request-state.mjs'],
+    ['prisma', 'migrate resolve --applied 20261017170000_automated_review_requests'],
+    ['prisma', 'migrate resolve --applied 20261017203707_review_requests_booking_source_analytics'],
+    ['prisma', 'migrate resolve --applied 20261017203731_review_request_notification_type'],
+    ['prisma', 'migrate resolve --applied 20261017204003_appointment_source_and_completion'],
+    ['prisma', 'migrate resolve --applied 20261017210000_sync_waitlist_claimed_drift'],
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'generate'],
+    ['next', 'build'],
+  ])
+  assert.match(harness.logs.stderr, /Case A/)
+  assert.match(harness.logs.stderr, /marked applied without running any SQL/)
+})
+
+test('stops with the combined evidence when the state matches neither repairable shape', async () => {
+  const stateReportUnknownShape = {
+    ...stateReportOk,
+    enumValues: 'PENDING,SENT',
+    laterMigrationsApplied: 1,
+  }
+  const harness = createHarness([
+    statusOk,
+    failedRecord17170000,
+    { status: 0, stdout: JSON.stringify(stateReportUnknownShape), stderr: '' },
   ])
 
   await assert.rejects(
@@ -459,7 +511,7 @@ test('stops with observed evidence instead of repairing when the state does not 
       stdout: harness.stdout,
       stderr: harness.stderr,
     }),
-    /does not match the auto-repairable shape.*Case A baselining/s
+    /matches neither auto-repairable shape.*Current-schema-push evidence/s
   )
   assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
     ['prisma', 'migrate status'],
@@ -489,6 +541,20 @@ test('evaluatePreexistingObjectsRepair gates every precondition', () => {
   const withMissingTable = evaluatePreexistingObjectsRepair({ ...stateReportOk, reviewRequestPresent: false })
   assert.equal(withMissingTable.ok, false)
   assert.match(withMissingTable.reasons.join(' '), /ReviewRequest table is absent/)
+})
+
+test('evaluateCurrentSchemaPush requires every later-migration fingerprint', () => {
+  assert.equal(evaluateCurrentSchemaPush(stateReportCaseA).ok, true)
+
+  const missingWaitlistClaimed = evaluateCurrentSchemaPush({ ...stateReportCaseA, waitlistClaimedPresent: false })
+  assert.equal(missingWaitlistClaimed.ok, false)
+  assert.match(missingWaitlistClaimed.reasons.join(' '), /20261017210000 effect missing/)
+
+  const withRows = evaluateCurrentSchemaPush({ ...stateReportCaseA, reviewRequestRows: 2 })
+  assert.equal(withRows.ok, false)
+  assert.match(withRows.reasons.join(' '), /contains 2 row/)
+
+  assert.equal(evaluateCurrentSchemaPush(stateReportOk).ok, false)
 })
 
 test('parses the read-only state report and rejects garbage', () => {

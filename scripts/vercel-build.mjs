@@ -85,6 +85,59 @@ export function evaluatePreexistingObjectsRepair(report) {
   return { ok: reasons.length === 0, reasons }
 }
 
+// The other known-likely incident shape (docs/MIGRATION-RECOVERY.md Case A):
+// the schema was pushed from the CURRENT schema.prisma, so the database
+// already contains the cumulative end state of ALL five review-request
+// migrations (canonical shapes plus every later fingerprint). Nothing to
+// run — the only honest repair is to baseline: mark the five migrations
+// applied after the fingerprints below prove their effects are present.
+export const CANONICAL_REVIEW_REQUEST_ENUM_VALUES = 'PENDING,PROCESSING,SENT,FAILED,SUPPRESSED,CANCELLED'
+export const CANONICAL_REVIEW_REQUEST_COLUMNS = [
+  'id', 'businessId', 'appointmentId', 'customerId', 'destinationUrl', 'scheduledFor',
+  'status', 'attemptCount', 'lastAttemptAt', 'sentAt', 'providerMessageId', 'failureCategory',
+  'failureDetail', 'idempotencyKey', 'createdAt', 'updatedAt',
+]
+export const MIGRATIONS_TO_BASELINE_AFTER_CURRENT_SCHEMA_PUSH = [
+  '20261017170000_automated_review_requests',
+  '20261017203707_review_requests_booking_source_analytics',
+  '20261017203731_review_request_notification_type',
+  '20261017204003_appointment_source_and_completion',
+  '20261017210000_sync_waitlist_claimed_drift',
+]
+
+export function evaluateCurrentSchemaPush(stateReport) {
+  const reasons = []
+  if (stateReport.failedRecordCount !== 1 || stateReport.failedRecordName !== FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS) {
+    reasons.push(`expected exactly one failed record for \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\`, found ${stateReport.failedRecordCount} naming \`${stateReport.failedRecordName}\``)
+  }
+  if (stateReport.enumValues !== CANONICAL_REVIEW_REQUEST_ENUM_VALUES) {
+    reasons.push(`the ReviewRequestStatus enum values are \`${stateReport.enumValues}\`, expected the canonical \`${CANONICAL_REVIEW_REQUEST_ENUM_VALUES}\``)
+  }
+  if (
+    !stateReport.reviewRequestColumns
+    || stateReport.reviewRequestColumns.join(',') !== CANONICAL_REVIEW_REQUEST_COLUMNS.join(',')
+  ) {
+    reasons.push(`the ReviewRequest columns are \`${(stateReport.reviewRequestColumns || []).join(',')}\`, expected the canonical column set`)
+  }
+  if (stateReport.reviewRequestRows !== 0) {
+    reasons.push(`the ReviewRequest table contains ${stateReport.reviewRequestRows} row(s); the repair needs a human decision about that data first`)
+  }
+  if (stateReport.retentionReviewRequestsEnabledPresent !== true) {
+    reasons.push('RetentionSettings.reviewRequestsEnabled is absent')
+  }
+  if (stateReport.laterMigrationsApplied !== 0) {
+    reasons.push(`${stateReport.laterMigrationsApplied} of the later migrations are already applied; only the all-pending state is baselineable here`)
+  }
+  if (stateReport.bookingSourceEnumPresent !== true) reasons.push('the BookingSource enum is absent (20261017203707 effect missing)')
+  if (stateReport.reviewRequestSettingsPresent !== true) reasons.push('the ReviewRequestSettings table is absent (20261017203707 effect missing)')
+  if (stateReport.customerEmailOptOutPresent !== true) reasons.push('Customer.emailOptOut is absent (20261017203707 effect missing)')
+  if (stateReport.notificationReviewRequestPresent !== true) reasons.push("NotificationType lacks REVIEW_REQUEST (20261017203731 effect missing)")
+  if (stateReport.appointmentBookingCampaignPresent !== true) reasons.push('Appointment.bookingCampaign is absent (20261017204003 effect missing)')
+  if (stateReport.appointmentBookingSourceIsEnum !== true) reasons.push('Appointment.bookingSource is not the BookingSource enum (20261017204003 effect missing)')
+  if (stateReport.waitlistClaimedPresent !== true) reasons.push("WaitlistStatus lacks CLAIMED (20261017210000 effect missing)")
+  return { ok: reasons.length === 0, reasons }
+}
+
 function firstValue(environment, variables) {
   for (const variable of variables) {
     const value = environment[variable]?.trim()
@@ -335,11 +388,42 @@ export async function runVercelBuild({
       }
       const evaluation = evaluatePreexistingObjectsRepair(stateReport)
       if (!evaluation.ok) {
-        throw new Error(
-          'The database state does not match the auto-repairable shape, so nothing was changed: ' +
-          `${evaluation.reasons.join('; ')}. ` +
-          'Read the migration-state report above and follow docs/MIGRATION-RECOVERY.md before redeploying.'
+        // The prototype shape did not match. The database may instead have
+        // been pushed from the CURRENT schema, in which case all five
+        // migrations' effects are already present and the honest repair is
+        // the Case A baseline. Every fingerprint must pass; otherwise stop
+        // with the combined evidence.
+        const baseline = evaluateCurrentSchemaPush(stateReport)
+        if (!baseline.ok) {
+          throw new Error(
+            'The database state matches neither auto-repairable shape, so nothing was changed. ' +
+            `Prototype-shape evidence: ${evaluation.reasons.join('; ')}. ` +
+            `Current-schema-push evidence: ${baseline.reasons.join('; ')}. ` +
+            'Read the migration-state report above and follow docs/MIGRATION-RECOVERY.md before redeploying.'
+          )
+        }
+        stderr(
+          'The database matches the current schema push (docs/MIGRATION-RECOVERY.md Case A): ' +
+          'all five review-request migrations\' effects are already present, so they are being ' +
+          'marked applied without running any SQL against the database.\n'
         )
+        for (const migration of MIGRATIONS_TO_BASELINE_AFTER_CURRENT_SCHEMA_PUSH) {
+          const resolveResult = spawn('prisma', ['migrate', 'resolve', '--applied', migration], {
+            env: buildEnvironment,
+            encoding: 'utf8',
+            shell: process.platform === 'win32',
+          })
+          const resolveOutput = `${resolveResult.stdout || ''}\n${resolveResult.stderr || ''}`
+          if (resolveResult.stdout) stdout(redactDatabaseUrl(resolveOutput, databaseUrl))
+          if (resolveResult.stderr) stderr(redactDatabaseUrl(resolveOutput, databaseUrl))
+          if (resolveResult.error || resolveResult.status !== 0) {
+            throw new Error(
+              `Baselining ${migration} failed with exit ${resolveResult.status ?? 'unknown'}. ` +
+              'Follow docs/MIGRATION-RECOVERY.md Case A manually before redeploying.'
+            )
+          }
+        }
+        continue
       }
       stderr(
         'Verification passed: the failed migration\'s prototype objects are present exactly as migration ' +
@@ -352,7 +436,6 @@ export async function runVercelBuild({
         encoding: 'utf8',
         shell: process.platform === 'win32',
       })
-      const resolveOutput = `${resolveResult.stdout || ''}\n${resolveResult.stderr || ''}`
       if (resolveResult.stdout) stdout(redactDatabaseUrl(resolveResult.stdout, databaseUrl))
       if (resolveResult.stderr) stderr(redactDatabaseUrl(resolveResult.stderr, databaseUrl))
       if (resolveResult.error) {

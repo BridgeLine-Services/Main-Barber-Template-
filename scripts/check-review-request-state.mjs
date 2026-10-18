@@ -25,6 +25,10 @@ const report = {
   reviewRequestSettingsPresent: null,
   customerEmailOptOutPresent: null,
   retentionReviewRequestsEnabledPresent: null,
+  notificationReviewRequestPresent: null,
+  appointmentBookingCampaignPresent: null,
+  appointmentBookingSourceIsEnum: null,
+  waitlistClaimedPresent: null,
   notes: [],
 }
 
@@ -115,6 +119,34 @@ try {
     report.customerEmailOptOutPresent = Number(customerFlags[0]?.email_opt_out) > 0
     report.retentionReviewRequestsEnabledPresent = Number(customerFlags[0]?.review_requests_enabled) > 0
   }
+
+  // Fingerprints of the four later review-request migrations, for the
+  // docs/MIGRATION-RECOVERY.md Case A baseline decision.
+  const notificationType = await safely('notification-type query', () => db.$queryRaw`
+    SELECT count(*)::int AS count FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'NotificationType' AND e.enumlabel = 'REVIEW_REQUEST'
+  `)
+  if (notificationType) report.notificationReviewRequestPresent = Number(notificationType[0]?.count) > 0
+
+  const appointmentSource = await safely('appointment-source query', () => db.$queryRaw`
+    SELECT
+      count(*) FILTER (WHERE column_name = 'bookingCampaign')::int AS booking_campaign,
+      count(*) FILTER (WHERE column_name = 'bookingSource' AND udt_name = 'BookingSource')::int AS booking_source_enum
+    FROM information_schema.columns
+    WHERE table_name = 'Appointment'
+  `)
+  if (appointmentSource) {
+    report.appointmentBookingCampaignPresent = Number(appointmentSource[0]?.booking_campaign) > 0
+    report.appointmentBookingSourceIsEnum = Number(appointmentSource[0]?.booking_source_enum) > 0
+  }
+
+  const waitlistClaimed = await safely('waitlist-claimed query', () => db.$queryRaw`
+    SELECT count(*)::int AS count FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'WaitlistStatus' AND e.enumlabel = 'CLAIMED'
+  `)
+  if (waitlistClaimed) report.waitlistClaimedPresent = Number(waitlistClaimed[0]?.count) > 0
 } finally {
   await db.$disconnect()
 }
