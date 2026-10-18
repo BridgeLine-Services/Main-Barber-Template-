@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   classifyMigrationFailure,
+  extractFailedMigrationName,
   runVercelBuild,
   validateBuildEnvironment,
 } from '../scripts/vercel-build.mjs'
@@ -292,7 +293,11 @@ test('recovers the known P3009 failed-migration state once, then completes in or
 test('does not attempt P3009 recovery for unrelated failed migrations', async () => {
   const harness = createHarness([
     statusOk,
-    { status: 1, stdout: 'Error P3009: The 20300101000000_some_other_migration migration failed', stderr: '' },
+    {
+      status: 1,
+      stdout: 'Error P3009: migrate found failed migrations in the target database. The `20300101000000_some_other_migration` migration started at 2026-10-18 00:00:00.000000 UTC failed',
+      stderr: '',
+    },
   ])
 
   await assert.rejects(
@@ -306,6 +311,46 @@ test('does not attempt P3009 recovery for unrelated failed migrations', async ()
     /stopped after a migration history or SQL failure/
   )
   assert.equal(harness.calls.length, 2)
+})
+
+test('names the failing migration and the runbook in the terminal error', async () => {
+  const harness = createHarness([
+    statusOk,
+    {
+      status: 1,
+      stdout: 'Applying migration `20261017170000_automated_review_requests`\nError P3018: migration failed to apply\nMigration name: 20261017170000_automated_review_requests\nDatabase error code: 42701',
+      stderr: '',
+    },
+  ])
+
+  await assert.rejects(
+    runVercelBuild({
+      environment: baseEnvironment,
+      spawn: harness.spawn,
+      sleep: harness.sleep,
+      stdout: harness.stdout,
+      stderr: harness.stderr,
+    }),
+    (error) =>
+      /The failing migration is `20261017170000_automated_review_requests`\./.test(error)
+      && /docs\/MIGRATION-RECOVERY\.md/.test(error)
+  )
+})
+
+test('extracts the failing migration from each Prisma output shape', () => {
+  assert.equal(
+    extractFailedMigrationName('Error P3009: The `20261017170000_automated_review_requests` migration started at 2026-10-18 00:12:03.832344 UTC failed'),
+    '20261017170000_automated_review_requests'
+  )
+  assert.equal(
+    extractFailedMigrationName('Error P3018\nMigration name: 20261017170000_automated_review_requests\nDatabase error code: 42701'),
+    '20261017170000_automated_review_requests'
+  )
+  assert.equal(
+    extractFailedMigrationName('Applying migration `20261017170000_automated_review_requests`\nApplying migration `20261017203707_review_requests_booking_source_analytics`\nError P3018'),
+    '20261017203707_review_requests_booking_source_analytics'
+  )
+  assert.equal(extractFailedMigrationName('Error P1001: cannot connect'), '')
 })
 
 test('reports an actionable error when P3009 recovery itself fails', async () => {

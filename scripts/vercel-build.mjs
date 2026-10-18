@@ -88,6 +88,19 @@ export function classifyMigrationFailure(output) {
   return { category: 'migration failure', retryable: false }
 }
 
+// Extracts the migration Prisma names in its P3009 ("The `x` migration ...
+// failed") and P3018 ("Migration name: x" / "Applying migration `x`") outputs so
+// the terminal build error identifies exactly which migration needs repair.
+export function extractFailedMigrationName(output) {
+  const failedRecord = String(output).match(/The `([^`]+)` migration [^\n]*failed/i)
+  if (failedRecord) return failedRecord[1]
+  const named = String(output).match(/Migration name:\s*(\S+)/i)
+  if (named) return named[1]
+  const applying = [...String(output).matchAll(/Applying migration `([^`]+)`/gi)]
+  if (applying.length > 0) return applying[applying.length - 1][1]
+  return ''
+}
+
 function redactDatabaseUrl(output, databaseUrl) {
   return String(output).split(databaseUrl).join('[REDACTED DATABASE_URL]')
 }
@@ -206,7 +219,15 @@ export async function runVercelBuild({
 
     const delay = MIGRATION_RETRY_DELAYS_MS[attempt - 1]
     if (!failure.retryable || delay === undefined) {
-      throw new Error(`Prisma migrate deploy stopped after a ${failure.category} failure.`)
+      const failedMigration = extractFailedMigrationName(output)
+      const detail = failedMigration
+        ? ` The failing migration is \`${failedMigration}\`.`
+        : ''
+      throw new Error(
+        `Prisma migrate deploy stopped after a ${failure.category} failure.${detail} ` +
+        'Read the migration-state report above, then follow docs/MIGRATION-RECOVERY.md to ' +
+        'classify the database state and repair it with evidence before redeploying.'
+      )
     }
 
     stderr(`Retrying the transient ${failure.category} failure in ${delay / 1000}s.\n`)
