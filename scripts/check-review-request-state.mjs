@@ -16,6 +16,7 @@ const db = new PrismaClient()
 const report = {
   failedRecordCount: null,
   failedRecordName: null,
+  failedRecordNames: null,
   enumValues: null,
   reviewRequestPresent: null,
   reviewRequestColumns: null,
@@ -45,13 +46,17 @@ async function safely(label, run) {
 
 try {
   const failed = await safely('failed-record query', () => db.$queryRaw`
-    SELECT count(*)::int AS count, max(migration_name) AS name
+    SELECT
+      count(*)::int AS count,
+      max(migration_name) AS name,
+      array_agg(migration_name ORDER BY migration_name) AS names
     FROM _prisma_migrations
     WHERE finished_at IS NULL AND rolled_back_at IS NULL
   `)
   if (failed) {
     report.failedRecordCount = Number(failed[0]?.count)
     report.failedRecordName = failed[0]?.name ?? null
+    report.failedRecordNames = failed[0]?.names ?? []
   }
 
   const enumRow = await safely('enum query', () => db.$queryRaw`

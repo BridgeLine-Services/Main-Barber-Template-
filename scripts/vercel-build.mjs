@@ -40,6 +40,10 @@ export function evaluatePreexistingObjectsRepair(report) {
   const reasons = []
   if (report.failedRecordCount === null) {
     reasons.push('the failed-migration record could not be read from _prisma_migrations')
+  } else if (report.failedRecordNames) {
+    if (report.failedRecordNames.length !== 1 || report.failedRecordNames[0] !== FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS) {
+      reasons.push(`expected exactly one failed record for \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\`, found ${report.failedRecordCount} naming \`${(report.failedRecordNames || []).join(', ')}\``)
+    }
   } else {
     if (report.failedRecordCount !== 1) {
       reasons.push(`expected exactly one failed migration record, found ${report.failedRecordCount}`)
@@ -107,8 +111,15 @@ export const MIGRATIONS_TO_BASELINE_AFTER_CURRENT_SCHEMA_PUSH = [
 
 export function evaluateCurrentSchemaPush(stateReport) {
   const reasons = []
-  if (stateReport.failedRecordCount !== 1 || stateReport.failedRecordName !== FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS) {
-    reasons.push(`expected exactly one failed record for \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\`, found ${stateReport.failedRecordCount} naming \`${stateReport.failedRecordName}\``)
+  const failedNames = stateReport.failedRecordNames
+    || (stateReport.failedRecordCount === 1 && stateReport.failedRecordName ? [stateReport.failedRecordName] : null)
+  if (!failedNames || failedNames.some((name) => !MIGRATIONS_TO_BASELINE_AFTER_CURRENT_SCHEMA_PUSH.includes(name))) {
+    reasons.push(
+      `every failed record must name one of the five baselined migrations, found ${stateReport.failedRecordCount} naming \`${failedNames ? failedNames.join(', ') : stateReport.failedRecordName}\``
+    )
+  }
+  if (stateReport.reviewRequestPresent !== true) {
+    reasons.push('the ReviewRequest table is absent, so the current-schema-push shape does not apply')
   }
   if (stateReport.enumValues !== CANONICAL_REVIEW_REQUEST_ENUM_VALUES) {
     reasons.push(`the ReviewRequestStatus enum values are \`${stateReport.enumValues}\`, expected the canonical \`${CANONICAL_REVIEW_REQUEST_ENUM_VALUES}\``)
@@ -119,9 +130,10 @@ export function evaluateCurrentSchemaPush(stateReport) {
   ) {
     reasons.push(`the ReviewRequest columns are \`${(stateReport.reviewRequestColumns || []).join(',')}\`, expected the canonical column set`)
   }
-  if (stateReport.reviewRequestRows !== 0) {
-    reasons.push(`the ReviewRequest table contains ${stateReport.reviewRequestRows} row(s); the repair needs a human decision about that data first`)
-  }
+  // NOTE: existing rows are intentionally allowed here. Baselining marks the
+  // five migrations applied WITHOUT running any SQL, so data in the canonical
+  // tables is preserved untouched. (The prototype-shape repair must stop on
+  // rows instead: 20261017203707 begins with DROP TABLE "ReviewRequest".)
   if (stateReport.retentionReviewRequestsEnabledPresent !== true) {
     reasons.push('RetentionSettings.reviewRequestsEnabled is absent')
   }

@@ -90,9 +90,12 @@ npx prisma migrate deploy
 
 then deploy again. The remaining migrations apply for real, in order.
 
-**If `prisma migrate diff` shows no difference against the full current
-schema** (the database was pushed from the current schema, so later
-migrations' effects are also already present), baseline the pending ones too:
+**If the database was pushed from the current schema** (so later
+migrations' effects are also already present — the build verifies every
+fingerprint read-only), baseline the pending ones too. Existing data rows
+are preserved: baselining runs no SQL. The build performs this automatically
+when every fingerprint passes and every failed record names one of the five
+migrations.
 
 ```bash
 npx prisma migrate resolve --applied <FAILED_MIGRATION>
@@ -103,6 +106,12 @@ npx prisma migrate deploy   # expect "No pending migrations to apply."
 ```
 
 Reference: https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining
+
+**Data-row warning for this case:** if `ReviewRequest` holds rows in the
+PROTOTYPE shape, never let `20261017203707` run on that database — it opens
+with `DROP TABLE "ReviewRequest"` and would destroy the rows. The build's
+automatic repair stops when rows are present; a human must migrate the data
+to the canonical shape (or accept its loss) before applying the migration.
 
 ### Case B — Failed record + no partial changes + objects absent
 

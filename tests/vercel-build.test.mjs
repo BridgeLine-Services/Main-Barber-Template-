@@ -389,6 +389,7 @@ const failedRecord17170000 = {
 const stateReportOk = {
   failedRecordCount: 1,
   failedRecordName: '20261017170000_automated_review_requests',
+  failedRecordNames: ['20261017170000_automated_review_requests'],
   enumValues: 'PENDING,SENT,CLICKED,COMPLETED,FAILED',
   reviewRequestPresent: true,
   reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'channel', 'destination', 'token', 'status', 'scheduledAt', 'sentAt', 'clickedAt', 'completedAt', 'failureReason', 'createdAt', 'updatedAt'],
@@ -541,6 +542,14 @@ test('evaluatePreexistingObjectsRepair gates every precondition', () => {
   const withMissingTable = evaluatePreexistingObjectsRepair({ ...stateReportOk, reviewRequestPresent: false })
   assert.equal(withMissingTable.ok, false)
   assert.match(withMissingTable.reasons.join(' '), /ReviewRequest table is absent/)
+
+  const withTwoFailedRecords = evaluatePreexistingObjectsRepair({
+    ...stateReportOk,
+    failedRecordCount: 2,
+    failedRecordNames: ['20261017170000_automated_review_requests', '20261017203707_review_requests_booking_source_analytics'],
+  })
+  assert.equal(withTwoFailedRecords.ok, false)
+  assert.match(withTwoFailedRecords.reasons.join(' '), /exactly one failed record/)
 })
 
 test('evaluateCurrentSchemaPush requires every later-migration fingerprint', () => {
@@ -550,9 +559,26 @@ test('evaluateCurrentSchemaPush requires every later-migration fingerprint', () 
   assert.equal(missingWaitlistClaimed.ok, false)
   assert.match(missingWaitlistClaimed.reasons.join(' '), /20261017210000 effect missing/)
 
+  // Existing rows are allowed: baselining runs no SQL, so data is preserved.
   const withRows = evaluateCurrentSchemaPush({ ...stateReportCaseA, reviewRequestRows: 2 })
-  assert.equal(withRows.ok, false)
-  assert.match(withRows.reasons.join(' '), /contains 2 row/)
+  assert.equal(withRows.ok, true)
+
+  // Failed records naming any of the five migrations are acceptable.
+  const withExtraFailedRecord = evaluateCurrentSchemaPush({
+    ...stateReportCaseA,
+    failedRecordCount: 2,
+    failedRecordNames: ['20261017170000_automated_review_requests', '20261017203707_review_requests_booking_source_analytics'],
+  })
+  assert.equal(withExtraFailedRecord.ok, true)
+
+  // ...but a failed record outside the five is not.
+  const withForeignFailedRecord = evaluateCurrentSchemaPush({
+    ...stateReportCaseA,
+    failedRecordCount: 2,
+    failedRecordNames: ['20261017170000_automated_review_requests', '20300101000000_unrelated'],
+  })
+  assert.equal(withForeignFailedRecord.ok, false)
+  assert.match(withForeignFailedRecord.reasons.join(' '), /five baselined migrations/)
 
   assert.equal(evaluateCurrentSchemaPush(stateReportOk).ok, false)
 })
