@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   classifyMigrationFailure,
   evaluateCurrentSchemaPush,
+  evaluateDraftObjectsRepair,
   evaluatePreexistingObjectsRepair,
   extractFailedMigrationName,
   parseStateReport,
@@ -512,7 +513,7 @@ test('stops with the combined evidence when the state matches neither repairable
       stdout: harness.stdout,
       stderr: harness.stderr,
     }),
-    /matches neither auto-repairable shape.*Current-schema-push evidence/s
+    /matches none of the three verified repairable shapes.*Draft-objects evidence/s
   )
   assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
     ['prisma', 'migrate status'],
@@ -586,4 +587,85 @@ test('evaluateCurrentSchemaPush requires every later-migration fingerprint', () 
 test('parses the read-only state report and rejects garbage', () => {
   assert.equal(parseStateReport(`${JSON.stringify(stateReportOk)}\n`).failedRecordName, '20261017170000_automated_review_requests')
   assert.equal(parseStateReport('not json at all'), null)
+})
+
+const stateReportDraft = {
+  failedRecordCount: 1,
+  failedRecordName: '20261017170000_automated_review_requests',
+  failedRecordNames: ['20261017170000_automated_review_requests'],
+  enumValues: 'PENDING,PROCESSING,SENT,FAILED,SKIPPED,CANCELED',
+  reviewRequestPresent: true,
+  reviewRequestColumns: ['id', 'businessId', 'appointmentId', 'customerId', 'recipient', 'status', 'scheduledAt', 'attemptCount', 'lastAttemptAt', 'nextAttemptAt', 'providerMessageId', 'failureReason', 'skipReason', 'createdAt', 'updatedAt'],
+  reviewRequestRows: 0,
+  laterMigrationsApplied: 0,
+  bookingSourceEnumPresent: false,
+  reviewRequestSettingsPresent: false,
+  customerEmailOptOutPresent: false,
+  retentionReviewRequestsEnabledPresent: false,
+  notificationReviewRequestPresent: false,
+  appointmentBookingCampaignPresent: false,
+  appointmentBookingSourceIsEnum: false,
+  waitlistClaimedPresent: false,
+  notes: [],
+}
+
+test('auto-repairs the draft-objects shape by clearing the record and removing the empty drafts', async () => {
+  const harness = createHarness([
+    statusOk,
+    failedRecord17170000,
+    { status: 0, stdout: JSON.stringify(stateReportDraft), stderr: '' },
+    { status: 0, stdout: 'Migration 20261017170000_automated_review_requests marked as rolled back.', stderr: '' },
+    { status: 0, stdout: 'Script successfully executed', stderr: '' },
+    { status: 0, stdout: 'All migrations have been successfully applied.', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+    { status: 0, stdout: '', stderr: '' },
+  ])
+
+  await runVercelBuild({
+    environment: baseEnvironment,
+    spawn: harness.spawn,
+    sleep: harness.sleep,
+    stdout: harness.stdout,
+    stderr: harness.stderr,
+  })
+
+  assert.deepEqual(harness.calls.map(({ command, args }) => [command, args.join(' ')]), [
+    ['prisma', 'migrate status'],
+    ['prisma', 'migrate deploy'],
+    ['node', 'scripts/check-review-request-state.mjs'],
+    ['prisma', 'migrate resolve --rolled-back 20261017170000_automated_review_requests'],
+    ['prisma', 'db execute --file scripts/sql/drop-draft-review-request-objects.sql --schema prisma/schema.prisma'],
+    ['prisma', 'migrate deploy'],
+    ['prisma', 'generate'],
+    ['next', 'build'],
+  ])
+  assert.match(harness.logs.stderr, /Case C/)
+  assert.match(harness.logs.stderr, /re-applying the migration for real/)
+})
+
+test('evaluateDraftObjectsRepair gates every precondition', () => {
+  assert.equal(evaluateDraftObjectsRepair(stateReportDraft).ok, true)
+
+  const withRows = evaluateDraftObjectsRepair({ ...stateReportDraft, reviewRequestRows: 4 })
+  assert.equal(withRows.ok, false)
+  assert.match(withRows.reasons.join(' '), /contains 4 row/)
+
+  const withRetentionPresent = evaluateDraftObjectsRepair({ ...stateReportDraft, retentionReviewRequestsEnabledPresent: true })
+  assert.equal(withRetentionPresent.ok, false)
+  assert.match(withRetentionPresent.reasons.join(' '), /already had effect/)
+
+  const withLaterObject = evaluateDraftObjectsRepair({ ...stateReportDraft, bookingSourceEnumPresent: true })
+  assert.equal(withLaterObject.ok, false)
+  assert.match(withLaterObject.reasons.join(' '), /partially present/)
+
+  const withCanonicalEnum = evaluateDraftObjectsRepair({ ...stateReportCaseA })
+  assert.equal(withCanonicalEnum.ok, false)
+  assert.match(withCanonicalEnum.reasons.join(' '), /draft/)
+
+  const withForeignFailedRecord = evaluateDraftObjectsRepair({
+    ...stateReportDraft,
+    failedRecordCount: 2,
+    failedRecordNames: ['20261017170000_automated_review_requests', '20300101000000_unrelated'],
+  })
+  assert.equal(withForeignFailedRecord.ok, false)
 })

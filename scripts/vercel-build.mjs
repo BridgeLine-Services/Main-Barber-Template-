@@ -109,6 +109,61 @@ export const MIGRATIONS_TO_BASELINE_AFTER_CURRENT_SCHEMA_PUSH = [
   '20261017210000_sync_waitlist_claimed_drift',
 ]
 
+// The third evidence-verified shape (docs/MIGRATION-RECOVERY.md Case C),
+// read directly from the production database on 2026-10-18: an EARLIER DRAFT
+// of the review-request feature was pushed outside migrations (draft enum
+// values SKIPPED/CANCELED, draft columns recipient/nextAttemptAt/skipReason),
+// and the failed record for 20261017170000 remains because its first
+// statement (CREATE TYPE) hits "already exists". Since NONE of the five
+// migrations' effects are present, baselining would be wrong — the migration
+// must run for real. The repair: clear the failed record, remove the
+// provably-empty draft objects, and let migrate deploy apply everything.
+export const DRAFT_REVIEW_REQUEST_ENUM_VALUES = 'PENDING,PROCESSING,SENT,FAILED,SKIPPED,CANCELED'
+export const DRAFT_REVIEW_REQUEST_COLUMNS = [
+  'id', 'businessId', 'appointmentId', 'customerId', 'recipient', 'status', 'scheduledAt',
+  'attemptCount', 'lastAttemptAt', 'nextAttemptAt', 'providerMessageId', 'failureReason',
+  'skipReason', 'createdAt', 'updatedAt',
+]
+const DRAFT_OBJECTS_DROP_SQL = 'scripts/sql/drop-draft-review-request-objects.sql'
+
+export function evaluateDraftObjectsRepair(report) {
+  const reasons = []
+  const failedNames = report.failedRecordNames
+    || (report.failedRecordCount === 1 && report.failedRecordName ? [report.failedRecordName] : null)
+  if (!failedNames || failedNames.length !== 1 || failedNames[0] !== FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS) {
+    reasons.push(`expected exactly one failed record for \`${FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS}\`, found ${report.failedRecordCount} naming \`${failedNames ? failedNames.join(', ') : report.failedRecordName}\``)
+  }
+  if (report.reviewRequestPresent !== true) {
+    reasons.push('the ReviewRequest table is absent, so there are no draft objects to remove')
+  }
+  if (report.reviewRequestRows !== 0) {
+    reasons.push(`the draft ReviewRequest table contains ${report.reviewRequestRows} row(s); a human must decide about that data first`)
+  }
+  if (report.enumValues !== DRAFT_REVIEW_REQUEST_ENUM_VALUES) {
+    reasons.push(`the ReviewRequestStatus enum values are \`${report.enumValues}\`, expected the draft \`${DRAFT_REVIEW_REQUEST_ENUM_VALUES}\``)
+  }
+  if (
+    !report.reviewRequestColumns
+    || report.reviewRequestColumns.join(',') !== DRAFT_REVIEW_REQUEST_COLUMNS.join(',')
+  ) {
+    reasons.push(`the ReviewRequest columns are \`${(report.reviewRequestColumns || []).join(',')}\`, expected the draft column set`)
+  }
+  if (report.retentionReviewRequestsEnabledPresent !== false) {
+    reasons.push('the retention review columns are present, so migration 20261017170000 already had effect — the draft case does not apply')
+  }
+  if (report.laterMigrationsApplied !== 0) {
+    reasons.push(`${report.laterMigrationsApplied} of the later migrations are already applied — the draft case does not apply`)
+  }
+  if (report.bookingSourceEnumPresent === true) reasons.push('the BookingSource enum exists, so later effects are partially present')
+  if (report.reviewRequestSettingsPresent === true) reasons.push('the ReviewRequestSettings table exists, so later effects are partially present')
+  if (report.customerEmailOptOutPresent === true) reasons.push('Customer.emailOptOut exists, so later effects are partially present')
+  if (report.notificationReviewRequestPresent === true) reasons.push('NotificationType has REVIEW_REQUEST, so later effects are partially present')
+  if (report.appointmentBookingCampaignPresent === true) reasons.push('Appointment.bookingCampaign exists, so later effects are partially present')
+  if (report.appointmentBookingSourceIsEnum === true) reasons.push('Appointment.bookingSource is the BookingSource enum, so later effects are partially present')
+  if (report.waitlistClaimedPresent === true) reasons.push('WaitlistStatus has CLAIMED, so later effects are partially present')
+  return { ok: reasons.length === 0, reasons }
+}
+
 export function evaluateCurrentSchemaPush(stateReport) {
   const reasons = []
   const failedNames = stateReport.failedRecordNames
@@ -407,12 +462,53 @@ export async function runVercelBuild({
         // with the combined evidence.
         const baseline = evaluateCurrentSchemaPush(stateReport)
         if (!baseline.ok) {
-          throw new Error(
-            'The database state matches neither auto-repairable shape, so nothing was changed. ' +
-            `Prototype-shape evidence: ${evaluation.reasons.join('; ')}. ` +
-            `Current-schema-push evidence: ${baseline.reasons.join('; ')}. ` +
-            'Read the migration-state report above and follow docs/MIGRATION-RECOVERY.md before redeploying.'
+          // Third verified shape: DRAFT-era objects pushed outside migrations.
+          // Because none of the five migrations' effects are present, the only
+          // correct repair is to clear the failed record, remove the provably
+          // empty draft objects, and let the migration apply for real.
+          const draft = evaluateDraftObjectsRepair(stateReport)
+          if (!draft.ok) {
+            throw new Error(
+              'The database state matches none of the three verified repairable shapes, so nothing was changed. ' +
+              `Prototype-shape evidence: ${evaluation.reasons.join('; ')}. ` +
+              `Current-schema-push evidence: ${baseline.reasons.join('; ')}. ` +
+              `Draft-objects evidence: ${draft.reasons.join('; ')}. ` +
+              'Read the migration-state report above and follow docs/MIGRATION-RECOVERY.md before redeploying.'
+            )
+          }
+          stderr(
+            'The database matches the draft-objects shape (docs/MIGRATION-RECOVERY.md Case C): ' +
+            'an earlier draft of the review-request feature was pushed outside migrations, holds zero rows, ' +
+            'and none of the five migrations\' effects are present. Clearing the failed record, removing the ' +
+            'empty draft objects, and re-applying the migration for real — no data exists to lose.\n'
           )
+          const rollbackResult = spawn('prisma', ['migrate', 'resolve', '--rolled-back', FAILED_MIGRATION_WITH_PREEXISTING_OBJECTS], {
+            env: buildEnvironment,
+            encoding: 'utf8',
+            shell: process.platform === 'win32',
+          })
+          if (rollbackResult.stdout) stdout(redactDatabaseUrl(rollbackResult.stdout, databaseUrl))
+          if (rollbackResult.stderr) stderr(redactDatabaseUrl(rollbackResult.stderr, databaseUrl))
+          if (rollbackResult.error || rollbackResult.status !== 0) {
+            throw new Error(
+              `Clearing the failed record failed with exit ${rollbackResult.status ?? 'unknown'}. ` +
+              'Follow docs/MIGRATION-RECOVERY.md Case C manually before redeploying.'
+            )
+          }
+          const dropResult = spawn('prisma', ['db', 'execute', '--file', DRAFT_OBJECTS_DROP_SQL, '--schema', 'prisma/schema.prisma'], {
+            env: buildEnvironment,
+            encoding: 'utf8',
+            shell: process.platform === 'win32',
+          })
+          if (dropResult.stdout) stdout(redactDatabaseUrl(dropResult.stdout, databaseUrl))
+          if (dropResult.stderr) stderr(redactDatabaseUrl(dropResult.stderr, databaseUrl))
+          if (dropResult.error || dropResult.status !== 0) {
+            throw new Error(
+              `Removing the draft objects failed with exit ${dropResult.status ?? 'unknown'} — nothing else was changed. ` +
+              'Follow docs/MIGRATION-RECOVERY.md Case C manually before redeploying.'
+            )
+          }
+          continue
         }
         stderr(
           'The database matches the current schema push (docs/MIGRATION-RECOVERY.md Case A): ' +

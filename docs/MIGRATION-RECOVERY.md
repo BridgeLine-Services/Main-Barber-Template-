@@ -143,6 +143,22 @@ resolve blindly, and never reset the database.
 2. Re-run `npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma` — expect `No difference detected`.
 3. Deploy; the build's migration-state report in the Vercel log should list no pending migrations and `next build` proceeds.
 
+### Case C — Draft-era objects pushed outside migrations (the confirmed production state)
+
+On 2026-10-18 the production database's read-only state report showed a THIRD
+shape: an early DRAFT of the review-request feature (enum values
+`PENDING,PROCESSING,SENT,FAILED,SKIPPED,CANCELED`, columns including
+`recipient`/`nextAttemptAt`/`skipReason`) had been pushed outside migrations,
+so `20261017170000` failed at its first statement and left a failed record —
+while none of the five migrations' effects exist anywhere in the database.
+
+Because the migrations' effects are absent, baselining (marking applied) would
+be wrong: the migration must run for real. The build therefore clears the
+failed record (`migrate resolve --rolled-back`), removes the draft objects
+(proven read-only to hold ZERO rows; the SQL re-checks and refuses on rows),
+and lets `migrate deploy` apply all five migrations for real. This is the
+repair that runs automatically when every gate passes.
+
 ## Incident reference (2026-10-17/18, verified on disposable databases)
 
 Every production deployment after commit `7625d73` failed ~40–55s into the
@@ -156,4 +172,5 @@ matrix used above:
 | P3009 record for `20261017203707…` (old conflict) | P3009 | auto-recovery in build script | build exit 0 |
 | Prototype-era `db push` on top of pre-review-request history | P3018 (42701) then P3009 | automatic: verification passes -> `resolve --applied 20261017170000…` -> deploy | build exit 0 |
 | Current-schema `db push` on top of pre-review-request history | P3018 (42701) then P3009 | automatic: fingerprint verification -> `resolve --applied` for the 5 migrations | build exit 0 |
-| State matching neither verified shape | P3009 | none (by design) — build stops with the combined evidence of both evaluations | build exit 1, nothing changed |
+| Draft-era `db push` (SKIPPED/CANCELED enum, recipient columns, zero rows) — the confirmed production state, reproduced field-for-field | P3018 (42701) then P3009 | automatic: verification passes -> `resolve --rolled-back 20261017170000…` -> drop the empty draft objects -> deploy applies all five for real | build exit 0, canonical end state |
+| State matching no verified shape | P3009 | none (by design) — build stops with the combined evidence of all three evaluations | build exit 1, nothing changed |
