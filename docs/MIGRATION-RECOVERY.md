@@ -60,6 +60,16 @@ migrations are supposed to produce end-to-end.
 
 ## Step 2 — Classify, then repair
 
+**The build performs Step 2 automatically whenever the evidence matches a
+verified shape** (see `scripts/vercel-build.mjs` and
+`scripts/check-review-request-state.mjs`): a failed record for
+`20261017170000_automated_review_requests` triggers a read-only state
+verification, and either the prototype-shape repair (Case B) or the
+current-schema-push baseline (Case A) runs on its own. If the database
+matches neither shape — or contains data rows in `ReviewRequest` — the build
+changes nothing and prints the combined evidence of both evaluations; the
+manual commands below then apply, using that evidence to decide the case.
+
 ### Case A — Failed record + the migration's objects already exist (schema was pushed outside migrations)
 
 Observed shape: the failed record's `logs` contain an `already exists` error
@@ -135,5 +145,6 @@ matrix used above:
 | Fresh install, 48 migrations | none | not needed | build exit 0 |
 | Upgrade: history to `20261016193000`-era, then deploy | none | not needed | build exit 0 |
 | P3009 record for `20261017203707…` (old conflict) | P3009 | auto-recovery in build script | build exit 0 |
-| Prototype-era `db push` on top of pre-review-request history | P3018 (42701) then P3009 | `resolve --applied 20261017170000…` then deploy | build exit 0 |
-| Current-schema `db push` on top of pre-review-request history | P3018 (42701) then P3009 | diff proof + `resolve --applied` for the 5 pending migrations | build exit 0 |
+| Prototype-era `db push` on top of pre-review-request history | P3018 (42701) then P3009 | automatic: verification passes -> `resolve --applied 20261017170000…` -> deploy | build exit 0 |
+| Current-schema `db push` on top of pre-review-request history | P3018 (42701) then P3009 | automatic: fingerprint verification -> `resolve --applied` for the 5 migrations | build exit 0 |
+| State matching neither verified shape | P3009 | none (by design) — build stops with the combined evidence of both evaluations | build exit 1, nothing changed |
