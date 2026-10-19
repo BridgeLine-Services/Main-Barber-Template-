@@ -17,35 +17,21 @@ export async function getAuthenticatedBusinessId(): Promise<string | null> {
  * template preserves its multi-business-safe behavior when that is needed.
  */
 export async function resolvePublicBusiness() {
+  const mode = process.env.APP_MODE?.trim().toLowerCase() || 'multi'
+  if (mode !== 'single' && mode !== 'multi') return null
+
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host')
   const hostname = host?.split(':')[0]?.toLowerCase()
 
-  if (hostname) {
-    const byHost = await prisma.business.findUnique({ where: { slug: hostname } }).catch(() => null)
-    if (byHost) return byHost
+  if (mode === 'multi') {
+    if (!hostname) return null
+    return prisma.business.findUnique({ where: { slug: hostname } }).catch(() => null)
   }
 
   const configuredBusinessId = process.env.SINGLE_BUSINESS_ID?.trim()
-  if (configuredBusinessId) {
-    return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
-  }
-
-  // Single-business deployments (the default client copy of this template)
-  // host on a domain that will not match any business slug — e.g.
-  // <project>.vercel.app — and often do not have SINGLE_BUSINESS_ID set yet.
-  // Falling back to the sole business keeps the public customer website
-  // reachable right after onboarding instead of showing "Shop Coming Soon"
-  // with an owner-login link (which wrongly made the public site look like it
-  // required authentication). Multi-tenant deployments resolve by host first
-  // and only reach this fallback when exactly one business exists.
-  const businessCount = await prisma.business.count().catch(() => 0)
-  if (businessCount === 1) {
-    const [sole] = await prisma.business.findMany({ take: 1 }).catch(() => [])
-    if (sole) return sole
-  }
-
-  return null
+  if (!configuredBusinessId) return null
+  return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
 }
 
 /** Resolve the configured business for a cloned single-business deployment. */

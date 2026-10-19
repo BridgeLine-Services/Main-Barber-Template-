@@ -46,9 +46,18 @@ export async function processDueNotifications(limit = 50) {
     })
     if (claimed.count !== 1) continue
 
-    const notification = await prisma.notificationLog.findUnique({ where: { id: row.id } }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
+    const notification = await prisma.notificationLog.findUnique({
+      where: { id: row.id },
+      include: { customer: { select: { smsConsent: true, emailOptOut: true } } },
+    }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
     if (!notification) continue
     try {
+      if (notification.type === 'MARKETING_CAMPAIGN' &&
+        ((!notification.customer?.smsConsent && notification.channel === 'SMS') ||
+          (notification.customer?.emailOptOut && notification.channel === 'EMAIL'))) {
+        await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'FAILED', failureReason: 'Marketing consent withdrawn before delivery' } })
+        continue
+      }
       if (notification.channel === 'SMS') {
         if (!isTwilioConfigured()) {
           await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'FAILED', errorMessage: 'SMS notifications are not configured', failureReason: 'SMS notifications are not configured' } }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
