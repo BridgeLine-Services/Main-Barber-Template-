@@ -190,16 +190,15 @@ export function Footer({ business, giftCardsEnabled, shopEnabled }: FooterProps)
                   <Link href="/booking-policy" className="hover:text-accent transition">Booking & Cancellation Policy</Link>
                 </li>
               )}
-              {business?.privacyPolicy && (
-                <li>
-                  <Link href="/privacy" className="hover:text-accent transition">Privacy Policy</Link>
-                </li>
-              )}
-              {business?.termsPolicy && (
-                <li>
-                  <Link href="/terms" className="hover:text-accent transition">Terms of Service</Link>
-                </li>
-              )}
+              <li>
+                <Link href="/privacy" className="hover:text-accent transition">Privacy Policy</Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-accent transition">Terms of Service</Link>
+              </li>
+              <li>
+                <Link href="/cookies" className="hover:text-accent transition">Cookie Policy</Link>
+              </li>
             </ul>
           </div>
         </div>
