@@ -164,10 +164,14 @@ async function main() {
           redirect: 'manual',
           headers: { cookie: cookiePairs(ownerLogin.cookie) },
         })
+        const loginPageHtml = loginPage.ok ? await loginPage.text() : ''
         assert(
-          [302, 307, 308].includes(loginPage.status) &&
-            (loginPage.headers.get('location') || '').includes('/auth/redirect'),
-          `authenticated owner is routed away from login (got ${loginPage.status} → ${loginPage.headers.get('location') || 'no location'})`
+          loginPage.status === 200 && loginPageHtml.includes('signed in as'),
+          `authenticated visitor still sees the login interface with a signed-in notice (got ${loginPage.status})`
+        )
+        assert(
+          loginPageHtml.includes('Sign out'),
+          'signed-in notice on /login offers a visible sign-out action'
         )
 
         const publicShop = await fetch(BASE, {

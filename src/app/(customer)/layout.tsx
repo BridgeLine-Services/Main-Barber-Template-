@@ -13,6 +13,7 @@ import { getGiftCardSettings } from '@/lib/gift-cards'
 import { isStorefrontUsable } from '@/lib/ecommerce'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { SignOutButton } from '@/components/auth/SignOutButton'
 
 export default async function CustomerLayout({
   children,
@@ -22,10 +23,14 @@ export default async function CustomerLayout({
   const business = await resolveBusiness().catch(() => null)
 
   // No business configured — show a simple "not yet set up" page
-  // instead of redirecting to /setup (which no longer exists)
+  // instead of redirecting to /setup (which no longer exists).
+  // Signed-in non-owners get a visible session notice (with sign-out) so a
+  // successful customer signup/login is never mistaken for "nothing
+  // happened" while the shop is still unset up.
   if (!business) {
     const session = await getServerSession(authOptions)
-    const isOwner = session?.user?.role === 'OWNER'
+    const user = session?.user as { name?: string | null; email?: string | null; role?: string } | undefined
+    const isOwner = user?.role === 'OWNER'
 
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
@@ -38,12 +43,23 @@ export default async function CustomerLayout({
               ? 'Continue setup to finish configuring your shop.'
               : "This barbershop hasn't been set up yet. The owner needs to log in and complete the setup."}
           </p>
-          <a
-            href={isOwner ? '/dashboard' : '/login'}
-            className="inline-block mt-6 text-primary hover:brightness-125 transition-colors"
-          >
-            {isOwner ? 'Continue Setup →' : 'Owner Login →'}
-          </a>
+
+          {user && !isOwner && (
+            <p className="mt-4 text-sm text-muted-foreground" data-testid="signed-in-notice">
+              You&apos;re signed in as{' '}
+              <span className="font-medium text-foreground">{user.email || user.name}</span> ({user.role === 'CUSTOMER' ? 'Customer' : user.role}). You&apos;ll be able to book online once the shop opens.
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <a
+              href={isOwner ? '/dashboard' : '/login'}
+              className="inline-block text-primary hover:brightness-125 transition-colors"
+            >
+              {isOwner ? 'Continue Setup →' : 'Owner Login →'}
+            </a>
+            {user && !isOwner && <SignOutButton redirectTo="/login" />}
+          </div>
         </div>
       </div>
     )
