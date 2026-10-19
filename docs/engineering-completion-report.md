@@ -80,6 +80,10 @@ getServerSession redirect), `4928f3f` (production migration auto-repair).
 | Build-script unit tests (`npm run test:vercel-build`) | 24/24 PASS |
 | Live production probes (providers, csrf, callback 401, register validation, dashboard redirect) | PASS |
 | Invalid-credentials message shown in UI (safe, no sensitive detail) | PASS (verified in E2E page snapshot) |
+| Unified-auth audit 2026-10-18: full Playwright E2E suite (all 17 specs: owner login, barber login, customer signup/login -> /portal, cross-role denial, staff invitation, guest booking, accessibility) | 17/17 PASS |
+| Owner-registration journey (first-owner signup race protection) on a production build | 22/22 PASS |
+| Full CI suite (unit + integration, incl. customer-auth-security, role-permissions, rls-enforcement, tenant-isolation, cross-tenant-matrix, staff-invitations, ownership-transfer) | ALL PASS |
+| Live production battery 2026-10-18: owner login -> dashboard/onboarding, invalid password -> clear error, logout, guest /dashboard -> /login redirect, session persistence, public browsing | PASS |
 
 ## Build, lint, type-check, and test results (local, on `4928f3f` tree)
 
@@ -119,8 +123,8 @@ set `OWNER_PROVISIONING_TOKEN` to use the API provisioning path instead.
 
 ## Remaining Vercel or provider actions
 
-1. **Create the first owner account** (Sign-Up on the live `/login`) — the
-   only blocker to using the management portal. No dashboard action needed.
+1. **Complete the onboarding wizard** (owner account already provisioned;
+   see "Next concrete action") — the only blocker to the live public site.
 2. Optional: a custom domain + matching `NEXTAUTH_URL`/`NEXT_PUBLIC_APP_URL`
    when the template is deployed for a real client.
 
@@ -135,12 +139,20 @@ set `OWNER_PROVISIONING_TOKEN` to use the API provisioning path instead.
 
 None known. Rate limiting, password policy, timing-safe token comparison,
 advisory-lock owner race protection, server-side role checks, and tenant
-scoping were verified by code inspection and E2E. The only production open
-item is the intended owner-provisioning action above.
+scoping were verified by code inspection and E2E, plus a live production
+authentication battery on 2026-10-18 (valid login, invalid credentials,
+logout, guest redirect, session persistence).
 
 ## Next concrete action for the operator
 
-Create your owner account via Sign-Up at
-https://main-barber-template.vercel.app/login (about one minute), then
-complete the onboarding wizard. Everything else in this audit is either
-verified working or documented with evidence.
+The first owner account was provisioned on the live site through the real
+first-owner Sign-Up flow on 2026-10-18 (credentials delivered to the
+operator privately; change the password from dashboard settings). Live
+verification passed: owner login -> dashboard, invalid-credentials error,
+guest redirect, logout, session persistence, and public browsing.
+
+The only remaining step is completing the onboarding wizard after signing
+in (about two minutes: shop name, branding, services, team, booking
+settings). The wizard creates the Business record; until then the public
+pages intentionally show "Shop Coming Soon". Everything else in this audit
+is either verified working or documented with evidence.
