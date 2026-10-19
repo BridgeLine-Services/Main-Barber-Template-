@@ -69,6 +69,8 @@ export async function resolveCampaignAudience(
       lastName: true,
       phone: true,
       email: true,
+      smsConsent: true,
+      emailOptOut: true,
       appointments: {
         include: {
           barber: { select: { id: true, name: true } },
@@ -88,14 +90,16 @@ export async function resolveCampaignAudience(
       { ...audienceConfig, barberName, serviceName }
     )
     if (matches) {
-      targets.push({
-        customerId: customer.id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        phone: customer.phone,
-        email: customer.email,
-        reason,
-      })
+      if (customer.smsConsent) {
+        targets.push({
+          customerId: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          phone: customer.phone,
+          email: customer.email,
+          reason,
+        })
+      }
     }
   }
 
@@ -259,11 +263,12 @@ export async function sendCampaign(businessId: string, campaignId: string) {
   if (recipients.length > 0) {
     try {
       await prisma.notificationLog.createMany({
-        data: recipients.map((phone) => ({
+        data: targets.filter((target) => target.phone).map((target) => ({
           appointmentId: null,
+          customerId: target.customerId,
           channel: 'SMS',
           type: 'MARKETING_CAMPAIGN',
-          recipient: phone,
+          recipient: target.phone,
           content: `${campaign.subject}\n\n${campaign.body}`,
           status: 'PENDING',
           businessId,

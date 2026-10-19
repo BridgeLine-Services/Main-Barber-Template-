@@ -58,6 +58,8 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {status && (
         <div
+          role="status"
+          aria-live="polite"
           className={`p-4 rounded-lg flex items-start gap-3 text-sm ${
             status.type === 'success'
               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
@@ -116,6 +118,11 @@ export function ContactForm() {
           onChange={(e) => setMessage(e.target.value)}
           className="bg-background border-border text-foreground placeholder:text-muted-foreground/70 focus:border-accent focus:ring-accent"
         />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          We use the information you provide to respond to your message. See our{' '}
+          <a href="/privacy" className="text-accent underline underline-offset-2 hover:text-foreground">Privacy Policy</a>{' '}
+          for details.
+        </p>
       </div>
 
       <Button
