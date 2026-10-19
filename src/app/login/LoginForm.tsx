@@ -139,10 +139,14 @@ export default function LoginForm({
           </h1>
           <p className="mt-6 text-large text-muted-foreground leading-relaxed">
             {effectiveMode === 'login'
-              ? canRegister
+              ? ownerOnboardingOpen
                 ? 'Create the initial owner account or sign in to continue setup.'
-                : 'Sign in to continue your account access.'
-              : 'Create the owner account for this shop and continue into the onboarding wizard.'}
+                : customerRegistrationOpen
+                  ? 'Sign in to your account, or create a customer account to book faster.'
+                  : 'Sign in to continue your account access.'
+              : ownerOnboardingOpen
+                ? 'Create the owner account for this shop and continue into the onboarding wizard.'
+                : 'Create your customer account to book and manage appointments online.'}
           </p>
         </div>
 
@@ -160,10 +164,14 @@ export default function LoginForm({
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {effectiveMode === 'login'
-              ? canRegister
+              ? ownerOnboardingOpen
                 ? 'Create the initial owner account or sign in to continue setup.'
-                : 'Sign in to continue your account access.'
-              : 'Create the owner account for this shop and continue into the onboarding wizard.'}
+                : customerRegistrationOpen
+                  ? 'Sign in to your account, or create a customer account to book faster.'
+                  : 'Sign in to continue your account access.'
+              : ownerOnboardingOpen
+                ? 'Create the owner account for this shop and continue into the onboarding wizard.'
+                : 'Create your customer account to book and manage appointments online.'}
           </p>
         </div>
 
@@ -175,10 +183,14 @@ export default function LoginForm({
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {effectiveMode === 'login'
-                ? canRegister
+                ? ownerOnboardingOpen
                   ? 'Create the first owner account or sign in to resume setup.'
-                  : 'Manage your bookings or access your secure account.'
-                : 'Create the owner account for this shop and continue into onboarding.'}
+                  : customerRegistrationOpen
+                    ? 'Sign in to your account, or create a customer account to book faster.'
+                    : 'Manage your bookings or access your secure account.'
+                : ownerOnboardingOpen
+                  ? 'Create the owner account for this shop and continue into onboarding.'
+                  : 'Create your customer account to book and manage appointments online.'}
             </p>
           </div>
 
