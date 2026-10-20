@@ -12,26 +12,64 @@ export async function getAuthenticatedBusinessId(): Promise<string | null> {
 /**
  * Resolve the public business for this deployment.
  *
- * A cloned client deployment can set SINGLE_BUSINESS_ID and avoid requiring
- * hostnames to match the database slug. Host resolution remains first so the
- * template preserves its multi-business-safe behavior when that is needed.
+ * Tenant mode is configured with TENANT_MODE (NOT APP_MODE — that variable
+ * already owns the production|demo application-mode switch):
+ *
+ *   - unset (default): zero-config single-shop behavior. Host→slug is tried
+ *     first, then SINGLE_BUSINESS_ID, then a guarded sole-business fallback
+ *     (only when the deployment has exactly one business). This is what a
+ *     fresh cloned deployment and the E2E environment rely on: the public
+ *     site works right after onboarding, before any tenant env vars exist.
+ *   - 'multi': strict hostname resolution. The request hostname must match a
+ *     Business.slug. No sole-business fallback.
+ *   - 'single': the deployment binds to SINGLE_BUSINESS_ID. Fail closed when
+ *     it is missing or invalid.
+ *
+ * Any explicitly configured but invalid TENANT_MODE fails closed (the public
+ * site is unavailable rather than accidentally binding to the wrong tenant).
  */
 export async function resolvePublicBusiness() {
-  const mode = process.env.APP_MODE?.trim().toLowerCase() || 'multi'
-  if (mode !== 'single' && mode !== 'multi') return null
+  const configuredMode = process.env.TENANT_MODE?.trim().toLowerCase()
+  if (configuredMode && configuredMode !== 'single' && configuredMode !== 'multi') return null
 
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host')
   const hostname = host?.split(':')[0]?.toLowerCase()
 
-  if (mode === 'multi') {
+  if (configuredMode === 'multi') {
     if (!hostname) return null
     return prisma.business.findUnique({ where: { slug: hostname } }).catch(() => null)
   }
 
+  if (configuredMode === 'single') {
+    const configuredBusinessId = process.env.SINGLE_BUSINESS_ID?.trim()
+    if (!configuredBusinessId) return null
+    return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
+  }
+
+  // TENANT_MODE unset — zero-config single-shop resolution.
+  if (hostname) {
+    const byHost = await prisma.business.findUnique({ where: { slug: hostname } }).catch(() => null)
+    if (byHost) return byHost
+  }
+
   const configuredBusinessId = process.env.SINGLE_BUSINESS_ID?.trim()
-  if (!configuredBusinessId) return null
-  return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
+  if (configuredBusinessId) {
+    return prisma.business.findUnique({ where: { id: configuredBusinessId } }).catch(() => null)
+  }
+
+  // Single-shop deployments host on a domain that will not match any business
+  // slug (e.g. <project>.vercel.app) and often do not have
+  // SINGLE_BUSINESS_ID set yet. Falling back to the sole business keeps the
+  // public customer website reachable right after onboarding instead of
+  // showing "Shop Coming Soon" while one exists.
+  const businessCount = await prisma.business.count().catch(() => 0)
+  if (businessCount === 1) {
+    const [sole] = await prisma.business.findMany({ take: 1 }).catch(() => [])
+    if (sole) return sole
+  }
+
+  return null
 }
 
 /** Resolve the configured business for a cloned single-business deployment. */
