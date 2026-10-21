@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { canManageStaffWithRole } from '@/lib/permissions'
 import { toAuditJson } from '@/lib/auth-helpers'
 
 const updateSchema = z.object({
@@ -38,8 +39,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     // or remove the OWNER role.
     const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
     if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
-      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
+    // Privilege-tier rule: co-owners (BUSINESS_ADMIN) may manage BARBER
+    // staff only. Managing an OWNER or another co-owner requires the OWNER.
+    if (!canManageStaffWithRole(callerRole, target.role)) {
+      return NextResponse.json(
+        { error: 'Only the business owner can manage co-owner or owner accounts' },
+        { status: 403 }
+      )
     }
     try {
       const body = await req.json()
@@ -55,6 +61,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       // Don't allow demoting yourself
       if (parsed.data.role === 'OWNER' && callerRole !== 'OWNER') {
         return NextResponse.json({ error: 'Only the business owner can assign the Owner role' }, { status: 403 })
+      }
+      // The co-owner tier is OWNER-managed: only the business owner may
+      // promote someone to co-owner.
+      if (parsed.data.role === 'BUSINESS_ADMIN' && callerRole !== 'OWNER') {
+        return NextResponse.json({ error: 'Only the business owner can assign the Co-owner role' }, { status: 403 })
       }
       if (user.id === session.user.id && parsed.data.role && parsed.data.role !== 'OWNER') {
         return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
@@ -165,8 +176,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     // or remove the OWNER role.
     const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
     if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
-      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
+    // Privilege-tier rule: co-owners (BUSINESS_ADMIN) may manage BARBER
+    // staff only. Managing an OWNER or another co-owner requires the OWNER.
+    if (!canManageStaffWithRole(callerRole, target.role)) {
+      return NextResponse.json(
+        { error: 'Only the business owner can manage co-owner or owner accounts' },
+        { status: 403 }
+      )
     }
     try {
       const businessId = await getCurrentBusinessId()
@@ -228,8 +244,13 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     // or remove the OWNER role.
     const target = await prisma.user.findFirst({ where: { id: params.id, businessId: await getCurrentBusinessId() }, select: { role: true, id: true } })
     if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (callerRole !== 'OWNER' && (target.role === 'OWNER' )) {
-      return NextResponse.json({ error: 'Only the business owner can manage Owner accounts' }, { status: 403 })
+    // Privilege-tier rule: co-owners (BUSINESS_ADMIN) may manage BARBER
+    // staff only. Managing an OWNER or another co-owner requires the OWNER.
+    if (!canManageStaffWithRole(callerRole, target.role)) {
+      return NextResponse.json(
+        { error: 'Only the business owner can manage co-owner or owner accounts' },
+        { status: 403 }
+      )
     }
     try {
       const businessId = await getCurrentBusinessId()

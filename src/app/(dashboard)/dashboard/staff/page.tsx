@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { roleLabel } from '@/lib/role-labels'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,9 +27,10 @@ export default function StaffPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [tempCreds, setTempCreds] = useState<{ email: string; password: string } | null>(null)
-  const [inviteLink, setInviteLink] = useState<{ email: string; url: string } | null>(null)
+  const [inviteLink, setInviteLink] = useState<{ email: string; url: string; emailSent: boolean } | null>(null)
   const [invitations, setInvitations] = useState<Array<{ id: string; email: string; name: string; role: string; expiresAt: string }>>([])
   const [copied, setCopied] = useState(false)
+  const [resending, setResending] = useState<string | null>(null)
 
   const [form, setForm] = useState({ name: '', email: '', role: 'BARBER', barberId: '' })
   const [barbers, setBarbers] = useState<{ id: string; name: string; isActive: boolean }[]>([])
@@ -77,7 +79,7 @@ export default function StaffPage() {
         return
       }
 
-      setInviteLink({ email: data.invitation.email, url: data.inviteUrl })
+      setInviteLink({ email: data.invitation.email, url: data.inviteUrl, emailSent: Boolean(data.emailSent) })
       setForm({ name: '', email: '', role: 'BARBER', barberId: '' })
       setShowForm(false)
       fetchStaff()
@@ -98,6 +100,25 @@ export default function StaffPage() {
       fetchStaff()
     } catch {
       setError('Network error')
+    }
+  }
+
+  const handleResendInvite = async (id: string, email: string) => {
+    if (!confirm(`Resend the invitation for ${email}? A fresh single-use link will be created and the old link will stop working.`)) return
+    setResending(id)
+    try {
+      const res = await fetch(`/api/dashboard/staff/invitations/${id}`, { method: 'POST' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error || 'Failed to resend invitation')
+        return
+      }
+      setInviteLink({ email, url: data.inviteUrl, emailSent: Boolean(data.emailSent) })
+      fetchStaff()
+    } catch {
+      setError('Network error')
+    } finally {
+      setResending(null)
     }
   }
 
@@ -280,13 +301,19 @@ export default function StaffPage() {
         <Card className="bg-card border-[var(--dash-brand-border)]">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-[var(--dash-brand)]">Invitation Sent — Share This Secure Link</p>
+              <p className="text-sm font-medium text-[var(--dash-brand)]">
+                {inviteLink.emailSent
+                  ? 'Invitation Emailed — Backup Link Below'
+                  : 'Invitation Created — Email Delivery Not Configured'}
+              </p>
               <Button size="sm" variant="ghost" onClick={() => setInviteLink(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-4 h-4" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {inviteLink.email} sets their own password via this single-use link (expires in 7 days).
+              {inviteLink.emailSent
+                ? `${inviteLink.email} was sent a secure link. If it doesn't arrive, share this single-use backup link (expires in 7 days).`
+                : `${inviteLink.email} could not be emailed yet (SMTP not configured). Share this single-use secure link directly (expires in 7 days).`}
             </p>
             <div className="rounded-lg bg-muted p-3 font-mono text-xs break-all text-foreground/85">{inviteLink.url}</div>
             <Button
@@ -313,11 +340,16 @@ export default function StaffPage() {
                 <div key={inv.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
                   <div>
                     <p className="text-sm text-foreground">{inv.name} <span className="text-muted-foreground">({inv.email})</span></p>
-                    <p className="text-xs text-muted-foreground">{inv.role === 'BUSINESS_ADMIN' ? 'Admin' : 'Barber'} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{inv.role === 'BUSINESS_ADMIN' ? 'Co-owner' : 'Barber'} · expires {new Date(inv.expiresAt).toLocaleDateString()}</p>
                   </div>
-                  <Button size="sm" variant="outline" className="border-red-500/30 text-red-300 hover:bg-red-500/10" onClick={() => handleRevokeInvite(inv.id, inv.email)}>
-                    Revoke
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="border-input text-foreground/85 hover:bg-[var(--dash-hover)]" onClick={() => handleResendInvite(inv.id, inv.email)} disabled={resending === inv.id}>
+                      {resending === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    </Button>
+                    <Button size="sm" variant="outline" className="border-red-500/30 text-red-300 hover:bg-red-500/10" onClick={() => handleRevokeInvite(inv.id, inv.email)}>
+                      Revoke
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -369,7 +401,8 @@ export default function StaffPage() {
                       onChange={() => setForm({ ...form, role: 'BUSINESS_ADMIN' })}
                       className="sr-only" />
                     <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">Business Admin (no ownership actions)</span>
+                    <span className="text-sm text-foreground">Co-owner</span>
+                    <span className="text-xs text-muted-foreground">(delegated admin, no ownership actions)</span>
                   </label>
                   </div>
               </div>

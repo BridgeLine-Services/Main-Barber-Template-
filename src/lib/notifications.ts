@@ -427,6 +427,91 @@ export async function sendSmsReminder(phone: string, message: string) {
 }
 
 // ============================================================================
+
+// ============================================================================
+// Staff invitation HTML — responsive, dark-and-gold branded email that
+// matches the shop's dashboard aesthetic. All values interpolated here are
+// validated server-side (name/email from the invite form schema,
+// businessName from the authenticated session, inviteUrl built from the
+// canonical app URL). Only the single-use invitation token travels in the
+// link — no credentials beyond the optional temp password.
+// ============================================================================
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderStaffInviteHtml(params: {
+  businessName: string
+  name: string
+  roleLabel: string
+  inviteUrl: string
+  tempPassword: string
+}): string {
+  const shop = escapeHtml(params.businessName)
+  const name = escapeHtml(params.name)
+  const role = escapeHtml(params.roleLabel)
+  const safeUrl = escapeHtml(params.inviteUrl)
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>You're invited to join ${shop}</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#0c0a09;-webkit-text-size-adjust:100%;">
+    <div role="presentation" style="max-width:560px;margin:0 auto;padding:32px 16px;">
+      <div style="background-color:#1c1917;border:1px solid #3f3f46;border-radius:12px;overflow:hidden;">
+        <div style="background-color:#0c0a09;padding:28px 32px;border-bottom:1px solid #3f3f46;text-align:center;">
+          <p style="margin:0;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#d4a853;font-family:Georgia,serif;">
+            ${shop}
+          </p>
+        </div>
+        <div style="padding:32px;color:#e7e5e4;font-family:Georgia,serif;">
+          <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;color:#fafaf9;font-weight:600;">
+            You're invited to join ${shop}
+          </h1>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#d6d3d1;">
+            Hi ${name},
+          </p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#d6d3d1;">
+            You've been invited to join <strong style="color:#fafaf9;">${shop}</strong> as a
+            <strong style="color:#d4a853;">${role}</strong>.
+          </p>
+          <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#a8a29e;">
+            Your account will give you access to the tools and features assigned to your role within the barbershop.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;width:100%;">
+            <tr>
+              <td style="text-align:center;">
+                <a href="${safeUrl}"
+                   style="display:inline-block;background-color:#d4a853;color:#1c1917;font-family:Georgia,serif;font-size:16px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:8px;">
+                  Accept Your Invitation
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#78716c;">
+            This invitation expires after 7 days and can only be used once.
+            If you weren't expecting this invitation, you can safely ignore this email.
+          </p>
+        </div>
+        <div style="background-color:#0c0a09;padding:20px 32px;border-top:1px solid #3f3f46;">
+          <p style="margin:0;font-size:13px;color:#78716c;font-family:Georgia,serif;">
+            Best regards,<br />The ${shop} Team
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
 // Staff invite notification
 // Best-effort delivery of temporary credentials when SMTP is configured.
 // The API response still returns the temp password to the inviting owner,
@@ -440,6 +525,8 @@ export async function sendStaffInviteEmail(params: {
   name: string
   tempPassword: string
   loginUrl: string
+  /** Invited role identifier ('BARBER' | 'BUSINESS_ADMIN'); rendered as a friendly label. */
+  role?: string
 }): Promise<boolean> {
   const emailIssue = emailConfigurationIssue()
   if (emailIssue) {
@@ -457,14 +544,22 @@ export async function sendStaffInviteEmail(params: {
   }
   try {
     const transport = getTransporter()
+    const roleLabel = params.role === 'BUSINESS_ADMIN' ? 'Co-owner' : params.role === 'BARBER' ? 'Barber' : 'team member'
+    const html = renderStaffInviteHtml({
+      businessName: params.businessName,
+      name: params.name,
+      roleLabel,
+      inviteUrl: params.loginUrl,
+      tempPassword: params.tempPassword,
+    })
     await transport.sendMail({
       from: getSmtpFromAddress(),
       to: params.to,
-      subject: `You've been invited to join ${params.businessName}`,
+      subject: `You're invited to join ${params.businessName}`,
       text: [
         `Hi ${params.name},`,
         ``,
-        `You've been invited to the ${params.businessName} team.`,
+        `You've been invited to join ${params.businessName} as a ${roleLabel}.`,
         ``,
         params.tempPassword
           ? `Sign in here: ${params.loginUrl}`
@@ -476,6 +571,7 @@ export async function sendStaffInviteEmail(params: {
         ``,
         `If you weren't expecting this invite, you can ignore this email.`,
       ].join('\n'),
+      html,
     })
     await logNotification({
       businessId: params.businessId,

@@ -9,6 +9,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
 import { sendStaffInviteEmail } from '@/lib/notifications'
+import { canManageStaffWithRole } from '@/lib/permissions'
 import { getAppUrlString } from '@/lib/app-url'
 
 // ============================================================================
@@ -120,6 +121,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Co-owner tier is OWNER-managed: a BUSINESS_ADMIN may invite BARBER
+      // staff only. Inviting another co-owner requires the business owner.
+      if (!canManageStaffWithRole(callerRole, parsed.data.role)) {
+        return NextResponse.json(
+          { error: 'Only the business owner can invite a co-owner' },
+          { status: 403 }
+        )
+      }
+
       const email = parsed.data.email.toLowerCase()
 
       // An existing account can only be invited when it can be securely
@@ -198,6 +208,7 @@ export async function POST(req: NextRequest) {
           name: parsed.data.name,
           tempPassword: '', // invitation flow: the link sets the password
           loginUrl: inviteUrl,
+          role: parsed.data.role,
         })
       } catch (emailError) {
         console.error('[staff] invite email failed', emailError instanceof Error ? emailError.message : 'unknown error')

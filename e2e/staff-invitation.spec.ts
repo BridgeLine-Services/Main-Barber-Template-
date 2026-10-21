@@ -114,3 +114,46 @@ test('an existing customer account accepts a staff invitation by authenticating 
   await page.getByRole('button', { name: /login & accept/i }).click()
   await page.waitForURL(/dashboard/, { timeout: 30_000 })
 })
+
+test('owner invites a co-owner; co-owner accepts and cannot mint another co-owner', async ({ page }) => {
+  const email = `e2e-coowner-${Date.now()}@example.com`
+
+  // 1. Owner signs in and invites a co-owner through the staff UI
+  await page.goto('/login')
+  await page.getByPlaceholder('you@example.com').fill(OWNER_EMAIL)
+  await page.getByPlaceholder('••••••••').fill(OWNER_PASSWORD)
+  await page.getByRole('button', { name: 'Login', exact: true }).click()
+  await page.waitForURL(/dashboard/, { timeout: 30_000 })
+
+  await page.goto('/dashboard/staff')
+  await page.getByRole('button', { name: /invite staff/i }).click()
+  await page.getByPlaceholder('John Doe').fill('Invited Co-owner')
+  await page.getByPlaceholder('john@barbershop.com').fill(email)
+  await page.locator('label:has(input[value="BUSINESS_ADMIN"])').click()
+  await page.getByRole('button', { name: /send invite/i }).click()
+
+  const linkText = page.getByText(/accept-invitation\?token=/)
+  await expect(linkText).toBeVisible({ timeout: 20_000 })
+  const inviteUrl = await linkText.textContent()
+  await page.context().clearCookies()
+
+  // 2. The co-owner accepts and reaches the dashboard
+  await page.goto(inviteUrl!)
+  await page.locator('#password').fill(INVITEE_PASSWORD)
+  await page.locator('#confirm').fill(INVITEE_PASSWORD)
+  await page.getByRole('button', { name: /accept invitation/i }).click()
+  await page.waitForURL(/dashboard/, { timeout: 30_000 })
+
+  // 3. The staff page presents the delegated role by its friendly label
+  //    (the sidebar label is hidden on the collapsed desktop rail)
+  await page.goto('/dashboard/staff')
+  await expect(page.getByText('Co-owner', { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+
+  // The co-owner is blocked from minting another co-owner (server-side)
+  await page.getByRole('button', { name: /invite staff/i }).click()
+  await page.getByPlaceholder('John Doe').fill('Second Co-owner')
+  await page.getByPlaceholder('john@barbershop.com').fill(`e2e-coowner2-${Date.now()}@example.com`)
+  await page.locator('label:has(input[value="BUSINESS_ADMIN"])').click()
+  await page.getByRole('button', { name: /send invite/i }).click()
+  await expect(page.getByText(/only the business owner can invite a co-owner/i)).toBeVisible({ timeout: 20_000 })
+})

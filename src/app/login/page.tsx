@@ -21,15 +21,8 @@ import {
   parseOwnerRegistrationMode,
 } from '@/lib/owner-registration'
 import { SignOutButton } from '@/components/auth/SignOutButton'
+import { roleLabel } from '@/lib/role-labels'
 import LoginForm from './LoginForm'
-
-const ROLE_LABEL: Record<string, string> = {
-  PLATFORM_OWNER: 'Platform Owner',
-  OWNER: 'Owner',
-  BUSINESS_ADMIN: 'Business Admin',
-  BARBER: 'Barber',
-  CUSTOMER: 'Customer',
-}
 
 export default async function LoginPage() {
   const session = await getServerSession(authOptions)
@@ -53,7 +46,7 @@ export default async function LoginPage() {
             <p className="text-sm text-muted-foreground">
               You&apos;re signed in as{' '}
               <span className="font-medium text-foreground">{sessionUser.email || sessionUser.name}</span>
-              {sessionUser.role ? ` (${ROLE_LABEL[sessionUser.role] ?? sessionUser.role})` : ''}. Sign out
+              {sessionUser.role ? ` (${roleLabel(sessionUser.role)})` : ''}. Sign out
               to use a different account.
             </p>
             <div className="flex shrink-0 items-center gap-2">

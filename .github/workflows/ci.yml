@@ -102,6 +102,7 @@ jobs:
             exit 1
           fi
           npm run test:owner-registration
+          npm run test:coowner-permissions
 
   # Browser-level E2E (final-audit requirement): real Chromium against the
   # production build. Docs/TESTING.md documents the local equivalent.

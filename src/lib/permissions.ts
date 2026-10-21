@@ -156,3 +156,22 @@ export function isPlatformRole(role: AppRole | string | null | undefined): boole
 export function capabilitiesOf(role: AppRole | string): readonly Capability[] {
   return ROLE_CAPABILITIES[role as AppRole] ?? []
 }
+
+/**
+ * May `callerRole` create or manage staff accounts with `targetRole`?
+ *
+ * Co-owners (BUSINESS_ADMIN) hold delegated operational authority, but the
+ * co-owner tier itself is OWNER-managed: a co-owner may invite and manage
+ * BARBER staff only. Inviting, editing, deactivating, removing, or
+ * revoking invitations for another co-owner requires the OWNER. OWNER
+ * accounts are managed by the OWNER (or the platform owner) alone.
+ */
+export function canManageStaffWithRole(
+  callerRole: AppRole | string | null | undefined,
+  targetRole: AppRole | string | null | undefined
+): boolean {
+  if (callerRole === 'PLATFORM_OWNER') return true
+  if (callerRole === 'OWNER') return targetRole !== 'PLATFORM_OWNER'
+  if (callerRole === 'BUSINESS_ADMIN') return targetRole === 'BARBER'
+  return false
+}

@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import type { LucideIcon } from 'lucide-react'
+import { roleLabel } from '@/lib/role-labels'
 
 interface SidebarProps {
   userName: string
@@ -203,7 +204,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground leading-tight">{businessName}</h2>
-            <p className="text-[10px] text-muted-foreground capitalize">{userRole.toLowerCase()} portal</p>
+            <p className="text-[10px] text-muted-foreground">{roleLabel(userRole)} portal</p>
           </div>
         </div>
         <Button
