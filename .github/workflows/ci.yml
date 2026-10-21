@@ -77,6 +77,7 @@ jobs:
           set -euo pipefail
           OWNER_REGISTRATION_MODE=onboarding \
           RATE_LIMIT_REGISTER_MAX=25 \
+          RATE_LIMIT_ACCEPT_POST_MAX=15 \
           NEXTAUTH_URL=http://localhost:3000 \
           npx next start -p 3000 > /tmp/next-server.log 2>&1 &
           SERVER_PID=$!
@@ -123,6 +124,8 @@ jobs:
       # The 17-test suite registers several accounts within one minute;
       # keep the register limiter headroom high enough for that burst.
       RATE_LIMIT_REGISTER_MAX: '25'
+      # E2E accepts three staff invitations from one IP within a minute.
+      RATE_LIMIT_ACCEPT_POST_MAX: '15'
     services:
       postgres:
         image: postgres:15

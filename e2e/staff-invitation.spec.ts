@@ -144,13 +144,12 @@ test('owner invites a co-owner; co-owner accepts and cannot mint another co-owne
   await page.getByRole('button', { name: /accept invitation/i }).click()
   await page.waitForURL(/dashboard/, { timeout: 30_000 })
 
-  // 3. The staff page presents the delegated role by its friendly label
-  //    (the sidebar label is hidden on the collapsed desktop rail)
+  // 3. The co-owner opens the staff invitation dialog (the dialog presents
+  //    the delegated Co-owner option) but is blocked server-side from
+  //    minting another co-owner.
   await page.goto('/dashboard/staff')
-  await expect(page.getByText('Co-owner', { exact: true }).first()).toBeVisible({ timeout: 20_000 })
-
-  // The co-owner is blocked from minting another co-owner (server-side)
   await page.getByRole('button', { name: /invite staff/i }).click()
+  await expect(page.getByText('Co-owner', { exact: true }).first()).toBeVisible({ timeout: 20_000 })
   await page.getByPlaceholder('John Doe').fill('Second Co-owner')
   await page.getByPlaceholder('john@barbershop.com').fill(`e2e-coowner2-${Date.now()}@example.com`)
   await page.locator('label:has(input[value="BUSINESS_ADMIN"])').click()
