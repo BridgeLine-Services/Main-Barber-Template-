@@ -96,20 +96,11 @@ export async function POST(req: NextRequest) {
       ipAddress: getClientIP(req),
     }).catch(() => {}) // audit failures must not block the password change
 
-    // Redirect target depends on onboarding status: an owner who hasn't
-    // finished setup goes back to the wizard; everyone else to the dashboard.
-    let redirectTo = '/dashboard'
-    if (user.role === 'OWNER') {
-      if (!user.businessId) {
-        redirectTo = '/dashboard/onboarding'
-      } else {
-        const business = await prisma.business.findUnique({
-          where: { id: user.businessId },
-          select: { onboardingCompleted: true },
-        })
-        if (!business?.onboardingCompleted) redirectTo = '/dashboard/onboarding'
-      }
-    }
+    // Session-security: changing the password invalidates every existing
+    // session (including this one), so the client must sign out and the user
+    // signs back in with the new password. After re-login the dashboard gate
+    // still routes an un-onboarded owner to the wizard.
+    const redirectTo = '/login?passwordChanged=1'
 
     return NextResponse.json({ success: true, redirectTo })
   } catch (error) {

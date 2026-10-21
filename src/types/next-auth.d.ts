@@ -36,5 +36,9 @@ declare module 'next-auth/jwt' {
     customerId?: string | null
     businessName?: string
     barberId?: string | null
+    /** Sign-in stamp of the account's passwordChangedAt (epoch ms) — session-security */
+    pwd?: number | null
+    /** Set when a session was invalidated by a later password change */
+    dead?: boolean
   }
 }

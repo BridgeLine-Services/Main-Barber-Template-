@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,7 +16,6 @@ import { KeyRound, Loader2, AlertCircle } from 'lucide-react'
  * server-side until the flag is cleared here.
  */
 export default function ChangePasswordPage() {
-  const router = useRouter()
   const { toast } = useToast()
   const { data: session } = useSession()
   const [submitting, setSubmitting] = useState(false)
@@ -59,11 +57,10 @@ export default function ChangePasswordPage() {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        toast({ title: 'Password updated', description: 'Your dashboard is now unlocked.' })
-        // Server decides the destination: onboarding wizard if setup is
-        // unfinished, otherwise the dashboard.
-        router.push(data.redirectTo || '/dashboard')
-        router.refresh()
+        toast({ title: 'Password updated', description: 'Sign in again with your new password.' })
+        // Changing the password invalidates ALL sessions (including this
+        // one) — sign out and land on /login to re-authenticate.
+        await signOut({ callbackUrl: data.redirectTo || '/login?passwordChanged=1' })
       } else {
         setError(data.error || 'Failed to change password')
       }

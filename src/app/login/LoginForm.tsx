@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Lock, Mail, AlertCircle, ArrowRight, ArrowLeft, User } from 'lucide-react'
+import { Lock, Mail, AlertCircle, ArrowRight, ArrowLeft, User, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -113,6 +113,7 @@ export default function LoginForm({
   }
 
   const visibleError = error ?? authError
+  const passwordChanged = searchParams.get('passwordChanged') === '1'
 
   return (
     <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-[55%_45%]">
@@ -194,6 +195,15 @@ export default function LoginForm({
             </p>
           </div>
 
+          {passwordChanged && (
+            <div
+              role="status"
+              className="mb-6 p-3.5 rounded-md border border-border bg-muted text-foreground text-sm flex items-start gap-3"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-primary" aria-hidden="true" />
+              <span>Password updated. Sign in with your new password.</span>
+            </div>
+          )}
           {visibleError && (
             <div
               role="alert"

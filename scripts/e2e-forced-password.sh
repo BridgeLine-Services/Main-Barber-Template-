@@ -2,7 +2,7 @@
 # E2E: forced password change flow.
 # Covers: DB flag → server-side dashboard block → /change-password validation
 # (wrong current, same password, weak passwords, mismatched confirm) →
-# success (flags cleared, audit row, onboarding-aware redirect) → access restored.
+# success (flags cleared, audit row, re-auth redirect) → old session invalidated → access restored via new login.
 set -u
 BASE="http://localhost:3000"
 PASS=0; FAIL=0
@@ -94,7 +94,12 @@ async function main() { await prisma.user.update({ where: { email: 'forced@test.
 main().finally(() => prisma['\$disconnect']())" >/dev/null 2>&1
 login forced@test.dev BrandNewPass123
 R=$(chg '{"currentPassword":"BrandNewPass123","newPassword":"FinalPass789","confirmPassword":"FinalPass789"}' | jqpy "str(d.get('redirectTo'))")
-check "owner without business → onboarding redirect" "/dashboard/onboarding" "$R"
+check "password change redirects to login (re-authenticate)" "/login?passwordChanged=1" "$R"
+# Session security: the pre-change session cookie must now be fully dead
+AUTH=$(curl -s -b "$JAR" $BASE/api/auth/session | jqpy "str(d.get('user',{}).get('email',''))")
+check "old session cookie invalidated after password change" "" "$AUTH"
+R=$(curl -s -b "$JAR" -o /dev/null -w "%{redirect_url}" $BASE/dashboard)
+check "old session bounced from /dashboard to /login" "$BASE/login" "$R"
 # Password gate passed; onboarding gate now correctly applies to this owner
 login forced@test.dev FinalPass789
 R=$(curl -s -b "$JAR" -o /dev/null -w "%{redirect_url}" $BASE/dashboard)

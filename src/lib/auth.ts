@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
 import { rateLimit, isRateLimited, RATE_LIMITS } from './rate-limit'
+import { DEAD_CLAIM, PWD_CLAIM, isSessionInvalidated } from './session-security'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -79,6 +80,10 @@ export const authOptions: NextAuthOptions = {
             businessId: user.businessId || '',
             businessName: user.business?.name || 'Barber Shop',
             barberId: user.barberId,
+            // Session-security stamp: captured into the JWT at sign-in so the
+            // jwt callback can detect later password changes and kill stale
+            // sessions (see src/lib/session-security.ts).
+            passwordChangedAt: user.passwordChangedAt,
           }
         } catch (error) {
           console.error('[auth] credential lookup failed', error instanceof Error ? error.message : 'unknown error')
@@ -89,12 +94,30 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // A session already marked dead stays dead — skip all further work.
+      if ((token as { [DEAD_CLAIM]?: boolean })[DEAD_CLAIM]) return token
       if (user) {
         token.role = user.role as typeof token.role
         token.customerId = (user as { customerId?: string | null }).customerId ?? null
         token.businessId = user.businessId as string | null
         token.businessName = user.businessName as string | undefined
         token.barberId = user.barberId as string | null
+        // Stamp the account's passwordChangedAt at sign-in. Sessions minted
+        // before this mechanism have no stamp and are grandfathered.
+        ;(token as Record<string, unknown>)[PWD_CLAIM] =
+          (user as { passwordChangedAt?: Date | null }).passwordChangedAt?.getTime() ?? null
+      }
+      // Session invalidation: if the account's password changed AFTER this
+      // session was issued, the session is dead (e.g. an attacker holding a
+      // pre-change cookie after the owner rotated the password).
+      if (token.sub && typeof (token as Record<string, unknown>)[PWD_CLAIM] === 'number') {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { passwordChangedAt: true },
+        })
+        if (!fresh || isSessionInvalidated(fresh.passwordChangedAt, (token as Record<string, unknown>)[PWD_CLAIM] as number)) {
+          return { [DEAD_CLAIM]: true } as typeof token
+        }
       }
       // Self-heal stale claims: an owner who signed in BEFORE creating their
       // business carries businessId=null in the JWT. Once the business exists,
@@ -123,6 +146,15 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
+      // Dead (password-invalidated) sessions resolve to NO session: the null
+      // body propagates through getServerSession, so every guard —
+      // `!session` and `!session?.user` alike — treats the request as
+      // unauthenticated. Never return a user-less session object here: some
+      // routes pass session.user.businessId (undefined) into Prisma where
+      // it would be dropped from the filter.
+      if ((token as { [DEAD_CLAIM]?: boolean })[DEAD_CLAIM]) {
+        return null as unknown as typeof session
+      }
       if (session.user) {
         // token.sub is the user's DB id (NextAuth default) — expose it so
         // API routes can resolve the DB user authoritatively.
