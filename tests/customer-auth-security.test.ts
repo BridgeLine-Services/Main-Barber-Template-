@@ -162,12 +162,15 @@ async function main() {
     assert(r.status === 409, `forged role on the owner intent is still rejected (got ${r.status})`)
     assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no privileged account from a forged owner-intent request')
 
-    // The removed provisioning endpoint must stay gone: no alternate path.
+    // The removed provisioning endpoint must stay gone: the URL now falls
+    // through to NextAuth's catch-all, which rejects it (400) without ever
+    // touching the database. Either a 400 (catch-all) or 404 (no route) is a
+    // safe closed state — and in both cases nothing may be created.
     r = await api('/api/auth/register-owner', {
       method: 'POST',
       body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password }),
     })
-    assert(r.status === 404, `the retired provisioning endpoint stays closed (got ${r.status})`)
+    assert([400, 404].includes(r.status), `the retired provisioning endpoint stays closed (got ${r.status})`)
     assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no OWNER account created by a public request')
 
     console.log('\n── Login & session ──')

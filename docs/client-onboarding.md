@@ -18,8 +18,8 @@ This guide documents the standardized, evidence-based client delivery lifecycle 
    - Configure required Vercel environment variables as specified in `docs/environment-configuration.md` (`DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_APP_NAME`).
    - Attach custom client domain and verify SSL/DNS settings.
    - Provision the business and initial owner account via either:
-     - **Self-Onboarding**: With `OWNER_REGISTRATION_MODE=onboarding`, register the initial owner at `/login` and complete the `/dashboard/onboarding` wizard (stores business info, services, barbers, schedules, and policies in DB).
-     - **Operator Provisioning**: Supply `OWNER_PROVISIONING_TOKEN` to call `POST /api/auth/register-owner` or execute `npm run db:provision`.
+     - **Self-Onboarding (primary)**: With `OWNER_REGISTRATION_MODE=onboarding` (the default), the client registers the initial owner themselves at `/login` → **Create Owner Account** (offered only while no owner exists) and completes the `/dashboard/onboarding` wizard (stores business info, services, barbers, schedules, and policies in DB). No pre-created credentials, tokens, or database edits are needed.
+     - **Operator CLI Provisioning (alternative)**: Run `npm run db:provision` with `SEED_OWNER_PASSWORD` set (non-destructive; creates business, owner, and starter catalog). The browser-side provisioning endpoint was removed — there is no token-gated HTTP path.
 
 5. **Independent Verification & Launch Acceptance**:
    - Execute `SMOKE_BASE_URL=https://client-domain.com npm run test:smoke` to verify homepage, booking route, login route, and health endpoints.

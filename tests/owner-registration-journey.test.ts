@@ -155,6 +155,7 @@ async function main() {
       // never be minted.
       const forgedRole2 = await register('Forged Two', `ownerjourney-forged2-${stamp}@t.test`, password, {
         intent: 'owner',
+        confirmPassword: password,
         role: 'PLATFORM_OWNER',
       })
       const forgedUser2 = await prisma.user.findUnique({ where: { email: `ownerjourney-forged2-${stamp}@t.test` } })
