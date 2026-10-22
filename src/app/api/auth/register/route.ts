@@ -8,15 +8,42 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 import { isCustomerRegistrationOpen, isOwnerRegistrationOpen } from '@/lib/owner-registration'
 
-const registerSchema = z.object({
-  email: z.string().trim().email().transform(normalizeEmail),
-  password: passwordPolicySchema,
-  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-})
+// ============================================================================
+// PUBLIC REGISTRATION — the single public account-creation endpoint.
+//
+// Two explicit flows, both decided entirely on the SERVER:
+//
+//   intent: 'customer' (default) → always creates a CUSTOMER. Public sign-up
+//     can never mint an OWNER/staff role, no matter what the body contains.
+//
+//   intent: 'owner' → the self-service FIRST-OWNER bootstrap. Only succeeds
+//     while owner registration is open (OWNER_REGISTRATION_MODE=onboarding
+//     AND no OWNER exists). Once an owner exists the request is REJECTED with
+//     a clear message — it never silently falls back to creating a CUSTOMER.
+//     Two simultaneous first-owner attempts are serialized with a Postgres
+//     advisory lock inside a transaction, so exactly one request can win.
+//
+// `intent` selects a flow, never a role: the role is derived server-side from
+// the verified registration mode + owner lookup. Any client-supplied `role`
+// field is ignored (stripped by the zod schema).
+// ============================================================================
 
 class RegistrationConflict extends Error {
   status = 409
 }
+
+const OWNER_REGISTRATION_CLOSED_MESSAGE =
+  'Owner registration is already complete for this shop. Sign in as the owner, or create a customer account instead.'
+
+const registerSchema = z.object({
+  email: z.string().trim().email().transform(normalizeEmail),
+  password: passwordPolicySchema,
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
+  intent: z.enum(['customer', 'owner']).optional().default('customer'),
+  // Only read for the owner flow (the UI collects a password confirmation);
+  // customer sign-up keeps its exact historical request shape.
+  confirmPassword: z.string().optional(),
+})
 
 export async function POST(req: NextRequest) {
   const registerLimit = Number(process.env.RATE_LIMIT_REGISTER_MAX ?? 3) || 3
@@ -38,7 +65,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { email, password, name } = parsed.data
+    const { email, password, name, intent } = parsed.data
+
+    // Owner flow: password confirmation must match (existing policy schema).
+    if (intent === 'owner' && parsed.data.confirmPassword !== password) {
+      return NextResponse.json(
+        { error: 'Passwords do not match' },
+        { status: 400 }
+      )
+    }
 
     const existingOwner = await prisma.user.findFirst({
       where: { role: 'OWNER' },
@@ -46,14 +81,25 @@ export async function POST(req: NextRequest) {
     })
     const ownerOnboardingOpen = isOwnerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE, !!existingOwner)
     const customerRegistrationOpen = isCustomerRegistrationOpen(process.env.OWNER_REGISTRATION_MODE)
-    const shouldCreateOwner = ownerOnboardingOpen && !existingOwner
 
-    if (!shouldCreateOwner && !customerRegistrationOpen) {
+    if (intent === 'owner' && !ownerOnboardingOpen) {
+      // Explicit owner request is rejected — NEVER silently downgraded to a
+      // CUSTOMER account. Same safe message whether an owner exists or the
+      // mode is closed, so the response leaks nothing about the database.
+      return NextResponse.json(
+        { error: OWNER_REGISTRATION_CLOSED_MESSAGE, code: 'OWNER_REGISTRATION_CLOSED' },
+        { status: 409 }
+      )
+    }
+
+    if (intent === 'customer' && !customerRegistrationOpen) {
       return NextResponse.json(
         { error: 'Registration is disabled for this public entry point.' },
         { status: 403 }
       )
     }
+
+    const shouldCreateOwner = intent === 'owner'
 
     const createdUser = await prisma.$transaction(async (tx) => {
       if (shouldCreateOwner) {
@@ -109,7 +155,7 @@ export async function POST(req: NextRequest) {
     // never misreported as a duplicate email (emails are unique per racer).
     if ((error as { code?: string })?.code === 'OWNER_EXISTS') {
       return NextResponse.json(
-        { error: 'Owner registration is already complete for this shop.' },
+        { error: OWNER_REGISTRATION_CLOSED_MESSAGE, code: 'OWNER_REGISTRATION_CLOSED' },
         { status: 409 }
       )
     }

@@ -94,7 +94,9 @@ async function main() {
       console.log('\n🏁 Phase A — concurrent first-owner registration')
       const racers = emails('race', 4)
       createdEmails.push(...racers)
-      const results = await Promise.all(racers.map((e) => register('Race Owner', e, password)))
+      const results = await Promise.all(
+        racers.map((e) => register('Race Owner', e, password, { intent: 'owner', confirmPassword: password }))
+      )
       const rateLimited = results.find((r) => r.status === 429)
       if (rateLimited) {
         assert(false, 'race hit the register rate limiter — start the dev server with RATE_LIMIT_REGISTER_MAX=25')
@@ -127,9 +129,16 @@ async function main() {
       createdEmails.push()
       assert(dup.status === 409, `duplicate email rejected (got ${dup.status})`)
 
-      // weak password rejected by the policy
-      const weak = await register('Weak', `ownerjourney-weak-${stamp}@t.test`, 'short')
+      // weak password rejected by the policy (owner flow)
+      const weak = await register('Weak', `ownerjourney-weak-${stamp}@t.test`, 'short', { intent: 'owner' })
       assert(weak.status === 400, `weak password rejected by policy (got ${weak.status})`)
+
+      // mismatched password confirmation rejected by the owner flow
+      const mismatch = await register('Mismatch', `ownerjourney-mismatch-${stamp}@t.test`, password, {
+        intent: 'owner',
+        confirmPassword: 'Different-Password-999!',
+      })
+      assert(mismatch.status === 400, `mismatched password confirmation rejected (got ${mismatch.status})`)
 
       // role forgery is ignored (also asserted in customer-auth-security, kept here for journey completeness)
       const forged = await register('Forged', `ownerjourney-forged-${stamp}@t.test`, password, { role: 'OWNER' })
@@ -138,6 +147,20 @@ async function main() {
       assert(
         forged.status === 201 && forgedUser?.role === 'CUSTOMER',
         `client-supplied role field is ignored (created ${forgedUser?.role})`
+      )
+
+      // forged staff/platform roles on the owner intent are ignored the same
+      // way: an owner exists now (the race winner), so this request is
+      // rejected as closed — and even if it had won, the forged role can
+      // never be minted.
+      const forgedRole2 = await register('Forged Two', `ownerjourney-forged2-${stamp}@t.test`, password, {
+        intent: 'owner',
+        role: 'PLATFORM_OWNER',
+      })
+      const forgedUser2 = await prisma.user.findUnique({ where: { email: `ownerjourney-forged2-${stamp}@t.test` } })
+      assert(
+        forgedRole2.status === 409 && !forgedUser2,
+        `owner intent with a forged role never mints that role (status ${forgedRole2.status}, user ${forgedUser2?.role ?? 'none'})`
       )
 
       // ─── Phase B: first-owner journey to the onboarding gate ───────────
@@ -200,6 +223,26 @@ async function main() {
     assert(custBody?.user?.role === 'CUSTOMER', `late registration creates a CUSTOMER (got ${custBody?.user?.role})`)
     const ownersAfter = await prisma.user.count({ where: { role: 'OWNER' } })
     assert(ownersAfter === ownersBefore, `no additional OWNER was created (before ${ownersBefore}, after ${ownersAfter})`)
+
+    // explicit owner intent while an owner exists → rejected, never a silent CUSTOMER
+    const lateOwnerEmail = `ownerjourney-lateowner-${stamp}@t.test`
+    createdEmails.push(lateOwnerEmail)
+    const lateOwner = await register('Late Owner', lateOwnerEmail, password, {
+      intent: 'owner',
+      confirmPassword: password,
+      role: 'OWNER',
+    })
+    const lateOwnerBody = lateOwner.body as { code?: string; error?: string } | null
+    assert(lateOwner.status === 409, `explicit owner registration after an owner exists is rejected (got ${lateOwner.status})`)
+    assert(
+      lateOwnerBody?.code === 'OWNER_REGISTRATION_CLOSED',
+      `rejection carries the explicit closed code (got ${lateOwnerBody?.code})`
+    )
+    const lateOwnerUser = await prisma.user.findUnique({ where: { email: lateOwnerEmail } })
+    assert(
+      !lateOwnerUser,
+      `rejected owner intent never silently creates an account (found ${lateOwnerUser?.role ?? 'none'})`
+    )
 
     const custLogin = await login(custEmail, password)
     assert(custLogin.ok, 'the created customer can authenticate')

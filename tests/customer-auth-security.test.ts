@@ -4,9 +4,10 @@
  * Proves, against a live server:
  *  - Public signup always creates a CUSTOMER (role is server-determined; any
  *    client-supplied role is ignored — never OWNER/staff).
- *  - Owner creation is NOT public: /api/auth/register-owner rejects every
- *    unauthenticated/forged request, and only the authorized provisioning
- *    token (server-side secret) can create an OWNER.
+ *  - First-owner creation is server-gated: the public register endpoint
+ *    creates an OWNER only through the explicit owner intent while owner
+ *    registration is open; once an owner exists, an owner-intent request is
+ *    rejected and never silently downgraded to a CUSTOMER.
  *  - A CUSTOMER session cannot reach any dashboard page or API (403/redirect).
  *  - The customer portal resolves the customer from the SESSION — query
  *    params (e.g. ?customerId=) are ignored, so there is no IDOR.
@@ -136,38 +137,38 @@ async function main() {
     })
     assert(r.status === 201, 'second customer signup ok')
 
-    console.log('\n── Owner creation is authorized provisioning only (never public) ──')
-    // 1. No token, plain public request → refused, nothing created.
+    console.log('\n── Owner intent is server-gated (never a silent CUSTOMER fallback) ──')
+    // This suite runs against a seeded database: an OWNER already exists, so
+    // owner registration is closed. Every explicit owner-intent request must
+    // be rejected with the closed message, and NOTHING may be created —
+    // in particular it must never silently create a CUSTOMER account.
     const forgedOwnerEmail = `owner2-custsec-${stamp}@test.com`
+    r = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password, intent: 'owner', confirmPassword: password }),
+    })
+    assert(r.status === 409, `owner intent while an owner exists is rejected (got ${r.status})`)
+    assert(r.body?.code === 'OWNER_REGISTRATION_CLOSED', `rejection carries the closed code (got ${r.body?.code})`)
+    assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no account is created from a rejected owner intent')
+
+    // Forged role fields cannot smuggle privilege into the owner intent.
+    r = await api('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'New Owner', email: forgedOwnerEmail, password, intent: 'owner',
+        confirmPassword: password, role: 'PLATFORM_OWNER', businessId: 'x',
+      }),
+    })
+    assert(r.status === 409, `forged role on the owner intent is still rejected (got ${r.status})`)
+    assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no privileged account from a forged owner-intent request')
+
+    // The removed provisioning endpoint must stay gone: no alternate path.
     r = await api('/api/auth/register-owner', {
       method: 'POST',
       body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password }),
     })
-    assert(r.status === 404, `public request to register-owner is refused (got ${r.status})`)
+    assert(r.status === 404, `the retired provisioning endpoint stays closed (got ${r.status})`)
     assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no OWNER account created by a public request')
-
-    // 2. Forged role field + mode query param + fake token header → refused.
-    r = await api(`/api/auth/register-owner?mode=onboarding`, {
-      method: 'POST',
-      headers: { 'x-provisioning-token': 'forged-token', 'x-role': 'OWNER' },
-      body: JSON.stringify({ name: 'New Owner', email: forgedOwnerEmail, password, role: 'OWNER', businessId: 'x' }),
-    })
-    assert(r.status === 404, `forged token/role/params cannot create an owner (got ${r.status})`)
-    assert(!(await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })), 'no partial/privileged account from forged provisioning')
-
-    // 3. Authorized provisioning (server-side secret) CAN create the owner.
-    const provisioningToken = process.env.OWNER_PROVISIONING_TOKEN
-    if (provisioningToken) {
-      r = await api('/api/auth/register-owner', {
-        method: 'POST',
-        headers: { 'x-provisioning-token': provisioningToken },
-        body: JSON.stringify({ name: 'Provisioned Owner', email: forgedOwnerEmail, password }),
-      })
-      const provisionedOwner = await prisma.user.findUnique({ where: { email: forgedOwnerEmail } })
-      assert(r.status === 201 && provisionedOwner?.role === 'OWNER', 'authorized provisioning token creates an OWNER')
-    } else {
-      console.log('  ⚠️ OWNER_PROVISIONING_TOKEN not set — authorized provisioning not verified here')
-    }
 
     console.log('\n── Login & session ──')
     const custALogin = await login(custAEmail, password)

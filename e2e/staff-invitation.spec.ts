@@ -74,11 +74,11 @@ test('an existing customer account accepts a staff invitation by authenticating 
 
   // 1. Public signup creates a CUSTOMER account
   await page.goto('/login')
-  await page.getByRole('button', { name: /don.t have an account\?/i }).click()
+  await page.getByRole('button', { name: /booking an appointment\?/i }).click()
   await page.locator('#name').fill('Future Staff')
   await page.locator('#email').fill(email)
   await page.locator('#password').fill('E2eCustomer!Pass1')
-  await page.getByRole('button', { name: 'Sign-Up', exact: true }).click()
+  await page.getByRole('button', { name: 'Create Customer Account', exact: true }).click()
   await page.waitForURL(/portal/, { timeout: 30_000 })
   await page.context().clearCookies()
 

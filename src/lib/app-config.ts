@@ -89,12 +89,14 @@ export function isKnownWeakPassword(password: string): boolean {
 }
 
 // ============================================================================
-// OWNER PROVISIONING TOKEN
+// FIRST-OWNER REGISTRATION
 //
-// The initial owner may be created through the public first-owner onboarding
-// flow when OWNER_REGISTRATION_MODE=onboarding. The separate operator
-// provisioning endpoint (POST /api/auth/register-owner) requires the
-// OWNER_PROVISIONING_TOKEN and remains closed when that secret is unset.
+// The initial owner is created through the public self-service first-owner
+// flow on /login when OWNER_REGISTRATION_MODE=onboarding and no owner exists
+// (POST /api/auth/register with intent: 'owner'). Once an owner exists the
+// flow closes automatically. There is no provisioning endpoint and no
+// provisioning token; OWNER accounts can only be minted by that server-side
+// bootstrap or the authenticated staff-invitation lifecycle.
 // ============================================================================
 
 // SMTP SENDER — the From address for every outbound system email.

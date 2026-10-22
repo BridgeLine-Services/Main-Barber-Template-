@@ -20,11 +20,11 @@ test('customer can sign up from the public entry point and lands on /portal', as
   const email = `e2e-signup-${Date.now()}@example.com`
 
   await page.goto('/login')
-  await page.getByRole('button', { name: /don.t have an account\?/i }).click()
+  await page.getByRole('button', { name: /booking an appointment\?/i }).click()
   await page.locator('#name').fill('E2E Signup')
   await page.locator('#email').fill(email)
   await page.locator('#password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign-Up', exact: true }).click()
+  await page.getByRole('button', { name: 'Create Customer Account', exact: true }).click()
 
   // Auto-login → /auth/redirect → server router sends CUSTOMER to /portal
   await page.waitForURL(/\/portal/, { timeout: 30_000 })
