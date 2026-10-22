@@ -20,9 +20,10 @@
  *     transfer instead of deleting the account.
  *   • Prints an audit trail of what it did.
  *
- * Usage (run from the repo root, against the target DATABASE_URL):
- *   DATABASE_URL="postgresql://…" npx tsx scripts/reset-first-owner.ts \
- *     --email owner@yourbarbershop.com
+ * Usage (run from the repo root, with DATABASE_URL exported in the
+ * environment pointing at the target deployment database — never hardcode
+ * credentials in a shell command):
+ *   npx tsx scripts/reset-first-owner.ts --email owner@yourbarbershop.com
  *   (password is read interactively, never from argv or the environment)
  * ============================================================================
  */
