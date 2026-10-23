@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { TodayAppointmentsView } from '@/components/dashboard/TodayAppointmentsView'
+import { resolveBusinessTimezone, formatInTimezone, dayBoundsFromYMD } from '@/lib/timezone'
 import type { Prisma } from '@prisma/client'
 
 export default async function DashboardHomePage() {
@@ -22,12 +23,19 @@ export default async function DashboardHomePage() {
     redirect('/dashboard/onboarding')
   }
 
-  // Start and end of today
+  // Start and end of today — in the business timezone, so the daily list
+  // matches the shop's calendar day (not the server's UTC day).
+  const tzBusiness = businessId
+    ? await prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } }).catch(() => null)
+    : null
+  const businessTz = resolveBusinessTimezone(tzBusiness)
   const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
-
-  const todayDateStr = now.toISOString().split('T')[0]
+  // Business-timezone YMD for the list bounds and client refreshes
+  const todayDateStr = formatInTimezone(now, businessTz, 'yyyy-MM-dd')
+  const [todayY, todayM, todayD] = todayDateStr.split('-').map(Number)
+  const todayBounds = dayBoundsFromYMD(businessTz, todayY, todayM, todayD)
+  const startOfDay = todayBounds.start
+  const endOfDay = todayBounds.end
 
   // Build where filter
   const whereFilter: Prisma.AppointmentWhereInput = {

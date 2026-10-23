@@ -304,9 +304,11 @@ interface AppearanceTabProps {
   /** Custom brand colors/font from the business record (always win over preset defaults). */
   accentColor?: string | null
   fontFamily?: string | null
+  /** Owner's saved Light/Dark mode (business.themeMode). */
+  themeMode?: string | null
 }
 
-export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, fontFamily }: AppearanceTabProps) {
+export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, fontFamily, themeMode }: AppearanceTabProps) {
   const preset = (typeof websiteContent.visualPreset === 'string' ? websiteContent.visualPreset : '') as VisualStyle | ''
   const overrides = (websiteContent.visualConfig && typeof websiteContent.visualConfig === 'object'
     ? websiteContent.visualConfig
@@ -421,7 +423,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
             <span className="font-semibold text-foreground">draft</span> — publishing applies it there too. Your
             custom brand colors and font (Branding tab) take precedence over preset defaults.
           </p>
-          <DashboardPreview preset={selectedPreset} accentColor={accentColor} fontFamily={fontFamily} />
+          <DashboardPreview preset={selectedPreset} accentColor={accentColor} fontFamily={fontFamily} themeMode={themeMode} />
         </div>
 
         {/* ── Five-preset comparison (same real data, all styles) ───── */}

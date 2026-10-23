@@ -92,6 +92,8 @@ export async function POST(req: NextRequest) {
               sunday: { open: '10:00', close: '15:00', isOff: true },
             },
             aboutText: `Welcome to ${d.name}! Update this text in Dashboard > Settings to tell customers about your shop.`,
+            // Seed the website-content draft with the business (publishable from day one)
+            websiteContent: { create: {} },
             bookingPolicy: 'Appointments can be booked online up to 30 days in advance. No deposit required. Payment is collected in person after your service.',
             cancellationPolicy: 'Cancellations or modifications must be made at least 2 hours in advance of your scheduled slot.',
           },

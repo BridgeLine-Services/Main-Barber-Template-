@@ -963,7 +963,7 @@ export default function SettingsPage() {
 
       {activeTab === 'appearance' && (
         <>
-          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} />
+          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} themeMode={business?.themeMode ?? null} />
           <HomeModulesCard websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
         </>
       )}

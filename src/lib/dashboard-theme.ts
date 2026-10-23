@@ -18,6 +18,10 @@
 //   • The published visual preset is the source of truth; the layout falls
 //     back to the live draft column pre-first-publish (parity with the
 //     public site).
+//   • The owner's saved themeMode (Light/Dark) controls the dashboard's
+//     overall brightness. Each preset keeps its character (accent hue,
+//     temperature, radius, typography) in BOTH modes via a light and a dark
+//     palette variant; themeMode selects which variant renders.
 //   • No server-only imports — safe for client previews too (Appearance
 //     settings can render the same block scoped to a preview container).
 // ============================================================================
@@ -33,6 +37,8 @@ export interface DashboardBrandInput {
   secondaryColor?: string | null
   accentColor?: string | null
   fontFamily?: string | null
+  /** Owner-selected Light/Dark mode (Business.themeMode). Null = preset default. */
+  themeMode?: string | null
 }
 
 type DashPalette = {
@@ -55,9 +61,8 @@ const isHex = (v: unknown): v is string =>
   typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)
 
 /**
- * Dashboard character per visual preset. Surfaces/borders/typography stay
- * dashboard-appropriate (dense, readable); the accent + overall temperature
- * carry the brand so the control room unmistakably matches the storefront.
+ * Dark dashboard palettes per visual preset (the control-room default for
+ * presets with a dark storefront character).
  */
 const PRESET_DASH: Record<VisualStyle, DashPalette> = {
   'black-label': {
@@ -102,21 +107,103 @@ const PRESET_DASH: Record<VisualStyle, DashPalette> = {
   },
 }
 
+/**
+ * LIGHT counterparts for the dark-character presets. The owner's selected
+ * Light mode flips brightness without discarding the preset's identity:
+ * each light palette keeps the accent hue, temperature and typography of
+ * its dark sibling on readable light surfaces. (Presets whose default is
+ * already light reuse themselves here.) Accent colors that would be
+ * illegible on light surfaces (e.g. the voltage lime) are deepened.
+ */
+const PRESET_DASH_LIGHT: Record<VisualStyle, DashPalette> = {
+  'black-label': {
+    bg: '#f7f5f0', surface: '#fffefa', surface2: '#efece4', border: '#e0dbcf', borderStrong: '#c9c2b2',
+    text: '#221f17', muted: '#6d6759', hover: '#ece7db', accent: '#8a6d1f', accentFg: '#ffffff',
+    radius: '4px', displayFont: "'Playfair Display', Georgia, serif", dark: false,
+  },
+  'barber-heritage': PRESET_DASH['barber-heritage'],
+  'street-cut': {
+    bg: '#f5f5f4', surface: '#ffffff', surface2: '#ececea', border: '#dcdcd9', borderStrong: '#c4c4c0',
+    text: '#171717', muted: '#676763', hover: '#e9e9e6', accent: '#d63a00', accentFg: '#ffffff',
+    radius: '4px', displayFont: "'Oswald', 'Arial Narrow', sans-serif", dark: false,
+  },
+  'clean-club': PRESET_DASH['clean-club'],
+  'modern-classic': {
+    bg: '#f6f5f2', surface: '#fffdf9', surface2: '#efede7', border: '#e2ded4', borderStrong: '#cbc5b6',
+    text: '#26211a', muted: '#6f685c', hover: '#eceae4', accent: '#96602a', accentFg: '#ffffff',
+    radius: '6px', displayFont: "'Playfair Display', Georgia, serif", dark: false,
+  },
+  'warm-premium': {
+    bg: '#faf5ec', surface: '#fffaf1', surface2: '#f3ebdc', border: '#e6dac4', borderStrong: '#d3c3a6',
+    text: '#33261a', muted: '#7a6a55', hover: '#f1e9da', accent: '#9a6425', accentFg: '#ffffff',
+    radius: '8px', displayFont: "'Playfair Display', Georgia, serif", dark: false,
+  },
+  'high-energy-urban': {
+    bg: '#f4f6f7', surface: '#ffffff', surface2: '#e8ecef', border: '#d8dee2', borderStrong: '#c0c9cf',
+    text: '#14181b', muted: '#5f6b72', hover: '#e6eaec', accent: '#5c7a00', accentFg: '#ffffff',
+    radius: '4px', displayFont: "'Oswald', 'Arial Narrow', sans-serif", dark: false,
+  },
+  'single-chair': PRESET_DASH['single-chair'],
+}
+
 /** Fallback when nothing is configured — the classic zinc dashboard look. */
 const FALLBACK = PRESET_DASH['modern-classic']
 
 /**
- * Resolves the dashboard palette: preset character, with the business's own
- * custom accent (and font) always taking precedence over preset defaults.
+ * Darkens a hex accent color until it is legible as text/fill on light
+ * surfaces (contrast >= 4.5:1 vs the light workspace background). Used when
+ * the owner selects Light mode with a bright accent (voltage lime, pale
+ * gold) — the brand hue is preserved, only its lightness is pulled down.
+ */
+function ensureAccentReadableOnLight(hex: string): string {
+  let r = parseInt(hex.slice(1, 3), 16)
+  let g = parseInt(hex.slice(3, 5), 16)
+  let b = parseInt(hex.slice(5, 7), 16)
+  // Luminance of the lightest workspace surface we render accents on.
+  const bgLum = 0.94
+  for (let i = 0; i < 10; i++) {
+    const lin = [r, g, b].map((c) => {
+      const v = c / 255
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    })
+    const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+    const contrast = (bgLum + 0.05) / (lum + 0.05)
+    if (contrast >= 4.5) break
+    r = Math.round(r * 0.82)
+    g = Math.round(g * 0.82)
+    b = Math.round(b * 0.82)
+  }
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`
+}
+
+/**
+ * Resolves the dashboard palette: the preset's character in the owner's
+ * selected Light/Dark mode, with the business's own custom accent (and
+ * font) always taking precedence over preset defaults.
+ *
+ * Mode resolution: an explicit themeMode ('light' | 'dark') wins; otherwise
+ * the preset's default brightness is kept.
  */
 export function resolveDashboardPalette(input: DashboardBrandInput): DashPalette {
   const style = getVisualStyle(input.visualPreset)
-  const base = PRESET_DASH[style]
+  const darkDefault = PRESET_DASH[style]
+  const lightDefault = PRESET_DASH_LIGHT[style]
+
+  const requestedLight =
+    input.themeMode === 'light' ||
+    (input.themeMode !== 'dark' && input.themeMode != null && input.themeMode.toLowerCase() === 'light')
+
+  const base = requestedLight ? lightDefault : darkDefault
 
   let accent = base.accent
   let accentFg = base.accentFg
   if (isHex(input.accentColor) && input.accentColor !== DEFAULT_BRANDING.accentColor) {
     accent = input.accentColor
+    if (!base.dark) {
+      // Light mode: a too-bright custom accent would vanish on light
+      // surfaces — preserve the hue, pull the lightness down.
+      accent = ensureAccentReadableOnLight(accent)
+    }
     accentFg =
       readableForegroundFor(accent) === '0 0% 4%' ? '#0a0a0a' : '#fafafa'
   }

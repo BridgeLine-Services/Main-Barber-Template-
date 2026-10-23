@@ -21,6 +21,8 @@ interface AddAppointmentDialogProps {
   onClose: () => void
   onSuccess?: () => void
   initialDate?: string
+  /** Hour clicked on the Master Calendar timeline (HH:mm), pre-fills the time. */
+  initialTime?: string
   initialBarberId?: string
 }
 
@@ -29,6 +31,7 @@ export function AddAppointmentDialog({
   onClose,
   onSuccess,
   initialDate,
+  initialTime,
   initialBarberId,
 }: AddAppointmentDialogProps) {
   const [isNewCustomer, setIsNewCustomer] = useState(false)
@@ -52,7 +55,12 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
   const [services, setServices] = useState<DialogService[]>([])
   const [selectedBarberId, setSelectedBarberId] = useState(initialBarberId || '')
   const [selectedServiceId, setSelectedServiceId] = useState('')
-  const [date, setDate] = useState(initialDate || new Date().toISOString().split('T')[0])
+  // Local-calendar YMD fallback (never the UTC-shifted toISOString date)
+  const todayLocal = () => {
+    const n = new Date()
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+  }
+  const [date, setDate] = useState(initialDate || todayLocal())
   const [time, setTime] = useState('10:00')
   const [notes, setNotes] = useState('')
 
@@ -108,6 +116,11 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
   if (initialDate && initialDate !== prevDateProp) {
     setPrevDateProp(initialDate)
     setDate(initialDate)
+  }
+  const [prevTimeProp, setPrevTimeProp] = useState(initialTime)
+  if (initialTime && initialTime !== prevTimeProp) {
+    setPrevTimeProp(initialTime)
+    setTime(initialTime)
   }
   const [prevBarberProp, setPrevBarberProp] = useState(initialBarberId)
   if (initialBarberId && initialBarberId !== prevBarberProp) {

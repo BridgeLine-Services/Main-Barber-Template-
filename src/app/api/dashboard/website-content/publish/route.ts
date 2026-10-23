@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { logAudit } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
+import { ensureWebsiteContentDraft } from '@/lib/website-content'
 
 /**
  * The editable WebsiteContent fields that make up a publishable snapshot.
@@ -45,13 +46,11 @@ export async function POST() {
       return NextResponse.json({ error: 'No business context' }, { status: 400 })
     }
 
-    const draft = await prisma.websiteContent.findUnique({ where: { businessId } })
-    if (!draft) {
-      return NextResponse.json(
-        { error: 'No website content to publish yet — configure the website sections first' },
-        { status: 404 }
-      )
-    }
+    // Repair path for businesses created before drafts were seeded: an
+    // empty draft is valid (the public site falls back per field — the same
+    // content it renders pre-publish), and existing draft/published content
+    // is never touched. Normal shops already have the draft from creation.
+    const draft = await ensureWebsiteContentDraft(prisma, businessId)
 
     const snapshot: Record<string, unknown> = {}
     for (const field of PUBLISH_FIELDS) {

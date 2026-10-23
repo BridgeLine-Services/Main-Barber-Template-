@@ -7,7 +7,7 @@ import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { createAppointmentSafely } from '@/lib/availability'
 import { createManualAppointmentSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { localTimeToUTCFromYMD, resolveBusinessTimezone } from '@/lib/timezone'
+import { localTimeToUTCFromYMD, resolveBusinessTimezone, dayBoundsFromYMD } from '@/lib/timezone'
 import { handleApiError } from '@/lib/api-errors'
 import type { Prisma } from '@prisma/client'
 import { AppointmentStatus } from '@prisma/client'
@@ -22,6 +22,12 @@ export async function GET(req: NextRequest) {
     const sessionBarberId = user.barberId
     try {
       const businessId = await getBusinessIdForUser(user)
+      // Timezone for calendar day/range queries (business calendar days)
+      const tzBusiness = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { timezone: true },
+      })
+      const timezoneForQuery = resolveBusinessTimezone(tzBusiness)
       const searchParams = req.nextUrl.searchParams
       const dateParam = searchParams.get('date')
       const fromParam = searchParams.get('from')
@@ -41,15 +47,30 @@ export async function GET(req: NextRequest) {
         const s = statusParam.toUpperCase() as AppointmentStatus
         if (Object.values(AppointmentStatus).includes(s)) where.status = s
       }
-      if (dateParam) {
-        const d = new Date(dateParam)
-        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
-        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0)
-        where.startTime = { gte: dayStart, lt: dayEnd }
+      // Day/range filters are interpreted in the BUSINESS timezone — the
+      // same zone the shop's calendar days live in. Parsing YMD strings via
+      // `new Date(str)` would anchor them to UTC midnight and silently shift
+      // the day in every non-UTC timezone.
+      const ymdPattern = /^\d{4}-\d{2}-\d{2}$/
+      const ymdBounds = (ymd: string) => {
+        const [y, m, d] = ymd.split('-').map(Number)
+        return dayBoundsFromYMD(timezoneForQuery, y, m, d)
+      }
+      if (dateParam && ymdPattern.test(dateParam)) {
+        const bounds = ymdBounds(dateParam)
+        where.startTime = { gte: bounds.start, lte: bounds.end }
       } else if (fromParam || toParam) {
         where.startTime = {}
-        if (fromParam) where.startTime.gte = new Date(fromParam)
-        if (toParam) where.startTime.lte = new Date(toParam)
+        if (fromParam && ymdPattern.test(fromParam)) {
+          where.startTime.gte = ymdBounds(fromParam).start
+        } else if (fromParam) {
+          where.startTime.gte = new Date(fromParam)
+        }
+        if (toParam && ymdPattern.test(toParam)) {
+          where.startTime.lte = ymdBounds(toParam).end
+        } else if (toParam) {
+          where.startTime.lte = new Date(toParam)
+        }
       }
       if (searchParam) {
         where.OR = [

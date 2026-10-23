@@ -19,6 +19,17 @@ import {
 } from 'lucide-react'
 import { formatFullDate } from '@/lib/utils'
 
+/** Local-calendar YYYY-MM-DD — never goes through toISOString(), which
+ *  shifts the day in any timezone ahead of UTC (the "wrong day" calendar bug). */
+const toYMD = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/** Parses a YYYY-MM-DD string as a LOCAL calendar date (no UTC shift). */
+const fromYMD = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d, 12, 0, 0)
+}
+
 export default function CalendarPage() {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
@@ -28,8 +39,7 @@ export default function CalendarPage() {
   useEffect(() => {
     const dateParam = new URLSearchParams(window.location.search).get('date')
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-      const [y, m, d] = dateParam.split('-').map(Number)
-      const parsed = new Date(y, m - 1, d, 12, 0, 0)
+      const parsed = fromYMD(dateParam)
       if (!Number.isNaN(parsed.getTime())) setCurrentDate(parsed)
     }
   }, [])
@@ -42,13 +52,36 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addInitialDate, setAddInitialDate] = useState<string>('')
+  const [addInitialTime, setAddInitialTime] = useState<string | undefined>(undefined)
 
-  // Fetch appointments based on view & date
+  // Fetch appointments based on view & date. Day view queries one business
+  // day; week/month query the full span the view displays (from/to, both
+  // interpreted in the business timezone by the API).
   const fetchAppointments = async () => {
     setLoading(true)
     try {
-      const dateStr = currentDate.toISOString().split('T')[0]
-      const res = await fetch(`/api/dashboard/appointments?date=${dateStr}&view=${view}`)
+      const params = new URLSearchParams({ view })
+      if (view === 'day') {
+        params.set('date', toYMD(currentDate))
+      } else if (view === 'week') {
+        // Same week-window the WeekView renders (Sunday–Saturday)
+        const start = new Date(currentDate)
+        start.setDate(start.getDate() - start.getDay())
+        const end = new Date(start)
+        end.setDate(start.getDate() + 6)
+        params.set('from', toYMD(start))
+        params.set('to', toYMD(end))
+      } else {
+        // Full month grid incl. leading/trailing cells from adjacent months
+        const first = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        const start = new Date(first)
+        start.setDate(first.getDate() - first.getDay())
+        const end = new Date(start)
+        end.setDate(start.getDate() + 41) // 6-week grid
+        params.set('from', toYMD(start))
+        params.set('to', toYMD(end))
+      }
+      const res = await fetch(`/api/dashboard/appointments?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setAppointments(data)
@@ -90,14 +123,15 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
     setDetailsOpen(true)
   }
 
-  const handleOpenAddForDate = (dateStr: string) => {
+  const handleOpenAddForDate = (dateStr: string, timeStr?: string) => {
     setAddInitialDate(dateStr)
+    setAddInitialTime(timeStr)
     setAddDialogOpen(true)
   }
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
-      setCurrentDate(new Date(e.target.value + 'T00:00:00'))
+      setCurrentDate(fromYMD(e.target.value))
     }
   }
 
@@ -164,14 +198,14 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           {/* Date Picker Direct Input */}
           <Input
             type="date"
-            value={currentDate.toISOString().split('T')[0]}
+            value={toYMD(currentDate)}
             onChange={handleDateChange}
             className="w-36 bg-[var(--dash-surface)] border-border text-xs text-foreground h-9"
           />
 
           <Button
             size="sm"
-            onClick={() => handleOpenAddForDate(currentDate.toISOString().split('T')[0])}
+            onClick={() => handleOpenAddForDate(toYMD(currentDate))}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1 shadow-lg shadow-black/10"
           >
             <Plus className="w-4 h-4" />
@@ -193,7 +227,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
               date={currentDate}
               appointments={appointments}
               onSelectAppointment={handleSelectAppointment}
-              onSelectSlot={(_timeStr) => handleOpenAddForDate(currentDate.toISOString().split('T')[0])}
+              onSelectSlot={(timeStr) => handleOpenAddForDate(toYMD(currentDate), timeStr)}
             />
           )}
 
@@ -233,6 +267,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
         onClose={() => setAddDialogOpen(false)}
         onSuccess={fetchAppointments}
         initialDate={addInitialDate}
+        initialTime={addInitialTime}
       />
     </div>
   )

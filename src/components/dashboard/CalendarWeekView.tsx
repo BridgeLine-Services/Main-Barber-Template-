@@ -36,6 +36,10 @@ export function CalendarWeekView({
 
   const weekDays = getWeekDays(currentDate)
 
+  // Local-calendar YMD (no UTC shift via toISOString)
+  const toYMD = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const getAppointmentsForDay = (dayDate: Date) => {
     return appointments.filter((appt) => {
       const st = new Date(appt.startTime)
@@ -52,7 +56,7 @@ export function CalendarWeekView({
       <div className="grid grid-cols-7 min-w-[700px] gap-2">
         {weekDays.map((dayDate) => {
           const dayAppts = getAppointmentsForDay(dayDate)
-          const dateStr = dayDate.toISOString().split('T')[0]
+          const dateStr = toYMD(dayDate)
           const isToday = new Date().toDateString() === dayDate.toDateString()
 
           return (

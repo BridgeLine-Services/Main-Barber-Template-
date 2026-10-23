@@ -21,16 +21,18 @@ interface DashboardPreviewProps {
   preset: VisualStyle
   accentColor?: string | null
   fontFamily?: string | null
+  /** Owner's saved Light/Dark mode so the preview matches the live dashboard. */
+  themeMode?: string | null
 }
 
-export function DashboardPreview({ preset, accentColor, fontFamily }: DashboardPreviewProps) {
+export function DashboardPreview({ preset, accentColor, fontFamily, themeMode }: DashboardPreviewProps) {
   const css = useMemo(
     () =>
       generateDashboardThemeCSS(
-        { visualPreset: preset, accentColor: accentColor ?? null, fontFamily: fontFamily ?? null },
+        { visualPreset: preset, accentColor: accentColor ?? null, fontFamily: fontFamily ?? null, themeMode: themeMode ?? null },
         '.dash-preview',
       ),
-    [preset, accentColor, fontFamily],
+    [preset, accentColor, fontFamily, themeMode],
   )
 
   return (

@@ -45,7 +45,7 @@ export default async function DashboardLayout({
         where: { id: businessId },
         select: {
           name: true, logo: true, primaryColor: true, accentColor: true,
-          secondaryColor: true, fontFamily: true,
+          secondaryColor: true, fontFamily: true, themeMode: true,
           websiteContent: { select: { visualPreset: true, publishedContent: true } },
         },
       })
@@ -60,7 +60,9 @@ export default async function DashboardLayout({
   // Brand identity: the PUBLISHED visual preset is the source of truth;
   // fall back to the live draft column before the first publish (same parity
   // rule as the public site). Custom business accent/font win over preset
-  // defaults so client branding is never clobbered.
+  // defaults so client branding is never clobbered. The owner's saved
+  // themeMode (Light/Dark) controls the dashboard's brightness — the same
+  // setting the customer website follows.
   const wc: { visualPreset?: string | null; publishedContent?: unknown } | null =
     (business as { websiteContent?: { visualPreset?: string | null; publishedContent?: unknown } | null } | null)?.websiteContent ?? null
   const published = (wc?.publishedContent ?? null) as { visualPreset?: unknown } | null
@@ -74,6 +76,7 @@ export default async function DashboardLayout({
     secondaryColor: business?.secondaryColor ?? null,
     primaryColor: business?.primaryColor ?? null,
     fontFamily: business?.fontFamily ?? null,
+    themeMode: business?.themeMode ?? null,
   })
 
   return (
@@ -86,39 +89,41 @@ export default async function DashboardLayout({
         businessName={businessName}
       />
 
-      {/* Main Content Workspace */}
+      {/* Main Content Workspace — offset for the fixed sidebar exactly once */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        {/* Desktop Header */}
-        <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-[var(--dash-header)] border-b border-border sticky top-0 z-30">
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground [font-family:var(--dash-display-font)] min-w-0 truncate">{businessName}</h1>
-            <p className="text-xs text-muted-foreground">Shop Management Portal</p>
+        {/* Desktop Header — sticky, wraps instead of colliding; every text
+            block can shrink/truncate so title, subtitle and controls never
+            overlap at any supported viewport width. */}
+        <header className="hidden lg:flex items-center justify-between flex-wrap gap-x-6 gap-y-2 px-6 xl:px-8 py-3 bg-[var(--dash-header)] border-b border-border sticky top-0 z-30 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground [font-family:var(--dash-display-font)] truncate">{businessName}</h1>
+            <p className="text-xs text-muted-foreground truncate">Shop Management Portal</p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
             <Link
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--dash-brand-border)] hover:text-[var(--dash-brand)]"
+              className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-[var(--dash-brand-border)] hover:text-[var(--dash-brand)] shrink-0"
             >
               View Customer Website
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <div className="text-right">
-              <p className="text-sm font-medium text-foreground">{userName}</p>
+            <div className="text-right min-w-0">
+              <p className="text-sm font-medium text-foreground truncate max-w-[12rem] xl:max-w-[16rem]">{userName}</p>
               <span className="inline-block text-[11px] font-semibold text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] px-2 py-0.5 rounded-full capitalize">
                 {userRole.toLowerCase()}
               </span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-sm">
+            <div className="w-9 h-9 rounded-full bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-sm shrink-0" aria-hidden="true">
               {userName[0]?.toUpperCase() || 'U'}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden bg-background p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
+        <main className="flex-1 overflow-x-hidden bg-background p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8 min-w-0">
           {children}
         </main>
         <MobileBottomNav />

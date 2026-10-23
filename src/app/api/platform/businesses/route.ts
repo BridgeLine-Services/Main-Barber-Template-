@@ -94,6 +94,8 @@ export async function POST(req: NextRequest) {
           passwordHash, mustChangePassword: true,
         },
       },
+      // Seed the website-content draft with the business (publishable from day one)
+      websiteContent: { create: {} },
     },
     select: { id: true, name: true, slug: true },
   })

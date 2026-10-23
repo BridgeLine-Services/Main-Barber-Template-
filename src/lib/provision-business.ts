@@ -67,6 +67,8 @@ export async function provisionBusiness(
         onboardingCompleted: input.business.onboardingCompleted ?? true,
         onboardingStep: 'done',
         onboardingCompletedAt: new Date(),
+        // Seed the website-content draft with the business (publishable from day one)
+        websiteContent: { create: {} },
       },
       update: {},
     })

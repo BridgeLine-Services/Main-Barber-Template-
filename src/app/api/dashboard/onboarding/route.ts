@@ -255,6 +255,9 @@ export async function POST(req: NextRequest) {
           users: {
             connect: { id: user.id },
           },
+          // Seed the website-content draft together with the business so the
+          // owner can publish (or edit sections) from the very first day.
+          websiteContent: { create: {} },
         },
         select: businessSubset,
       })
