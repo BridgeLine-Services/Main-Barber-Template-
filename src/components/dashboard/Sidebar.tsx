@@ -33,7 +33,7 @@ import {
   UserCircle,
   Globe,
   Palette,
-  FileText,Store,
+  FileText,
   Search,
   Smartphone,
   Activity,
@@ -41,6 +41,14 @@ import {
   ArrowLeftRight,
   BadgePercent,
   Wallet,
+  Building2,
+  Monitor,
+  Eye,
+  LayoutGrid,
+  Type,
+  ListOrdered,
+  HelpCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -60,40 +68,80 @@ interface NavItem {
   icon: LucideIcon
 }
 
-interface NavSection {
+/** A collapsible sub-group inside a section (e.g. Website → Branding). */
+interface NavGroup {
   label: string
   items: NavItem[]
+}
+
+interface NavSection {
+  label: string
+  /** Flat items rendered directly under the section header. */
+  items?: NavItem[]
+  /** Collapsible sub-groups rendered after the flat items. */
+  groups?: NavGroup[]
 }
 
 export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [mobileOpen, setMobileOpen] = useState(false)
-  // Section open/closed state. A section the user has explicitly toggled is
-  // remembered here; sections without a user choice follow auto behavior
-  // (open when they contain the active route, closed otherwise). The user's
-  // explicit choice always wins over route-based auto-expansion.
+  // Section AND group open/closed state. A container the user has explicitly
+  // toggled is remembered here; containers without a user choice follow auto
+  // behavior (open when they contain the active route, closed otherwise).
+  // The user's explicit choice always wins over route-based auto-expansion,
+  // so a direct link to a nested page expands its parents until the user
+  // collapses them.
   const [sectionState, setSectionState] = useState<Record<string, 'open' | 'closed'>>({})
-  const setSectionExpanded = (key: string, value: 'open' | 'closed') =>
-    setSectionState((prev) => ({ ...prev, [key]: value }))
+  const [groupState, setGroupState] = useState<Record<string, 'open' | 'closed'>>({})
 
   // Owner nav is shared with BUSINESS_ADMIN — real authorization is server-side
   // (page gates + API guards); the sidebar only controls visibility.
   const isOwner = userRole === 'OWNER' || userRole === 'BUSINESS_ADMIN'
 
-  const isSectionExpanded = (key: string, hasActive: boolean) => {
-    if (sectionState[key] === 'open') return true
-    if (sectionState[key] === 'closed') return false
-    return hasActive // auto behavior: follow the active route until the user chooses
+  // Settings tab links (?tab=) must match BOTH the route and the tab. When
+  // /dashboard/settings is visited without a tab the page falls back to its
+  // default tab ('business') — mirror that so the right child highlights.
+  const activeSettingsTab = searchParams.get('tab') ?? 'business'
+
+  // ─── Active-route calculation (single authoritative matcher) ─────────
+  const isItemActive = (href: string) => {
+    if (href.includes('?tab=')) {
+      const [path, query] = href.split('?')
+      if (pathname !== path) return false
+      const tab = new URLSearchParams(query).get('tab')
+      return activeSettingsTab === tab
+    }
+    if (href === '/dashboard') return pathname === '/dashboard'
+    // Exact match or whole-segment prefix. A bare startsWith would make
+    // '/dashboard/ecommerce' also highlight on '/dashboard/ecommerce/orders'
+    // (the old Online Shop / Shop Orders double-selection bug).
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  const isExpanded = (
+    stateMap: Record<string, 'open' | 'closed'>,
+    key: string,
+    hasActive: boolean,
+  ) => {
+    if (stateMap[key] === 'open') return true
+    if (stateMap[key] === 'closed') return false
+    return hasActive // auto behavior: follow the active route until chosen
   }
 
   // Toggle based on the EFFECTIVE state so the first click on an auto-closed
-  // section opens it, and the first click on an auto-expanded one closes it.
-  const toggleSection = (key: string, hasActive: boolean) => {
-    setSectionExpanded(key, isSectionExpanded(key, hasActive) ? 'closed' : 'open')
+  // container opens it, and the first click on an auto-expanded one closes it.
+  // Toggling never navigates or changes the current page.
+  const toggleExpanded = (
+    setter: React.Dispatch<React.SetStateAction<Record<string, 'open' | 'closed'>>>,
+    stateMap: Record<string, 'open' | 'closed'>,
+    key: string,
+    hasActive: boolean,
+  ) => {
+    setter({ ...stateMap, [key]: isExpanded(stateMap, key, hasActive) ? 'closed' : 'open' })
   }
 
-  // ─── Owner nav: grouped into Overview, Website, System ────────────────
+  // ─── Owner nav: Overview / Website / System ────────────────────────────
   const ownerSections: NavSection[] = [
     {
       label: 'overview',
@@ -113,40 +161,89 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
     },
     {
       label: 'website',
-      items: [
-        { name: 'Branding', href: '/dashboard/settings?tab=branding', icon: Palette },
-        { name: 'Business Info', href: '/dashboard/settings?tab=business', icon: Store },
-        { name: 'Hours', href: '/dashboard/settings?tab=hours', icon: Clock },
-        { name: 'Shop Gallery', href: '/dashboard/gallery', icon: ImageIcon },
-        { name: 'Photos', href: '/dashboard/media', icon: ImageIcon },
-        { name: 'Before & After', href: '/dashboard/before-after', icon: ArrowLeftRight },
-        { name: 'Policies', href: '/dashboard/settings?tab=policies', icon: FileText },
-        { name: 'Social Media', href: '/dashboard/settings?tab=social', icon: Globe },
-        { name: 'SEO', href: '/dashboard/settings?tab=seo', icon: Search },
-        { name: 'FAQ', href: '/dashboard/settings?tab=faq', icon: FileText },
+      groups: [
+        {
+          label: 'Branding',
+          items: [
+            { name: 'Branding & Theme', href: '/dashboard/settings?tab=branding', icon: Palette },
+            { name: 'Website Appearance', href: '/dashboard/settings?tab=appearance', icon: Monitor },
+            { name: 'Site Preview', href: '/dashboard/website-preview', icon: Eye },
+            { name: 'Layout & Behavior', href: '/dashboard/settings?tab=layout', icon: LayoutGrid },
+            { name: 'Typography', href: '/dashboard/settings?tab=typography', icon: Type },
+            { name: 'Homepage Sections', href: '/dashboard/settings?tab=homepage-sections', icon: ListOrdered },
+          ],
+        },
+        {
+          label: 'Business Info',
+          items: [
+            { name: 'Business Info', href: '/dashboard/settings?tab=business', icon: Building2 },
+            { name: 'Business Hours', href: '/dashboard/settings?tab=hours', icon: Clock },
+            { name: 'Social Links', href: '/dashboard/settings?tab=social', icon: Globe },
+            { name: 'Policies', href: '/dashboard/settings?tab=policies', icon: FileText },
+            { name: 'SEO', href: '/dashboard/settings?tab=seo', icon: Search },
+            { name: 'FAQ', href: '/dashboard/settings?tab=faq', icon: HelpCircle },
+            { name: 'Website Content', href: '/dashboard/settings?tab=website', icon: FileText },
+            { name: 'Booking Questions', href: '/dashboard/settings?tab=booking', icon: HelpCircle },
+            { name: 'Review Requests', href: '/dashboard/settings?tab=reviews', icon: Star },
+          ],
+        },
+        {
+          label: 'Shop Gallery',
+          items: [
+            { name: 'Logo', href: '/dashboard/gallery/logo', icon: Star },
+            { name: 'Hero Image', href: '/dashboard/gallery/hero', icon: ImageIcon },
+            { name: 'Shop Photos', href: '/dashboard/gallery/shop-photos', icon: ImageIcon },
+            { name: 'Gallery', href: '/dashboard/gallery', icon: ImageIcon },
+            { name: 'Barber Photos', href: '/dashboard/gallery/barber-photos', icon: UserCircle },
+            { name: 'Barber Portfolio', href: '/dashboard/gallery/barber-portfolio', icon: ImageIcon },
+            { name: 'Service Photos', href: '/dashboard/gallery/service-photos', icon: ImageIcon },
+            { name: 'OG Image', href: '/dashboard/gallery/og-image', icon: ImageIcon },
+            { name: 'Favicon', href: '/dashboard/gallery/favicon', icon: ImageIcon },
+            { name: 'Photos', href: '/dashboard/media', icon: ImageIcon },
+            { name: 'Before & After', href: '/dashboard/before-after', icon: ArrowLeftRight },
+          ],
+        },
       ],
     },
     {
       label: 'system',
       items: [
-        { name: 'Launch Console', href: '/dashboard/factory-launch', icon: Shield },
-        { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
-        { name: 'Staff', href: '/dashboard/staff', icon: UserCog },
-        { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-        { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
-        { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
-        { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
-        { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
-        { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
-        { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
-        { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
-        { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
-        { name: 'Payroll', href: '/dashboard/payroll', icon: BadgePercent },
-        { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
-        { name: 'Online Shop', href: '/dashboard/ecommerce', icon: ShoppingCart },
-        { name: 'Shop Orders', href: '/dashboard/ecommerce/orders', icon: Package },
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
+        { name: 'Launch Console', href: '/dashboard/factory-launch', icon: Shield },
+        { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
+      ],
+      groups: [
+        {
+          label: 'Staff',
+          items: [
+            { name: 'Staff', href: '/dashboard/staff', icon: UserCog },
+            { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
+            { name: 'Payroll', href: '/dashboard/payroll', icon: Wallet },
+          ],
+        },
+        {
+          label: 'Shop',
+          items: [
+            { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
+            { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+            { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
+            { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
+            { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
+            { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
+            { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
+            { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
+            { name: 'Danger Zone', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
+          ],
+        },
+        {
+          label: 'Store',
+          items: [
+            { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
+            { name: 'Online Shop', href: '/dashboard/ecommerce', icon: ShoppingCart },
+            { name: 'Shop Orders', href: '/dashboard/ecommerce/orders', icon: Package },
+          ],
+        },
       ],
     },
   ]
@@ -181,17 +278,64 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
 
   const closeMobile = () => setMobileOpen(false)
 
-  const isItemActive = (href: string) => {
-    // Settings links (?tab=) must match BOTH the route and the tab — otherwise
-    // every settings item highlights at once.
-    if (href.includes('?tab=')) {
-      const [path, query] = href.split('?')
-      if (pathname !== path) return false
-      const tab = new URLSearchParams(query).get('tab')
-      return searchParams.get('tab') === tab
-    }
-    if (href === '/dashboard') return pathname === '/dashboard'
-    return pathname.startsWith(href)
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon
+    const isActive = isItemActive(item.href)
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        onClick={closeMobile}
+        aria-current={isActive ? 'page' : undefined}
+        className={cn(
+          'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative border',
+          isActive
+            ? 'bg-[var(--dash-brand-soft)] text-foreground border-[var(--dash-brand-border)] shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)] border-transparent'
+        )}
+      >
+        <Icon
+          className={cn(
+            'w-4 h-4 shrink-0',
+            isActive ? 'text-[var(--dash-brand)]' : 'text-muted-foreground group-hover:text-foreground'
+          )}
+        />
+        <span className="flex-1">{item.name}</span>
+        {isActive && (
+          <>
+            <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[var(--dash-brand)]" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
+          </>
+        )}
+      </Link>
+    )
+  }
+
+  const renderGroup = (sectionLabel: string, group: NavGroup) => {
+    const hasActive = group.items.some((item) => isItemActive(item.href))
+    const key = `${sectionLabel}:${group.label}`
+    const show = isExpanded(groupState, key, hasActive)
+    return (
+      <div key={key} className="mb-1.5">
+        <button
+          type="button"
+          onClick={() => toggleExpanded(setGroupState, groupState, key, hasActive)}
+          aria-expanded={show}
+          aria-label={`${group.label} section ${show ? 'expanded' : 'collapsed'}`}
+          className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+        >
+          <ChevronDown
+            className={cn('w-3 h-3 transition-transform', show ? '' : '-rotate-90')}
+          />
+          {group.label}
+        </button>
+        {show && (
+          <div className="space-y-0.5 mt-0.5 pl-2 border-l border-border/60 ml-1">
+            {group.items.map(renderItem)}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -256,17 +400,22 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         {/* Navigation — Grouped Sections */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {sections.map((section) => {
-            // Auto-expand section containing active item — unless the user
-            // explicitly collapsed it (their choice wins).
-            const hasActive = section.items.some((item) => isItemActive(item.href))
-            const show = isSectionExpanded(section.label, hasActive)
+            const sectionItems = section.items ?? []
+            const sectionGroups = section.groups ?? []
+            const hasActive =
+              sectionItems.some((item) => isItemActive(item.href)) ||
+              sectionGroups.some((g) => g.items.some((item) => isItemActive(item.href)))
+            const show = isExpanded(sectionState, section.label, hasActive)
 
             return (
               <div key={section.label} className="mb-1">
                 {/* Section Header */}
                 <button
-                  onClick={() => toggleSection(section.label, hasActive)}
-                  className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                  type="button"
+                  onClick={() => toggleExpanded(setSectionState, sectionState, section.label, hasActive)}
+                  aria-expanded={show}
+                  aria-label={`${section.label} section ${show ? 'expanded' : 'collapsed'}`}
+                  className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
                 >
                   <ChevronDown
                     className={cn('w-3 h-3 transition-transform', show ? '' : '-rotate-90')}
@@ -274,40 +423,16 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
                   {section.label}
                 </button>
 
-                {/* Section Items */}
                 {show && (
-                  <div className="space-y-0.5 mt-0.5">
-                    {section.items.map((item) => {
-                      const Icon = item.icon
-                      const isActive = isItemActive(item.href)
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onClick={closeMobile}
-                          className={cn(
-                            'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative border',
-                            isActive
-                              ? 'bg-[var(--dash-brand-soft)] text-foreground border-[var(--dash-brand-border)] shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)] border-transparent'
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              'w-4 h-4 shrink-0',
-                              isActive ? 'text-[var(--dash-brand)]' : 'text-muted-foreground group-hover:text-foreground'
-                            )}
-                          />
-                          <span className="flex-1">{item.name}</span>
-                          {isActive && (
-                            <>
-                              <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[var(--dash-brand)]" />
-                              <ChevronRight className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
-                            </>
-                          )}
-                        </Link>
-                      )
-                    })}
+                  <div className="mt-0.5">
+                    {/* Flat section items */}
+                    {sectionItems.length > 0 && (
+                      <div className="space-y-0.5 mb-1">
+                        {sectionItems.map(renderItem)}
+                      </div>
+                    )}
+                    {/* Collapsible sub-groups */}
+                    {sectionGroups.map((group) => renderGroup(section.label, group))}
                   </div>
                 )}
               </div>

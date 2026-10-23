@@ -13,13 +13,17 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Save, Building2, Phone,MapPin, Clock, Globe, Monitor, Palette, Users,
-  Search, FileText, Image as ImageIcon,HelpCircle, Star
+  Search, FileText, Image as ImageIcon,HelpCircle, Star, LayoutGrid, Type,
+  ListOrdered, MonitorSmartphone, AlertTriangle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
 import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
+import { LayoutBehaviorTab } from '@/components/dashboard/LayoutBehaviorTab'
+import { TypographyTab } from '@/components/dashboard/TypographyTab'
+import { DashboardPreviewTab } from '@/components/dashboard/DashboardPreviewTab'
 import { HomeModulesCard } from '@/components/dashboard/HomeModulesCard'
 import { resolveBusinessTimezone } from '@/lib/timezone'
 
@@ -118,18 +122,20 @@ type SettingsSeo = {
 
 type WebsiteContentMap = Record<string, unknown>
 
-type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking' | 'reviews'
+type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'layout' | 'typography' | 'homepage-sections' | 'dashboard-preview' | 'danger-zone' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking' | 'reviews'
 
 // Single source of truth for the selected tab: the ?tab= URL parameter.
 // The component derives the active tab from it — no duplicated state that can
 // drift. Invalid values fall back to the default tab.
-const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'social', 'policies', 'seo', 'faq', 'website', 'booking', 'reviews'] as const
+const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'layout', 'typography', 'homepage-sections', 'dashboard-preview', 'danger-zone', 'social', 'policies', 'seo', 'faq', 'website', 'booking', 'reviews'] as const
 const DEFAULT_TAB: Tab = 'business'
 
 export default function SettingsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  /** Bumped after each successful save so preview iframes reload the fresh draft. */
+  const [savedAt, setSavedAt] = useState(0)
   const [business, setBusiness] = useState<SettingsBusiness | null>(null)
   const [seo, setSeo] = useState<SettingsSeo | null>(null)
   const [websiteContent, setWebsiteContent] = useState<WebsiteContentMap>({})
@@ -197,6 +203,7 @@ export default function SettingsPage() {
         // Re-render the dashboard layout so server-side theming (themeMode,
         // branding, font) picks up the freshly saved business record.
         router.refresh()
+        setSavedAt(Date.now())
         toast({ title: 'Settings saved successfully' })
       } else {
         toast({ title: 'Failed to save', description: data.error, variant: 'destructive' })
@@ -254,6 +261,10 @@ export default function SettingsPage() {
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'branding', label: 'Branding & Theme', icon: Palette },
     { id: 'appearance', label: 'Website Appearance', icon: Monitor },
+    { id: 'layout', label: 'Layout & Behavior', icon: LayoutGrid },
+    { id: 'typography', label: 'Typography', icon: Type },
+    { id: 'homepage-sections', label: 'Homepage Sections', icon: ListOrdered },
+    { id: 'dashboard-preview', label: 'Dashboard Preview', icon: MonitorSmartphone },
     { id: 'social', label: 'Social Links', icon: Globe },
     { id: 'policies', label: 'Policies', icon: FileText },
     { id: 'seo', label: 'SEO', icon: Search },
@@ -261,6 +272,7 @@ export default function SettingsPage() {
     { id: 'website', label: 'Website Content', icon: FileText },
     { id: 'booking', label: 'Booking Questions', icon: HelpCircle },
     { id: 'reviews', label: 'Review Requests', icon: Star },
+    { id: 'danger-zone', label: 'Danger Zone', icon: AlertTriangle },
   ]
 
   const loadReviewReport = async () => {
@@ -965,10 +977,42 @@ export default function SettingsPage() {
   {activeTab === 'faq' && <FaqManager />}
 
       {activeTab === 'appearance' && (
-        <>
-          <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} themeMode={business?.themeMode ?? null} />
-          <HomeModulesCard websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
-        </>
+        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} savedAt={savedAt} />
+      )}
+
+      {activeTab === 'layout' && (
+        <LayoutBehaviorTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+      )}
+
+      {activeTab === 'typography' && (
+        <TypographyTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+      )}
+
+      {activeTab === 'homepage-sections' && (
+        <HomeModulesCard websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+      )}
+
+      {activeTab === 'dashboard-preview' && (
+        <DashboardPreviewTab websiteContent={websiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} themeMode={business?.themeMode ?? null} />
+      )}
+
+      {activeTab === 'danger-zone' && (
+        <Card className="bg-card border-border border-red-900/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Shop Settings — Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              High-risk shop management actions, separate from everyday settings. Deactivating temporarily closes
+              your shop (all records are preserved and you can reactivate later). Resetting clears configurable
+              content so you can start fresh — customers, appointment history, financial records, audit logs and
+              staff logins are always preserved. Both actions are owner-only and audited.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {activeTab === 'website' && (
@@ -1042,10 +1086,16 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* ── Danger Zone (all tabs) ── */}
-      <PublishWebsiteCard />
-      <DeactivateShopCard />
-      <ResetShopCard />
+      {/* ── Publishing (website draft → live) on every normal tab ── */}
+      {activeTab !== 'danger-zone' && <PublishWebsiteCard />}
+
+      {/* ── High-risk shop management: ONLY in the Danger Zone tab ── */}
+      {activeTab === 'danger-zone' && (
+        <>
+          <DeactivateShopCard />
+          <ResetShopCard />
+        </>
+      )}
   </div>
-  )
+    )
 }

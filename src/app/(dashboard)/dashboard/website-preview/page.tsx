@@ -22,7 +22,15 @@ export const dynamic = 'force-dynamic'
  * configuration system; the same resolver the public site uses
  * (resolveVisualConfig) drives the layout summary.
  */
-export default async function WebsitePreviewPage() {
+export default async function WebsitePreviewPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ embedded?: string }>
+}) {
+  const params = await searchParams
+  // embedded=1: rendered inside the Website Appearance iframe — the surrounding
+  // UI already labels it a draft preview, so the banner is redundant there.
+  const embedded = params?.embedded === '1'
   const session = await getServerSession(authOptions)
   if (!session?.user) redirect('/login')
   const businessId = session.user.businessId
@@ -69,10 +77,12 @@ export default async function WebsitePreviewPage() {
 
   return (
     <main className="min-h-screen bg-[var(--dash-surface)] text-foreground">
-      <div className="border-b border-amber-500/40 bg-[var(--dash-brand-soft)] px-4 py-2 text-center text-xs text-[var(--dash-brand)]">
-        DRAFT PREVIEW — only visible to signed-in staff. This is exactly what your homepage will
-        show once you press &quot;Publish website&quot; in Settings.
-      </div>
+      {!embedded && (
+        <div className="border-b border-amber-500/40 bg-[var(--dash-brand-soft)] px-4 py-2 text-center text-xs text-[var(--dash-brand)]">
+          DRAFT PREVIEW — only visible to signed-in staff. This is exactly what your homepage will
+          show once you press &quot;Publish website&quot; in Settings.
+        </div>
+      )}
 
       {/* ── The actual site surface: business theme + draft preset ──────
           Scoped .brand-theme wrapper so the dashboard's own chrome is

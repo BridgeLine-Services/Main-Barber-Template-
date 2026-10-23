@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, Monitor, Info, RotateCcw } from 'lucide-react'
+import { Check, Monitor, Info, Smartphone, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   VISUAL_STYLES,
@@ -10,24 +10,29 @@ import {
   type VisualStyle,
 } from '@/lib/visual-style'
 import {
-  VISUAL_FIELD_OPTIONS,
   type VisualOverrideKey,
   type VisualConfig,
   resolveVisualConfig,
 } from '@/lib/visual-config'
-import { FONT_FAMILY_OPTIONS, mapFontFamily } from '@/lib/theme'
-import { PresetCompare } from '@/components/dashboard/PresetCompare'
-import { DashboardPreview } from '@/components/dashboard/DashboardPreview'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Website Appearance tab — owner-facing visual identity configuration.
 //
-// The owner picks a preset (5 independently recognizable designs) and may
-// override individual layouts (hero, services, barbers, gallery, motion,
-// mobile nav, reviews). Unset fields follow the preset's built-in mapping.
+// The owner picks a preset (8 independently recognizable designs). Layout,
+// typography and homepage sections live in their own dedicated tabs
+// (Layout & Behavior / Typography / Homepage Sections); the dashboard preview
+// has its own tab too.
 //
 // Saves as DRAFT through the existing settings save flow; the Publish
 // Website card below makes it live (existing draft→publish architecture).
+//
+// Preview architecture:
+//   • HeroPreview — instant strip reflecting the CURRENT UNSAVED draft.
+//   • SitePreview — the REAL customer homepage rendered in an iframe from
+//     the authenticated /dashboard/website-preview route, with a Desktop /
+//     Mobile viewport toggle (transient client state, never persisted as a
+//     branding setting). It shows the SAVED draft, so it refreshes after
+//     each successful save (savedAt prop).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type WebsiteContentMap = Record<string, unknown>
@@ -75,7 +80,7 @@ export const PRESET_META: Record<VisualStyle, { blurb: string; swatches: string[
   },
 }
 
-const FIELD_LABELS: Record<VisualOverrideKey, string> = {
+export const FIELD_LABELS: Record<VisualOverrideKey, string> = {
   heroLayout: 'Hero layout',
   serviceLayout: 'Service listing layout',
   barberLayout: 'Barber presentation',
@@ -88,7 +93,7 @@ const FIELD_LABELS: Record<VisualOverrideKey, string> = {
   headingScale: 'Heading scale',
 }
 
-const OPTION_LABELS: Record<string, string> = {
+export const OPTION_LABELS: Record<string, string> = {
   cinematic: 'Cinematic — immersive full-bleed image',
   split: 'Split — text beside imagery',
   poster: 'Poster — bold typography-led',
@@ -117,12 +122,12 @@ const OPTION_LABELS: Record<string, string> = {
   grand: 'Grand — larger headings',
 }
 
-function optionLabel(value: string): string {
+export function optionLabel(value: string): string {
   return OPTION_LABELS[value] ?? value
 }
 
 /** Tiny hero mock that reflects the selected hero layout + preset character. */
-function HeroPreview({ heroLayout, preset }: { heroLayout: string; preset: VisualStyle }) {
+export function HeroPreview({ heroLayout, preset }: { heroLayout: string; preset: VisualStyle }) {
   const meta = PRESET_META[preset]
   const [bg, accent, surface, light] = meta.swatches
   const base = 'relative flex h-28 w-full overflow-hidden rounded-md border border-input'
@@ -162,153 +167,19 @@ function HeroPreview({ heroLayout, preset }: { heroLayout: string; preset: Visua
   )
 }
 
-/** Mini-site preview: hero + service/team/gallery strips + CTA, all driven by
- * the RESOLVED draft (preset defaults + overrides) — what publish will render. */
-function MiniSitePreview({ resolved, preset }: { resolved: VisualConfig; preset: VisualStyle }) {
-  const meta = PRESET_META[preset]
-  const [bg, accent, surface, light] = meta.swatches
-  const headingFont = resolved.headingFont ? mapFontFamily(resolved.headingFont) : undefined
-  const bodyFont = resolved.bodyFont ? mapFontFamily(resolved.bodyFont) : undefined
-  const hSize = resolved.headingScale === 'grand' ? 'text-[13px]' : resolved.headingScale === 'compact' ? 'text-[9px]' : 'text-[11px]'
-  const radius = resolved.buttonStyle === 'pill' ? 'rounded-full' : resolved.buttonStyle === 'soft' ? 'rounded-md' : 'rounded-none'
-  const imgRadius = resolved.imageShape === 'rounded' ? 'rounded-md' : resolved.imageShape === 'full-bleed' ? 'rounded-none' : 'rounded-sm'
-  const label = 'mb-1.5 text-[7px] font-semibold uppercase tracking-widest text-muted-foreground'
-
-  const services =
-    resolved.serviceLayout === 'visual-menu' ? (
-      <div className="grid grid-cols-3 gap-1">
-        {['Cut', 'Fade', 'Shave'].map((n, i) => (
-          <div key={n} className="overflow-hidden">
-            <div className={cn('aspect-[4/3]', imgRadius)} style={{ background: i === 0 ? accent : i === 1 ? `${accent}66` : `${bg}55` }} />
-            <p className="mt-0.5 text-[6px] font-medium" style={{ color: light }}>{n}</p>
-          </div>
-        ))}
-      </div>
-    ) : resolved.serviceLayout === 'cards' ? (
-      <div className="grid grid-cols-2 gap-1">
-        {['Cut — $30', 'Fade — $35', 'Shave — $25', 'Beard — $20'].map((n) => (
-          <div key={n} className={cn('p-1 text-[6px]', imgRadius)} style={{ background: surface, color: light }}>{n}</div>
-        ))}
-      </div>
-    ) : (
-      <div className="flex flex-col gap-0.5">
-        {['Cut — $30', 'Fade — $35', 'Shave — $25'].map((n, i) => (
-          <div key={n} className="flex items-baseline justify-between gap-2">
-            <span className="text-[6px] font-medium" style={{ color: light }}>{n.split(' — ')[0]}</span>
-            <span className="h-px flex-1" style={{ background: `${bg}44` }} />
-            <span className="text-[6px]" style={{ color: accent }}>{i === 1 ? '$35' : i === 2 ? '$25' : '$30'}</span>
-          </div>
-        ))}
-      </div>
-    )
-
-  const team =
-    resolved.barberLayout === 'portrait-grid' ? (
-      <div className="grid grid-cols-3 gap-1">
-        {['A', 'B', 'C'].map((n, i) => (
-          <div key={n}>
-            <div className={cn('aspect-[3/4]', imgRadius)} style={{ background: i === 1 ? `${accent}55` : `${bg}44` }} />
-            <p className="mt-0.5 text-[6px] text-center" style={{ color: light }}>Barber {n}</p>
-          </div>
-        ))}
-      </div>
-    ) : resolved.barberLayout === 'large-profile' ? (
-      <div className="flex gap-1.5">
-        <div className={cn('aspect-[3/4] w-1/3 shrink-0', imgRadius)} style={{ background: `${accent}55` }} />
-        <div className="flex flex-col justify-center gap-1">
-          <span className={cn(hSize, 'font-bold leading-none')} style={{ color: light }}>Marcus D.</span>
-          <span className="text-[6px]" style={{ color: accent }}>Master barber — 12 yrs</span>
-          <span className="text-[6px]" style={{ color: `${light}99` }}>Fades · Beards</span>
-        </div>
-      </div>
-    ) : (
-      <div className="flex gap-1">
-        {['A', 'B', 'C'].map((n, i) => (
-          <div key={n} className="flex items-center gap-1.5 p-1" style={{ background: surface }}>
-            <div className={cn('h-7 w-7 shrink-0', imgRadius)} style={{ background: i === 0 ? `${accent}66` : `${bg}44` }} />
-            <div>
-              <p className="text-[6px] font-semibold" style={{ color: light }}>Barber {n}</p>
-              <p className="text-[5px]" style={{ color: accent }}>Specialty</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-
-  const gallery =
-    resolved.galleryLayout === 'masonry' ? (
-      <div className="flex gap-1">
-        <div className="flex w-1/3 flex-col gap-1"><div className="h-8" style={{ background: `${bg}66` }} /><div className="h-5" style={{ background: `${accent}44` }} /></div>
-        <div className="flex w-1/3 flex-col gap-1"><div className="h-5" style={{ background: `${accent}44` }} /><div className="h-8" style={{ background: `${bg}55` }} /></div>
-        <div className="flex w-1/3 flex-col gap-1"><div className="h-6" style={{ background: `${bg}44` }} /><div className="h-7" style={{ background: `${accent}33` }} /></div>
-      </div>
-    ) : resolved.galleryLayout === 'filmstrip' ? (
-      <div className="flex gap-1 overflow-hidden">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={cn('h-9 w-8 shrink-0', imgRadius)} style={{ background: i % 2 ? `${accent}33` : `${bg}55` }} />
-        ))}
-      </div>
-    ) : resolved.galleryLayout === 'editorial' ? (
-      <div className="flex gap-1">
-        <div className={cn('h-9 w-1/2', imgRadius)} style={{ background: `${bg}55` }} />
-        <div className="flex w-1/2 flex-col gap-1">
-          <div className="h-4" style={{ background: `${accent}33` }} />
-          <div className="h-4" style={{ background: `${bg}44` }} />
-        </div>
-      </div>
-    ) : (
-      <div className="grid grid-cols-4 gap-1">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="aspect-square" style={{ background: i % 2 ? `${accent}33` : `${bg}55` }} />
-        ))}
-      </div>
-    )
-
-  return (
-    <div className="overflow-hidden rounded-md border border-input" style={{ background: `${bg}11` }} aria-hidden="true">
-      <div className="border-b border-input p-2.5" style={{ background: bg }}>
-        <div className="flex items-center justify-between">
-          <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: light }}>The Shop</span>
-          <span className={cn('px-2 py-0.5 text-[6px] font-semibold text-white', radius)} style={{ background: accent }}>Book</span>
-        </div>
-      </div>
-      <div className="space-y-2.5 p-2.5" style={{ fontFamily: bodyFont }}>
-        <div>
-          <p className={label} style={{ color: accent }}>Services — {OPTION_LABELS[resolved.serviceLayout] ?? resolved.serviceLayout}</p>
-          {services}
-        </div>
-        <div>
-          <p className={label} style={{ color: accent }}>Team — {OPTION_LABELS[resolved.barberLayout] ?? resolved.barberLayout}</p>
-          <span style={{ fontFamily: headingFont }}>
-            <span className={cn(hSize, 'block font-bold leading-tight')} style={{ color: light }}>The chairs behind the craft</span>
-          </span>
-          <div className="mt-1">{team}</div>
-        </div>
-        <div>
-          <p className={label} style={{ color: accent }}>Gallery — {OPTION_LABELS[resolved.galleryLayout] ?? resolved.galleryLayout}</p>
-          {gallery}
-        </div>
-        <div className="flex justify-center border-t border-input pt-2.5">
-          <span className={cn('px-3 py-1 text-[7px] font-semibold text-white', radius)} style={{ background: accent }}>
-            Book your chair
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 interface AppearanceTabProps {
   websiteContent: WebsiteContentMap
   setWebsiteContent: (next: WebsiteContentMap) => void
-  /** Custom brand colors/font from the business record (always win over preset defaults). */
-  accentColor?: string | null
-  fontFamily?: string | null
-  /** Owner's saved Light/Dark mode (business.themeMode). */
-  themeMode?: string | null
+  /** Bumped by the settings page after each successful save — reloads the real-site preview iframe. */
+  savedAt?: number
 }
 
-export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, fontFamily, themeMode }: AppearanceTabProps) {
+export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: AppearanceTabProps) {
+  // Viewport selection is TRANSIENT client state — it never persists as a
+  // branding setting and never affects what publish renders.
+  const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop')
+  const [frameHeight, setFrameHeight] = useState(640)
+
   const preset = (typeof websiteContent.visualPreset === 'string' ? websiteContent.visualPreset : '') as VisualStyle | ''
   const overrides = (websiteContent.visualConfig && typeof websiteContent.visualConfig === 'object'
     ? websiteContent.visualConfig
@@ -316,37 +187,13 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
   const selectedPreset: VisualStyle = preset && (VISUAL_STYLES as readonly string[]).includes(preset) ? preset : 'modern-classic'
   // What the PUBLIC site currently renders for this draft (preset defaults +
   // overrides) — the preview reflects the real resolver behavior.
-  const resolved = resolveVisualConfig(selectedPreset, overrides)
+  const resolved: VisualConfig = resolveVisualConfig(selectedPreset, overrides)
 
   const setPreset = (p: VisualStyle) => {
     setWebsiteContent({ ...websiteContent, visualPreset: p })
   }
-  const setOverride = (key: VisualOverrideKey, value: string) => {
-    const next = { ...overrides }
-    if (!value) delete next[key] // '' = follow preset default
-    else next[key] = value
-    setWebsiteContent({ ...websiteContent, visualConfig: next })
-  }
 
-  /**
-   * Reset to preset defaults: clears every optional visual override (layouts,
-   * motion, buttons, typography) so the selected preset's built-in choices
-   * apply again. The preset itself, branding, photos, services, barbers and
-   * reviews are untouched. Follows the normal save flow — draft only,
-   * never auto-publishes.
-   */
-  const hasOverrides = Object.keys(overrides).length > 0
-  const resetToPresetDefaults = () => {
-    const presetLabel = VISUAL_STYLE_CONFIG[selectedPreset].label
-    const ok = window.confirm(
-      `Reset to ${presetLabel} defaults?\n\n` +
-      'All layout and typography overrides will be cleared and this preset\'s built-in design choices will apply again. ' +
-      'Your preset, branding, logo, photos, services, barbers and reviews are all kept.\n\n' +
-      'This saves as a draft — nothing goes live until you publish.'
-    )
-    if (!ok) return
-    setWebsiteContent({ ...websiteContent, visualConfig: {} })
-  }
+  const isMobile = viewport === 'mobile'
 
   return (
     <Card className="bg-card border-border">
@@ -402,135 +249,100 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, accentColor, 
           </div>
         </div>
 
-        {/* ── Mini-site preview (hero + sections, from the resolved draft) ── */}
+        {/* ── Instant draft strip (unsaved state, updates immediately) ── */}
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-foreground">Site preview</h3>
+          <h3 className="mb-1 text-sm font-semibold text-foreground">Draft check</h3>
           <p className="mb-3 text-xs text-muted-foreground">
-            A simplified mock of your homepage as this draft resolves it — hero, services, team, gallery, and buttons follow your choices below.
+            Updates instantly with your unsaved choices — the hero composition this draft resolves to right now.
           </p>
-          <div className="space-y-2">
-            <HeroPreview heroLayout={resolved.heroLayout} preset={selectedPreset} />
-            <MiniSitePreview resolved={resolved} preset={selectedPreset} />
-          </div>
+          <HeroPreview heroLayout={resolved.heroLayout} preset={selectedPreset} />
         </div>
 
-        {/* ── Dashboard preview (how this draft themes the control room) ── */}
-        <div>
-          <h3 className="mb-1 text-sm font-semibold text-foreground">Dashboard preview</h3>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Your dashboard follows the <span className="font-semibold text-foreground">published</span> preset. This
-            shows how the control room&apos;s sidebar, header, buttons and cards will look with the current{' '}
-            <span className="font-semibold text-foreground">draft</span> — publishing applies it there too. Your
-            custom brand colors and font (Branding tab) take precedence over preset defaults.
-          </p>
-          <DashboardPreview preset={selectedPreset} accentColor={accentColor} fontFamily={fontFamily} themeMode={themeMode} />
-        </div>
-
-        {/* ── Five-preset comparison (same real data, all styles) ───── */}
-        <PresetCompare />
-
-        {/* ── Independent layout overrides ──────────────────────────── */}
+        {/* ── Real site preview with Desktop / Mobile viewport ──────── */}
         <div>
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-foreground">Layout & behavior</h3>
-            <button
-              type="button"
-              onClick={resetToPresetDefaults}
-              disabled={!hasOverrides}
-              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-[var(--dash-surface)] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Reset to {VISUAL_STYLE_CONFIG[selectedPreset].label} defaults
-            </button>
-          </div>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Every option defaults to the preset&apos;s built-in choice. Override only what you want to differ.
-            Resetting clears all overrides (saved as a draft) and keeps everything else about your site.
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(Object.keys(VISUAL_FIELD_OPTIONS) as VisualOverrideKey[]).map((key) => {
-              const options = VISUAL_FIELD_OPTIONS[key]
-              const presetDefault = (resolved[key] as string)
-              const currentValue = overrides[key] ?? ''
-              return (
-                <label key={key} className="block">
-                  <span className="mb-1 block text-xs font-medium text-foreground/85">{FIELD_LABELS[key]}</span>
-                  <select
-                    value={currentValue}
-                    onChange={(e) => setOverride(key, e.target.value)}
-                    className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
-                  >
-                    <option value="">Preset default — {optionLabel(presetDefault)}</option>
-                    {options.map((opt) => (
-                      <option key={opt} value={opt}>{optionLabel(opt)}</option>
-                    ))}
-                  </select>
-                </label>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ── Typography ─────────────────────────────────────────────── */}
-        <div>
-          <h3 className="mb-1 text-sm font-semibold text-foreground">Typography</h3>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Optionally override the preset&apos;s fonts. The heading font applies to display
-            headings; the body font applies to paragraphs, buttons, and forms.
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-foreground/85">Heading font</span>
-              <select
-                value={overrides.headingFont ?? ''}
-                onChange={(e) => setOverride('headingFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
+            <h3 className="text-sm font-semibold text-foreground">Site preview</h3>
+            {/* Viewport toggle — presentation only, never saved/published */}
+            <div role="group" aria-label="Preview viewport" className="inline-flex rounded-lg border border-input bg-[var(--dash-surface)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewport('desktop')}
+                aria-pressed={!isMobile}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  !isMobile ? 'bg-[var(--dash-brand-soft)] text-foreground border border-[var(--dash-brand-border)]' : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <option value="">Preset default</option>
-                {FONT_FAMILY_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label} — {f.description}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-foreground/85">Body font</span>
-              <select
-                value={overrides.bodyFont ?? ''}
-                onChange={(e) => setOverride('bodyFont' as VisualOverrideKey, e.target.value)}
-                className="w-full rounded-md border border-input bg-[var(--dash-surface)] px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none"
+                <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
+                Desktop
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewport('mobile')}
+                aria-pressed={isMobile}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isMobile ? 'bg-[var(--dash-brand-soft)] text-foreground border border-[var(--dash-brand-border)]' : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <option value="">Preset default</option>
-                {FONT_FAMILY_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label} — {f.description}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {(resolved.headingFont || resolved.bodyFont) && (
-            <div className="mt-4 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-4" aria-hidden="true">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Font preview</p>
-              <p
-                className="mt-1 text-2xl font-semibold tracking-tight text-foreground"
-                style={{ fontFamily: resolved.headingFont ? mapFontFamily(resolved.headingFont) : undefined }}
-              >
-                Sharp looks, honest craft.
-              </p>
-              <p
-                className="mt-2 text-sm text-muted-foreground"
-                style={{ fontFamily: resolved.bodyFont ? mapFontFamily(resolved.bodyFont) : undefined }}
-              >
-                Fades, beard work, and classic cuts — done right, every visit.
-              </p>
+                <Smartphone className="h-3.5 w-3.5" aria-hidden="true" />
+                Mobile
+              </button>
             </div>
-          )}
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            The real customer homepage rendered from your <span className="font-semibold text-foreground">saved draft</span> —
+            press <span className="font-semibold text-foreground">Save Changes</span> above, then the preview refreshes.
+            The viewport switch changes the preview only, never your settings.
+          </p>
+          <div
+            className={cn(
+              'mx-auto overflow-hidden rounded-xl border border-border bg-[var(--dash-surface-2)] shadow-sm transition-all',
+              isMobile ? 'w-[390px] max-w-full' : 'w-full'
+            )}
+          >
+            {/* iframe: same-origin authenticated draft preview, session cookies apply */}
+            <iframe
+              key={savedAt || 1}
+              src="/dashboard/website-preview?embedded=1"
+              title="Website draft preview"
+              className="block w-full border-0"
+              style={{ height: frameHeight }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <a
+              href="/dashboard/website-preview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--dash-brand)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            >
+              Open full-size Site Preview
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              Height
+              <input
+                type="range"
+                min={400}
+                max={1000}
+                step={40}
+                value={frameHeight}
+                onChange={(e) => setFrameHeight(Number(e.target.value))}
+                aria-label="Preview height"
+                className="accent-[var(--dash-brand)]"
+              />
+            </label>
+          </div>
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Walk-in navigation focus appears on the public site only when your shop supports walk-ins
-            (Business Info → walk-ins welcome). Motion respects each visitor&apos;s reduced-motion preference
-            regardless of the level chosen here.
+            Fine-tune layouts in <span className="font-semibold text-foreground">Layout &amp; Behavior</span>, fonts in{' '}
+            <span className="font-semibold text-foreground">Typography</span>, and homepage section visibility in{' '}
+            <span className="font-semibold text-foreground">Homepage Sections</span>. Your dashboard&apos;s own look has its own
+            <span className="font-semibold text-foreground"> Dashboard Preview</span> tab.
           </p>
         </div>
       </CardContent>

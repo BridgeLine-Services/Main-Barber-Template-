@@ -69,14 +69,6 @@ export function PublishWebsiteCard() {
         <Button onClick={onPublish} disabled={publishing} size="sm">
           {publishing ? 'Publishing…' : 'Publish website'}
         </Button>
-        <a
-          href="/dashboard/website-preview"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
-        >
-          Preview draft
-        </a>
       </div>
     </div>
   )
