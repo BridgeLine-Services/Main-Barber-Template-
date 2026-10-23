@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/components/ui/use-toast'
 import {Plus, Search } from 'lucide-react'
 
 interface AddAppointmentDialogProps {
@@ -65,6 +66,7 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
   const [notes, setNotes] = useState('')
 
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
   const fetchBarbers = async () => {
@@ -181,19 +183,23 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
     setLoading(true)
 
     try {
-      const startTime = new Date(`${date}T${time}`)
-
+      // Send the LOCAL calendar date/time (YYYY-MM-DD / HH:mm). The API
+      // interprets these in the business timezone and stores the UTC instant —
+      // converting in the browser would anchor to the browser's own timezone
+      // instead of the shop's.
       const body: {
         barberId: string | null
         serviceId: string | null
-        startTime: string
+        date: string
+        time: string
         notes: string
         customerData?: { firstName: string; lastName: string; phone: string; email: string }
         customerId?: string | null
       } = {
         barberId: selectedBarberId,
         serviceId: selectedServiceId,
-        startTime: startTime.toISOString(),
+        date,
+        time,
         notes,
       }
 
@@ -220,6 +226,10 @@ const [customers, setCustomers] = useState<DialogCustomer[]>([])
         throw new Error(data.error || 'Failed to create appointment')
       }
 
+      toast({
+        title: 'Appointment created',
+        description: `Added on ${date} at ${time}${firstName ? ' for ' + firstName + ' ' + lastName : ''}.`,
+      })
       if (onSuccess) onSuccess()
       onClose()
     } catch (err) {

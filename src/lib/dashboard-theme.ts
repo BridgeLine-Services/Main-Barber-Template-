@@ -27,7 +27,7 @@
 // ============================================================================
 
 import type { VisualStyle } from './visual-style'
-import { getVisualStyle, getVisualStyleConfig } from './visual-style'
+import { getVisualStyle } from './visual-style'
 import { DEFAULT_BRANDING, readableForegroundFor, hexToHsl, mapFontFamily } from './theme'
 
 /** Branding inputs (subset of the Business + WebsiteContent records). */
@@ -146,9 +146,6 @@ const PRESET_DASH_LIGHT: Record<VisualStyle, DashPalette> = {
   'single-chair': PRESET_DASH['single-chair'],
 }
 
-/** Fallback when nothing is configured — the classic zinc dashboard look. */
-const FALLBACK = PRESET_DASH['modern-classic']
-
 /**
  * Darkens a hex accent color until it is legible as text/fill on light
  * surfaces (contrast >= 4.5:1 vs the light workspace background). Used when
@@ -228,10 +225,6 @@ export function resolveDashboardPalette(input: DashboardBrandInput): DashPalette
  */
 export function generateDashboardThemeCSS(input: DashboardBrandInput, scope = '.dash-theme'): string {
   const p = resolveDashboardPalette(input)
-  const style = getVisualStyle(input.visualPreset)
-  const { button } = getVisualStyleConfig(style)
-  const radius = button === 'pill' ? '10px' : button === 'soft' ? '8px' : '5px'
-
   // Portal content (dialogs, dropdown menus, selects, toasts) is teleported
   // to <body>, escaping the scoped subtree. Mirror the tokens onto <body>
   // while the dashboard is mounted so portals inherit them. Gated to the
