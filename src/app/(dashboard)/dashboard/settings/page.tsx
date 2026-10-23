@@ -194,6 +194,9 @@ export default function SettingsPage() {
       if (data.business) {
         setBusiness(data.business)
         if (data.seo) setSeo(data.seo)
+        // Re-render the dashboard layout so server-side theming (themeMode,
+        // branding, font) picks up the freshly saved business record.
+        router.refresh()
         toast({ title: 'Settings saved successfully' })
       } else {
         toast({ title: 'Failed to save', description: data.error, variant: 'destructive' })

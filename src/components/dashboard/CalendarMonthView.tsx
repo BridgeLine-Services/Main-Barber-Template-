@@ -1,10 +1,13 @@
 'use client'
 
 import { formatTime } from '@/lib/utils'
+import { ymdInZone, timeInZone, todayYMDInZone } from '@/lib/calendar-tz'
 import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface CalendarMonthViewProps {
   currentDate: Date
+  /** Business timezone — appointments bucket/format in the shop's zone. */
+  timezone?: string
   appointments: CalendarAppointment[]
   onSelectDay: (date: Date) => void
   onSelectAppointment: (appt: CalendarAppointment) => void
@@ -12,6 +15,7 @@ interface CalendarMonthViewProps {
 
 export function CalendarMonthView({
   currentDate,
+  timezone,
   appointments,
   onSelectDay,
   onSelectAppointment,
@@ -54,14 +58,23 @@ export function CalendarMonthView({
     })
   }
 
+  // Bucket by the BUSINESS calendar day (the day the shop scheduled the
+  // appointment), never the viewer's — falls back to the browser zone only
+  // for the beat before the first API response delivers the timezone.
+  const toYMD = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const getAppointmentsForDate = (cellDate: Date) => {
+    const dayKey = toYMD(cellDate)
     return appointments.filter((appt) => {
-      const st = new Date(appt.startTime)
-      return (
-        st.getFullYear() === cellDate.getFullYear() &&
-        st.getMonth() === cellDate.getMonth() &&
-        st.getDate() === cellDate.getDate()
-      )
+      if (!timezone) {
+        const st = new Date(appt.startTime)
+        return (
+          st.getFullYear() === cellDate.getFullYear() &&
+          st.getMonth() === cellDate.getMonth() &&
+          st.getDate() === cellDate.getDate()
+        )
+      }
+      return ymdInZone(appt.startTime, timezone) === dayKey
     })
   }
 
@@ -82,7 +95,9 @@ export function CalendarMonthView({
       <div className="grid grid-cols-7 gap-1">
         {gridCells.map((cell, idx) => {
           const dayAppts = getAppointmentsForDate(cell.date)
-          const isToday = new Date().toDateString() === cell.date.toDateString()
+          const isToday = timezone
+            ? todayYMDInZone(timezone) === toYMD(cell.date)
+            : new Date().toDateString() === cell.date.toDateString()
 
           return (
             <div
@@ -123,7 +138,7 @@ export function CalendarMonthView({
                     className="p-1 rounded bg-card border border-border text-[10px] truncate text-foreground/85 hover:text-[var(--dash-brand)]"
                   >
                     <span className="font-mono text-[var(--dash-brand)] mr-1">
-                      {formatTime(new Date(appt.startTime))}
+                      {timezone ? timeInZone(appt.startTime, timezone) : formatTime(new Date(appt.startTime))}
                     </span>
                     {appt.customer?.firstName}
                   </div>

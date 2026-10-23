@@ -1,12 +1,15 @@
 'use client'
 
 import { formatTime } from '@/lib/utils'
+import { hourInZone, timeInZone } from '@/lib/calendar-tz'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { Clock, User, Scissors, Plus } from 'lucide-react'
 import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface CalendarDayViewProps {
   date: Date
+  /** Business timezone — appointments bucket/format in the shop's zone. */
+  timezone?: string
   appointments: CalendarAppointment[]
   onSelectAppointment: (appt: CalendarAppointment) => void
   onSelectSlot: (timeStr: string) => void
@@ -14,6 +17,7 @@ interface CalendarDayViewProps {
 
 export function CalendarDayView({
   date,
+  timezone,
   appointments,
   onSelectAppointment,
   onSelectSlot,
@@ -21,9 +25,13 @@ export function CalendarDayView({
   // Hours timeline from 8 AM to 8 PM (20:00)
   const hours = Array.from({ length: 13 }, (_, i) => i + 8)
 
+  // Bucket by the BUSINESS wall-clock hour, not the viewer's — an owner
+  // travelling abroad still sees each appointment at the hour the shop
+  // scheduled it. (timezone is undefined only for a beat before the first
+  // API response arrives; fall back to the browser zone then.)
   const getAppointmentsForHour = (hour: number) => {
     return appointments.filter((appt) => {
-      const apptHour = new Date(appt.startTime).getHours()
+      const apptHour = timezone ? hourInZone(appt.startTime, timezone) : new Date(appt.startTime).getHours()
       return apptHour === hour
     })
   }
@@ -61,6 +69,8 @@ export function CalendarDayView({
                   appts.map((appt) => {
                     const start = new Date(appt.startTime)
                     const end = new Date(appt.endTime)
+                    const startLabel = timezone ? timeInZone(appt.startTime, timezone) : formatTime(start)
+                    const endLabel = timezone ? timeInZone(appt.endTime, timezone) : formatTime(end)
 
                     return (
                       <div
@@ -73,7 +83,7 @@ export function CalendarDayView({
                         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs font-semibold mb-1">
                           <span className="flex items-center gap-1 font-mono text-[var(--dash-brand)]">
                             <Clock className="w-3.5 h-3.5" />
-                            {formatTime(start)} - {formatTime(end)}
+                            {startLabel} - {endLabel}
                           </span>
                           <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-muted text-foreground border border-border/60">
                             {STATUS_LABELS[appt.status] || appt.status}

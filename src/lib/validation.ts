@@ -169,15 +169,15 @@ export const updateBusinessSchema = z.object({
   // field the shop has never filled in.
   // Business identity
   name: z.string().min(1, 'Business name is required').max(100).optional(),
-  phone: z.string().max(30).optional(),
+  phone: z.string().max(30).nullish(),
   email: z.preprocess(
     (v) => (v === '' ? null : v),
     z.string().email('Please enter a valid email address').max(100).nullable().optional()
   ),
-  address: z.string().max(200).optional(),
-  city: z.string().max(100).optional(),
-  state: z.string().max(50).optional(),
-  zipCode: z.string().max(20).optional(),
+  address: z.string().max(200).nullish(),
+  city: z.string().max(100).nullish(),
+  state: z.string().max(50).nullish(),
+  zipCode: z.string().max(20).nullish(),
   latitude: z.preprocess(
     (v) => (v === '' || v === null ? null : typeof v === 'string' ? Number(v) : v),
     z.number().min(-90, 'Latitude must be between -90 and 90').max(90, 'Latitude must be between -90 and 90').nullable().optional()
@@ -222,7 +222,7 @@ export const updateBusinessSchema = z.object({
   teamSectionLabel: z.string().max(100).nullish(),
   teamSectionTitle: z.string().max(500).nullish(),
   teamSectionDescription: z.string().max(2000).nullish(),
-  hours: z.record(z.string(), z.any()).optional(),
+  hours: z.record(z.string(), z.any()).nullish(),
 
   // Policies
   bookingPolicy: z.string().max(5000).nullish(),
@@ -282,7 +282,7 @@ export const updateBarberProfileSchema = z.object({
   specialty: z.string().max(200).optional(),
   bio: z.string().max(2000).optional(),
   photo: z.string().url().max(2000).optional().or(z.literal('').optional()),
-  phone: z.string().max(30).optional(),
+  phone: z.string().max(30).nullish(),
   email: z.string().email().max(100).optional(),
   instagram: z.string().max(100).optional(),
   facebook: z.string().max(100).optional(),

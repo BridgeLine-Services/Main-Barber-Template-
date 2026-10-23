@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { formatFullDate } from '@/lib/utils'
+import { businessTodayAsLocalDate, ymdInZone, hourInZone, timeInZone, todayYMDInZone } from '@/lib/calendar-tz'
 
 /** Local-calendar YYYY-MM-DD — never goes through toISOString(), which
  *  shifts the day in any timezone ahead of UTC (the "wrong day" calendar bug). */
@@ -33,6 +34,9 @@ const fromYMD = (ymd: string) => {
 export default function CalendarPage() {
   const [view, setView] = useState<'day' | 'week' | 'month'>('day')
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
+  // Business timezone (from the appointments API); null until first load.
+  const [timezone, setTimezone] = useState<string | null>(null)
+  const [tzAligned, setTzAligned] = useState(false)
 
   // Support landing on a specific date via ?date=YYYY-MM-DD (used by the
   // Daily Operations dashboard's Book/View schedule actions).
@@ -84,7 +88,10 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
       const res = await fetch(`/api/dashboard/appointments?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
-        setAppointments(data)
+        // Response carries the business timezone alongside the rows; keep
+        // parsing bare arrays too so the shape stays backward compatible.
+        setAppointments(Array.isArray(data) ? data : data.appointments)
+        if (!Array.isArray(data) && data.timezone) setTimezone(data.timezone)
       }
     } catch (e) {
       console.error(e)
@@ -92,6 +99,20 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
       setLoading(false)
     }
   }
+
+  // The initial day is seeded from the browser clock; once the business
+  // timezone is known, re-anchor "today" to the shop's calendar day (the
+  // day customers are actually booking) if the owner hasn't navigated yet.
+  useEffect(() => {
+    if (timezone && !tzAligned) {
+      setTzAligned(true)
+      const today = businessTodayAsLocalDate(timezone)
+      if (today.getFullYear() !== currentDate.getFullYear() || today.getMonth() !== currentDate.getMonth() || today.getDate() !== currentDate.getDate()) {
+        setCurrentDate(today)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timezone])
 
   useEffect(() => {
     fetchAppointments()
@@ -225,6 +246,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           {view === 'day' && (
             <CalendarDayView
               date={currentDate}
+              timezone={timezone || undefined}
               appointments={appointments}
               onSelectAppointment={handleSelectAppointment}
               onSelectSlot={(timeStr) => handleOpenAddForDate(toYMD(currentDate), timeStr)}
@@ -234,6 +256,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           {view === 'week' && (
             <CalendarWeekView
               currentDate={currentDate}
+              timezone={timezone || undefined}
               appointments={appointments}
               onSelectAppointment={handleSelectAppointment}
               onSelectDay={(dateStr) => handleOpenAddForDate(dateStr)}
@@ -243,6 +266,7 @@ const [appointments, setAppointments] = useState<CalendarAppointment[]>([])
           {view === 'month' && (
             <CalendarMonthView
               currentDate={currentDate}
+              timezone={timezone || undefined}
               appointments={appointments}
               onSelectDay={(d) => {
                 setCurrentDate(d)

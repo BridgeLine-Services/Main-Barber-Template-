@@ -599,10 +599,15 @@ export async function createAppointmentSafely(params: {
    *  against the allowlist in src/lib/booking-source.ts. Absent = WEBSITE for
    *  the public flow (dashboard/manual bookings pass DIRECT themselves). */
   bookingSource?: BookingSource
+  /** Staff-side manual entry (dashboard "Add Appointment"). Walk-ins start
+   *  "now" and pre-arranged bookings can sit outside the public booking
+   *  window, so the customer-facing advance-notice/window rules are waived.
+   *  Availability, business-hours and double-booking checks still apply. */
+  staffManual?: boolean
   /** Optional validated campaign token ([A-Za-z0-9_-]{1,64}). */
   bookingCampaign?: string | null
 }): Promise<{ success: boolean; appointment?: Prisma.AppointmentGetPayload<{ include: { service: true; barber: true } }>; error?: string; customerAccessToken?: string }> {
-  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign } = params
+  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign, staffManual } = params
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -631,10 +636,10 @@ export async function createAppointmentSafely(params: {
       })
       if (!business) throw new Error('Business not found')
       const bookingNow = new Date()
-      if (startTime < new Date(bookingNow.getTime() + business.minAdvanceBookingMinutes * 60_000)) {
+      if (!staffManual && startTime < new Date(bookingNow.getTime() + business.minAdvanceBookingMinutes * 60_000)) {
         throw new Error('TOO_SOON')
       }
-      if (business.maxBookingWindowDays && startTime > new Date(bookingNow.getTime() + business.maxBookingWindowDays * 86_400_000)) {
+      if (!staffManual && business.maxBookingWindowDays && startTime > new Date(bookingNow.getTime() + business.maxBookingWindowDays * 86_400_000)) {
         throw new Error('OUTSIDE_WINDOW')
       }
 

@@ -65,7 +65,7 @@ export function AppointmentsListView({
       const res = await fetch('/api/dashboard/appointments')
       if (res.ok) {
         const data = await res.json()
-        setAppointments(data)
+        setAppointments(Array.isArray(data) ? data : data.appointments)
       }
     } catch (e) {
       console.error(e)

@@ -1,12 +1,15 @@
 'use client'
 
 import { formatTime } from '@/lib/utils'
+import { ymdInZone, timeInZone, todayYMDInZone } from '@/lib/calendar-tz'
 import { STATUS_COLORS } from '@/lib/constants'
 import { Plus } from 'lucide-react'
 import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface CalendarWeekViewProps {
   currentDate: Date
+  /** Business timezone — appointments bucket/format in the shop's zone. */
+  timezone?: string
   appointments: CalendarAppointment[]
   onSelectAppointment: (appt: CalendarAppointment) => void
   onSelectDay: (dateStr: string) => void
@@ -14,6 +17,7 @@ interface CalendarWeekViewProps {
 
 export function CalendarWeekView({
   currentDate,
+  timezone,
   appointments,
   onSelectAppointment,
   onSelectDay,
@@ -40,14 +44,21 @@ export function CalendarWeekView({
   const toYMD = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+  // Bucket by the BUSINESS calendar day (the day the shop scheduled the
+  // appointment), never the viewer's — falls back to the browser zone only
+  // for the beat before the first API response delivers the timezone.
   const getAppointmentsForDay = (dayDate: Date) => {
+    const dayKey = toYMD(dayDate)
     return appointments.filter((appt) => {
-      const st = new Date(appt.startTime)
-      return (
-        st.getFullYear() === dayDate.getFullYear() &&
-        st.getMonth() === dayDate.getMonth() &&
-        st.getDate() === dayDate.getDate()
-      )
+      if (!timezone) {
+        const st = new Date(appt.startTime)
+        return (
+          st.getFullYear() === dayDate.getFullYear() &&
+          st.getMonth() === dayDate.getMonth() &&
+          st.getDate() === dayDate.getDate()
+        )
+      }
+      return ymdInZone(appt.startTime, timezone) === dayKey
     })
   }
 
@@ -57,7 +68,9 @@ export function CalendarWeekView({
         {weekDays.map((dayDate) => {
           const dayAppts = getAppointmentsForDay(dayDate)
           const dateStr = toYMD(dayDate)
-          const isToday = new Date().toDateString() === dayDate.toDateString()
+          const isToday = timezone
+            ? todayYMDInZone(timezone) === dateStr
+            : new Date().toDateString() === dayDate.toDateString()
 
           return (
             <div
@@ -84,6 +97,7 @@ export function CalendarWeekView({
               <div className="flex-1 space-y-1.5 overflow-y-auto">
                 {dayAppts.map((appt) => {
                   const start = new Date(appt.startTime)
+                  const startLabel = timezone ? timeInZone(appt.startTime, timezone) : formatTime(start)
                   return (
                     <div
                       key={appt.id}
@@ -93,7 +107,7 @@ export function CalendarWeekView({
                       }`}
                     >
                       <div className="text-[10px] font-mono font-bold text-[var(--dash-brand)]">
-                        {formatTime(start)}
+                        {startLabel}
                       </div>
                       <div className="text-xs font-bold text-foreground truncate">
                         {appt.customer

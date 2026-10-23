@@ -98,7 +98,9 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { startTime: 'asc' },
       })
-      return NextResponse.json(appointments)
+      // Include the business timezone so the dashboard calendar can bucket and
+      // format appointments in the zone the shop actually operates in.
+      return NextResponse.json({ appointments, timezone: timezoneForQuery })
     } catch (error) {
       console.error('[appointments] request failed', error)
       return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
@@ -176,6 +178,9 @@ export async function POST(req: NextRequest) {
         barberId,
         serviceId,
         startTime,
+        // Staff-side manual entry: walk-ins start "now", so the customer
+        // advance-notice rule is waived (double-booking still enforced).
+        staffManual: true,
         customerData: {
           firstName: targetCustomerData.firstName,
           lastName: targetCustomerData.lastName,
