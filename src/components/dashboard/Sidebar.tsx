@@ -357,7 +357,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[var(--dash-surface)] border-b border-border text-foreground sticky top-0 z-40">
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[var(--dash-surface)] border-b border-border text-foreground sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] text-[var(--dash-brand)] flex items-center justify-center">
             <Scissors className="w-4 h-4" />
