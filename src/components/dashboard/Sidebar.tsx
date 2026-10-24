@@ -113,9 +113,12 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       return activeSettingsTab === tab
     }
     if (href === '/dashboard') return pathname === '/dashboard'
-    // Exact match or whole-segment prefix. A bare startsWith would make
-    // '/dashboard/ecommerce' also highlight on '/dashboard/ecommerce/orders'
-    // (the old Online Shop / Shop Orders double-selection bug).
+    // A nav item that is the parent of another nav item (e.g. Online Shop is
+    // the parent of Shop Orders) matches exactly, so the child page never
+    // double-highlights it. Everything else exact-matches or prefix-matches
+    // whole segments (nested routes like /dashboard/gallery/hero keep the
+    // Gallery parent highlighted, which has no nav item of its own).
+    if (parentHrefs.has(href)) return pathname === href
     return pathname === href || pathname.startsWith(href + '/')
   }
 
@@ -275,6 +278,19 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   ]
 
   const sections = isOwner ? ownerSections : barberSections
+
+  // Nav destinations that are a URL-prefix of ANOTHER nav destination
+  // (e.g. /dashboard/ecommerce → /dashboard/ecommerce/orders) must match
+  // EXACTLY, otherwise visiting the child also highlights the parent.
+  const allNavHrefs = sections.flatMap((sec) => [
+    ...(sec.items ?? []).map((i) => i.href),
+    ...(sec.groups ?? []).flatMap((g) => g.items.map((i) => i.href)),
+  ])
+  const parentHrefs = new Set(
+    allNavHrefs.filter(
+      (h) => !h.includes('?') && allNavHrefs.some((o) => o !== h && o.startsWith(h + '/'))
+    )
+  )
 
   const closeMobile = () => setMobileOpen(false)
 

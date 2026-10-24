@@ -296,6 +296,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: Ap
             The viewport switch changes the preview only, never your settings.
           </p>
           <div
+            data-viewport-frame={viewport}
             className={cn(
               'mx-auto overflow-hidden rounded-xl border border-border bg-[var(--dash-surface-2)] shadow-sm transition-all',
               isMobile ? 'w-[390px] max-w-full' : 'w-full'
