@@ -234,6 +234,7 @@ export function TimeOffManager({ barberId, initialBlockedTimes }: TimeOffManager
                     disabled={deletingId === item.id}
                     className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30 shrink-0"
                     title="Delete Block"
+                    aria-label="Delete Block"
                   >
                     {deletingId === item.id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

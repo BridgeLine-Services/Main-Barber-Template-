@@ -371,6 +371,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           variant="ghost"
           size="icon"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           className="text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)]"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

@@ -208,6 +208,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                             onClick={() => handleOpenEdit(service)}
                             className="h-8 w-8 text-muted-foreground hover:text-[var(--dash-brand)] hover:bg-card"
                             title="Edit Service"
+                            aria-label="Edit Service"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>
@@ -218,6 +219,7 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
                             disabled={loadingId === service.id}
                             className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/30"
                             title="Delete Service"
+                            aria-label="Delete Service"
                           >
                             {loadingId === service.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />

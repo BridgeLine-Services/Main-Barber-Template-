@@ -284,6 +284,7 @@ export function PaymentSettingsForm() {
                         variant="ghost"
                         size="icon"
                         onClick={() => removePreset(idx)}
+                        aria-label="Remove preset"
                         className="h-7 w-7 text-muted-foreground hover:text-red-400"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
