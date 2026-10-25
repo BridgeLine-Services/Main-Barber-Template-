@@ -1,7 +1,7 @@
 'use client'
 
 import type { BookingQuestion } from '@prisma/client'
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -171,6 +171,12 @@ export default function SettingsPage() {
     }
   }, [rawTab, router])
 
+  // The saved-state baseline: a serialized snapshot of everything this page
+  // can persist. Any difference means the visible draft has unsaved edits —
+  // the header badge and the preview notice derive from this single source.
+  const savedBaselineRef = useRef<string | null>(null)
+  const snapshot = (b: unknown, se: unknown, wc: unknown) => JSON.stringify({ b, se, wc })
+
   useEffect(() => {
     fetch('/api/dashboard/settings')
       .then(r => r.json())
@@ -179,6 +185,7 @@ export default function SettingsPage() {
         setSeo(data.seo || {})
         setWebsiteContent(data.websiteContent || {})
         setBookingQuestions(data.bookingQuestions || [])
+        savedBaselineRef.current = snapshot(data.business, data.seo || {}, data.websiteContent || {})
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -197,6 +204,11 @@ export default function SettingsPage() {
         })
       })
   }, [toast])
+
+  // Unsaved-changes state (recomputed each render; cheap for this payload).
+  const hasUnsavedChanges =
+    savedBaselineRef.current !== null &&
+    savedBaselineRef.current !== snapshot(business, seo, websiteContent)
 
   const handleSave = async () => {
     setSaving(true)
@@ -220,6 +232,9 @@ export default function SettingsPage() {
       }
       setBusiness(data.business)
       if (data.seo) setSeo(data.seo)
+      // The server response is the persisted version of the latest edits —
+      // it becomes the new saved baseline (clears the unsaved badge).
+      savedBaselineRef.current = snapshot(data.business, data.seo || seo, websiteContent)
       // Re-render the dashboard layout so server-side theming (themeMode,
       // branding, font) picks up the freshly saved business record.
       router.refresh()
@@ -379,10 +394,20 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-foreground">Business Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your shop information, branding, hours, policies, and SEO.</p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-primary text-black hover:bg-primary/90">
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {hasUnsavedChanges && !saving && (
+            <span
+              role="status"
+              className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+            >
+              Unsaved changes
+            </span>
+          )}
+          <Button onClick={handleSave} disabled={saving} className="bg-primary text-black hover:bg-primary/90">
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -766,7 +791,7 @@ export default function SettingsPage() {
 
         {/* Website Design — visual preset, layout overrides, and the live
             customer-site preview (desktop/mobile) in one place. */}
-        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} savedAt={savedAt} />
+        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} savedAt={savedAt} unsaved={hasUnsavedChanges} />
       </div>
       )}
 

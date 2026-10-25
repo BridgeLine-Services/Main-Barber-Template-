@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, Monitor, Info, Smartphone, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -172,13 +172,36 @@ interface AppearanceTabProps {
   setWebsiteContent: (next: WebsiteContentMap) => void
   /** Bumped by the settings page after each successful save — reloads the real-site preview iframe. */
   savedAt?: number
+  /** True while the visible draft differs from the last saved state. */
+  unsaved?: boolean
 }
 
-export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: AppearanceTabProps) {
+export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt, unsaved = false }: AppearanceTabProps) {
   // Viewport selection is TRANSIENT client state — it never persists as a
   // branding setting and never affects what publish renders.
   const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop')
   const [frameHeight, setFrameHeight] = useState(640)
+  // iframe health: 'loading' until the real homepage renderer reports load;
+  // if it never does, we show an honest error with a Retry action instead of
+  // an indefinite spinner. frameKey forces a fresh reload on Retry. The
+  // status is keyed to the current frame id, so a new frame is 'loading'
+  // without any synchronous state reset inside an effect.
+  const [frameKey, setFrameKey] = useState(0)
+  const frameId = `${savedAt || 1}-${frameKey}-${viewport}`
+  const [frameState, setFrameState] = useState<{ id: string; status: 'loading' | 'ready' | 'error' }>({
+    id: frameId,
+    status: 'loading',
+  })
+  const frameStatus: 'loading' | 'ready' | 'error' = frameState.id === frameId ? frameState.status : 'loading'
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFrameState((prev) =>
+        prev.id === frameId && prev.status === 'loading' ? { id: frameId, status: 'error' } : prev,
+      )
+    }, 12000)
+    return () => clearTimeout(timer)
+  }, [frameId])
 
   const preset = (typeof websiteContent.visualPreset === 'string' ? websiteContent.visualPreset : '') as VisualStyle | ''
   const overrides = (websiteContent.visualConfig && typeof websiteContent.visualConfig === 'object'
@@ -200,14 +223,13 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: Ap
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Monitor className="h-5 w-5 text-[var(--dash-brand)]" />
-          Website Appearance
+          Website Design
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
         <p className="text-sm text-muted-foreground">
-          Choose the visual identity customers see on your public website. Changes save as a{' '}
-          <span className="font-semibold text-foreground">draft</span> and go live when you{' '}
-          <span className="font-semibold text-foreground">publish</span> (Publish Website card below).
+          Choose the visual identity customers see on your public website. Everything here saves with one{' '}
+          <span className="font-semibold text-foreground">Save Changes</span> click, which also makes it live.
         </p>
 
         {/* ── Preset picker ─────────────────────────────────────────── */}
@@ -291,10 +313,21 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: Ap
             </div>
           </div>
           <p className="mb-3 text-xs text-muted-foreground">
-            The real customer homepage rendered from your <span className="font-semibold text-foreground">saved draft</span> —
-            press <span className="font-semibold text-foreground">Save Changes</span> above, then the preview refreshes.
+            The real customer homepage rendered from your <span className="font-semibold text-foreground">saved draft</span>.
             The viewport switch changes the preview only, never your settings.
           </p>
+          {unsaved && (
+            <div
+              role="status"
+              className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5"
+            >
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+              <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                You have unsaved changes — this preview still shows the last saved draft. Click{' '}
+                <span className="font-semibold">Save Changes</span> to save and make them live.
+              </p>
+            </div>
+          )}
           <div
             data-viewport-frame={viewport}
             className={cn(
@@ -303,13 +336,36 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: Ap
             )}
           >
             {/* iframe: same-origin authenticated draft preview, session cookies apply */}
-            <iframe
-              key={savedAt || 1}
-              src="/dashboard/website-preview?embedded=1"
-              title="Website draft preview"
-              className="block w-full border-0"
-              style={{ height: frameHeight }}
-            />
+            <div className="relative">
+              {frameStatus === 'loading' && (
+                <p className="absolute inset-x-0 top-0 z-10 bg-[var(--dash-surface)]/90 px-3 py-2 text-center text-xs text-muted-foreground">
+                  Loading your site preview…
+                </p>
+              )}
+              {frameStatus === 'error' && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--dash-surface)] p-6 text-center">
+                  <p className="text-sm font-medium text-foreground">The preview could not be loaded.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Your saved settings are safe. Try loading the preview again.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFrameKey((k) => k + 1)}
+                    className="rounded-md border border-input px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-[var(--dash-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Retry preview
+                  </button>
+                </div>
+              )}
+              <iframe
+                key={frameId}
+                src="/dashboard/website-preview?embedded=1"
+                title="Website draft preview"
+                className="block w-full border-0"
+                style={{ height: frameHeight }}
+                onLoad={() => setFrameState({ id: frameId, status: 'ready' })}
+              />
+            </div>
           </div>
           <div className="mt-2 flex items-center justify-between gap-2">
             <a
@@ -340,10 +396,10 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt }: Ap
         <div className="flex items-start gap-2 rounded-lg border border-border bg-[var(--dash-surface)]/50 p-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Fine-tune layouts in <span className="font-semibold text-foreground">Layout &amp; Behavior</span>, fonts in{' '}
-            <span className="font-semibold text-foreground">Typography</span>, and homepage section visibility in{' '}
-            <span className="font-semibold text-foreground">Homepage Sections</span>. Your dashboard&apos;s own look has its own
-            <span className="font-semibold text-foreground"> Dashboard Preview</span> tab.
+            Fine-tune layouts in <span className="font-semibold text-foreground">Layout &amp; Behavior</span> and homepage
+            section visibility in <span className="font-semibold text-foreground">Homepage Sections</span> (both in the menu
+            under Website). Your dashboard&apos;s own look has its own
+            <span className="font-semibold text-foreground"> Dashboard Preview</span> page.
           </p>
         </div>
       </CardContent>
