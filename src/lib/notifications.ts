@@ -85,6 +85,7 @@ async function logNotification(params: {
   type: 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'CANCELLATION_NOTICE' | 'RESCHEDULE_NOTICE' | 'CONTACT_FORM' | 'WAITLIST_NOTIFICATION' | 'REBOOKING_REMINDER' | 'MARKETING_CAMPAIGN' | 'STAFF_INVITE' | 'SHOP_ORDER_CONFIRMATION' | 'REVIEW_REQUEST'
   status: 'PENDING' | 'SENT' | 'FAILED'
   content?: string
+  subject?: string
   errorMessage?: string
   providerMessageId?: string
   scheduledAt?: Date
@@ -104,6 +105,7 @@ async function logNotification(params: {
         type: params.type,
         status: params.status,
         content: params.content || null,
+        subject: params.subject || null,
         errorMessage: params.errorMessage ? sanitizeErrorMessage(params.errorMessage) : null,
         failureReason: params.errorMessage ? sanitizeErrorMessage(params.errorMessage) : null,
         providerMessageId: params.providerMessageId || null,

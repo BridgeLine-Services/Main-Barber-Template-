@@ -514,7 +514,7 @@ enum BookingSource {
   UNKNOWN // missing/legacy value; also the safe fallback for bad input
 }
 
-// ─── Prompt 9: automated post-appointment review requests ────────────────────
+// ──�� Prompt 9: automated post-appointment review requests ────────────────────
 enum ReviewRequestStatus {
   PENDING // waiting for delay to elapse (or a retry backoff window)
   PROCESSING // atomically claimed by a worker; crashed claims are re-queued
@@ -786,6 +786,7 @@ model NotificationLog {
   channel           NotificationChannel
   type              NotificationType
   content           String?             @db.Text
+  subject           String?
   status            NotificationStatus  @default(PENDING)
   errorMessage      String?
   failureReason     String?
@@ -966,7 +967,7 @@ model BusinessClosure {
   @@index([businessId, startDate, endDate])
 }
 
-// ─── Loyalty / Reward Programs ─────────────────────────────────────────────
+// ─── Loyalty / Reward Programs ────────────────────────���────────────────────
 
 enum RewardProgramType {
   VISITS

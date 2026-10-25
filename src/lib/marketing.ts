@@ -1,5 +1,6 @@
 import type { CampaignAudience } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { campaignPostalAddress, createUnsubscribeUrl } from '@/lib/email-marketing'
 
 // ============================================================================
 // Marketing Automation Engine
@@ -14,6 +15,7 @@ export interface CampaignTarget {
   lastName: string
   phone: string
   email: string
+  emailOptOut?: boolean
   reason: string // why they matched this audience
 }
 
@@ -90,13 +92,14 @@ export async function resolveCampaignAudience(
       { ...audienceConfig, barberName, serviceName }
     )
     if (matches) {
-      if (customer.smsConsent) {
+      if (customer.emailOptOut === false || customer.smsConsent) {
         targets.push({
           customerId: customer.id,
           firstName: customer.firstName,
           lastName: customer.lastName,
           phone: customer.phone,
           email: customer.email,
+          emailOptOut: customer.emailOptOut,
           reason,
         })
       }
@@ -247,6 +250,13 @@ export async function sendCampaign(businessId: string, campaignId: string) {
 
   if (!campaign) throw new Error('Campaign not found')
 
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { name: true, address: true, city: true, state: true, zipCode: true },
+  })
+  const postalAddress = business ? campaignPostalAddress(business) : null
+  if (!postalAddress) throw new Error('Campaign sending is blocked until the business postal address is configured.')
+
   const cfg = campaign.audienceConfig
   const audienceConfig =
     cfg && typeof cfg === 'object' && !Array.isArray(cfg)
@@ -254,30 +264,16 @@ export async function sendCampaign(businessId: string, campaignId: string) {
       : undefined
   const targets = await resolveCampaignAudience(businessId, campaign.audience, audienceConfig)
 
-  // Queue all campaign notifications in one batch insert (an audience of
-  // N used to issue N sequential INSERTs). A batched failure is logged and
-  // the campaign send continues below.
-  const recipients = targets
-    .map((target) => target.phone)
-    .filter((phone): phone is string => typeof phone === 'string' && phone.length > 0)
-  if (recipients.length > 0) {
-    try {
-      await prisma.notificationLog.createMany({
-        data: targets.filter((target) => target.phone).map((target) => ({
-          appointmentId: null,
-          customerId: target.customerId,
-          channel: 'SMS',
-          type: 'MARKETING_CAMPAIGN',
-          recipient: target.phone,
-          content: `${campaign.subject}\n\n${campaign.body}`,
-          status: 'PENDING',
-          businessId,
-        })),
-      })
-    } catch (e) {
-      // Non-critical — campaign still marked sent below
-      console.error('campaign notification queueing failed', e)
+  const data = targets.flatMap((target) => {
+    const rows = []
+      if (target.email && target.emailOptOut !== true) {
+      rows.push({ appointmentId: null, customerId: target.customerId, channel: 'EMAIL' as const, type: 'MARKETING_CAMPAIGN' as const, recipient: target.email, subject: campaign.subject, content: `${campaign.body}\n\n---\n${business?.name || 'This business'}\n${postalAddress}\nUnsubscribe: ${createUnsubscribeUrl(businessId, target.customerId)}`, status: 'PENDING' as const, businessId })
     }
+    if (target.phone) rows.push({ appointmentId: null, customerId: target.customerId, channel: 'SMS' as const, type: 'MARKETING_CAMPAIGN' as const, recipient: target.phone, subject: campaign.subject, content: `${campaign.subject}\n\n${campaign.body}`, status: 'PENDING' as const, businessId })
+    return rows
+  })
+  if (data.length > 0) {
+    await prisma.notificationLog.createMany({ data })
   }
 
   // Update campaign status
