@@ -13,8 +13,8 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
   Save, Building2, Phone,MapPin, Clock, Globe, Palette, Users,
-  Search, FileText, Image as ImageIcon,HelpCircle, Star, LayoutGrid,
-  ListOrdered, MonitorSmartphone, AlertTriangle
+  Search, FileText, Image as ImageIcon,
+  AlertTriangle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
@@ -159,9 +159,6 @@ export default function SettingsPage() {
         ? rawTab
         : DEFAULT_TAB
   const activeTab: Tab = normalizedTab
-  const setActiveTab = (tab: Tab) => {
-    router.push(`/dashboard/settings?tab=${tab}`, { scroll: false })
-  }
 
   // Legacy bookmark URLs (?tab=appearance / ?tab=typography) redirect to the
   // consolidated Branding & Theme page without adding a history entry.
@@ -316,22 +313,29 @@ export default function SettingsPage() {
     )
   }
 
-  const tabs: { id: Tab; label: string; icon: typeof Building2 }[] = [
-    { id: 'business', label: 'Business Info', icon: Building2 },
-    { id: 'hours', label: 'Business Hours', icon: Clock },
-    { id: 'branding', label: 'Branding & Theme', icon: Palette },
-    { id: 'layout', label: 'Layout & Behavior', icon: LayoutGrid },
-    { id: 'homepage-sections', label: 'Homepage Sections', icon: ListOrdered },
-    { id: 'dashboard-preview', label: 'Dashboard Preview', icon: MonitorSmartphone },
-    { id: 'social', label: 'Social Links', icon: Globe },
-    { id: 'policies', label: 'Policies', icon: FileText },
-    { id: 'seo', label: 'SEO', icon: Search },
-    { id: 'faq', label: 'FAQ', icon: HelpCircle },
-    { id: 'website', label: 'Website Content', icon: FileText },
-    { id: 'booking', label: 'Booking Questions', icon: HelpCircle },
-    { id: 'reviews', label: 'Review Requests', icon: Star },
-    { id: 'danger-zone', label: 'Danger Zone', icon: AlertTriangle },
-  ]
+  // Plain-language title + one-line explanation for the destination the
+  // sidebar has opened. The sidebar is the ONLY navigation between settings
+  // destinations (the old horizontal tab row was redundant and is gone).
+  const TAB_META: Record<Tab, { title: string; description: string }> = {
+    business: { title: 'Business Information', description: 'Your shop name, contact details and address - shown to customers on your website.' },
+    hours: { title: 'Business Hours', description: 'When your shop is open. Customers can only book inside these hours.' },
+    branding: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
+    layout: { title: 'Layout & Behavior', description: 'How your website is arranged and how it behaves for visitors.' },
+    'homepage-sections': { title: 'Homepage Sections', description: 'Choose which sections appear on your homepage and in what order.' },
+    'dashboard-preview': { title: 'Dashboard Preview', description: 'See how your branding will look across the management dashboard.' },
+    social: { title: 'Social Links', description: 'Links to your social media profiles, shown in your website footer.' },
+    policies: { title: 'Policies', description: 'Cancellation, privacy and other policies shown to customers.' },
+    seo: { title: 'Search Settings', description: 'How your shop appears in Google search results.' },
+    faq: { title: 'FAQ', description: 'Common questions and answers shown on your website.' },
+    website: { title: 'Website Content', description: 'The words and images customers read on your website.' },
+    booking: { title: 'Booking Questions', description: 'Extra questions customers answer when they book.' },
+    reviews: { title: 'Review Requests', description: 'Ask customers for reviews after their visit.' },
+    'danger-zone': { title: 'Deactivate Shop', description: 'Temporarily close your shop or reset shop data. High-risk actions live here.' },
+    // Legacy tab ids (old bookmarks) render the consolidated Branding & Theme page.
+    appearance: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
+    typography: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
+  }
+  const pageMeta = TAB_META[activeTab]
 
   const loadReviewReport = async () => {
     setReviewReportLoading(true)
@@ -389,46 +393,19 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Business Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your shop information, branding, hours, policies, and SEO.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">{pageMeta.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{pageMeta.description}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {hasUnsavedChanges && !saving && (
-            <span
-              role="status"
-              className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
-            >
-              Unsaved changes
-            </span>
-          )}
-          <Button onClick={handleSave} disabled={saving} className="bg-primary text-black hover:bg-primary/90">
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-border pb-2">
-        {tabs.map(tab => {
-          const Icon = tab.icon
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-[var(--dash-brand-soft)] text-[var(--dash-brand)] border border-[var(--dash-brand-border)]'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-[var(--dash-hover)]'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          )
-        })}
+        {hasUnsavedChanges && !saving && (
+          <span
+            role="status"
+            className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+          >
+            Unsaved changes
+          </span>
+        )}
       </div>
 
       {/* ── Business Info ── */}
@@ -1145,7 +1122,32 @@ export default function SettingsPage() {
       )}
 
       {/* ── Publishing (website draft → live) on every normal tab ── */}
-      {activeTab !== 'danger-zone' && <PublishWebsiteCard key={savedAt} />}
+      {/* ── Save & publish ──
+          The single primary action lives here, in the position the old
+          "Publish Website" button occupied. One click saves the draft and
+          (for owners) publishes it; status above reports what actually
+          happened. There is deliberately no second save button. */}
+      {activeTab !== 'danger-zone' && (
+        <div className="space-y-3">
+          <PublishWebsiteCard key={savedAt} />
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {hasUnsavedChanges && !saving && (
+              <span role="status" className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                You have unsaved changes
+              </span>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="bg-primary text-black hover:bg-primary/90"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ── High-risk shop management: ONLY in the Danger Zone tab ── */}
       {activeTab === 'danger-zone' && (

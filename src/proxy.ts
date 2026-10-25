@@ -11,6 +11,15 @@ import { getToken } from 'next-auth/jwt'
 //    src/lib/onboarding.ts)
 // ============================================================================
 
+// The dashboard embeds the authenticated customer-site preview in an iframe.
+// A global DENY / frame-ancestors 'none' makes the browser refuse to render
+// that iframe (200 response, but an error page inside the frame), so the
+// preview could never show the real site. The preview route is the ONE
+// exception: same-origin framing only. Third-party sites still cannot frame
+// the app, and the route keeps its own authentication (anonymous visitors
+// are redirected to login by the page itself).
+const PREVIEW_PATH = '/dashboard/website-preview'
+
 const SECURITY_HEADERS: Record<string, string> = {
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
@@ -24,9 +33,19 @@ const SECURITY_HEADERS: Record<string, string> = {
     `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://www.google.com; frame-ancestors 'none';`,
 }
 
-function addSecurityHeaders(response: NextResponse) {
+function addSecurityHeaders(response: NextResponse, pathname?: string) {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value)
+  }
+  if (pathname === PREVIEW_PATH) {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.set(
+      'Content-Security-Policy',
+      SECURITY_HEADERS['Content-Security-Policy'].replace(
+        "frame-ancestors 'none'",
+        "frame-ancestors 'self'",
+      ),
+    )
   }
 }
 
@@ -41,10 +60,10 @@ export async function proxy(req: NextRequest) {
   if (pathname.startsWith('/api/dashboard')) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
-      return addSecurityHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      return addSecurityHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), pathname)
     }
     if (token.role === 'CUSTOMER') {
-      return addSecurityHeaders(NextResponse.json({ error: 'Staff access required' }, { status: 403 }))
+      return addSecurityHeaders(NextResponse.json({ error: 'Staff access required' }, { status: 403 }), pathname)
     }
   }
 
@@ -55,7 +74,7 @@ export async function proxy(req: NextRequest) {
   requestHeaders.set('x-pathname', pathname)
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })
-  addSecurityHeaders(response)
+  addSecurityHeaders(response, pathname)
   return response
 }
 
