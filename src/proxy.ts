@@ -26,11 +26,14 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'X-DNS-Prefetch-Control': 'off',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+  // Do not advertise preload/includeSubDomains until every custom tenant
+  // hostname is confirmed HTTPS-only and ready for preload submission.
+  'Strict-Transport-Security': 'max-age=63072000',
   // React dev mode JIT-compiles with eval(), so development needs
-  // 'unsafe-eval' in script-src; production builds never do.
+  // 'unsafe-eval' in script-src; production builds never do. Inline styles
+  // remain required for the server-rendered theme and component styles.
   'Content-Security-Policy':
-    `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://www.google.com; frame-ancestors 'none';`,
+    `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.public.blob.vercel-storage.com; font-src 'self' data:; connect-src 'self'; frame-src 'self' https://www.google.com https://maps.google.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self';`,
 }
 
 function addSecurityHeaders(response: NextResponse, pathname?: string) {

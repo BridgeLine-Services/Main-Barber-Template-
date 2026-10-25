@@ -84,19 +84,18 @@ export function readableForegroundFor(hex: string): string {
 }
 
 export function generateThemeCSS(theme: ThemeSettings, scope?: string): string {
-  const accentHex = theme.accentColor || DEFAULT_BRANDING.accentColor
-  const primaryHex = theme.primaryColor || DEFAULT_BRANDING.primaryColor
+  const accentHex = safeHexColor(theme.accentColor, DEFAULT_BRANDING.accentColor)
+  const primaryHex = safeHexColor(theme.primaryColor, DEFAULT_BRANDING.primaryColor)
+  const secondaryHex = safeHexColor(theme.secondaryColor, DEFAULT_BRANDING.secondaryColor)
   const accentHsl = hexToHsl(accentHex)
   const primaryHsl = hexToHsl(primaryHex)
-  const secondaryHsl = theme.secondaryColor
-    ? hexToHsl(theme.secondaryColor)
-    : hexToHsl(DEFAULT_BRANDING.secondaryColor)
+  const secondaryHsl = hexToHsl(secondaryHex)
 
-  const fontFamily = theme.fontFamily
+  const fontFamily = theme.fontFamily && FONT_FAMILY_VALUES.includes(theme.fontFamily.toLowerCase() as typeof FONT_FAMILY_VALUES[number])
     ? mapFontFamily(theme.fontFamily)
     : "'Inter', system-ui, sans-serif"
 
-  const isDark = (theme.themeMode || DEFAULT_BRANDING.themeMode) === 'dark'
+  const isDark = theme.themeMode === 'light' ? false : true
   const accentFgHsl = readableForegroundFor(accentHex)
   const primaryFgHsl = readableForegroundFor(primaryHex)
 
@@ -153,6 +152,11 @@ ${scope} {
   font-family: var(--font-family);
 }
 `
+}
+
+/** Returns a validated hex color, falling back before parsing or serializing CSS. */
+function safeHexColor(value: string | null | undefined, fallback: string): string {
+  return value && isValidHexColor(value) ? value : fallback
 }
 
 /** Converts a hex color to an HSL string (e.g., "212 67% 45%"). */
