@@ -57,21 +57,21 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo / Shop Name */}
-        <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-90">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 transition hover:opacity-90">
           {logo ? (
-            <img src={logo} alt={businessName} className="h-9 w-9 rounded-full object-cover ring-1 ring-border" />
+            <img src={logo} alt={businessName} className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-border" />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
               <Scissors className="h-5 w-5" aria-hidden="true" />
             </div>
           )}
-          <span className="font-display text-lg font-semibold tracking-tight text-foreground">
+          <span className="font-display text-lg font-semibold tracking-tight text-foreground truncate">
             {businessName}
           </span>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium" aria-label="Main">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-7 text-sm font-medium" aria-label="Main">
           {navLinks.map((link) => {
             const isActive = pathname === link.href
             return (
@@ -98,14 +98,15 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
         </nav>
 
         {/* Desktop CTA, Sign In & Phone */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3 xl:gap-4">
           {phone && (
             <a
               href={`tel:${phone.replace(/\D/g, '')}`}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-accent"
+              className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground transition hover:text-accent"
+              aria-label={`Call ${phone}`}
             >
               <Phone className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-              <span>{phone}</span>
+              <span className="hidden xl:inline">{phone}</span>
             </a>
           )}
           {/* Shared Login / Sign-Up entry point: one themed /login page for
@@ -122,7 +123,7 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
           </Link>
           <Link
             href="/book"
-            className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm shadow-accent/20 transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5"
+            className="inline-flex shrink-0 items-center gap-2 rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground shadow-sm shadow-accent/20 transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5 xl:px-5"
           >
             <Calendar className="h-4 w-4" aria-hidden="true" />
             Book Now

@@ -1,75 +1,51 @@
 'use client'
 
 import { useState } from 'react'
-import { useToast } from '@/components/ui/use-toast'
-import { Button } from '@/components/ui/button'
 
 /**
- * Draft/publish control for website content. The editable section fields
- * on the settings page are the DRAFT; publishing snapshots them for the
- * public site. Until the first publish the public site shows the live
- * fields (legacy parity).
+ * Publication status for website content. The editable fields on the settings
+ * page are the DRAFT; the unified "Save Changes" action in the page header
+ * saves the draft and — for owners — publishes the snapshot in one step
+ * (publishing stays owner-only, matching the endpoint's authorization).
+ *
+ * This card is STATUS ONLY: last published time and whether unpublished
+ * draft changes exist. There is deliberately no second publish button — a
+ * second control is how the old workflow ended up out of sync.
  */
 export function PublishWebsiteCard() {
-  const { toast } = useToast()
-  const [publishing, setPublishing] = useState(false)
-  const [publishedAt, setPublishedAt] = useState<string | null>(null)
-  const [unpublished, setUnpublished] = useState(false)
-  const [loaded, setLoaded] = useState(false)
+  const [status, setStatus] = useState<{ publishedAt: string | null; unpublished: boolean } | null>(null)
 
   async function refresh() {
     try {
       const res = await fetch('/api/dashboard/website-content/publish')
       const data = await res.json()
       if (res.ok) {
-        setPublishedAt(data.publishedAt || null)
-        setUnpublished(!!data.hasUnpublishedChanges)
-      }
-    } catch { /* status stays unknown; publish button still works */ }
-    setLoaded(true)
-  }
-
-  if (!loaded) {
-    void refresh()
-    return null
-  }
-
-  async function onPublish() {
-    setPublishing(true)
-    try {
-      const res = await fetch('/api/dashboard/website-content/publish', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok) {
-        setPublishedAt(data.publishedAt || new Date().toISOString())
-        setUnpublished(false)
-        toast({ title: 'Website published', description: 'Your live site now shows the latest content.' })
-      } else {
-        toast({ title: 'Could not publish', description: data.error || 'Please try again.', variant: 'destructive' })
+        setStatus({ publishedAt: data.publishedAt || null, unpublished: !!data.hasUnpublishedChanges })
       }
     } catch {
-      toast({ title: 'Could not publish', description: 'Network error — please try again.', variant: 'destructive' })
-    } finally {
-      setPublishing(false)
+      /* status stays unknown; the Save Changes action still works */
     }
+  }
+
+  if (status === null) {
+    void refresh()
   }
 
   return (
     <div className="rounded-lg border p-4">
       <h3 className="text-sm font-semibold">Website publishing</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Section edits above are drafts. Publish to make them live on your website.
+        One click: <span className="font-medium text-foreground">Save Changes</span> saves your edits and makes them live on
+        your website.
       </p>
       <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
-        {publishedAt
-          ? `Last published ${new Date(publishedAt).toLocaleString()}`
-          : 'Never published — your live site currently shows the content as you save it.'}
-        {unpublished ? ' · Unpublished draft changes.' : ''}
+        {status === null
+          ? 'Checking publication status…'
+          : status.publishedAt
+            ? `Last published ${new Date(status.publishedAt).toLocaleString()}`
+            : 'Never published — your live site currently shows the content as you save it.'}
+        {status?.unpublished ? ' · Unpublished draft changes.' : ''}
       </p>
-      <div className="mt-3 flex gap-2">
-        <Button onClick={onPublish} disabled={publishing} size="sm">
-          {publishing ? 'Publishing…' : 'Publish website'}
-        </Button>
-      </div>
     </div>
   )
 }

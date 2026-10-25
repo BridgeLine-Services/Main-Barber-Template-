@@ -12,8 +12,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  Save, Building2, Phone,MapPin, Clock, Globe, Monitor, Palette, Users,
-  Search, FileText, Image as ImageIcon,HelpCircle, Star, LayoutGrid, Type,
+  Save, Building2, Phone,MapPin, Clock, Globe, Palette, Users,
+  Search, FileText, Image as ImageIcon,HelpCircle, Star, LayoutGrid,
   ListOrdered, MonitorSmartphone, AlertTriangle
 } from 'lucide-react'
 import { FaqManager } from '@/components/dashboard/FaqManager'
@@ -35,13 +35,6 @@ const TIMEZONES = [
   'America/Phoenix',
   'America/Anchorage',
   'Pacific/Honolulu',
-]
-
-const FONTS = [
-  { label: 'Default (System)', value: '' },
-  { label: 'Poppins', value: 'poppins' },
-  { label: 'Inter', value: 'inter' },
-  { label: 'Montserrat', value: 'montserrat' },
 ]
 
 const DAYS = [
@@ -156,10 +149,27 @@ export default function SettingsPage() {
   // Derived from the URL — refresh, direct links, back/forward, and in-app
   // tab clicks all resolve identically without duplicated state.
   const rawTab = searchParams.get('tab') as Tab | null
-  const activeTab: Tab = rawTab && (VALID_TABS as readonly string[]).includes(rawTab) ? rawTab : DEFAULT_TAB
+  // Legacy bookmark URLs for the merged tabs normalize to the consolidated
+  // Branding & Theme page (their controls now live there).
+  const LEGACY_BRANDING_TABS: readonly string[] = ['appearance', 'typography']
+  const normalizedTab =
+    rawTab && LEGACY_BRANDING_TABS.includes(rawTab)
+      ? 'branding'
+      : rawTab && (VALID_TABS as readonly string[]).includes(rawTab)
+        ? rawTab
+        : DEFAULT_TAB
+  const activeTab: Tab = normalizedTab
   const setActiveTab = (tab: Tab) => {
     router.push(`/dashboard/settings?tab=${tab}`, { scroll: false })
   }
+
+  // Legacy bookmark URLs (?tab=appearance / ?tab=typography) redirect to the
+  // consolidated Branding & Theme page without adding a history entry.
+  useEffect(() => {
+    if (rawTab && LEGACY_BRANDING_TABS.includes(rawTab)) {
+      router.replace(`/dashboard/settings?tab=branding`, { scroll: false })
+    }
+  }, [rawTab, router])
 
   useEffect(() => {
     fetch('/api/dashboard/settings')
@@ -191,25 +201,60 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
+      // Stage 1 — persist the draft through the authorized settings API.
       const res = await fetch('/api/dashboard/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...business, seo, websiteContent }),
       })
-      const data = await res.json()
-      if (data.business) {
-        setBusiness(data.business)
-        if (data.seo) setSeo(data.seo)
-        // Re-render the dashboard layout so server-side theming (themeMode,
-        // branding, font) picks up the freshly saved business record.
-        router.refresh()
-        setSavedAt(Date.now())
-        toast({ title: 'Settings saved successfully' })
+      const data = await res.json().catch(() => ({} as { error?: string }))
+      if (!res.ok || !data.business) {
+        // Do NOT publish after a failed save; keep the user's edits on
+        // screen and explain what happened in plain language.
+        toast({
+          title: 'Failed to save',
+          description: data.error || 'Your edits are still here — please try again.',
+          variant: 'destructive',
+        })
+        return
+      }
+      setBusiness(data.business)
+      if (data.seo) setSeo(data.seo)
+      // Re-render the dashboard layout so server-side theming (themeMode,
+      // branding, font) picks up the freshly saved business record.
+      router.refresh()
+      setSavedAt(Date.now())
+
+      // Stage 2 — publish the JUST-SAVED draft (the server snapshots the
+      // persisted WebsiteContent row, never stale client state). Publishing
+      // remains owner-only: a 403 for co-owners is a skipped stage, not a
+      // failure — the draft is safely saved and an owner makes it live by
+      // clicking Save Changes.
+      const pub = await fetch('/api/dashboard/website-content/publish', { method: 'POST' })
+      const pubData = await pub.json().catch(() => ({} as { error?: string }))
+      if (pub.ok) {
+        toast({
+          title: 'Changes saved and published',
+          description: 'Your live website now shows the latest content.',
+        })
+      } else if (pub.status === 403) {
+        toast({
+          title: 'Draft saved',
+          description: 'Your edits are saved. An owner can make them live with Save Changes.',
+        })
       } else {
-        toast({ title: 'Failed to save', description: data.error, variant: 'destructive' })
+        toast({
+          title: 'Saved — but not published yet',
+          description: pubData.error || 'Your edits are saved as a draft. Click Save Changes again to retry publishing.',
+          variant: 'destructive',
+        })
       }
     } catch {
-      toast({ title: 'Failed to save settings', variant: 'destructive' })
+      toast({
+        title: 'Failed to save settings',
+        description: 'Your edits are still here — please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setSaving(false)
     }
@@ -260,9 +305,7 @@ export default function SettingsPage() {
     { id: 'business', label: 'Business Info', icon: Building2 },
     { id: 'hours', label: 'Business Hours', icon: Clock },
     { id: 'branding', label: 'Branding & Theme', icon: Palette },
-    { id: 'appearance', label: 'Website Appearance', icon: Monitor },
     { id: 'layout', label: 'Layout & Behavior', icon: LayoutGrid },
-    { id: 'typography', label: 'Typography', icon: Type },
     { id: 'homepage-sections', label: 'Homepage Sections', icon: ListOrdered },
     { id: 'dashboard-preview', label: 'Dashboard Preview', icon: MonitorSmartphone },
     { id: 'social', label: 'Social Links', icon: Globe },
@@ -603,8 +646,9 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* ── Branding & Theme ── */}
+      {/* ── Branding & Theme (consolidated: brand identity + typography + website design/preview) ── */}
       {activeTab === 'branding' && (
+      <div className="space-y-6">
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -693,19 +737,7 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            {/* Font */}
-            <div>
-              <Label className="text-muted-foreground">Font Family</Label>
-              <select
-                value={business.fontFamily || ''}
-                onChange={e => setBusiness({ ...business, fontFamily: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-muted border border-input rounded-md text-foreground text-sm"
-              >
-                {FONTS.map(f => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
-                ))}
-              </select>
-            </div>
+            {/* Website fonts now live in the Typography section below — one authoritative control. */}
 
             {/* Preview */}
             <div className="rounded-lg border border-input p-4" style={{ background: business.primaryColor || '#1a1a1a' }}>
@@ -727,6 +759,15 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Typography — the authoritative font controls for the customer
+            website (heading/body overrides; preset defaults when unset). */}
+        <TypographyTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
+
+        {/* Website Design — visual preset, layout overrides, and the live
+            customer-site preview (desktop/mobile) in one place. */}
+        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} savedAt={savedAt} />
+      </div>
       )}
 
       {/* ── Social Links ── */}
@@ -976,16 +1017,8 @@ export default function SettingsPage() {
 
   {activeTab === 'faq' && <FaqManager />}
 
-      {activeTab === 'appearance' && (
-        <AppearanceTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} savedAt={savedAt} />
-      )}
-
       {activeTab === 'layout' && (
         <LayoutBehaviorTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
-      )}
-
-      {activeTab === 'typography' && (
-        <TypographyTab websiteContent={websiteContent} setWebsiteContent={setWebsiteContent} />
       )}
 
       {activeTab === 'homepage-sections' && (
@@ -1087,7 +1120,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── Publishing (website draft → live) on every normal tab ── */}
-      {activeTab !== 'danger-zone' && <PublishWebsiteCard />}
+      {activeTab !== 'danger-zone' && <PublishWebsiteCard key={savedAt} />}
 
       {/* ── High-risk shop management: ONLY in the Danger Zone tab ── */}
       {activeTab === 'danger-zone' && (

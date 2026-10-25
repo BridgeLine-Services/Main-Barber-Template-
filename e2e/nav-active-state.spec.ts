@@ -79,6 +79,30 @@ test('Branding group exposes Dashboard Preview and it opens the settings tab', a
   await expect(navLink(page, 'Dashboard Preview')).toHaveAttribute('aria-current', 'page')
 })
 
+test('Branding & Theme consolidates typography and website design; legacy tab URLs normalize', async ({ page }) => {
+  await expand(page, /website section/i)
+  await expand(page, /branding section/i)
+  // No separate Website Appearance / Typography destinations remain
+  await expect(navLink(page, 'Website Appearance')).toHaveCount(0)
+  await expect(navLink(page, 'Typography')).toHaveCount(0)
+
+  const link = navLink(page, 'Branding & Theme')
+  await link.click()
+  await page.waitForURL(/dashboard\/settings\?tab=branding/)
+
+  // The merged page contains the integrated Typography and Website Design
+  // (appearance + real-site preview) sections.
+  await expect(page.locator('main')).toContainText('Typography', { timeout: 15_000 })
+  await expect(page.locator('main')).toContainText('Website')
+
+  // Legacy bookmark URLs normalize to the consolidated page
+  for (const legacy of ['appearance', 'typography']) {
+    await page.goto(`/dashboard/settings?tab=${legacy}`)
+    await page.waitForURL(/dashboard\/settings\?tab=branding/)
+    await expect(navLink(page, 'Branding & Theme')).toHaveAttribute('aria-current', 'page')
+  }
+})
+
 test('System group exposes Deactivate pointing at the existing danger-zone flow', async ({ page }) => {
   await expand(page, /system section/i)
   const link = navLink(page, 'Deactivate')
