@@ -48,14 +48,15 @@ export async function processDueNotifications(limit = 50) {
 
     const notification = await prisma.notificationLog.findUnique({
       where: { id: row.id },
-      include: { customer: { select: { smsConsent: true, emailOptOut: true } } },
+      include: { customer: { select: { smsConsent: true, marketingSmsConsent: true, smsOptedOutAt: true, emailOptOut: true } } },
     }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
     if (!notification) continue
     try {
-      if (notification.type === 'MARKETING_CAMPAIGN' &&
-        ((!notification.customer?.smsConsent && notification.channel === 'SMS') ||
-          (notification.customer?.emailOptOut && notification.channel === 'EMAIL'))) {
-        await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'FAILED', failureReason: 'Marketing consent withdrawn before delivery' } })
+      if ((notification.channel === 'SMS' &&
+          (!notification.customer || notification.customer.smsOptedOutAt ||
+            (notification.type === 'MARKETING_CAMPAIGN' ? !notification.customer.marketingSmsConsent : !notification.customer.smsConsent))) ||
+        (notification.type === 'MARKETING_CAMPAIGN' && notification.channel === 'EMAIL' && notification.customer?.emailOptOut)) {
+        await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'FAILED', failureReason: 'Consent withdrawn before delivery' } })
         continue
       }
       if (notification.channel === 'SMS') {

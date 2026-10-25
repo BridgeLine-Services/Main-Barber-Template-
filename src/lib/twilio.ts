@@ -32,6 +32,11 @@ export function isTwilioConfigured(): boolean {
  * @param to - Destination phone number in E.164 format (e.g. "+15551234567")
  * @param body - Message text (max 1600 chars per segment; 160 for non-segmented)
  */
+export const SMS_CONSENT_DISCLOSURES = {
+  transactional: 'I agree to receive appointment-related text messages. Message and data rates may apply. Reply STOP to opt out.',
+  marketing: 'I agree to receive promotional text messages. Consent is optional. Message and data rates may apply. Reply STOP to opt out.',
+} as const
+
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
   if (!isSmsEnabled()) {
     return { success: false, error: 'SMS notifications are disabled (set SMS_ENABLED=true to enable)' }
