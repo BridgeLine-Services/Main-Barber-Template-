@@ -26,15 +26,27 @@ export async function POST(request: Request) {
   const type = (event.type as string) ?? 'unknown'
 
   try {
-    // Idempotency: insert-first. A unique violation means this event was
-    // already processed — acknowledge and do nothing.
+    // Claim the event atomically. A completed duplicate is safe to acknowledge;
+    // a concurrent delivery must remain retryable instead of being mistaken for
+    // completed work. Failed claims are reusable by Stripe's next delivery.
     try {
-      await prisma.stripeEvent.create({ data: { eventId, type } })
+      await prisma.stripeEvent.create({ data: { eventId, type, status: 'PROCESSING' } })
     } catch (e) {
-      if ((e as { code?: string }).code === 'P2002') {
+      if ((e as { code?: string }).code !== 'P2002') throw e
+      const existing = await prisma.stripeEvent.findUnique({ where: { eventId }, select: { status: true } })
+      if (existing?.status === 'COMPLETED') {
         return NextResponse.json({ received: true, duplicate: true })
       }
-      throw e
+      if (existing?.status === 'PROCESSING') {
+        return NextResponse.json({ error: 'Webhook is already processing' }, { status: 409 })
+      }
+      const reclaimed = await prisma.stripeEvent.updateMany({
+        where: { eventId, status: 'FAILED' },
+        data: { status: 'PROCESSING', failedAt: null, failure: null },
+      })
+      if (reclaimed.count !== 1) {
+        return NextResponse.json({ error: 'Webhook claim unavailable' }, { status: 409 })
+      }
     }
 
     const data = (event.data as { object?: Record<string, unknown> })?.object ?? {}
@@ -61,12 +73,24 @@ export async function POST(request: Request) {
       if (!subscriptionRef) {
         return NextResponse.json({ received: true, ignored: true })
       }
-      try {
-        const mb = await import('@/lib/memberships')
-        if (type === 'invoice.paid') {
-          const periodEnd = new Date((data.period_end as number) * 1000)
-          await mb.handleSubscriptionInvoicePaid(String(subscriptionRef), periodEnd)
-        } else if (type === 'invoice.payment_failed') {
+      const mb = await import('@/lib/memberships')
+      if (type === 'invoice.paid') {
+        const lines = Array.isArray((data.lines as { data?: unknown[] } | undefined)?.data)
+          ? ((data.lines as { data: Array<{ subscription?: string; period?: { end?: number } }> }).data)
+          : []
+        const matchingLines = lines.filter((line) => !line.subscription || line.subscription === String(subscriptionRef))
+        const periodEnds = matchingLines
+          .map((line) => line.period?.end)
+          .filter((end): end is number => typeof end === 'number' && Number.isFinite(end) && end > 0)
+        if (periodEnds.length === 0) {
+          throw new Error('invoice.paid missing a valid subscription line period end')
+        }
+        const periodEnd = new Date(Math.max(...periodEnds) * 1000)
+        if (!Number.isFinite(periodEnd.getTime())) {
+          throw new Error('invoice.paid contains an invalid subscription period end')
+        }
+        await mb.handleSubscriptionInvoicePaid(String(subscriptionRef), periodEnd)
+      } else if (type === 'invoice.payment_failed') {
           await mb.handleSubscriptionInvoiceFailed(String(subscriptionRef))
         } else if (type === 'customer.subscription.updated') {
           await mb.handleSubscriptionUpdated(
@@ -75,11 +99,9 @@ export async function POST(request: Request) {
             data.cancel_at_period_end === true
           )
         } else {
-          await mb.handleSubscriptionDeleted(String(subscriptionRef))
-        }
-      } catch (err) {
-        console.error('membership subscription webhook failed', err)
+        await mb.handleSubscriptionDeleted(String(subscriptionRef))
       }
+      await prisma.stripeEvent.update({ where: { eventId }, data: { status: 'COMPLETED', processedAt: new Date() } })
       return NextResponse.json({ received: true })
     }
 
@@ -99,7 +121,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, ignored: true })
     }
 
-    if (type === 'payment_intent.succeeded' && canTransition(payment.status, 'SUCCEEDED')) {
+    if (type === 'payment_intent.succeeded' && (payment.status === 'SUCCEEDED' || canTransition(payment.status, 'SUCCEEDED'))) {
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -115,6 +137,7 @@ export async function POST(request: Request) {
           await activateGiftCardForPayment(payment.id)
         } catch (err) {
           console.error('gift card activation failed', err)
+          throw err
         }
       }
       // A settled membership enrollment payment activates the membership
@@ -125,6 +148,7 @@ export async function POST(request: Request) {
           await activateMembershipForPayment(payment.id)
         } catch (err) {
           console.error('membership activation failed', err)
+          throw err
         }
       }
       // A settled shop order payment marks the order PAID. Idempotent:
@@ -135,6 +159,7 @@ export async function POST(request: Request) {
           await markOrderPaidForPayment(payment.id)
         } catch (err) {
           console.error('shop order activation failed', err)
+          throw err
         }
       }
       if (payment.kind === 'NO_SHOW_FEE') {
@@ -143,9 +168,10 @@ export async function POST(request: Request) {
           await prisma.$transaction((tx) => recordCommissionForFeePayment(tx, payment.businessId, payment.id))
         } catch (err) {
           console.error('no-show fee commission failed', err)
+          throw err
         }
       }
-    } else if (type === 'payment_intent.payment_failed' && canTransition(payment.status, 'FAILED')) {
+    } else if (type === 'payment_intent.payment_failed' && (payment.status === 'FAILED' || canTransition(payment.status, 'FAILED'))) {
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -161,7 +187,7 @@ export async function POST(request: Request) {
           console.error('shop order failure handling failed', err)
         }
       }
-    } else if (type === 'payment_intent.canceled' && canTransition(payment.status, 'CANCELED')) {
+    } else if (type === 'payment_intent.canceled' && (payment.status === 'CANCELED' || canTransition(payment.status, 'CANCELED'))) {
       await prisma.payment.update({ where: { id: payment.id }, data: { status: 'CANCELED' } })
       if ((payment.metadata as Record<string, unknown> | null)?.shopOrder === true) {
         try {
@@ -197,11 +223,18 @@ export async function POST(request: Request) {
       }
     }
 
+    await prisma.stripeEvent.update({ where: { eventId }, data: { status: 'COMPLETED', processedAt: new Date() } })
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Stripe webhook processing error:', error)
-    // Delete the dedup row so a retry can reprocess cleanly.
-    await prisma.stripeEvent.deleteMany({ where: { eventId } }).catch(() => {})
+    await prisma.stripeEvent.updateMany({
+      where: { eventId, status: 'PROCESSING' },
+      data: {
+        status: 'FAILED',
+        failedAt: new Date(),
+        failure: error instanceof Error ? error.message.slice(0, 500) : 'Webhook processing failed',
+      },
+    }).catch(() => {})
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }

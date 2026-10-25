@@ -1607,11 +1607,20 @@ model CommissionEntry {
 
 // Stripe webhook idempotency: every processed event id is recorded so
 // replays (Stripe retries, duplicate deliveries) are no-ops.
+enum StripeEventStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model StripeEvent {
-  id          String   @id @default(cuid())
-  eventId     String   @unique
+  id          String           @id @default(cuid())
+  eventId     String           @unique
   type        String
-  processedAt DateTime @default(now())
+  status      StripeEventStatus @default(PROCESSING)
+  processedAt DateTime         @default(now())
+  failedAt    DateTime?
+  failure     String?
 }
 
 model RescheduleHistory {
