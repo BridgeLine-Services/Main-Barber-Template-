@@ -76,7 +76,12 @@ export async function processDueNotifications(limit = 50) {
           }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
           continue
         }
-        await getTransporter().sendMail({ from: getSmtpFromAddress(), to: notification.recipient, subject: 'Message from your barber', text: notification.content || '' })
+        await getTransporter().sendMail({
+          from: getSmtpFromAddress(),
+          to: notification.recipient,
+          subject: notification.subject || 'Message from your barber',
+          text: notification.content || '',
+        })
         await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'SENT', sentAt: new Date() } }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
       }
       sent++
