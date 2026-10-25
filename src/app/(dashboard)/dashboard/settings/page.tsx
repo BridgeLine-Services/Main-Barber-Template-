@@ -20,6 +20,7 @@ import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
+import { SectionDisclosure } from '@/components/dashboard/SectionDisclosure'
 import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
 import { LayoutBehaviorTab } from '@/components/dashboard/LayoutBehaviorTab'
 import { TypographyTab } from '@/components/dashboard/TypographyTab'
@@ -252,12 +253,12 @@ export default function SettingsPage() {
       } else if (pub.status === 403) {
         toast({
           title: 'Draft saved',
-          description: 'Your edits are saved. An owner can make them live with Save Changes.',
+          description: 'Your changes are saved, but they are not live yet. An owner must publish them.',
         })
       } else {
         toast({
-          title: 'Saved — but not published yet',
-          description: pubData.error || 'Your edits are saved as a draft. Click Save Changes again to retry publishing.',
+          title: 'Saved, but not published',
+          description: pubData.error || 'Your edits are saved as a draft and are not live. Click Save Changes again to retry publishing.',
           variant: 'destructive',
         })
       }
@@ -655,8 +656,11 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Palette className="h-5 w-5 text-[var(--dash-brand)]" />
-              Branding & Theme
+              Brand Identity
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Your logo and colours. These identify your shop on the website and in the dashboard.
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Logo */}
@@ -676,6 +680,9 @@ export default function SettingsPage() {
 
             {/* Colors */}
             <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Colours control how your brand looks across the site. Use the swatch to pick, or type a colour code.
+              </p>
               <div>
                 <Label className="text-muted-foreground">Primary Color (Background)</Label>
                 <div className="flex items-center gap-3 mt-1">
@@ -726,6 +733,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Secondary options — behind a labelled, keyboard-accessible
+                disclosure so the primary brand controls stay uncluttered. */}
+            <SectionDisclosure
+              title="More appearance options"
+              description="Light or dark admin screens, plus a quick swatch of your colours."
+            >
             {/* Theme mode */}
             <div>
               <Label className="text-muted-foreground">Theme Mode</Label>
@@ -759,6 +772,7 @@ export default function SettingsPage() {
                 Body text on the primary surface.
               </p>
             </div>
+            </SectionDisclosure>
           </CardContent>
         </Card>
 

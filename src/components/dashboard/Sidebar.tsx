@@ -249,10 +249,14 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
     },
   ]
 
-  // ─── Barber nav: focused on self-management ───────────────────────────
+  // ─── Barber nav: same Overview / System vocabulary as the owner nav, but
+  //     populated ONLY with destinations a barber is authorized to use. The
+  //     Website section is deliberately absent (barbers have no website
+  //     editor), and no owner-only group is exposed here. Server-side gates
+  //     remain the security boundary; this is presentation only.
   const barberSections: NavSection[] = [
     {
-      label: 'my dashboard',
+      label: 'overview',
       items: [
         { name: 'Barber Mode', href: '/barber-mode', icon: Smartphone },
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -261,16 +265,27 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       ],
     },
     {
-      label: 'my profile',
-      items: [
-        { name: 'Profile', href: '/dashboard/profile', icon: UserCog },
-        { name: 'Schedule', href: '/dashboard/schedule', icon: Clock },
-        { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
-        { name: 'Services', href: '/dashboard/services', icon: Scissors },
-        { name: 'Portfolio / My Work', href: '/dashboard/portfolio', icon: ImageIcon },
-        { name: 'My Commissions', href: '/dashboard/my-commissions', icon: BadgePercent },
-        { name: 'My Time Clock', href: '/dashboard/my-time-clock', icon: Clock },
-        { name: 'My Payroll', href: '/dashboard/my-payroll', icon: BadgePercent },
+      label: 'system',
+      items: [],
+      groups: [
+        {
+          label: 'My Profile and Schedule',
+          items: [
+            { name: 'Profile', href: '/dashboard/profile', icon: UserCog },
+            { name: 'Schedule', href: '/dashboard/schedule', icon: Clock },
+            { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
+            { name: 'Services', href: '/dashboard/services', icon: Scissors },
+            { name: 'Portfolio / My Work', href: '/dashboard/portfolio', icon: ImageIcon },
+          ],
+        },
+        {
+          label: 'My Work and Pay',
+          items: [
+            { name: 'My Commissions', href: '/dashboard/my-commissions', icon: BadgePercent },
+            { name: 'My Time Clock', href: '/dashboard/my-time-clock', icon: Clock },
+            { name: 'My Payroll', href: '/dashboard/my-payroll', icon: BadgePercent },
+          ],
+        },
       ],
     },
   ]

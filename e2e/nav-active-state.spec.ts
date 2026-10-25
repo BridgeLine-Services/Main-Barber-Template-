@@ -114,3 +114,59 @@ test('System group exposes Deactivate pointing at the existing danger-zone flow'
   // merely visiting it).
   await expect(page.locator('main')).toContainText(/danger zone/i, { timeout: 15_000 })
 })
+
+/**
+ * Barber sidebar organization (Overview + System with the two personal
+ * groups). Runs when barber credentials are supplied; skipped otherwise so
+ * CI stays honest rather than reporting an unrun check as passing.
+ */
+const BARBER_EMAIL = process.env.E2E_BARBER_EMAIL
+const BARBER_PASSWORD = process.env.E2E_BARBER_PASSWORD
+
+test.describe('barber navigation', () => {
+  test.skip(!BARBER_EMAIL || !BARBER_PASSWORD, 'E2E_BARBER_EMAIL/PASSWORD not provided')
+
+  test('barber sees the shared Overview/System hierarchy without owner-only items', async ({ page }) => {
+    await page.goto('/login')
+    await page.getByPlaceholder('you@example.com').fill(BARBER_EMAIL!)
+    await page.getByPlaceholder('••••••••').fill(BARBER_PASSWORD!)
+    await page.getByRole('button', { name: 'Login', exact: true }).click()
+    await page.waitForURL(/dashboard/, { timeout: 30000 })
+
+    const nav = page.locator('aside nav')
+    await expect(nav.getByRole('button', { name: /overview section/i })).toHaveCount(1)
+    await expect(nav.getByRole('button', { name: /system section/i })).toHaveCount(1)
+    await expect(nav.getByRole('button', { name: /website section/i })).toHaveCount(0)
+
+    const expand = async (label: RegExp) => {
+      const header = nav.getByRole('button', { name: label })
+      if ((await header.getAttribute('aria-expanded')) !== 'true') await header.click()
+    }
+    await expand(/^system section/i)
+    await expand(/^My Profile and Schedule section/i)
+    await expand(/^My Work and Pay section/i)
+
+    const hrefs = await nav.getByRole('link').evaluateAll((els) =>
+      els.map((e) => e.getAttribute('href')),
+    )
+    for (const href of [
+      '/barber-mode', '/dashboard', '/dashboard/calendar', '/dashboard/appointments',
+      '/dashboard/profile', '/dashboard/schedule', '/dashboard/closures',
+      '/dashboard/services', '/dashboard/portfolio', '/dashboard/my-commissions',
+      '/dashboard/my-time-clock', '/dashboard/my-payroll',
+    ]) {
+      expect(hrefs).toContain(href)
+    }
+    for (const ownerOnly of [
+      '/dashboard/settings', '/dashboard/staff', '/dashboard/payroll',
+      '/dashboard/commissions', '/dashboard/factory-launch', '/dashboard/ecommerce',
+      '/dashboard/gift-cards', '/dashboard/analytics', '/dashboard/inventory',
+    ]) {
+      expect(hrefs).not.toContain(ownerOnly)
+    }
+
+    await page.goto('/dashboard/my-commissions')
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1)
+    await expect(nav.locator('a[aria-current="page"]')).toContainText('My Commissions')
+  })
+})

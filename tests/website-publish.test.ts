@@ -51,12 +51,21 @@ async function main() {
       businessId: business.id, passwordHash: await bcrypt.hash('Password123!', 10), isActive: true,
     },
   })
+  // Co-owner (BUSINESS_ADMIN): may edit + save website drafts through the
+  // settings API (requireBusinessAdmin), but publication stays OWNER-only.
+  const coOwner = await prisma.user.create({
+    data: {
+      email: `pub-coowner-${stamp}@test.local`, name: 'Pub Co-Owner', role: 'BUSINESS_ADMIN',
+      businessId: business.id, passwordHash: await bcrypt.hash('Password123!', 10), isActive: true,
+    },
+  })
   const content = await prisma.websiteContent.create({
     data: { businessId: business.id, heroTitle: 'Published Hero', heroDescription: 'First live copy.' },
   })
 
   const ownerLogin = await login(owner.email, 'Password123!')
   const barberLogin = await login(barber.email, 'Password123!')
+  const coOwnerLogin = await login(coOwner.email, 'Password123!')
   assert(ownerLogin.ok, 'owner signs in')
 
   const home = (extra: Record<string, string> = {}) =>
@@ -74,6 +83,46 @@ async function main() {
     method: 'POST', headers: { cookie: barberLogin.cookie },
   })
   assert(barberTry.status === 403, 'BARBER cannot publish (403)')
+
+  // ── co-owner (BUSINESS_ADMIN): saves drafts, cannot publish ────────────
+  assert(coOwnerLogin.ok, 'co-owner signs in')
+  const beforeDenied = await fetch(`${BASE}/api/dashboard/website-content/publish`, {
+    headers: { cookie: ownerLogin.cookie },
+  }).then((r) => r.json())
+  const coOwnerTry = await fetch(`${BASE}/api/dashboard/website-content/publish`, {
+    method: 'POST', headers: { cookie: coOwnerLogin.cookie },
+  })
+  assert(coOwnerTry.status === 403, 'BUSINESS_ADMIN cannot publish (403, owner-only)')
+  const afterDenied = await fetch(`${BASE}/api/dashboard/website-content/publish`, {
+    headers: { cookie: ownerLogin.cookie },
+  }).then((r) => r.json())
+  assert(
+    afterDenied.publishedAt === beforeDenied.publishedAt,
+    'denied co-owner publish leaves publication state unchanged',
+  )
+  const deniedBody = await coOwnerTry.text()
+  assert(!/\bsuccess\b/i.test(deniedBody), 'denied publish does not report success')
+
+  const coOwnerSave = await fetch(`${BASE}/api/dashboard/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', cookie: coOwnerLogin.cookie },
+    body: JSON.stringify({ websiteContent: { heroTitle: 'Co-Owner Draft Hero' } }),
+  })
+  assert(coOwnerSave.status === 200, 'BUSINESS_ADMIN can save website draft settings')
+  const draftRow = await prisma.websiteContent.findUnique({ where: { id: content.id } })
+  assert(draftRow?.heroTitle === 'Co-Owner Draft Hero', 'co-owner draft save persisted to the draft row')
+  // NOTE: this shop has not published yet, so the public site follows the
+  // documented legacy rule and shows the LIVE fields — a pre-publish draft
+  // save is visible by design. Draft isolation AFTER the first publish is
+  // asserted by the 'draft edit does NOT reach the public site' test below,
+  // which covers the same field for the co-owner-written draft too.
+  const hAfterCoOwnerSave = await home()
+  assert(
+    hAfterCoOwnerSave.includes('Co-Owner Draft Hero'),
+    'pre-first-publish: legacy rule still shows live fields (unchanged behavior)',
+  )
+  // Restore the draft copy for the publish assertions below.
+  await prisma.websiteContent.update({ where: { id: content.id }, data: { heroTitle: 'Published Hero' } })
 
   // ── first publish snapshots the live content ──────────────────────────
   const statusBefore = await fetch(`${BASE}/api/dashboard/website-content/publish`, {
