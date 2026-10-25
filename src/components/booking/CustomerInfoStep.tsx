@@ -17,6 +17,7 @@ export interface CustomerInfo {
   email: string
   notes?: string
   smsConsent?: boolean
+  marketingSmsConsent?: boolean
   answers?: Record<string, string | boolean | string[]>
 }
 
@@ -210,20 +211,17 @@ export function CustomerInfoStep({
             </fieldset>
           )}
 
-          {/* SMS Consent Checkbox */}
-          <div className="flex items-start space-x-3 pt-2">
-            <input
-              type="checkbox"
-              id="smsConsent"
-              checked={customerInfo.smsConsent ?? false}
-              onChange={(e) => handleChange('smsConsent', e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-ring/50"
-            />
-            <Label htmlFor="smsConsent" className="text-xs text-muted-foreground font-normal leading-relaxed cursor-pointer">
-              I agree to receive appointment-related text messages from {shopName}. Message/data rates
-              may apply. Reply STOP to opt out.
-            </Label>
-          </div>
+          <fieldset className="space-y-3 pt-2">
+            <legend className="sr-only">Text message preferences</legend>
+            <div className="flex items-start space-x-3">
+              <input type="checkbox" id="smsConsent" checked={customerInfo.smsConsent ?? false} onChange={(e) => handleChange('smsConsent', e.target.checked)} className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-ring/50" />
+              <Label htmlFor="smsConsent" className="text-xs text-muted-foreground font-normal leading-relaxed cursor-pointer">I agree to receive appointment-related text messages from {shopName}. Message and data rates may apply. Reply STOP to opt out. This is optional and is not required to book.</Label>
+            </div>
+            <div className="flex items-start space-x-3">
+              <input type="checkbox" id="marketingSmsConsent" checked={customerInfo.marketingSmsConsent ?? false} onChange={(e) => handleChange('marketingSmsConsent', e.target.checked)} className="mt-1 h-4 w-4 rounded border-border bg-background text-accent focus:ring-ring/50" />
+              <Label htmlFor="marketingSmsConsent" className="text-xs text-muted-foreground font-normal leading-relaxed cursor-pointer">I would like to receive promotional texts from {shopName}. Message and data rates may apply. Consent is optional; reply STOP to opt out.</Label>
+            </div>
+          </fieldset>
 
           {/* Submit / Continue Button */}
           <div className="pt-4">

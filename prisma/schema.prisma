@@ -100,6 +100,7 @@ model Business {
   rescheduleHistory            RescheduleHistory[]
   portalVerificationChallenges PortalVerificationChallenge[]
   portalSessions               PortalSession[]
+  smsConsentLogs               SmsConsentLog[]
 
   walkInsWelcome                   Boolean                         @default(true)
   firstAvailableBookingEnabled     Boolean                         @default(true) // allow "First available" option in the booking flow
@@ -138,7 +139,7 @@ model Business {
   barberTimeClockAccesses   BarberTimeClockAccess[]
   ecommerceSettings         EcommerceSettings?
   products                  Product[]
-  shopOrders                      ShopOrder[]
+  shopOrders                ShopOrder[]
 
   @@index([slug])
 }
@@ -440,7 +441,7 @@ model RetentionSettings {
   rebookingCooldownDays        Int      @default(21)
   reviewRequestsEnabled        Boolean  @default(false)
   reviewRequestDelayHours      Int      @default(2)
-  reviewDestinationUrl          String?
+  reviewDestinationUrl         String?
   createdAt                    DateTime @default(now())
   updatedAt                    DateTime @updatedAt
 }
@@ -450,26 +451,28 @@ model RetentionSettings {
 model Customer {
   stripeCustomerId String? // Stripe Customer id for card-on-file (never raw card data)
 
-  payments        Payment[]
-  memberships     Membership[]
-  giftCards       GiftCard[]   @relation("GiftCardPurchaser")
-  id              String       @id @default(cuid())
-  businessId      String
-  business        Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  firstName       String
-  lastName        String
-  phone           String
-  email           String
-  notes           String?      @db.Text
-  smsConsent      Boolean      @default(false)
-  emailOptOut     Boolean      @default(false) // global email do-not-contact (respected by ALL email sends)
-  tags            String[]     @default([])
-  preferences     Json?
-  emailVerifiedAt DateTime?
-  phoneVerifiedAt DateTime?
-  archivedAt      DateTime? // soft-delete support
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  payments            Payment[]
+  memberships         Membership[]
+  giftCards           GiftCard[]   @relation("GiftCardPurchaser")
+  id                  String       @id @default(cuid())
+  businessId          String
+  business            Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  firstName           String
+  lastName            String
+  phone               String
+  email               String
+  notes               String?      @db.Text
+  smsConsent          Boolean      @default(false) // legacy transactional SMS compatibility flag
+  marketingSmsConsent Boolean      @default(false) // separate promotional SMS permission
+  smsOptedOutAt       DateTime?
+  emailOptOut         Boolean      @default(false) // global email do-not-contact (respected by ALL email sends)
+  tags                String[]     @default([])
+  preferences         Json?
+  emailVerifiedAt     DateTime?
+  phoneVerifiedAt     DateTime?
+  archivedAt          DateTime? // soft-delete support
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   appointments        Appointment[]
   waitlistEntries     WaitlistEntry[]
@@ -480,6 +483,7 @@ model Customer {
   linkedUser          User?
   shopOrders          ShopOrder[]
   reviewRequests      ReviewRequest[]
+  smsConsentLogs      SmsConsentLog[] @relation("CustomerSmsConsentLogs")
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -581,7 +585,7 @@ model Appointment {
   businessId          String
   business            Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customerId          String
-  customer            Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
   barberId            String
   barber              Barber            @relation(fields: [barberId], references: [id])
   serviceId           String
@@ -705,6 +709,41 @@ model WaitlistEntry {
 
   @@index([businessId, status])
   @@index([businessId, preferredDate])
+}
+
+// ─── SMS consent evidence ──────────────────────────────────────────────────
+enum SmsConsentCategory {
+  TRANSACTIONAL
+  MARKETING
+}
+
+enum SmsConsentAction {
+  GRANTED
+  DENIED
+  WITHDRAWN
+  RE_GRANTED
+  STOP
+  START
+}
+
+model SmsConsentLog {
+  id              String             @id @default(cuid())
+  businessId      String
+  business        Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer           @relation("CustomerSmsConsentLogs", fields: [customerId], references: [id], onDelete: Cascade)
+  phone           String
+  category        SmsConsentCategory
+  action          SmsConsentAction
+  disclosure      String             @db.Text
+  source          String
+  ipAddress       String?
+  providerEventId String?
+  createdAt       DateTime           @default(now())
+
+  @@unique([businessId, providerEventId])
+  @@index([businessId, customerId, category, createdAt])
+  @@index([businessId, phone])
 }
 
 // ─── Notification Log ──────────────────────────────────────────────────────
@@ -1614,11 +1653,11 @@ enum StripeEventStatus {
 }
 
 model StripeEvent {
-  id          String           @id @default(cuid())
-  eventId     String           @unique
+  id          String            @id @default(cuid())
+  eventId     String            @unique
   type        String
   status      StripeEventStatus @default(PROCESSING)
-  processedAt DateTime         @default(now())
+  processedAt DateTime          @default(now())
   failedAt    DateTime?
   failure     String?
 }
@@ -1944,7 +1983,7 @@ model PayrollReportAdjustment {
   @@index([businessId, reportId, barberId])
 }
 
-// ─── Gift cards (optional, owner-controlled) ─────────────────────────────────
+// ─── Gift cards (optional, owner-controlled) ────────────────────────��────────
 // Owner master switch: GiftCardSettings.enabled. OFF = no purchases or
 // redemptions, history preserved. See docs/GIFT-CARDS.md.
 model GiftCardSettings {
