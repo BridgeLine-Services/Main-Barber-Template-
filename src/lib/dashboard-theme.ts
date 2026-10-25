@@ -255,13 +255,18 @@ ${selector} {
   --ring: ${hexToHsl(p.accent)};
   --radius: ${p.radius};
 
-  /* dashboard shell surfaces (sidebar, top bar, active nav) */
-  --dash-surface: ${hexToHsl(p.surface)};
-  --dash-surface-2: ${hexToHsl(p.surface2)};
-  --dash-header: ${hexToHsl(p.dark ? p.bg : p.surface2)};
-  --dash-hover: ${hexToHsl(p.hover)};
-  --dash-brand: ${hexToHsl(p.accent)};
-  --dash-brand-foreground: ${hexToHsl(p.accentFg)};
+  /* dashboard shell surfaces (sidebar, top bar, active nav).
+     NOTE: consumers use these as STANDALONE colors via arbitrary-value
+     classes (bg-[var(--dash-surface)], text-[var(--dash-brand)] …), so
+     they must be complete color values. hexToHsl() returns bare HSL
+     components — wrap in hsl() or every consumer silently resolves to
+     an invalid color (transparent sidebar/active states). */
+  --dash-surface: hsl(${hexToHsl(p.surface)});
+  --dash-surface-2: hsl(${hexToHsl(p.surface2)});
+  --dash-header: hsl(${hexToHsl(p.dark ? p.bg : p.surface2)});
+  --dash-hover: hsl(${hexToHsl(p.hover)});
+  --dash-brand: hsl(${hexToHsl(p.accent)});
+  --dash-brand-foreground: hsl(${hexToHsl(p.accentFg)});
   --dash-brand-soft: ${p.accent}1a;
   --dash-brand-border: ${p.accent}40;
   /* status colors, lightness-tuned per theme so they read on dark AND light presets */

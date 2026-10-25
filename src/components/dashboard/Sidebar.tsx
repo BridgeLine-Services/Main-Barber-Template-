@@ -49,6 +49,7 @@ import {
   ListOrdered,
   HelpCircle,
   AlertTriangle,
+  MonitorSmartphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -174,6 +175,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             { name: 'Layout & Behavior', href: '/dashboard/settings?tab=layout', icon: LayoutGrid },
             { name: 'Typography', href: '/dashboard/settings?tab=typography', icon: Type },
             { name: 'Homepage Sections', href: '/dashboard/settings?tab=homepage-sections', icon: ListOrdered },
+            { name: 'Dashboard Preview', href: '/dashboard/settings?tab=dashboard-preview', icon: MonitorSmartphone },
           ],
         },
         {
@@ -213,6 +215,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       items: [
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
+        { name: 'Deactivate', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
         { name: 'Launch Console', href: '/dashboard/factory-launch', icon: Shield },
         { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
       ],
@@ -236,7 +239,6 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
             { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
             { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
-            { name: 'Danger Zone', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
           ],
         },
         {
