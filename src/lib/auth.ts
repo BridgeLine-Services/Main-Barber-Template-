@@ -9,7 +9,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
-import { rateLimit, isRateLimited, RATE_LIMITS } from './rate-limit'
+import { rateLimit, isRateLimited, RATE_LIMITS, getClientIP } from './rate-limit'
 import { DEAD_CLAIM, PWD_CLAIM, isSessionInvalidated } from './session-security'
 
 export const authOptions: NextAuthOptions = {
@@ -26,10 +26,17 @@ export const authOptions: NextAuthOptions = {
         // Brute-force protection: per-IP and per-account sliding windows.
         // Counted on every attempt (success or failure) so credential
         // stuffing from one source is throttled regardless of outcome.
-        const ip =
-          (req?.headers && (req.headers as Record<string, string | string[] | undefined>)['x-forwarded-for']?.toString().split(',')[0].trim()) ||
-          (req?.headers && (req.headers as Record<string, string | string[] | undefined>)['x-real-ip']?.toString()) ||
-          'unknown'
+        const ip = getClientIP(
+          new Request('http://localhost', {
+            headers: Object.entries((req?.headers || {}) as Record<string, string | string[] | undefined>).reduce(
+              (headers, [name, value]) => {
+                if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(',') : value)
+                return headers
+              },
+              new Headers()
+            ),
+          })
+        )
         // Failed-attempt throttle: successful sign-ins never consume the
         // budget, so normal users and shared-IP offices are unaffected.
         // Per-IP is generous to tolerate shared-IP offices; per-account
