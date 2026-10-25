@@ -319,6 +319,11 @@ export async function recordCommissionForFeePayment(
   const settings = await getCommissionSettings(businessId)
   if (!settings.enabled || !settings.includeNoShowFees) return null
 
+  const existing = await tx.commissionEntry.findFirst({
+    where: { businessId, paymentId, source: 'SERVICE' },
+  })
+  if (existing) return existing
+
   let barberId = payment.barberId
   let serviceId: string | null = null
   if (payment.appointmentId) {
