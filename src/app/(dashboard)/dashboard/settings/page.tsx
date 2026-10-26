@@ -91,6 +91,14 @@ type SettingsBusiness = {
   timezone?: string | null
   hours?: Record<string, DayHours> | null
   parkingAvailable?: boolean | null
+  privacyPolicy?: string | null
+  termsPolicy?: string | null
+  privacyPolicyStatus?: 'DRAFT' | 'PUBLISHED'
+  termsPolicyStatus?: 'DRAFT' | 'PUBLISHED'
+  privacyPolicyVersion?: number
+  termsPolicyVersion?: number
+  privacyPolicyPublishedAt?: string | null
+  termsPolicyPublishedAt?: string | null
 }
 
 type ReviewRequestSettings = {
@@ -880,13 +888,21 @@ export default function SettingsPage() {
             ].map(p => (
               <div key={p.field}>
                 <Label className="text-muted-foreground">{p.label}</Label>
-                <Textarea
-                  value={business[p.field] || ''}
-                  onChange={e => setBusiness({ ...business, [p.field]: e.target.value })}
-                  className="bg-muted border-input mt-1 min-h-[80px]"
-                  placeholder={p.placeholder}
-                />
-              </div>
+  <Textarea
+  value={business[p.field] || ''}
+  onChange={e => setBusiness({ ...business, [p.field]: e.target.value })}
+  className="bg-muted border-input mt-1 min-h-[80px]"
+  placeholder={p.placeholder}
+  />
+  {(p.field === 'privacyPolicy' || p.field === 'termsPolicy') && (
+    <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-border p-3 text-xs">
+      <span className="text-muted-foreground">{business[`${p.field}Status`] === 'PUBLISHED' ? 'Published and visible to customers.' : 'Draft — not visible to customers.'}</span>
+      <Button type="button" variant="outline" size="sm" onClick={() => setBusiness({ ...business, [`${p.field}Status`]: business[`${p.field}Status`] === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED' })}>
+        {business[`${p.field}Status`] === 'PUBLISHED' ? 'Unpublish' : 'Publish for review'}
+      </Button>
+    </div>
+  )}
+  </div>
             ))}
           </CardContent>
         </Card>
@@ -1136,7 +1152,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── Publishing (website draft → live) on every normal tab ── */}
-      {/* ── Save & publish ──
+      {/* ── Save & publish ��─
           The single primary action lives here, in the position the old
           "Publish Website" button occupied. One click saves the draft and
           (for owners) publishes it; status above reports what actually

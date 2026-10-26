@@ -71,13 +71,32 @@ export async function PATCH(req: NextRequest) {
           { status: 400 }
         )
       }
+      const placeholderPattern = /\[(?:EMAIL|ADDRESS|DATABASE PROVIDER|STATE|POLICY|COMPANY|BUSINESS|PHONE|URL)[^\]]*\]|\b(?:lorem ipsum|draft for attorney review|insert here|to be completed)\b/i
+      for (const [field, statusField] of [['privacyPolicy', 'privacyPolicyStatus'], ['termsPolicy', 'termsPolicyStatus']] as const) {
+        if (businessFields[statusField] === 'PUBLISHED') {
+          const text = typeof businessFields[field] === 'string' ? businessFields[field].trim() : ''
+          if (!text) return NextResponse.json({ error: `${field === 'privacyPolicy' ? 'Privacy Policy' : 'Terms of Service'} must contain approved text before publishing.` }, { status: 400 })
+          if (placeholderPattern.test(text)) return NextResponse.json({ error: `${field === 'privacyPolicy' ? 'Privacy Policy' : 'Terms of Service'} still contains a placeholder or draft marker. Replace it before publishing.` }, { status: 400 })
+        }
+      }
       // Capture old values for audit
       const oldBusiness = await prisma.business.findUnique({ where: { id: businessId } })
       const oldSeo = await prisma.businessSEO.findUnique({ where: { businessId } })
-      // Update business
+      const policyData: Prisma.BusinessUpdateInput = { ...parseResult.data }
+      const now = new Date()
+      if (policyData.privacyPolicyStatus === 'PUBLISHED' && oldBusiness?.privacyPolicyStatus !== 'PUBLISHED') {
+        policyData.privacyPolicyVersion = (oldBusiness?.privacyPolicyVersion ?? 0) + 1
+        policyData.privacyPolicyPublishedAt = now
+        policyData.privacyPolicyPublishedById = auth.user.id
+      }
+      if (policyData.termsPolicyStatus === 'PUBLISHED' && oldBusiness?.termsPolicyStatus !== 'PUBLISHED') {
+        policyData.termsPolicyVersion = (oldBusiness?.termsPolicyVersion ?? 0) + 1
+        policyData.termsPolicyPublishedAt = now
+        policyData.termsPolicyPublishedById = auth.user.id
+      }
       const updated = await prisma.business.update({
         where: { id: businessId },
-        data: parseResult.data,
+        data: policyData,
       })
       let updatedWebsiteContent = null
       if (websiteContent && typeof websiteContent === 'object') {

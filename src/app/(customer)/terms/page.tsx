@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function TermsOfServicePage() {
   const business = await resolveBusiness().catch(() => null)
-  const customPolicy = business?.termsPolicy
+  const customPolicy = business?.termsPolicyStatus === 'PUBLISHED' ? business.termsPolicy : null
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-8">
@@ -25,7 +25,7 @@ export default async function TermsOfServicePage() {
           Legal & Compliance
         </Badge>
         <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Terms of Service</h1>
-        <p className="text-xs text-muted-foreground">Last updated: August 2026</p>
+        <p className="text-xs text-muted-foreground">Last updated: {business?.termsPolicyPublishedAt ? new Date(business.termsPolicyPublishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not published'}</p>
       </div>
 
       {customPolicy ? (

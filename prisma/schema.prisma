@@ -16,43 +16,51 @@ datasource db {
 // ─── Business (Tenant) ──────────────────────────────────────────────────────
 
 model Business {
-  payments               Payment[]
-  id                     String    @id @default(cuid())
-  name                   String
-  slug                   String    @unique // URL slug for the shop
-  logo                   String?
-  primaryColor           String    @default("#1a1a1a") // dark / black theme default
-  accentColor            String    @default("#d4af37") // gold accent default
-  secondaryColor         String?   @default("#2a2a2a") // secondary surface color
-  fontFamily             String? // "poppins", "inter", "montserrat", etc.
-  themeMode              String    @default("dark") // "dark" or "light"
-  phone                  String?
-  email                  String?
-  address                String?
-  city                   String?
-  state                  String?
-  zipCode                String?
-  latitude               Float?
-  longitude              Float?
-  timezone               String    @default("America/Los_Angeles") // IANA timezone
-  instagram              String?
-  facebook               String?
-  tiktok                 String?
-  youtube                String?
-  xTwitter               String?
-  googleBusinessProfile  String?
-  hours                  Json? // { monday: { open: "09:00", close: "18:00", isOff: false }, ... }
-  aboutText              String?   @db.Text
-  teamSectionLabel       String? // e.g. 'Our Team', 'The Artists' — badge above heading on /barbers
-  teamSectionTitle       String?   @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
-  teamSectionDescription String?   @db.Text // paragraph below heading on /barbers page
-  bookingPolicy          String?   @db.Text
-  cancellationPolicy     String?   @db.Text
-  latePolicy             String?   @db.Text
-  noShowPolicyText       String?   @db.Text
-  paymentPolicy          String?   @db.Text
-  privacyPolicy          String?   @db.Text
-  termsPolicy            String?   @db.Text
+  payments                   Payment[]
+  id                         String            @id @default(cuid())
+  name                       String
+  slug                       String            @unique // URL slug for the shop
+  logo                       String?
+  primaryColor               String            @default("#1a1a1a") // dark / black theme default
+  accentColor                String            @default("#d4af37") // gold accent default
+  secondaryColor             String?           @default("#2a2a2a") // secondary surface color
+  fontFamily                 String? // "poppins", "inter", "montserrat", etc.
+  themeMode                  String            @default("dark") // "dark" or "light"
+  phone                      String?
+  email                      String?
+  address                    String?
+  city                       String?
+  state                      String?
+  zipCode                    String?
+  latitude                   Float?
+  longitude                  Float?
+  timezone                   String            @default("America/Los_Angeles") // IANA timezone
+  instagram                  String?
+  facebook                   String?
+  tiktok                     String?
+  youtube                    String?
+  xTwitter                   String?
+  googleBusinessProfile      String?
+  hours                      Json? // { monday: { open: "09:00", close: "18:00", isOff: false }, ... }
+  aboutText                  String?           @db.Text
+  teamSectionLabel           String? // e.g. 'Our Team', 'The Artists' — badge above heading on /barbers
+  teamSectionTitle           String?           @db.Text // heading on /barbers page, e.g. 'Meet the Barbers'
+  teamSectionDescription     String?           @db.Text // paragraph below heading on /barbers page
+  bookingPolicy              String?           @db.Text
+  cancellationPolicy         String?           @db.Text
+  latePolicy                 String?           @db.Text
+  noShowPolicyText           String?           @db.Text
+  paymentPolicy              String?           @db.Text
+  privacyPolicy              String?           @db.Text
+  termsPolicy                String?           @db.Text
+  privacyPolicyStatus        LegalPolicyStatus @default(DRAFT)
+  termsPolicyStatus          LegalPolicyStatus @default(DRAFT)
+  privacyPolicyVersion       Int               @default(0)
+  termsPolicyVersion         Int               @default(0)
+  privacyPolicyPublishedAt   DateTime?
+  termsPolicyPublishedAt     DateTime?
+  privacyPolicyPublishedById String?
+  termsPolicyPublishedById   String?
 
   // ─── Onboarding (persistent white-label setup status) ────────────────────
   onboardingCompleted   Boolean   @default(false)
@@ -483,7 +491,7 @@ model Customer {
   linkedUser          User?
   shopOrders          ShopOrder[]
   reviewRequests      ReviewRequest[]
-  smsConsentLogs      SmsConsentLog[] @relation("CustomerSmsConsentLogs")
+  smsConsentLogs      SmsConsentLog[]         @relation("CustomerSmsConsentLogs")
 
   @@unique([businessId, email])
   @@index([businessId])
@@ -514,7 +522,7 @@ enum BookingSource {
   UNKNOWN // missing/legacy value; also the safe fallback for bad input
 }
 
-// ──�� Prompt 9: automated post-appointment review requests ────────────────────
+// ──��� Prompt 9: automated post-appointment review requests ────────────────────
 enum ReviewRequestStatus {
   PENDING // waiting for delay to elapse (or a retry backoff window)
   PROCESSING // atomically claimed by a worker; crashed claims are re-queued
@@ -585,7 +593,7 @@ model Appointment {
   businessId          String
   business            Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customerId          String
-  customer        Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer            Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
   barberId            String
   barber              Barber            @relation(fields: [barberId], references: [id])
   serviceId           String
@@ -803,6 +811,11 @@ model NotificationLog {
 }
 
 // ─── Audit Log ─────────────────────────────────────────────────────────────
+
+enum LegalPolicyStatus {
+  DRAFT
+  PUBLISHED
+}
 
 enum AuditAction {
   PLATFORM_BUSINESS_CREATED
