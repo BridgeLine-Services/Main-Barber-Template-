@@ -52,10 +52,11 @@ jobs:
       # Production dependency audit: fails the build on any critical
       # advisory. Dev-only advisories are excluded (--omit=dev).
       - run: npm audit --omit=dev --audit-level=critical
+      - run: npm run license:inventory
       - run: npm run architecture:check
       - run: npm run test:architecture
       - run: npm run lint
-      - run: npx tsc --noEmit
+      - run: npm run typecheck
       - run: npx prisma validate
       - run: npx prisma generate
       # Full CI test expansion (Requirement 32): every DB-backed test suite
