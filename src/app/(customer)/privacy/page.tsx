@@ -16,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PrivacyPolicyPage() {
   const business = await resolveBusiness().catch(() => null)
-  const customPolicy = business?.privacyPolicy
+  const customPolicy = business?.privacyPolicyStatus === 'PUBLISHED' ? business.privacyPolicy : null
+  const isDraft = Boolean(business?.privacyPolicy && business?.privacyPolicyStatus !== 'PUBLISHED')
 
   if (customPolicy) {
     return (
@@ -24,7 +25,7 @@ export default async function PrivacyPolicyPage() {
         <div className="space-y-3">
           <Badge variant="outline" className="border-accent/40 text-accent">Legal & Compliance</Badge>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Privacy Policy</h1>
-          <p className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</p>
+          <p className="text-xs text-muted-foreground">Last updated: {business?.privacyPolicyPublishedAt ? new Date(business.privacyPolicyPublishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not published'}</p>
         </div>
         <Card className="bg-card border-border p-8 text-foreground/70 space-y-6 text-sm leading-relaxed">
           <div className="whitespace-pre-wrap">{customPolicy}</div>
@@ -49,7 +50,7 @@ export default async function PrivacyPolicyPage() {
       </div>
 
       <Card className="bg-card border-border p-8 text-foreground/70 space-y-4 text-sm leading-relaxed">
-        <h2 className="text-lg font-semibold text-foreground">Policy not available</h2>
+        <h2 className="text-lg font-semibold text-foreground">Privacy policy not published</h2>
         <p>
           This business has not published a privacy policy yet. Please contact the shop directly if you have questions about how your information is handled.
         </p>

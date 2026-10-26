@@ -170,6 +170,10 @@ export const updateBusinessSchema = z.object({
   // Business identity
   name: z.string().min(1, 'Business name is required').max(100).optional(),
   phone: z.string().max(30).nullish(),
+  privacyPolicy: z.string().max(50000).nullish(),
+  termsPolicy: z.string().max(50000).nullish(),
+  privacyPolicyStatus: z.enum(['DRAFT', 'PUBLISHED']).optional(),
+  termsPolicyStatus: z.enum(['DRAFT', 'PUBLISHED']).optional(),
   email: z.preprocess(
     (v) => (v === '' ? null : v),
     z.string().email('Please enter a valid email address').max(100).nullable().optional()
@@ -230,8 +234,6 @@ export const updateBusinessSchema = z.object({
   latePolicy: z.string().max(5000).nullish(),
   noShowPolicyText: z.string().max(5000).nullish(),
   paymentPolicy: z.string().max(5000).nullish(),
-  privacyPolicy: z.string().max(10000).nullish(),
-  termsPolicy: z.string().max(10000).nullish(),
   walkInsWelcome: z.boolean().optional(),
   firstAvailableBookingEnabled: z.boolean().optional(),
   parkingAvailable: z.boolean().optional(),
