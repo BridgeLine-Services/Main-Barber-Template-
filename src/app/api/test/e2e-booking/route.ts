@@ -55,9 +55,15 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Disable in production — test endpoints create/delete data
-  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_E2E_TESTS !== 'true') {
-    return NextResponse.json({ error: 'E2E tests disabled in production' }, { status: 403 })
+  // This route creates and deletes real tenant data. It must never be
+  // reachable in a production deployment, even if an environment variable is
+  // accidentally enabled. CI and local test environments use NODE_ENV=test or
+  // development and may opt in with ENABLE_E2E_TESTS=true.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'E2E tests are unavailable in production' }, { status: 404 })
+  }
+  if (process.env.ENABLE_E2E_TESTS !== 'true') {
+    return NextResponse.json({ error: 'E2E tests are disabled' }, { status: 403 })
   }
 
   const businessId = await getCurrentBusinessId()
