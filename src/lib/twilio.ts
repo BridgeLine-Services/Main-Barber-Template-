@@ -104,7 +104,7 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
  * Handles US numbers (adds +1 prefix if 10 digits), and passes through
  * numbers that already start with +.
  */
-function normalizePhoneForE164(phone: string): string | null {
+export function normalizePhoneForE164(phone: string): string | null {
   // Strip all non-digit characters
   const digits = phone.replace(/\D/g, '')
 
