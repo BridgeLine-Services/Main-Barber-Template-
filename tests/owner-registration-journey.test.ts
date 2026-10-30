@@ -115,6 +115,9 @@ async function main() {
       })
       assert(ownersNow.length === 1, `exactly one OWNER exists after the race (got ${ownersNow.length})`)
       const owner = ownersNow[0]
+      if (!owner) {
+        throw new Error(`First-owner race failed: statuses=${JSON.stringify(results.map((result) => result.status))}; errors=${JSON.stringify(results.map((result) => result.body?.error ?? null))}`)
+      }
       ownerEmail = owner.email
       assert(owner.passwordHash.startsWith('$2'), 'password is bcrypt-hashed, never plaintext')
       assert(owner.passwordHash !== password, 'stored hash is not the raw password')
