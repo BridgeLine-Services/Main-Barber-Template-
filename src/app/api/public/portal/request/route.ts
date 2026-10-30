@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     )
   }
-  const limited = checkRateLimit(req, 'portal-verification-request', RATE_LIMITS.PORTAL_LOOKUP)
+  const limited = await checkRateLimit(req, 'portal-verification-request', RATE_LIMITS.PORTAL_LOOKUP)
   if (limited) return NextResponse.json({ message: NEUTRAL }, { status: 200 })
   try {
     const body = await req.json()

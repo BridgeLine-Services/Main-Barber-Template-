@@ -11,7 +11,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
  * No demo fallback in production — if no business exists, returns empty.
  */
 export async function GET(req: NextRequest) {
-  const rateLimitResult = checkRateLimit(req, 'barbers', RATE_LIMITS.API)
+  const rateLimitResult = await checkRateLimit(req, 'barbers', RATE_LIMITS.API)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again in a moment.' },

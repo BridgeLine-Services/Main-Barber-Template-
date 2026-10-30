@@ -16,7 +16,7 @@ import { sanitizePreferences, formatPreferencesForDisplay } from '@/lib/customer
  */
 
 async function authorize(req: NextRequest) {
-  const limited = checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
+  const limited = await checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
   if (limited) return { status: 429 as const }
 
   const business = await resolveBusiness()

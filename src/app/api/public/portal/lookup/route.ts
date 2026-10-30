@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     )
   }
-  const limited = checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
+  const limited = await checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
   if (limited) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
   try {
     const body = await req.json()

@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     )
   }
   // Rate limit booking creation
-  const rateLimitResult = checkRateLimit(req, 'public-booking', RATE_LIMITS.BOOKING)
+  const rateLimitResult = await checkRateLimit(req, 'public-booking', RATE_LIMITS.BOOKING)
   if (rateLimitResult) {
     return NextResponse.json(
       { success: false, error: rateLimitResult.body.error },

@@ -20,7 +20,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 // ============================================================================
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const limited = checkRateLimit(req, 'portal-appointment-action', RATE_LIMITS.CUSTOMER_ACTION)
+  const limited = await checkRateLimit(req, 'portal-appointment-action', RATE_LIMITS.CUSTOMER_ACTION)
   if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
 
   const session = await getServerSession(authOptions)

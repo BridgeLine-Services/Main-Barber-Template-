@@ -50,7 +50,7 @@ const GENERIC_MESSAGE = 'If an account exists for that email, password reset ins
  */
 export async function POST(req: NextRequest) {
   // Stricter rate limit for password reset
-  const rateLimitResult = checkRateLimit(req, 'password-reset', RATE_LIMITS.PASSWORD_RESET)
+  const rateLimitResult = await checkRateLimit(req, 'password-reset', RATE_LIMITS.PASSWORD_RESET)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: rateLimitResult.body.error },

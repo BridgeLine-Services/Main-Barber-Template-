@@ -14,7 +14,7 @@ import { isTerminalStatus } from '@/lib/validation'
 export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
   const params = await props.params;
   // Rate limit
-  const rateLimitResult = checkRateLimit(req, 'public-cancel', RATE_LIMITS.CUSTOMER_ACTION)
+  const rateLimitResult = await checkRateLimit(req, 'public-cancel', RATE_LIMITS.CUSTOMER_ACTION)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: rateLimitResult.body.error },

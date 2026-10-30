@@ -52,7 +52,7 @@ const acceptGetLimit = Number(process.env.RATE_LIMIT_ACCEPT_GET_MAX ?? 10) || 10
 const acceptPostLimit = Number(process.env.RATE_LIMIT_ACCEPT_POST_MAX ?? 5) || 5
 
 export async function GET(req: NextRequest) {
-  const limited = checkRateLimit(req, 'accept-invitation', { windowMs: 60_000, maxRequests: acceptGetLimit })
+  const limited = await checkRateLimit(req, 'accept-invitation', { windowMs: 60_000, maxRequests: acceptGetLimit })
   if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
 
   const token = req.nextUrl.searchParams.get('token') || ''
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const limited = checkRateLimit(req, 'accept-invitation-post', { windowMs: 60_000, maxRequests: acceptPostLimit })
+  const limited = await checkRateLimit(req, 'accept-invitation-post', { windowMs: 60_000, maxRequests: acceptPostLimit })
   if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
 
   try {

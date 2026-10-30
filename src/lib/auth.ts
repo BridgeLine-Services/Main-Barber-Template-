@@ -44,8 +44,8 @@ export const authOptions: NextAuthOptions = {
         const ipKey = `login-fail-ip:${ip}`
         const accountKey = `login-fail-account:${credentials.email.toLowerCase()}`
         if (
-          isRateLimited(ipKey, { windowMs: 60_000, maxRequests: 10 }) ||
-          isRateLimited(accountKey, RATE_LIMITS.AUTH)
+          await isRateLimited(ipKey, { windowMs: 60_000, maxRequests: 10 }) ||
+          await isRateLimited(accountKey, RATE_LIMITS.AUTH)
         ) return null
 
         try {
@@ -55,8 +55,8 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
-            rateLimit(accountKey, RATE_LIMITS.AUTH)
+            await rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
+            await rateLimit(accountKey, RATE_LIMITS.AUTH)
             return null
           }
 
@@ -72,8 +72,8 @@ export const authOptions: NextAuthOptions = {
 
           const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!passwordValid) {
-            rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
-            rateLimit(accountKey, RATE_LIMITS.AUTH)
+            await rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
+            await rateLimit(accountKey, RATE_LIMITS.AUTH)
             return null
           }
 

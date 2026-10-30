@@ -63,7 +63,7 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
     if (!auth.success) return auth.response
     const user = auth.user
     // Rate limit
-    const rl = checkRateLimit(req, 'dashboard-appt-update', RATE_LIMITS.DASHBOARD)
+    const rl = await checkRateLimit(req, 'dashboard-appt-update', RATE_LIMITS.DASHBOARD)
     if (rl) return NextResponse.json({ error: rl.body.error }, { status: rl.status })
     try {
       const businessId = await getBusinessIdForUser(user)
