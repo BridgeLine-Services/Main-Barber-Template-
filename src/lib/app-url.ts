@@ -9,9 +9,10 @@ function normalizeUrl(value: string): string {
 
 export function getAppUrl(): URL {
   const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  const configuredAuthUrl = process.env.NEXTAUTH_URL?.trim()
   const deploymentUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
   const fallbackUrl = process.env.NODE_ENV === 'production'
-    ? deploymentUrl
+    ? deploymentUrl || configuredAuthUrl
     : LOCAL_APP_URL
 
   if (!configuredUrl && !fallbackUrl) {
