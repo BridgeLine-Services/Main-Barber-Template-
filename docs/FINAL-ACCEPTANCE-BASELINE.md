@@ -131,3 +131,65 @@ mapping, snapshot field, or booking rule was changed in the verified work.
   `unsafe-inline`, accessibility suite not re-run this session, backup restore not
   verified, and every external approval (legal, accessibility review, Stripe
   test-mode, Twilio staging, email delivery) remains outstanding.
+
+
+---
+
+## Verification run — 2026-10-30 (executed, not inspected)
+
+Every count below came from a real run against the isolated test database
+(`postgresql://…localhost:5433/barber_test`) with the production build served
+on :3000. Prisma client regenerated and all migrations applied first.
+
+| Suite | Result |
+| --- | --- |
+| architecture | pass |
+| file-validation | 27/27 |
+| image-roles | 35/35 |
+| fonts | 29/29 (fixed, see below) |
+| visual-config | 78/78 |
+| theme-sanitization | 64/64 (new) |
+| role-permissions | 37/37 |
+| business-admin-role | 37/37 |
+| coowner-permissions | 35/35 |
+| tenant-isolation | 22/22 |
+| cross-tenant-matrix | 75/75 |
+| payments | 70/70 |
+| payment-transitions | 51/51 |
+| memberships | 31/31 |
+| memberships-renewals | 30/30 |
+| gift-cards | 85/85 |
+| commissions | 74/74 |
+| marketing (consent/audience) | 44/44 |
+| notification-resilience | 16/16 |
+| booking | 20/20 |
+| booking-rules | 25/25 |
+| queue | 47/47 |
+| payroll | 80/80 |
+| time-clock | 61/61 |
+| ecommerce | 34/34 |
+| daily-operations | 21/21 |
+| customer-history | 29/29 |
+| audit-log | 15/15 |
+| website-publish | 21/21 |
+
+**Two findings resolved during the run, neither an application defect:**
+
+1. `tests/fonts.test.ts` counted `__variable` class markers, which Next 16 no
+   longer emits (`<hash>_variable`). The body genuinely carried all seven
+   classes. The assertion now tracks either naming shape and additionally
+   asserts the built CSS defines `--font-<family>` for every supported family,
+   so a real silent font fallback would still fail the suite.
+2. `notification-resilience` initially failed with `Unknown argument
+   businessId`, then `P2022 Business.privacyPolicyStatus`. Cause: the local
+   Prisma client and test database were behind the checked-in schema. After
+   `prisma generate` + `prisma migrate deploy` the suite passes 16/16 —
+   notification logging writes correctly and failed deliveries are recorded.
+
+**Still open (unchanged by this run):** owner 2FA end-to-end; the
+email-marketing / unsubscribe subsystem this snapshot does not contain; CSP
+`unsafe-inline` evaluation; backup-restore verification; full accessibility
+pass; every external approval (legal review, accessibility review, Stripe
+test-mode, Twilio staging, release sign-off). `notification-resilience` is not
+part of `npm run test:ci`, so it is not covered by CI today — a coverage gap
+worth closing in its own change.
