@@ -59,7 +59,10 @@ export async function POST(_req: NextRequest) {
   // reachable in a production deployment, even if an environment variable is
   // accidentally enabled. CI and local test environments use NODE_ENV=test or
   // development and may opt in with ENABLE_E2E_TESTS=true.
-  if (process.env.NODE_ENV === 'production') {
+  // Belt and braces: a Vercel production deployment must never run this even
+  // if NODE_ENV were misconfigured at build time (VERCEL_ENV is set by the
+  // platform: development | preview | production).
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
     return NextResponse.json({ error: 'E2E tests are unavailable in production' }, { status: 404 })
   }
   if (process.env.ENABLE_E2E_TESTS !== 'true') {

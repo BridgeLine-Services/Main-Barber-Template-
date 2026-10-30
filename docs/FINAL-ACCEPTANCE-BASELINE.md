@@ -112,3 +112,22 @@ mapping, snapshot field, or booking rule was changed in the verified work.
    coverage.
 6. Obtain legal review and accessibility review; only then update the external
    acceptance counters.
+
+
+---
+
+## Update — 2026-10-30 (after syncing with origin/main)
+
+- Remote `main` had advanced to `4e6d47d` (PR #72, CI rate-limit repair). Local work
+  was rebased on top and pushed as `401b939`.
+- **Phase 6D (E2E test-route safety): verified implemented.** `src/app/api/test/e2e-booking/route.ts`
+  already requires an authenticated OWNER/ADMIN, returns 404 when
+  `NODE_ENV === 'production'`, and requires an explicit `ENABLE_E2E_TESTS === 'true'` opt-in.
+  Hardened further: it now also refuses when `VERCEL_ENV === 'production'`, so a
+  production deployment cannot run the lifecycle test even if `NODE_ENV` were
+  misconfigured at build time.
+- Still outstanding and unchanged: owner 2FA end-to-end (helpers only), email
+  unsubscribe / marketing subsystem absent from this snapshot, CSP still allows
+  `unsafe-inline`, accessibility suite not re-run this session, backup restore not
+  verified, and every external approval (legal, accessibility review, Stripe
+  test-mode, Twilio staging, email delivery) remains outstanding.
