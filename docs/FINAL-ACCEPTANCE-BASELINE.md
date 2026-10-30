@@ -193,3 +193,11 @@ pass; every external approval (legal review, accessibility review, Stripe
 test-mode, Twilio staging, release sign-off). `notification-resilience` is not
 part of `npm run test:ci`, so it is not covered by CI today — a coverage gap
 worth closing in its own change.
+
+### CI coverage gap closed (2026-10-30, later run)
+
+tests/notification-resilience.test.ts (16 assertions) and tests/website-publish.test.ts (21 assertions) both need a live HTTP surface, so neither could run in the test-ci job and neither was enforced anywhere. The e2e job now boots the production build after Playwright webServer exits and runs both suites.
+
+- Workflow YAML parses (js-yaml) and the step resolves with both suites.
+- Both suites were executed against a locally served production build before wiring: 16/16 and 21/21.
+- Not yet observed in a GitHub Actions run; the next push to main is the evidence.
