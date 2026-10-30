@@ -31,6 +31,10 @@ const redis = hasSharedStore ? Redis.fromEnv() : null
 const localWindows = new Map<string, { count: number; resetAt: number }>()
 const MAX_LOCAL_KEYS = 10_000
 
+export function isAuthorizedCILocalMode(env: Record<string, string | undefined> = process.env): boolean {
+  return env.CI === 'true' && env.GITHUB_ACTIONS === 'true' && env.VERCEL !== '1' && env.RATE_LIMIT_CI_IN_MEMORY === 'true'
+}
+
 function algorithm(config: RateLimitConfig) {
   return Ratelimit.slidingWindow(config.maxRequests, `${Math.max(1, Math.ceil(config.windowMs / 1000))} s`)
 }
@@ -53,6 +57,7 @@ function localRateLimit(key: string, config: RateLimitConfig): RateLimitResult {
 
 /** Shared Redis limiter. Production fails closed when Redis is unavailable. */
 export async function rateLimit(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
+  if (isAuthorizedCILocalMode()) return localRateLimit(key, config)
   if (!redis) {
     if (process.env.NODE_ENV === 'production' || process.env.APP_MODE === 'production') {
       return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs }
