@@ -16,6 +16,7 @@ export interface CampaignTarget {
   phone: string
   email: string
   emailOptOut?: boolean
+  marketingSmsConsent?: boolean
   reason: string // why they matched this audience
 }
 
@@ -72,6 +73,7 @@ export async function resolveCampaignAudience(
       phone: true,
       email: true,
       smsConsent: true,
+      marketingSmsConsent: true,
       emailOptOut: true,
       appointments: {
         include: {
@@ -100,6 +102,7 @@ export async function resolveCampaignAudience(
           phone: customer.phone,
           email: customer.email,
           emailOptOut: customer.emailOptOut,
+          marketingSmsConsent: customer.marketingSmsConsent,
           reason,
         })
       }
@@ -269,7 +272,7 @@ export async function sendCampaign(businessId: string, campaignId: string) {
       if (target.email && target.emailOptOut !== true) {
       rows.push({ appointmentId: null, customerId: target.customerId, channel: 'EMAIL' as const, type: 'MARKETING_CAMPAIGN' as const, recipient: target.email, subject: campaign.subject, content: `${campaign.body}\n\n---\n${business?.name || 'This business'}\n${postalAddress}\nUnsubscribe: ${createUnsubscribeUrl(businessId, target.customerId)}`, status: 'PENDING' as const, businessId })
     }
-    if (target.phone) rows.push({ appointmentId: null, customerId: target.customerId, channel: 'SMS' as const, type: 'MARKETING_CAMPAIGN' as const, recipient: target.phone, subject: campaign.subject, content: `${campaign.subject}\n\n${campaign.body}`, status: 'PENDING' as const, businessId })
+    if (target.phone && target.marketingSmsConsent === true) rows.push({ appointmentId: null, customerId: target.customerId, channel: 'SMS' as const, type: 'MARKETING_CAMPAIGN' as const, recipient: target.phone, subject: campaign.subject, content: `${campaign.subject}\n\n${campaign.body}`, status: 'PENDING' as const, businessId })
     return rows
   })
   if (data.length > 0) {
