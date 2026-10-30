@@ -9,7 +9,7 @@ import { getFeatureConfig } from '@/lib/env-check'
 
 export async function POST(req: NextRequest) {
   // Rate limit contact form — 3 per minute per IP
-  const rateLimitResult = checkRateLimit(req, 'contact', RATE_LIMITS.CONTACT)
+  const rateLimitResult = await checkRateLimit(req, 'contact', RATE_LIMITS.CONTACT)
   if (rateLimitResult) {
     return NextResponse.json(
       { success: false, error: 'Too many messages. Please try again in a minute.' },

@@ -6,7 +6,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { isTerminalStatus } from '@/lib/validation'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
-  const limited = checkRateLimit(req, 'public-reschedule', RATE_LIMITS.CUSTOMER_ACTION)
+  const limited = await checkRateLimit(req, 'public-reschedule', RATE_LIMITS.CUSTOMER_ACTION)
   if (limited) return NextResponse.json({ error: limited.body.error }, { status: limited.status })
   const { token } = await params
   if (!token || token.length < 32) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })

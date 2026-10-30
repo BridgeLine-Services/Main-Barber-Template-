@@ -17,7 +17,7 @@ import { prisma } from '@/lib/prisma'
  * No demo fallback — requires a configured business and database.
  */
 export async function GET(req: NextRequest) {
-  const rateLimitResult = checkRateLimit(req, 'availability', RATE_LIMITS.AVAILABILITY)
+  const rateLimitResult = await checkRateLimit(req, 'availability', RATE_LIMITS.AVAILABILITY)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again in a moment.' },

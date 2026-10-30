@@ -16,7 +16,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
  */
 export async function GET(req: NextRequest) {
   // Rate limit heavily — 5 per minute per IP to prevent brute-force
-  const rateLimitResult = checkRateLimit(req, 'lookup', RATE_LIMITS.LOOKUP)
+  const rateLimitResult = await checkRateLimit(req, 'lookup', RATE_LIMITS.LOOKUP)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many lookup attempts. Please try again in a minute.' },

@@ -26,7 +26,7 @@ import { handleApiError } from '@/lib/api-errors'
  */
 export async function POST(req: NextRequest) {
   try {
-    const limited = checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
+    const limited = await checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
     if (limited) return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 })
 
     const business = await resolveBusiness()

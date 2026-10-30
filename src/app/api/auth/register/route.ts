@@ -47,7 +47,7 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const registerLimit = Number(process.env.RATE_LIMIT_REGISTER_MAX ?? 3) || 3
-  const rateLimitResult = checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
+  const rateLimitResult = await checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
   if (rateLimitResult) {
     return NextResponse.json(
       { error: 'Too many attempts. Please wait a minute and try again.' },

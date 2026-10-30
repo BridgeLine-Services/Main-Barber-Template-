@@ -31,7 +31,7 @@ const resetSchema = z.object({
  * passwordChangedAt set, mustChangePassword cleared, audit recorded.
  */
 export async function POST(req: NextRequest) {
-  const rateLimitResult = checkRateLimit(req, 'auth-reset', RATE_LIMITS.PASSWORD_RESET)
+  const rateLimitResult = await checkRateLimit(req, 'auth-reset', RATE_LIMITS.PASSWORD_RESET)
   if (rateLimitResult) {
     return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: rateLimitResult.status })
   }

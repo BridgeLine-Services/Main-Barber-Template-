@@ -14,7 +14,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
   const params = await props.params;
   // Rate limit to prevent brute-force
-  const rateLimitResult = checkRateLimit(req, 'public-view', RATE_LIMITS.CUSTOMER_ACTION)
+  const rateLimitResult = await checkRateLimit(req, 'public-view', RATE_LIMITS.CUSTOMER_ACTION)
   if (rateLimitResult) {
     return NextResponse.json(
       { error: rateLimitResult.body.error },

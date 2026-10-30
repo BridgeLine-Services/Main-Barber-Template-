@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     )
   }
-  const rateLimitResult = checkRateLimit(req, 'public-queue', RATE_LIMITS.QUEUE)
+  const rateLimitResult = await checkRateLimit(req, 'public-queue', RATE_LIMITS.QUEUE)
   if (rateLimitResult) {
     return NextResponse.json(rateLimitResult.body, { status: rateLimitResult.status })
   }
