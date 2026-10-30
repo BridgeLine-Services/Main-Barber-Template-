@@ -19,10 +19,18 @@ async function main() {
   //    (next/font production class names are hashed `__variable_*`)
   const html = await fetch(`${BASE}/`).then((r) => r.text())
   // Class-name shape differs across Next.js build versions: older builds emit
-  // `__variable_<hex>`, newer ones `inter_<hash>-module__<hash>__variable`.
-  // Both formats contain the `__variable` marker exactly once per family.
-  const variableClasses = (html.match(/__variable/g) || [])
+  // `__variable_<hex>`, Next 16 emits `<hash>_variable`. Count either marker so
+  // the check tracks the real contract (one class per supported family) rather
+  // than one framework version's naming.
+  const variableClasses = (html.match(/_+variable/g) || [])
   assert(variableClasses.length >= 7, `layout body carries all 7 font variable classes (found ${variableClasses.length})`)
+  // Every supported family's CSS variable must actually be defined by the
+  // build, otherwise the selected font silently falls back.
+  const cssHrefs = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])
+  const cssText = (await Promise.all(cssHrefs.map((h) => fetch(`${BASE}${h}`).then((r) => r.text())))).join('\n')
+  const declared = FONT_FAMILY_VALUES.filter((f) => cssText.includes(`--font-${f}`))
+  assert(declared.length === FONT_FAMILY_VALUES.length,
+    `built CSS defines every supported font variable (${declared.length}/${FONT_FAMILY_VALUES.length})`)
   assert(html.includes('font-sans'), 'default font-sans class applied')
 
   // 2. Build output has no Google Fonts reference
