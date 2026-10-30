@@ -107,7 +107,11 @@ export function verifyTOTP(token: string, secret: string, window: number = 1): b
 export function generateBackupCodes(): string[] {
   const codes: string[] = []
   for (let i = 0; i < 10; i++) {
-    codes.push(randomBytes(4).toString('hex').toUpperCase())
+    // 5 random bytes + the CSPRNG's own generator => 40 bits per code, shown as
+    // 10 hex characters. (Was 4 bytes / 32 bits: brute-forceable if an
+    // attacker can submit codes at all.) No enrolled codes exist yet, so the
+    // longer format is backward compatible with nothing already stored.
+    codes.push(randomBytes(5).toString('hex').toUpperCase())
   }
   return codes
 }
@@ -123,8 +127,20 @@ export function hashBackupCode(code: string): string {
  * Verify a backup code against stored hashes
  */
 export function verifyBackupCode(code: string, hashedCodes: string[]): boolean {
+  if (!code || hashedCodes.length === 0) return false
   const hash = hashBackupCode(code)
-  return hashedCodes.includes(hash)
+  const candidate = Buffer.from(hash, 'utf8')
+  // Constant-time comparison per stored hash: Array.includes() short-circuits
+  // on the first differing byte, which leaks how much of a guessed code
+  // matched. Single-use enforcement (marking the row consumed) belongs to the
+  // caller that owns the stored codes.
+  let matched = false
+  for (const stored of hashedCodes) {
+    const storedBuffer = Buffer.from(String(stored), 'utf8')
+    if (storedBuffer.length !== candidate.length) continue
+    if (timingSafeEqual(storedBuffer, candidate)) matched = true
+  }
+  return matched
 }
 
 /**
