@@ -18,7 +18,8 @@ import { getToken } from 'next-auth/jwt'
 // exception: same-origin framing only. Third-party sites still cannot frame
 // the app, and the route keeps its own authentication (anonymous visitors
 // are redirected to login by the page itself).
-const PREVIEW_PATH = '/dashboard/website-preview'
+// PREVIEW_PATH + the CSP builder live in src/lib/csp.ts so both are testable.
+import { PREVIEW_PATH, buildContentSecurityPolicy, isNonceEnabled } from '@/lib/csp'
 
 const SECURITY_HEADERS: Record<string, string> = {
   'X-Frame-Options': 'DENY',
@@ -29,26 +30,19 @@ const SECURITY_HEADERS: Record<string, string> = {
   // Do not advertise preload/includeSubDomains until every custom tenant
   // hostname is confirmed HTTPS-only and ready for preload submission.
   'Strict-Transport-Security': 'max-age=63072000',
-  // React dev mode JIT-compiles with eval(), so development needs
-  // 'unsafe-eval' in script-src; production builds never do. Inline styles
-  // remain required for the server-rendered theme and component styles.
-  'Content-Security-Policy':
-    `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.public.blob.vercel-storage.com; font-src 'self' data:; connect-src 'self'; frame-src 'self' https://www.google.com https://maps.google.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self';`,
 }
 
-function addSecurityHeaders(response: NextResponse, pathname?: string) {
+function addSecurityHeaders(response: NextResponse, pathname?: string, nonce?: string | null) {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value)
   }
+  response.headers.set('Content-Security-Policy', buildContentSecurityPolicy({ nonce, pathname }))
+  // The preview route must be framable by the dashboard itself. The CSP
+  // frame-ancestors exception alone is not enough: browsers that still prefer
+  // X-Frame-Options would keep refusing the frame, which is exactly the bug
+  // that made the preview render an error page.
   if (pathname === PREVIEW_PATH) {
     response.headers.set('X-Frame-Options', 'SAMEORIGIN')
-    response.headers.set(
-      'Content-Security-Policy',
-      SECURITY_HEADERS['Content-Security-Policy'].replace(
-        "frame-ancestors 'none'",
-        "frame-ancestors 'self'",
-      ),
-    )
   }
 }
 
@@ -76,8 +70,16 @@ export async function proxy(req: NextRequest) {
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', pathname)
 
+  // Nonce mode is opt-in per environment (CSP_NONCE_ENABLED=true). Next reads
+  // the nonce from the CSP *request* header and stamps its inline bootstrap
+  // script with it; the response carries the matching policy.
+  const nonce = isNonceEnabled() ? crypto.randomUUID().replace(/-/g, '') : null
+  if (nonce) {
+    requestHeaders.set('Content-Security-Policy', buildContentSecurityPolicy({ nonce, pathname }))
+  }
+
   const response = NextResponse.next({ request: { headers: requestHeaders } })
-  addSecurityHeaders(response, pathname)
+  addSecurityHeaders(response, pathname, nonce)
   return response
 }
 

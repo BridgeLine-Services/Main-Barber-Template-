@@ -154,6 +154,13 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed
+      # Backup/restore verification needs pg_dump + psql, which GitHub's
+      # runners provide and the sandbox's bundled postgres does not. Runs right
+      # after the seed so there is real data to dump and restore.
+      - name: Backup and restore verification
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          npm run db:backup-verify
       - run: npx tsx scripts/e2e-prepare-user.mts
       - run: npm run build
       # playwright.config.ts webServer boots `npm run start` itself.

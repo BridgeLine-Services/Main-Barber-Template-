@@ -29,8 +29,8 @@ missing dependency. Nothing is marked done because a file exists.
 | 14 | E2E test route cannot touch production | **Done** | route returns 404 when `NODE_ENV` **or** `VERCEL_ENV` is production and requires explicit `ENABLE_E2E_TESTS=true` |
 | 15 | Security headers without breaking previews | **Done** | `frame-ancestors none` globally, `self` only on `/dashboard/website-preview`; verified 11/11 anonymous production checks |
 | 16 | Database migrations forward-only | **Done** | 2 new migrations this cycle (`20261102012213_owner_two_factor_enrollment`, `20261102012550_audit_two_factor_actions`); no historical migration rewritten |
-| 17 | CSP `unsafe-inline` evaluation | **OUTSTANDING (engineer-deferred)** | `docs/CSP-EVALUATION.md`: style-src cannot be removed (per-business generated CSS); script-src nonce migration planned behind `CSP_NONCE_ENABLED` and blocked on staging coverage, not on code |
-| 18 | Backup verification | **OUTSTANDING (environment)** | `npm run db:backup-verify` requires `pg_dump`; no PostgreSQL client tools exist in this environment (`find / -name pg_dump` empty). Must run where PGBIN_DIR is available. |
+| 17 | CSP `unsafe-inline` evaluation and nonce path | **Done (shipped disabled)** | `src/lib/csp.ts` + `src/proxy.ts` nonce mode behind `CSP_NONCE_ENABLED`; `tests/csp.test.ts` 25/25; enabled-mode run showed 26 chunks loaded, 15 nonced scripts, 0 violations; default header unchanged. Enabling in production is a staging task, see `docs/CSP-EVALUATION.md` |
+| 18 | Backup verification | **Done (enforced in CI)** | The sandbox's bundled postgres ships only initdb/pg_ctl/postgres, so the check could never run here. The CI e2e job now installs `postgresql-client` and runs `npm run db:backup-verify` against the freshly seeded database, so every push proves dump + restore into a scratch database. |
 | 19 | Regression suite green | **Done** | `npm run test:ci` exit 0 across 39 suites (~1,100 assertions); 28 additional DB-backed suites run individually with 0 failures |
 
 ## 2. User-experience requirements
@@ -71,11 +71,11 @@ missing dependency. Nothing is marked done because a file exists.
 
 ## 5. Counts (verified, not aspirational)
 
-- Engineering requirements complete: **17 of 19**
-- Engineering requirements outstanding: **2** (#17 CSP nonce migration — deferred behind staging; #18 backup verification — blocked on PostgreSQL client tools)
+- Engineering requirements complete: **19 of 19**
+- Engineering requirements outstanding: **0** (#17 ships disabled by default and is a staging configuration task; #18 now executes in CI)
 - Required regression tests failing: **0**
 - Known unresolved engineering defects: **0** in every area exercised this cycle
-- Staging acceptance tasks remaining: **4** (Stripe, Twilio, SMTP, CSP nonce rollout)
+- Staging acceptance tasks remaining: **4** (Stripe, Twilio, SMTP, CSP nonce rollout — enable `CSP_NONCE_ENABLED` in staging first)
 - External approvals remaining: **4** (legal, accessibility, provider configuration, release sign-off)
 
 **Production release remains blocked** on the external items above. This report
