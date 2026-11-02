@@ -201,3 +201,9 @@ tests/notification-resilience.test.ts (16 assertions) and tests/website-publish.
 - Workflow YAML parses (js-yaml) and the step resolves with both suites.
 - Both suites were executed against a locally served production build before wiring: 16/16 and 21/21.
 - Not yet observed in a GitHub Actions run; the next push to main is the evidence.
+
+### Operational finding: rate limiting fails closed in production (2026-11-02)
+
+src/lib/rate-limit.ts denies the request when NODE_ENV/APP_MODE is production and no Redis is configured. That is the safe default, but it means a production deployment WITHOUT UPSTASH_REDIS_REST_URL/TOKEN cannot sign anyone in: the login throttle denies before the password is checked. Verified locally: with APP_MODE=production and no Redis every credentials login returned 401; with CI local in-memory mode (CI=true, GITHUB_ACTIONS=true, RATE_LIMIT_CI_IN_MEMORY=true) the same accounts signed in and 22/22 two-factor API assertions passed.
+
+Consequence for Phase 8C: Redis configuration is NOT optional for a working production deployment, and this must be part of the deployment checklist, not just a performance note.
