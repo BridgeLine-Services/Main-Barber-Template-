@@ -191,6 +191,18 @@ model User {
   // account, audit trail, or barber links (soft-deactivate for staff)
   isActive                   Boolean    @default(true)
 
+  // ── Two-factor authentication (opt-in; OWNER enrolment) ────────────────
+  // The TOTP secret is stored AES-256-GCM encrypted (see
+  // src/lib/two-factor-enrollment.ts) — never as plaintext. Enrolment only
+  // completes after the owner proves their authenticator works, so a partial
+  // enrolment can never lock anyone out.
+  twoFactorEnabled     Boolean    @default(false)
+  twoFactorSecretEnc   String?
+  twoFactorEnabledAt   DateTime?
+  // Highest TOTP time-step already accepted, so a code cannot be replayed.
+  twoFactorLastCounter Int?
+  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+
   @@index([businessId])
 }
 
@@ -936,6 +948,18 @@ model StaffInvitation {
 
   @@index([businessId, email])
   @@index([businessId, createdAt])
+}
+
+model TwoFactorRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // sha256 of the code; the plaintext is shown to the owner exactly once
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
 }
 
 model AuditLog {
