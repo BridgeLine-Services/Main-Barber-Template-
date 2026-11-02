@@ -20,6 +20,7 @@ import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
+import { TwoFactorCard } from '@/components/dashboard/TwoFactorCard'
 import { SectionDisclosure } from '@/components/dashboard/SectionDisclosure'
 import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
 import { LayoutBehaviorTab } from '@/components/dashboard/LayoutBehaviorTab'
@@ -124,12 +125,12 @@ type SettingsSeo = {
 
 type WebsiteContentMap = Record<string, unknown>
 
-type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'layout' | 'typography' | 'homepage-sections' | 'dashboard-preview' | 'danger-zone' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking' | 'reviews'
+type Tab = 'business' | 'hours' | 'branding' | 'appearance' | 'layout' | 'typography' | 'homepage-sections' | 'dashboard-preview' | 'danger-zone' | 'social' | 'policies' | 'seo' | 'faq' | 'website' | 'booking' | 'reviews' | 'security'
 
 // Single source of truth for the selected tab: the ?tab= URL parameter.
 // The component derives the active tab from it — no duplicated state that can
 // drift. Invalid values fall back to the default tab.
-const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'layout', 'typography', 'homepage-sections', 'dashboard-preview', 'danger-zone', 'social', 'policies', 'seo', 'faq', 'website', 'booking', 'reviews'] as const
+const VALID_TABS = ['business', 'hours', 'branding', 'appearance', 'layout', 'typography', 'homepage-sections', 'dashboard-preview', 'danger-zone', 'social', 'policies', 'seo', 'faq', 'website', 'booking', 'reviews', 'security'] as const
 const DEFAULT_TAB: Tab = 'business'
 
 export default function SettingsPage() {
@@ -340,6 +341,7 @@ export default function SettingsPage() {
     booking: { title: 'Booking Questions', description: 'Extra questions customers answer when they book.' },
     reviews: { title: 'Review Requests', description: 'Ask customers for reviews after their visit.' },
     'danger-zone': { title: 'Deactivate Shop', description: 'Temporarily close your shop or reset shop data. High-risk actions live here.' },
+    security: { title: 'Security', description: 'Protect your own account. Two-factor authentication adds a code from your phone when you sign in.' },
     // Legacy tab ids (old bookmarks) render the consolidated Branding & Theme page.
     appearance: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
     typography: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
@@ -1059,6 +1061,12 @@ export default function SettingsPage() {
 
       {activeTab === 'dashboard-preview' && (
         <DashboardPreviewTab websiteContent={websiteContent} accentColor={business?.accentColor ?? null} fontFamily={business?.fontFamily ?? null} themeMode={business?.themeMode ?? null} />
+      )}
+
+      {activeTab === 'security' && (
+        <div className="space-y-6">
+          <TwoFactorCard />
+        </div>
       )}
 
       {activeTab === 'danger-zone' && (

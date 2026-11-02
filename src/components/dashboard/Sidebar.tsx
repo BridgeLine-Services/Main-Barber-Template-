@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import {
+  ShieldCheck,
   LayoutDashboard,
   Calendar,
   CalendarDays,
@@ -211,6 +212,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       items: [
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
+        { name: 'Security', href: '/dashboard/settings?tab=security', icon: ShieldCheck },
         { name: 'Deactivate', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
         { name: 'Launch Console', href: '/dashboard/factory-launch', icon: Shield },
         { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
