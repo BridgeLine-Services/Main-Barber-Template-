@@ -694,15 +694,18 @@ export default function SettingsPage() {
                 Colours control how your brand looks across the site. Use the swatch to pick, or type a colour code.
               </p>
               <div>
-                <Label className="text-muted-foreground">Primary Color (Background)</Label>
+                <Label htmlFor="primaryColor" className="text-muted-foreground">Primary Color (Background)</Label>
                 <div className="flex items-center gap-3 mt-1">
                   <input
                     type="color"
+                    aria-label="Primary background colour swatch"
                     value={business.primaryColor || '#1a1a1a'}
                     onChange={e => setBusiness({ ...business, primaryColor: e.target.value })}
                     className="h-10 w-14 rounded border border-input bg-muted cursor-pointer"
                   />
                   <Input
+                    id="primaryColor"
+                    aria-label="Primary background colour code"
                     value={business.primaryColor || ''}
                     onChange={e => setBusiness({ ...business, primaryColor: e.target.value })}
                     className="bg-muted border-input max-w-[160px]"
@@ -710,15 +713,18 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-muted-foreground">Accent Color</Label>
+                <Label htmlFor="accentColor" className="text-muted-foreground">Accent Color</Label>
                 <div className="flex items-center gap-3 mt-1">
                   <input
                     type="color"
+                    aria-label="Accent colour swatch"
                     value={business.accentColor || '#d4af37'}
                     onChange={e => setBusiness({ ...business, accentColor: e.target.value })}
                     className="h-10 w-14 rounded border border-input bg-muted cursor-pointer"
                   />
                   <Input
+                    id="accentColor"
+                    aria-label="Accent colour code"
                     value={business.accentColor || ''}
                     onChange={e => setBusiness({ ...business, accentColor: e.target.value })}
                     className="bg-muted border-input max-w-[160px]"
@@ -726,15 +732,18 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-muted-foreground">Secondary Surface Color</Label>
+                <Label htmlFor="secondaryColor" className="text-muted-foreground">Secondary Surface Color</Label>
                 <div className="flex items-center gap-3 mt-1">
                   <input
                     type="color"
+                    aria-label="Secondary surface colour swatch"
                     value={business.secondaryColor || '#2a2a2a'}
                     onChange={e => setBusiness({ ...business, secondaryColor: e.target.value })}
                     className="h-10 w-14 rounded border border-input bg-muted cursor-pointer"
                   />
                   <Input
+                    id="secondaryColor"
+                    aria-label="Secondary surface colour code"
                     value={business.secondaryColor || ''}
                     onChange={e => setBusiness({ ...business, secondaryColor: e.target.value })}
                     className="bg-muted border-input max-w-[160px]"

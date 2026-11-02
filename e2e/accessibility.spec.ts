@@ -45,3 +45,51 @@ test('keyboard: booking page is fully focusable via keyboard only', async ({ pag
     expect(['BODY', 'HTML']).not.toContain(active)
   }
 })
+
+/**
+ * Authenticated dashboard surfaces.
+ *
+ * The scans above cover what a visitor sees. The owner's workspace was never
+ * scanned, which is where colour-coded status, icon-only buttons and dense
+ * tables live — exactly the places contrast and labelling failures hide.
+ * Runs only when the owner fixture is available (CI provides it).
+ */
+const ownerEmail = process.env.E2E_OWNER_EMAIL
+const ownerPassword = process.env.E2E_OWNER_PASSWORD
+
+const dashboardPages = [
+  { name: 'Dashboard home', url: '/dashboard' },
+  { name: 'Settings — Security (2FA)', url: '/dashboard/settings?tab=security' },
+  { name: 'Settings — Branding & Theme', url: '/dashboard/settings?tab=branding' },
+]
+
+test.describe('authenticated dashboard', () => {
+  test.skip(!ownerEmail || !ownerPassword, 'E2E_OWNER_EMAIL/PASSWORD not provided')
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login')
+    await page.waitForLoadState('domcontentloaded')
+    await page.fill('input[type="email"]', ownerEmail!)
+    await page.fill('input[type="password"]', ownerPassword!)
+    await Promise.all([
+      page.waitForURL(/\/dashboard/, { timeout: 30_000 }).catch(() => {}),
+      page.click('button[type="submit"]'),
+    ])
+  })
+
+  for (const target of dashboardPages) {
+    test(`axe: no WCAG A/AA violations on ${target.name} (${target.url})`, async ({ page }) => {
+      const response = await page.goto(target.url)
+      test.skip(response === null, `${target.url} did not load`)
+      await page.waitForLoadState('networkidle')
+
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze()
+
+      expect(
+        results.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, count: v.nodes.length })),
+      ).toEqual([])
+    })
+  }
+})

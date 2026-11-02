@@ -64,7 +64,7 @@ missing dependency. Nothing is marked done because a file exists.
 | Email delivery + unsubscribe delivery acceptance | SMTP credentials |
 | Backup restore execution | `pg_dump`/`pg_restore` client tools |
 | Legal approval | Qualified counsel (`docs/LEGAL-REVIEW-PACKET.md` is correctly marked DRAFT and makes no approval claim) |
-| Accessibility review | Independent reviewer; axe passes 4 public pages, keyboard suite needs a published demo tenant |
+| Accessibility review | Independent reviewer. Automated axe now scans 7 surfaces (4 public + dashboard home, Security, Branding & Theme) and passes on all; a human review of screen-reader order and reduced motion is still outstanding |
 | Production release approval | Release owner |
 
 ---

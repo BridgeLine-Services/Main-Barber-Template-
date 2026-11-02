@@ -423,9 +423,10 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           </div>
           <button
             onClick={closeMobile}
+            aria-label="Close navigation menu"
             className="lg:hidden text-muted-foreground hover:text-foreground"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
