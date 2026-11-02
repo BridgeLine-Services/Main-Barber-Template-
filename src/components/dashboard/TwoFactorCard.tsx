@@ -48,7 +48,24 @@ export function TwoFactorCard() {
     }
   }, [])
 
-  useEffect(() => { loadStatus() }, [loadStatus])
+  useEffect(() => {
+    // Fire-and-forget fetch with an unmount guard: the card must not write
+    // state after it has been replaced (tab switch), and awaiting inside the
+    // effect body would delay the first paint.
+    let alive = true
+    void (async () => {
+      try {
+        const res = await fetch('/api/dashboard/security/2fa', { cache: 'no-store' })
+        if (!alive) return
+        if (!res.ok) throw new Error('status')
+        const data = await res.json()
+        if (alive) setStatus(data)
+      } catch {
+        if (alive) setError("We couldn't check your security settings. Please refresh the page.")
+      }
+    })()
+    return () => { alive = false }
+  }, [])
 
   async function post(path: string, body: Record<string, unknown>) {
     setBusy(true)
