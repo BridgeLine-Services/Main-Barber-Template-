@@ -111,7 +111,23 @@ function verify(dbUrl: string, outDir: string, keep: boolean) {
     process.exit(1)
   }
   const { writeFileSync } = require('node:fs') as typeof import('node:fs')
-  writeFileSync(tempDump, dump.stdout)
+  // Cross-version compatibility: a pg_dump from a NEWER client emits session
+  // settings the older server rejects (e.g. `SET transaction_timeout = 0;` on
+  // a dump taken by client 17 restored into server 15), which aborts the whole
+  // restore. These are per-session knobs with no bearing on the data, so drop
+  // them rather than let a client/server version skew make a good backup look
+  // corrupt. Needed because backups are often taken by whichever client the
+  // operator has, not by the one matching the server.
+  const UNSAFE_SESSION_SETTINGS = /^SET\s+(transaction_timeout|idle_session_timeout|idle_in_transaction_session_timeout)\s*=/i
+  const rawDump = String(dump.stdout)
+  const sanitized = rawDump
+    .split('\n')
+    .filter((line) => !UNSAFE_SESSION_SETTINGS.test(line))
+    .join('\n')
+  if (sanitized.length !== rawDump.length) {
+    console.log('[backup] note: dropped incompatible session settings from the dump (client/server version skew)')
+  }
+  writeFileSync(tempDump, sanitized)
 
   try {
     // 2. Create scratch database.
