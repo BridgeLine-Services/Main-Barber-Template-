@@ -11,6 +11,7 @@ import { prisma } from './prisma'
 import { appConfig } from './app-config'
 import { rateLimit, isRateLimited, RATE_LIMITS, getClientIP } from './rate-limit'
 import { DEAD_CLAIM, PWD_CLAIM, isSessionInvalidated } from './session-security'
+import { consumeRecoveryCode, verifyEnrolledTotp } from './two-factor-enrollment'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,6 +20,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        // Optional second factor. Only consulted when the account has 2FA on.
+        twoFactorCode: { label: 'Authentication code', type: 'text' },
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
@@ -75,6 +78,22 @@ export const authOptions: NextAuthOptions = {
             await rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
             await rateLimit(accountKey, RATE_LIMITS.AUTH)
             return null
+          }
+
+          // Two-factor gate. Password alone is not enough once enrolment is
+          // confirmed. A missing or wrong code returns null — the same shape
+          // as a wrong password — so the response cannot be used to probe
+          // whether an account exists or is protected.
+          if (user.twoFactorEnabled) {
+            const code = (credentials.twoFactorCode || '').trim()
+            if (!code) return null
+            const twoFactorOk = /^\d{6}$/.test(code)
+              ? await verifyEnrolledTotp(user.id, code)
+              : await consumeRecoveryCode(user.id, code)
+            if (!twoFactorOk) {
+              await rateLimit(`2fa-fail:${user.id}`, { windowMs: 60_000, maxRequests: 6 })
+              return null
+            }
           }
 
           return {

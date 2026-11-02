@@ -38,6 +38,9 @@ export default function LoginForm({
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  // Second sign-in step for accounts protected with two-factor authentication.
+  const [needsCode, setNeedsCode] = useState(false)
+  const [code, setCode] = useState('')
 
   const ownerOnboardingOpen = ownerRegistrationMode === 'onboarding' && ownerRegistrationOpen
   // Server-driven guard: the owner form can only ever render while the server
@@ -115,6 +118,7 @@ export default function LoginForm({
         const result = await signIn('credentials', {
           email,
           password,
+          ...(code.trim() ? { twoFactorCode: code.trim() } : {}),
           redirect: false,
           callbackUrl: '/auth/redirect',
         })
@@ -123,7 +127,23 @@ export default function LoginForm({
           if (result.error === 'Configuration') {
             setError('Server configuration error. The database may not be connected. Please contact the site administrator.')
           } else {
-            setError('Invalid email or password. Please try again.')
+            // Ask whether this account needs a second step. The endpoint only
+            // answers for a correct password, so a wrong password still looks
+            // exactly like a wrong password.
+            const check = await fetch('/api/auth/2fa/required', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+            if (check?.required) {
+              setNeedsCode(true)
+              setCode('')
+              setError(code.trim()
+                ? 'That code did not match. Try the next code from your app, or use a recovery code.'
+                : 'Enter the 6-digit code from your authenticator app to finish signing in.')
+            } else {
+              setError('Invalid email or password. Please try again.')
+            }
           }
           setLoading(false)
         } else if (result?.ok) {
@@ -322,6 +342,29 @@ export default function LoginForm({
                   className="pl-10 h-11 bg-background border-input text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-ring/30"
                 />
               </div>
+              {needsCode && (
+                <div className="space-y-2">
+                  <Label htmlFor="twoFactorCode" className="eyebrow">
+                    Authentication code
+                  </Label>
+                  <Input
+                    id="twoFactorCode"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    placeholder="123456"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    aria-describedby="two-factor-help"
+                    autoFocus
+                    className="h-11 bg-background border-input text-foreground tracking-[0.3em] placeholder:tracking-normal placeholder:text-muted-foreground/60 focus-visible:ring-ring/30"
+                  />
+                  <p id="two-factor-help" className="text-xs text-muted-foreground">
+                    Open your authenticator app and type the 6 digits it shows. Lost your phone? Enter one of the
+                    recovery codes you saved when you turned two-factor on.
+                  </p>
+                </div>
+              )}
               {effectiveMode !== 'login' && (
                 <p id="password-requirements" className="text-xs text-muted-foreground">
                   At least 10 characters with an uppercase letter, a lowercase letter, and a number.

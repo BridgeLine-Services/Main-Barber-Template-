@@ -1,10 +1,15 @@
 // Two-factor enrolment API tests (requires a live server on :3000).
+//
+// Requires the SAME NEXTAUTH_SECRET as the server: the fixture secret is
+// encrypted with the derived key, so a mismatch would make every code look
+// wrong. CI supplies it in the job env.
 // Covers: status, enrolment start, confirmation gating, recovery codes,
 // disable-requires-proof, and role gating.
 
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
-import { generateTOTPCode } from '../src/lib/security'
+import { generateTOTPCode, generateTOTPSecret, generateBackupCodes, hashBackupCode } from '../src/lib/security'
+import { encryptTwoFactorSecret } from '../src/lib/two-factor-enrollment'
 
 const BASE = 'http://localhost:3000'
 let passed = 0
@@ -14,14 +19,14 @@ function assert(condition: boolean, message: string) {
   else { console.error(`  FAIL ${message}`); failed++ }
 }
 
-async function login(email: string, password: string) {
+async function login(email: string, password: string, twoFactorCode?: string) {
   const csrfRes = await fetch(`${BASE}/api/auth/csrf`)
   const { csrfToken } = await csrfRes.json()
   const cookie = csrfRes.headers.get('set-cookie') || ''
   const res = await fetch(`${BASE}/api/auth/callback/credentials`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', cookie },
-    body: new URLSearchParams({ csrfToken, email, password, json: 'true' }),
+    body: new URLSearchParams({ csrfToken, email, password, ...(twoFactorCode ? { twoFactorCode } : {}), json: 'true' }),
     redirect: 'manual',
   })
   const token = /next-auth\.session-token=([^;]+)/.exec(res.headers.get('set-cookie') || '')?.[1]
@@ -133,6 +138,62 @@ async function main() {
   // ── cleanup ────────────────────────────────────────────────────────────
   await prisma.user.deleteMany({ where: { businessId: business.id } })
   await prisma.business.delete({ where: { id: business.id } })
+
+  // ── sign-in gating ────────────────────────────────────────────────────
+  const gateEmail = `twf-gate-${stamp}@test.local`
+  const gatePassword = 'TwoFactor!Passw0rd'
+  const gateSecret = generateTOTPSecret()
+  const gateCodes = generateBackupCodes()
+  // The main fixture is cleaned up earlier in this run, so the gating fixture
+  // gets its own shop.
+  const gateBusiness = await prisma.business.create({
+    data: {
+      name: 'Gate Shop', slug: `twf-gate-${stamp}`, timezone: 'America/Los_Angeles',
+      bookingPolicy: '24h notice', cancellationPolicy: 'Free up to 24h before',
+      onboardingCompleted: true,
+    },
+  })
+  const gateUser = await prisma.user.create({
+    data: {
+      email: gateEmail, name: 'Gate Owner', role: 'OWNER', businessId: gateBusiness.id,
+      passwordHash: await bcrypt.hash(gatePassword, 10),
+      twoFactorEnabled: true, twoFactorEnabledAt: new Date(),
+      twoFactorSecretEnc: encryptTwoFactorSecret(gateSecret),
+      twoFactorRecoveryCodes: { create: gateCodes.map((c) => ({ codeHash: hashBackupCode(c) })) },
+    },
+  })
+
+  assert((await login(gateEmail, gatePassword)) === '', 'password alone does NOT sign in a protected account')
+  assert((await login(gateEmail, gatePassword, '000000')) === '', 'a wrong code does not sign in')
+
+  const withCode = await login(gateEmail, gatePassword, generateTOTPCode(gateSecret))
+  assert(Boolean(withCode), 'password plus a live code signs in')
+
+  // Recovery code path: one login attempt (the app allows 10 sign-in attempts
+  // per minute per IP, so this suite deliberately stays well under that).
+  const freshCodes = await prisma.twoFactorRecoveryCode.findMany({ where: { userId: gateUser.id, usedAt: null } })
+  assert(freshCodes.length === gateCodes.length, 'gating fixture starts with all recovery codes unused')
+  const recoveryLogin = await login(gateEmail, gatePassword, gateCodes[0])
+  assert(Boolean(recoveryLogin), 'a recovery code signs in')
+  const usedAfter = await prisma.twoFactorRecoveryCode.count({ where: { userId: gateUser.id, usedAt: { not: null } } })
+  assert(usedAfter === 1, 'the recovery code was consumed exactly once')
+
+  // ── the "does this need a code?" question reveals nothing ─────────────
+  const ask = (body: Record<string, unknown>) => fetch(`${BASE}/api/auth/2fa/required`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  })
+  assert((await ask({ email: gateEmail, password: 'wrong-password' })).status === 401, 'wrong password: no answer either way')
+  assert((await ask({ email: 'nobody@test.local', password: 'whatever' })).status === 401, 'unknown account: same 401')
+  const askOk = await ask({ email: gateEmail, password: gatePassword })
+  const askBody = await askOk.json()
+  assert(askOk.status === 200 && askBody.required === true, 'correct password + protected account reports required=true')
+  const plainEmail = `twf-plain-${stamp}@test.local`
+  await prisma.user.create({
+    data: { email: plainEmail, name: 'Plain Owner', role: 'OWNER', passwordHash: await bcrypt.hash(gatePassword, 10), businessId: gateBusiness.id },
+  })
+  const askPlain = await ask({ email: plainEmail, password: gatePassword })
+  const plainBody = await askPlain.json()
+  assert(askPlain.status === 200 && plainBody.required === false, 'correct password + unprotected account reports required=false')
 
   console.log(`\nTwo-factor API tests: ${passed} passed, ${failed} failed`)
   await prisma.$disconnect()
