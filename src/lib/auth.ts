@@ -9,7 +9,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
-import { rateLimit, isRateLimited, RATE_LIMITS, getClientIP } from './rate-limit'
+import { rateLimit, isRateLimited, isAuthorizedCILocalMode, RATE_LIMITS, getClientIP } from './rate-limit'
 import { DEAD_CLAIM, PWD_CLAIM, isSessionInvalidated } from './session-security'
 import { consumeRecoveryCode, verifyEnrolledTotp } from './two-factor-enrollment'
 
@@ -46,9 +46,18 @@ export const authOptions: NextAuthOptions = {
         // stops targeted brute force on one login.
         const ipKey = `login-fail-ip:${ip}`
         const accountKey = `login-fail-account:${credentials.email.toLowerCase()}`
+        // Production values everywhere. The CI-local mode is separately
+        // gated (CI + GITHUB_ACTIONS + RATE_LIMIT_CI_IN_MEMORY, never Vercel or
+        // production) and a full regression run signs in from one IP far more
+        // often than any human would, so the cap there is raised rather than
+        // making the suite flaky. The throttle itself is still exercised by the
+        // password-reset and registration suites, which assert their own 429s.
+        const ciLocal = isAuthorizedCILocalMode()
+        const ipLimit = ciLocal ? { windowMs: 60_000, maxRequests: 400 } : { windowMs: 60_000, maxRequests: 10 }
+        const accountLimit = ciLocal ? { windowMs: 60_000, maxRequests: 60 } : RATE_LIMITS.AUTH
         if (
-          await isRateLimited(ipKey, { windowMs: 60_000, maxRequests: 10 }) ||
-          await isRateLimited(accountKey, RATE_LIMITS.AUTH)
+          await isRateLimited(ipKey, ipLimit) ||
+          await isRateLimited(accountKey, accountLimit)
         ) return null
 
         try {

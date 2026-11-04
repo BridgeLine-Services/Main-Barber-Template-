@@ -183,6 +183,12 @@ jobs:
           npx tsx tests/website-publish.test.ts
           npx tsx tests/two-factor-enrollment.test.ts
           npx tsx tests/two-factor-api.test.ts
+      # The full chain, not just the suites above: every database-backed
+      # regression test runs here, so a green build means all of them pass. The
+      # sign-in throttle is widened in CI-local mode only — otherwise a run that
+      # signs in dozens of times from one IP would trip the production cap.
+      - name: Full database regression chain (test:all)
+        run: npm run test:all
       - name: Upload Playwright diagnostics
         if: always()
         uses: actions/upload-artifact@v4
