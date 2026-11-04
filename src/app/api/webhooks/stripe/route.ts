@@ -184,7 +184,12 @@ export async function POST(request: Request) {
           const { markOrderPaymentFailed } = await import('@/lib/ecommerce')
           await markOrderPaymentFailed(payment.id)
         } catch (err) {
+          // Do not swallow: the order would stay PENDING while its payment is
+          // FAILED, and marking the event COMPLETED would stop Stripe from
+          // retrying. This branch re-enters safely on retry because its guard
+          // accepts a payment that is already FAILED.
           console.error('shop order failure handling failed', err)
+          throw err
         }
       }
     } else if (type === 'payment_intent.canceled' && (payment.status === 'CANCELED' || canTransition(payment.status, 'CANCELED'))) {
@@ -195,6 +200,7 @@ export async function POST(request: Request) {
           await markOrderPaymentFailed(payment.id)
         } catch (err) {
           console.error('shop order cancellation handling failed', err)
+          throw err
         }
       }
     } else if (type === 'charge.refunded') {
@@ -203,21 +209,23 @@ export async function POST(request: Request) {
       const original = refundedTotal > 0 ? payment.amount - refundedTotal >= 0.005 : false
       const target = original ? 'PARTIALLY_REFUNDED' : 'REFUNDED'
       if (canTransition(payment.status, target)) {
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: { refundedAmount: Math.round(refundedTotal * 100) / 100, status: target },
-        })
-        // Keep commission payouts in sync with dashboard-initiated refunds.
-        try {
-          const { adjustCommissionsForRefund } = await import('@/lib/commissions')
-          const { adjustGiftCardForRefund } = await import('@/lib/gift-cards')
-          await prisma.$transaction(async (tx) => {
-            await adjustCommissionsForRefund(tx, payment.businessId, payment.id)
-            await adjustGiftCardForRefund(tx, payment.businessId, payment.id)
+        // The refund and everything it touches commit together or not at all.
+        // Swallowing here was worse than it looked: once the payment row said
+        // REFUNDED, a retry would skip the adjustment entirely (the transition
+        // guard is false), so commissions could stay paid on refunded money
+        // forever. Rolling back lets Stripe's retry redo the whole thing.
+        const { adjustCommissionsForRefund } = await import('@/lib/commissions')
+        const { adjustGiftCardForRefund } = await import('@/lib/gift-cards')
+        await prisma.$transaction(async (tx) => {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { refundedAmount: Math.round(refundedTotal * 100) / 100, status: target },
           })
-        } catch (err) {
-          console.error('commission refund adjustment failed', err)
-        }
+          // Keep commission payouts and gift-card balances in sync with
+          // dashboard-initiated refunds.
+          await adjustCommissionsForRefund(tx, payment.businessId, payment.id)
+          await adjustGiftCardForRefund(tx, payment.businessId, payment.id)
+        })
       } else if (payment.status !== 'SUCCEEDED') {
         console.warn(`stripe webhook: illegal refund transition ${payment.status} -> ${target}: ${transitionError(payment.status, target)}`)
       }
