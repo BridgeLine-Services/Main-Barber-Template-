@@ -183,7 +183,8 @@ SMTP credentials, the Vercel deployment, migrations, domain connection, and the
 
 1. Empty/loading/error state sweep across remaining dashboard tabs (targeted work
    done; no repo-wide audit).
-2. Device-level session listing (revocation is all-or-nothing).
+2. ~~Device-level session listing~~ — done: `UserSession` registry, list + single
+   revoke, enforced in the jwt callback (`tests/session-devices` 19).
 3. CSP nonce rollout on a staging deployment.
 
 **External**

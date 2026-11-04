@@ -198,6 +198,10 @@ model User {
   // choice, without guesswork.
   sessionsValidAfter DateTime?
 
+  // Individual sign-ins, so an owner can see and end one device without
+  // signing out of everything.
+  sessions UserSession[]
+
   // ── Two-factor authentication (opt-in; OWNER enrolment) ────────────────
   // The TOTP secret is stored AES-256-GCM encrypted (see
   // src/lib/two-factor-enrollment.ts) — never as plaintext. Enrolment only
@@ -2236,4 +2240,26 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+/// One row per sign-in. The JWT carries only the row id; the row is the source
+/// of truth, so revoking a device takes effect on its next request.
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Coarse, server-derived label ("Chrome on macOS"). The raw user agent is
+  /// never stored or shown: it is long, spoofable and not needed to recognise
+  /// your own phone.
+  device     String
+  /// Last address seen. Used only to help the owner recognise a device.
+  ipAddress  String?
+
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
+  @@index([revokedAt])
 }

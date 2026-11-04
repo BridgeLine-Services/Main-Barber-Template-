@@ -117,3 +117,28 @@ lock an owner out of their own shop is not a security improvement. The decision
 logic is covered by `tests/security-policy.test.ts`, which asserts that the
 page where enrolment happens, the password-change flow and every API path stay
 reachable under the policy.
+
+## Seeing and ending individual devices
+
+The Security tab lists the devices currently signed in to the account
+(`GET /api/dashboard/security/sessions`). Each sign-in creates one `UserSession`
+row; the JWT carries only its id, and the row is checked on every request, so
+"Sign out" on a single device takes effect on that device's next request rather
+than when its token expires.
+
+- Labels are coarse and server-derived ("Chrome on macOS", "Safari on iPhone").
+  The raw user agent is never stored or displayed, and addresses are masked to
+  the first three octets.
+- Ending one device needs no password: the only thing this control can do is sign
+  things out, which is the protective direction, and it is audited as
+  `SESSIONS_REVOKED` with `scope: single-device`.
+- Another account's session cannot be ended: the revoke query is scoped to
+  `userId`, so a borrowed id simply does not match and returns 404.
+- Sessions minted before this feature have no id and are left alone, so a
+  deployment does not sign everyone out.
+- "Sign out everywhere" (the cutoff below) remains for "I do not trust this
+  account at all".
+
+Verified: `tests/session-devices.test.ts` (19 assertions) — two live devices, the
+current one marked, single revoke killing only that device, the list updating,
+and a cross-account revoke refused.

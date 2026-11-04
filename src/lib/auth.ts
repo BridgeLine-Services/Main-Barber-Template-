@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 // ============================================================================
 // AUTH — NextAuth v4 with Credentials provider (production).
 // Uses Prisma to validate email/password against the User table.
@@ -11,6 +12,7 @@ import { prisma } from './prisma'
 import { appConfig } from './app-config'
 import { rateLimit, isRateLimited, isAuthorizedCILocalMode, RATE_LIMITS, getClientIP } from './rate-limit'
 import { DEAD_CLAIM, PWD_CLAIM, SESSION_START_CLAIM, isSessionInvalidated, isSessionRevoked } from './session-security'
+import { SID_CLAIM, createSession, isSessionAllowed, touchSession } from './session-registry'
 import { consumeRecoveryCode, verifyEnrolledTotp } from './two-factor-enrollment'
 
 export const authOptions: NextAuthOptions = {
@@ -144,6 +146,30 @@ export const authOptions: NextAuthOptions = {
         // When this session signed in. "Sign out of all devices" kills every
         // session whose start is older than the account's cutoff.
         ;(token as Record<string, unknown>)[SESSION_START_CLAIM] = Date.now()
+        // Register this device so the owner can see and end it individually.
+        // Failure here must not block a legitimate sign-in: the account-wide
+        // controls (password change, sign out everywhere) still protect it.
+        if (user.id) {
+          try {
+            // The jwt callback has no request argument, so the headers come
+            // from the current request scope. Absent (edge cases), the device is
+            // simply recorded as "Unknown device" — it is a label, not a
+            // security decision.
+            let userAgent: string | null = null
+            let ip: string | null = null
+            try {
+              const h = await headers()
+              userAgent = h.get('user-agent')
+              ip = h.get('x-real-ip') ?? h.get('x-forwarded-for')
+            } catch {
+              // No request scope; leave the labels empty.
+            }
+            const sessionId = await createSession({ userId: user.id, userAgent, ip })
+            ;(token as Record<string, unknown>)[SID_CLAIM] = sessionId
+          } catch (error) {
+            console.error('[auth] could not register session', error instanceof Error ? error.message : 'unknown')
+          }
+        }
       }
       // Session invalidation: if the account's password changed AFTER this
       // session was issued, the session is dead (e.g. an attacker holding a
@@ -171,6 +197,16 @@ export const authOptions: NextAuthOptions = {
           )
         ) {
           return { [DEAD_CLAIM]: true } as typeof token
+        }
+        // One device revoked from the browser (not a signed-out-everywhere
+        // cutoff). Same guarantee: enforced here, so the device dies on its next
+        // request rather than whenever its token happens to expire.
+        const sessionId = (token as Record<string, unknown>)[SID_CLAIM] as string | undefined
+        if (sessionId) {
+          if (!(await isSessionAllowed(sessionId, token.sub))) {
+            return { [DEAD_CLAIM]: true } as typeof token
+          }
+          void touchSession(sessionId)
         }
       }
       // Self-heal stale claims: an owner who signed in BEFORE creating their

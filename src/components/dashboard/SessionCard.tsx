@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,11 +15,66 @@ import { AlertCircle, CheckCircle2, Loader2, LogOut } from 'lucide-react'
 // session at once, explained without jargon.
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface DeviceRow {
+  id: string
+  device: string
+  ipAddress: string | null
+  lastSeenAt: string
+  current: boolean
+}
+
+function formatWhen(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const minutes = Math.round((Date.now() - then) / 60000)
+  if (minutes < 2) return 'active now'
+  if (minutes < 60) return `${minutes} minutes ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.round(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
+}
+
 export function SessionCard() {
+  const [devices, setDevices] = useState<DeviceRow[] | null>(null)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+
+  async function loadDevices() {
+    try {
+      const res = await fetch('/api/dashboard/security/sessions', { cache: 'no-store' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data?.sessions)) setDevices(data.sessions)
+    } catch {
+      // The list is a convenience; the controls below still work without it.
+    }
+  }
+
+  useEffect(() => { void loadDevices() }, [])
+
+  async function revokeDevice(id: string) {
+    setRevokingId(id)
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch(`/api/dashboard/security/sessions/${id}/revoke`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(typeof data?.error === 'string' ? data.error : 'That device could not be signed out.')
+        return
+      }
+      setNotice(typeof data?.message === 'string' ? data.message : 'That device has been signed out.')
+      await loadDevices()
+    } catch {
+      setError("We couldn't reach the server. Check your connection and try again.")
+    } finally {
+      setRevokingId(null)
+    }
+  }
 
   async function revoke() {
     setBusy(true)
@@ -77,6 +132,45 @@ export function SessionCard() {
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {notice}
           </p>
         )}
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Where you are signed in</p>
+          {devices === null ? (
+            <p className="text-sm text-muted-foreground">Checking your devices…</p>
+          ) : devices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No other devices are signed in.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-md border border-border">
+              {devices.map((device) => (
+                <li key={device.id} className="flex items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {device.device}
+                      {device.current ? (
+                        <span className="ml-2 rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">This device</span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {[device.ipAddress, formatWhen(device.lastSeenAt)].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  {device.current ? null : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => revokeDevice(device.id)}
+                      disabled={revokingId === device.id}
+                    >
+                      {revokingId === device.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign out'}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="revoke-password">Your password</Label>
