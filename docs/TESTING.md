@@ -63,7 +63,15 @@ notification-resilience, owner-registration-journey (concurrent
 first-owner race, bcrypt hashing, login → onboarding gate, post-owner
 customer-only registration; needs `RATE_LIMIT_REGISTER_MAX=25`),
 ownership-transfer, platform-owner, pwa,
-website-publish, rls-enforcement.
+website-publish, rls-enforcement, session-revocation (sign out of all devices:
+two live sessions, wrong password refused, both killed, audit row, fresh
+sign-in valid), twilio-consent (inbound STOP/START signed webhooks; START
+resumes appointment texts only and never grants marketing consent),
+email-optout (unsubscribe link works, preview/`GET` changes nothing, tampered
+and expired links refused, cross-business payload blocked, unsubscribed
+customers skipped, postal address and unsubscribe link present in every
+marketing email, sending blocked without a postal address), and
+dashboard-smoke (see the E2E list below).
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
 
@@ -80,6 +88,9 @@ there; it is validated against a properly role-split database instead
 - `public-booking.spec.ts` — guest visitor completes the full booking
   wizard (service → barber → date → time → details → confirm →
   confirmation page).
+- `dashboard-smoke.spec.ts` — every dashboard page renders for an owner:
+  no blank screen, no exception text, no browser errors across 16 routes
+  (needs the same owner credentials as the other specs).
 - `staff-login.spec.ts` — staff login reaches the dashboard;
   `/dashboard` without a session redirects to login.
 - `security.spec.ts` — browser-level attack attempts: unauthenticated

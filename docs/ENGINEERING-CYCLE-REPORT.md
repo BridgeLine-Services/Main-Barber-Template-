@@ -250,3 +250,41 @@ repository keeps every suite.
 **Verified on a real clone:** after `--strip-tests`, no occurrence of the QA
 password anywhere in the copy, no `tests/`, `e2e/` or `.github/` directories, no
 remaining script referencing a removed path, and `package.json` still parses.
+
+---
+
+## 8. Email opt-out is now proven, not assumed
+
+**Files:** `tests/email-optout.test.ts`, `docs/TESTING.md`
+
+The unsubscribe plumbing was already built (signed 180-day tokens, `GET`
+previews and only `POST` changes, RFC 8058 one-click support, fail-closed
+signing key, postal address required before a campaign can send). What it had was
+**no test coverage at all** — `tests/marketing.test.ts` never mentioned
+unsubscribe or the postal address. For a feature whose failure mode is a
+complaint to a regulator, "it looks right" is not a standard of evidence.
+
+19 assertions now hold the chain down:
+
+- a valid link shows a confirmation page and changes nothing (mail scanners fetch
+  every URL in a message, so a state-changing GET unsubscribes people who never
+  clicked)
+- clicking it sets the opt-out; clicking twice is harmless
+- a tampered signature and an expired token are both refused with nothing changed
+- a correctly signed token whose payload pairs our business with another shop's
+  customer touches nothing, because the update is scoped to both ids
+- a customer who opted out, or just unsubscribed, is skipped when a campaign is
+  queued, while a still-subscribed customer in the same audience is queued once
+- every queued marketing email carries the unsubscribe link and the full postal
+  address
+- a business with no postal address is refused outright and queues nothing
+- a booking confirmation is still queued for an opted-out customer, which is what
+  the unsubscribe page promises them
+
+One thing worth recording for whoever reads the schema next: the comment on
+`Customer.emailOptOut` says "respected by ALL email sends", but the only senders
+that honour it are marketing mail (`src/lib/marketing.ts`,
+`src/lib/notification-worker.ts` for `MARKETING_CAMPAIGN`) and review requests
+(`src/lib/review-requests.ts`). Appointment email is deliberately unaffected. I
+left the schema comment alone rather than touch the migration baseline for a
+comment, but the contract is documented here and in the new suite.
