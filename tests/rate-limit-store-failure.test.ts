@@ -59,22 +59,29 @@ async function main() {
   assert(health.state === 'unreachable', 'the readiness probe reports an outage (distinct from missing config)')
 
   console.log('--- recovery (acceptance 5) ---')
-  // Recovery is simulated by removing the broken store: the limiter must not
-  // stay stuck in a denied state, and the next calls must be allowed again.
+  // Real recovery means the SAME store starts answering again, not that it is
+  // removed: in a production-mode process a missing store is "not configured",
+  // which is correctly denied. The probe is what proves recovery.
+  const healedStore = { ping: async () => 'PONG' }
+  setRateLimitStoreForTest(healedStore)
+  const healthAfter = await checkRateLimitStoreHealth()
+  assert(healthAfter.state === 'ok', 'the readiness probe reports healthy once the store answers again')
+  assert(healthAfter.state !== 'unreachable', 'the outage state is not sticky')
+
+  // Request level: with no shared store and no production mode the limiter uses
+  // the local window and allows again. This proves a denial is derived per call
+  // rather than cached from the earlier outage.
+  const savedAppMode = env.APP_MODE
+  delete env.APP_MODE
   setRateLimitStoreForTest(null)
   const afterFirst = await rateLimit('203.0.113.5:register', config)
   const afterSecond = await rateLimit('203.0.113.5:register', config)
-  assert(afterFirst.allowed === true, 'requests are allowed again once the store is usable')
+  assert(afterFirst.allowed === true, 'requests are served again instead of replaying the earlier denial')
   assert(afterFirst.reason === 'ok', 'the reason returns to ok')
   assert(afterSecond.allowed === true, 'the denial was not sticky across calls')
   assert(buildRateLimitDenial(afterFirst) === null, 'no denial is produced for an allowed request')
-
-  const healthAfter = await checkRateLimitStoreHealth()
-  // With the substitute removed there are no credentials in this environment,
-  // so the correct report is 'not_configured'. What matters is that it no longer
-  // claims an outage — the failure did not stick to the process.
-  assert(healthAfter.state === 'not_configured', 'the readiness probe stops reporting an outage after recovery')
-  assert(healthAfter.state !== 'unreachable', 'the outage state is not sticky')
+  if (savedAppMode === undefined) delete env.APP_MODE
+  else env.APP_MODE = savedAppMode
 
   console.log('--- the seam itself is inert in production ---')
   env.NODE_ENV = 'production'
