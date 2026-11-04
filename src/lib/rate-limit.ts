@@ -37,7 +37,19 @@ export const RATE_LIMITS = {
 } as const
 
 const hasSharedStore = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
-const redis = hasSharedStore ? Redis.fromEnv() : null
+let redis = hasSharedStore ? Redis.fromEnv() : null
+
+/**
+ * Test seam: substitutes the shared store so a suite can simulate a provider
+ * outage without real credentials. Refuses to exist in production, and only the
+ * process it runs in is affected.
+ */
+export function setRateLimitStoreForTest(client: unknown) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('setRateLimitStoreForTest is not available in production')
+  }
+  redis = (client as typeof redis) ?? null
+}
 const localWindows = new Map<string, { count: number; resetAt: number }>()
 const MAX_LOCAL_KEYS = 10_000
 
