@@ -4,6 +4,7 @@ import {
   type FeatureName,
 } from '@/lib/env-check'
 import { verifyFactoryReadiness, type FactoryReadinessCheck } from '@/lib/production-readiness'
+import { checkRateLimitStoreHealth } from '@/lib/rate-limit'
 
 export type LaunchStatus = 'PASS' | 'BLOCKED' | 'WARNING' | 'DISABLED' | 'MANUAL' | 'NOT_STARTED'
 export type LaunchStage =
@@ -165,8 +166,32 @@ function readinessChecks(readiness: Awaited<ReturnType<typeof verifyFactoryReadi
 
 export async function verifyFactoryLaunch(businessId: string): Promise<FactoryLaunchReport> {
   const readiness = await verifyFactoryReadiness(businessId)
+  const storeHealth = await checkRateLimitStoreHealth()
   const checks = [
     ...buildDeploymentPreflight(),
+    // Sign-in, registration and every public endpoint depend on the shared
+    // limiter. Without it the deployment fails closed and nobody can sign in, so
+    // this cannot be a warning an owner scrolls past.
+    {
+      key: 'rate-limit-store',
+      category: 'Security',
+      label: 'Sign-in protection store',
+      status: storeHealth.state === 'ok' ? 'PASS' as const : 'BLOCKED' as const,
+      required: true,
+      secret: true,
+      detail:
+        storeHealth.state === 'ok'
+          ? 'The shared rate-limit store is configured and answering.'
+          : storeHealth.state === 'not_configured'
+            ? `The shared rate-limit store is not configured (${storeHealth.missing.join(', ')}). Without it, sign-in and registration are refused for everyone.`
+            : 'The shared rate-limit store is configured but not answering. This is an outage, not a setup problem.',
+      remediation:
+        storeHealth.state === 'ok'
+          ? 'No action required.'
+          : storeHealth.state === 'not_configured'
+            ? 'Create a Redis database with Upstash, then add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to this deployment (Production and Preview) and redeploy.'
+            : 'Confirm the Redis database still exists and has not been suspended, and that the deployment can reach it. Retry once the provider is healthy.',
+    },
     ...readinessChecks(readiness),
     {
       key: 'migrations', category: 'Database', label: 'Migration status',

@@ -168,3 +168,42 @@ export async function checkRateLimit(
 export function rateLimitResponse(denial: RateLimitDenial) {
   return NextResponse.json(denial.body, { status: denial.status, headers: denial.headers })
 }
+
+// ============================================================================
+// Shared-store health
+//
+// Used by the launch-readiness system, not by request handling. It answers two
+// questions an operator needs before selling a deployment: are the credentials
+// present, and does the store actually answer? A missing variable and a rejected
+// connection are very different problems (one is a form to fill in, the other an
+// outage), so they are reported separately.
+//
+// It never spends a caller's rate-limit allowance: this is a store ping, not a
+// window increment.
+// ============================================================================
+
+export type RateLimitStoreHealth =
+  | { state: 'ok'; configured: true }
+  | { state: 'not_configured'; configured: false; missing: string[] }
+  | { state: 'unreachable'; configured: true; message: string }
+
+export async function checkRateLimitStoreHealth(): Promise<RateLimitStoreHealth> {
+  // CI runs deliberately use the in-memory limiter; there is nothing to ping.
+  if (isAuthorizedCILocalMode()) return { state: 'ok', configured: true }
+
+  const missing = ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'].filter(
+    (name) => !process.env[name]?.trim(),
+  )
+  if (!redis) return { state: 'not_configured', configured: false, missing }
+
+  try {
+    // PING is the cheapest round trip Upstash supports.
+    const reply = await redis.ping()
+    if (String(reply).toUpperCase() === 'PONG') return { state: 'ok', configured: true }
+    return { state: 'unreachable', configured: true, message: 'Store answered but not with PONG' }
+  } catch (error) {
+    // Deliberately generic: this string can reach an owner-facing screen.
+    console.error('[rate-limit] health probe failed', error instanceof Error ? error.message : 'unknown error')
+    return { state: 'unreachable', configured: true, message: 'Store did not answer' }
+  }
+}
