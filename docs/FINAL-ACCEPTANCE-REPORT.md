@@ -31,6 +31,7 @@ missing dependency. Nothing is marked done because a file exists.
 | 16 | Database migrations forward-only | **Done** | 2 new migrations this cycle (`20261102012213_owner_two_factor_enrollment`, `20261102012550_audit_two_factor_actions`); no historical migration rewritten |
 | 17 | CSP `unsafe-inline` evaluation and nonce path | **Done (shipped disabled)** | `src/lib/csp.ts` + `src/proxy.ts` nonce mode behind `CSP_NONCE_ENABLED`; `tests/csp.test.ts` 25/25; enabled-mode run showed 26 chunks loaded, 15 nonced scripts, 0 violations; default header unchanged. Enabling in production is a staging task, see `docs/CSP-EVALUATION.md` |
 | 18 | Backup verification | **Done (enforced in CI)** | The sandbox's bundled postgres ships only initdb/pg_ctl/postgres, so the check could never run here. The CI e2e job now installs `postgresql-client` and runs `npm run db:backup-verify` against the freshly seeded database, so every push proves dump + restore into a scratch database. |
+| 20 | Sign out of all devices (session revocation) | **Done** | `sessionsValidAfter` cutoff + `sat` stamp enforced in the jwt callback; `tests/session-revocation.test.ts` 21/21 (wrong password refused, both devices killed, audited, re-login works) |
 | 19 | Regression suite green | **Done (CI-enforced)** | `npm run test:ci` exit 0 across 39 suites (~1,100 assertions) in the validate job, and the e2e job now runs the complete `npm run test:all` chain (26 database suites incl. tenant isolation, payments, payroll, gift cards, memberships, queue, lifecycle, notifications) on every push |
 
 ## 2. User-experience requirements
@@ -71,7 +72,7 @@ missing dependency. Nothing is marked done because a file exists.
 
 ## 5. Counts (verified, not aspirational)
 
-- Engineering requirements complete: **19 of 19**
+- Engineering requirements complete: **20 of 20**
 - Engineering requirements outstanding: **0** (#17 ships disabled by default and is a staging configuration task; #18 now executes in CI)
 - Required regression tests failing: **0**
 - Known unresolved engineering defects: **0** in every area exercised this cycle

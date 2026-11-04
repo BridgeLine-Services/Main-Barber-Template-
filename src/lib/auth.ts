@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
 import { rateLimit, isRateLimited, isAuthorizedCILocalMode, RATE_LIMITS, getClientIP } from './rate-limit'
-import { DEAD_CLAIM, PWD_CLAIM, isSessionInvalidated } from './session-security'
+import { DEAD_CLAIM, PWD_CLAIM, SESSION_START_CLAIM, isSessionInvalidated, isSessionRevoked } from './session-security'
 import { consumeRecoveryCode, verifyEnrolledTotp } from './two-factor-enrollment'
 
 export const authOptions: NextAuthOptions = {
@@ -141,16 +141,35 @@ export const authOptions: NextAuthOptions = {
         // before this mechanism have no stamp and are grandfathered.
         ;(token as Record<string, unknown>)[PWD_CLAIM] =
           (user as { passwordChangedAt?: Date | null }).passwordChangedAt?.getTime() ?? null
+        // When this session signed in. "Sign out of all devices" kills every
+        // session whose start is older than the account's cutoff.
+        ;(token as Record<string, unknown>)[SESSION_START_CLAIM] = Date.now()
       }
       // Session invalidation: if the account's password changed AFTER this
       // session was issued, the session is dead (e.g. an attacker holding a
       // pre-change cookie after the owner rotated the password).
-      if (token.sub && typeof (token as Record<string, unknown>)[PWD_CLAIM] === 'number') {
+      if (token.sub) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { passwordChangedAt: true },
+          select: { passwordChangedAt: true, sessionsValidAfter: true },
         })
-        if (!fresh || isSessionInvalidated(fresh.passwordChangedAt, (token as Record<string, unknown>)[PWD_CLAIM] as number)) {
+        // Deleted account: no session may outlive the row.
+        if (!fresh) return { [DEAD_CLAIM]: true } as typeof token
+        // Password changed after this session was minted.
+        if (isSessionInvalidated(fresh.passwordChangedAt, (token as Record<string, unknown>)[PWD_CLAIM] as number)) {
+          return { [DEAD_CLAIM]: true } as typeof token
+        }
+        // Explicit revocation ("sign out of all devices"). Deliberately NOT
+        // nested inside the password-stamp check: an account that never
+        // changed its password has a null stamp, and that must not disable
+        // revocation. Sessions minted before the cutoff die; the one that
+        // pressed the button survives because its stamp is at or after it.
+        if (
+          isSessionRevoked(
+            fresh.sessionsValidAfter,
+            (token as Record<string, unknown>)[SESSION_START_CLAIM] as number | undefined,
+          )
+        ) {
           return { [DEAD_CLAIM]: true } as typeof token
         }
       }

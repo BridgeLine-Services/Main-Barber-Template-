@@ -191,6 +191,13 @@ model User {
   // account, audit trail, or barber links (soft-deactivate for staff)
   isActive                   Boolean    @default(true)
 
+  // Sessions issued BEFORE this instant are dead. Set by "sign out of all
+  // devices"; null means no revocation has ever been requested. Compared
+  // against the session's own issue time (JWT iat), so only older sessions die
+  // and the device performing the revocation can keep working or not, by
+  // choice, without guesswork.
+  sessionsValidAfter DateTime?
+
   // ── Two-factor authentication (opt-in; OWNER enrolment) ────────────────
   // The TOTP secret is stored AES-256-GCM encrypted (see
   // src/lib/two-factor-enrollment.ts) — never as plaintext. Enrolment only
@@ -854,6 +861,7 @@ enum AuditAction {
   TWO_FACTOR_ENABLED
   TWO_FACTOR_DISABLED
   TWO_FACTOR_FAILED
+  SESSIONS_REVOKED
   USER_ROLE_CHANGED
   USER_BARBER_LINK_CHANGED
   USER_DEACTIVATED

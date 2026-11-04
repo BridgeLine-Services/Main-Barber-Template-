@@ -79,3 +79,27 @@ npx tsx tests/two-factor-api.test.ts        # API + login gate (32, needs a serv
 
 The API suite needs the same `NEXTAUTH_SECRET` as the server, since the fixture
 secret is encrypted with the derived key.
+
+## Signing out of all devices
+
+`POST /api/dashboard/security/sessions/revoke` (button: Security → Signed-in
+devices → "Sign out everywhere") sets `User.sessionsValidAfter`. The jwt callback
+compares that cutoff against each session's own sign-in stamp (`sat` claim) and
+marks older sessions dead, so revocation is enforced on the next request, not by
+hiding UI.
+
+- Requires the account password, so a stolen-but-unattended session cannot
+  repeatedly knock the real owner out.
+- Signs out **every** device including the one pressing the button, and the UI
+  redirects to sign-in. Keeping "this device" alive would mean deciding which
+  session is the trusted one from inside a possibly compromised session; the
+  obvious shortcut (cutoff = a moment ago) leaves a session signed in seconds
+  earlier untouched.
+- Audited as `SESSIONS_REVOKED`.
+- A sign-in performed after the call works normally (strictly-before comparison,
+  cutoff = now).
+- Sessions minted before this feature have no stamp and are left alone.
+
+Verified: `tests/session-revocation.test.ts` (21 assertions) covers two live
+sessions, wrong-password refusal, both sessions dying, the audit entry, and a
+fresh sign-in afterwards.

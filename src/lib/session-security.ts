@@ -19,6 +19,8 @@
 // ============================================================================
 
 export const PWD_CLAIM = 'pwd'
+/** Millisecond timestamp of when this session signed in (revocation cutoff base). */
+export const SESSION_START_CLAIM = 'sat'
 export const DEAD_CLAIM = 'dead'
 
 /**
@@ -43,4 +45,25 @@ export function isSessionInvalidated(
   // Strictly newer: equal timestamps mean the session was minted after the
   // change (e.g. signed in right after changing the password).
   return changedMs > pwdStamp
+}
+
+/**
+ * True when a session was issued before the account's revocation cutoff, i.e.
+ * the owner pressed "sign out of all devices" after this session was minted.
+ *
+ * `issuedAtMs` is the JWT's own iat. A session issued in the same millisecond
+ * as the cutoff survives (it is the one that performed the revocation).
+ */
+export function isSessionRevoked(
+  sessionsValidAfter: Date | string | null | undefined,
+  issuedAtMs: number | null | undefined,
+): boolean {
+  if (typeof issuedAtMs !== 'number' || Number.isNaN(issuedAtMs)) return false
+  if (!sessionsValidAfter) return false
+  const cutoffMs =
+    sessionsValidAfter instanceof Date
+      ? sessionsValidAfter.getTime()
+      : new Date(sessionsValidAfter).getTime()
+  if (Number.isNaN(cutoffMs)) return false
+  return issuedAtMs < cutoffMs
 }

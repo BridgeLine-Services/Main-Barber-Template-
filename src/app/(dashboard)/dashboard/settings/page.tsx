@@ -21,6 +21,7 @@ import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
 import { TwoFactorCard } from '@/components/dashboard/TwoFactorCard'
+import { SessionCard } from '@/components/dashboard/SessionCard'
 import { SectionDisclosure } from '@/components/dashboard/SectionDisclosure'
 import { AppearanceTab } from '@/components/dashboard/AppearanceTab'
 import { LayoutBehaviorTab } from '@/components/dashboard/LayoutBehaviorTab'
@@ -1075,6 +1076,7 @@ export default function SettingsPage() {
       {activeTab === 'security' && (
         <div className="space-y-6">
           <TwoFactorCard />
+          <SessionCard />
         </div>
       )}
 
