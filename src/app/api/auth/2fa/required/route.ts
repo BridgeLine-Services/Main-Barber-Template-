@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
 
 // ============================================================================
@@ -23,7 +23,7 @@ import { handleApiError } from '@/lib/api-errors'
 export async function POST(req: NextRequest) {
   try {
     const limited = await checkRateLimit(req, 'auth-2fa-required', RATE_LIMITS.AUTH)
-    if (limited) return NextResponse.json(limited.body, { status: limited.status })
+    if (limited) return rateLimitResponse(limited)
 
     const body = await req.json().catch(() => ({}))
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''

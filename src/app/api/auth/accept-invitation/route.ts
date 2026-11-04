@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 
 // ============================================================================
@@ -53,7 +53,7 @@ const acceptPostLimit = Number(process.env.RATE_LIMIT_ACCEPT_POST_MAX ?? 5) || 5
 
 export async function GET(req: NextRequest) {
   const limited = await checkRateLimit(req, 'accept-invitation', { windowMs: 60_000, maxRequests: acceptGetLimit })
-  if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
+  if (limited) return rateLimitResponse(limited)
 
   const token = req.nextUrl.searchParams.get('token') || ''
   if (token.length < 32) return NextResponse.json({ valid: false, reason: 'invalid' }, { status: 400 })
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const limited = await checkRateLimit(req, 'accept-invitation-post', { windowMs: 60_000, maxRequests: acceptPostLimit })
-  if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
+  if (limited) return rateLimitResponse(limited)
 
   try {
     const body = await req.json().catch(() => null)

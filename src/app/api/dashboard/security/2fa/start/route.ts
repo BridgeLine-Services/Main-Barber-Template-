@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin } from '@/lib/auth-helpers'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { beginEnrollment } from '@/lib/two-factor-enrollment'
 import { handleApiError } from '@/lib/api-errors'
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     if (!auth.success) return auth.response
 
     const limited = await checkRateLimit(req, '2fa-start', { windowMs: 60_000, maxRequests: 10 })
-    if (limited) return NextResponse.json(limited.body, { status: limited.status })
+    if (limited) return rateLimitResponse(limited)
 
     const existing = await prisma.user.findUnique({
       where: { id: auth.user.id },

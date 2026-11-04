@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { hashValue, PORTAL_SESSION_COOKIE } from '@/lib/portal-security'
 import { logAudit } from '@/lib/auth-helpers'
@@ -27,7 +27,7 @@ import { handleApiError } from '@/lib/api-errors'
 export async function POST(req: NextRequest) {
   try {
     const limited = await checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
-    if (limited) return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 })
+    if (limited) return rateLimitResponse(limited)
 
     const business = await resolveBusiness()
     if (!business) return NextResponse.json({ error: 'Not found' }, { status: 404 })

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin, logAudit } from '@/lib/auth-helpers'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
 
 // ============================================================================
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!auth.success) return auth.response
 
     const limited = await checkRateLimit(req, 'sessions-revoke', { windowMs: 60_000, maxRequests: 5 })
-    if (limited) return NextResponse.json(limited.body, { status: limited.status })
+    if (limited) return rateLimitResponse(limited)
 
     const body = await req.json().catch(() => ({}))
     const password = typeof body.password === 'string' ? body.password : ''

@@ -130,11 +130,20 @@ export default function LoginForm({
             // Ask whether this account needs a second step. The endpoint only
             // answers for a correct password, so a wrong password still looks
             // exactly like a wrong password.
-            const check = await fetch('/api/auth/2fa/required', {
+            const checkRes = await fetch('/api/auth/2fa/required', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, password }),
-            }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+            }).catch(() => null)
+            // 503 means the service could not check the password at all (its
+            // shared store is unavailable). Telling the person their password
+            // is wrong would send them into a reset loop for our outage.
+            if (checkRes?.status === 503) {
+              setError("We're temporarily unable to sign you in. Please try again in a minute — your password has not changed.")
+              setLoading(false)
+              return
+            }
+            const check = checkRes?.ok ? await checkRes.json() : null
             if (check?.required) {
               setNeedsCode(true)
               setCode('')

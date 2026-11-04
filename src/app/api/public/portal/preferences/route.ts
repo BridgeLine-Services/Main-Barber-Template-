@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { hashValue, normalizeContact, PORTAL_SESSION_COOKIE } from '@/lib/portal-security'
 import { sanitizePreferences, formatPreferencesForDisplay } from '@/lib/customer-history'
@@ -17,7 +17,7 @@ import { sanitizePreferences, formatPreferencesForDisplay } from '@/lib/customer
 
 async function authorize(req: NextRequest) {
   const limited = await checkRateLimit(req, 'portal-lookup', RATE_LIMITS.PORTAL_LOOKUP)
-  if (limited) return { status: 429 as const }
+  if (limited) return rateLimitResponse(limited)
 
   const business = await resolveBusiness()
   if (!business) return { status: 404 as const }

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rescheduleByTokenSchema } from '@/lib/validation'
 import { validateSlot } from '@/lib/availability'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 import { isTerminalStatus } from '@/lib/validation'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const limited = await checkRateLimit(req, 'public-reschedule', RATE_LIMITS.CUSTOMER_ACTION)
-  if (limited) return NextResponse.json({ error: limited.body.error }, { status: limited.status })
+  if (limited) return rateLimitResponse(limited)
   const { token } = await params
   if (!token || token.length < 32) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
   const parsed = rescheduleByTokenSchema.safeParse(await req.json().catch(() => null))

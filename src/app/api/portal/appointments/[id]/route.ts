@@ -8,7 +8,7 @@ import { resolveBusiness } from '@/lib/tenant'
 import { resolveSessionCustomer } from '@/lib/customer-link'
 import { validateSlot } from '@/lib/availability'
 import { isTerminalStatus } from '@/lib/validation'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 
 // ============================================================================
 // AUTHENTICATED CUSTOMER PORTAL — cancel / reschedule an appointment.
@@ -21,7 +21,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, 'portal-appointment-action', RATE_LIMITS.CUSTOMER_ACTION)
-  if (limited) return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: limited.status })
+  if (limited) return rateLimitResponse(limited)
 
   const session = await getServerSession(authOptions)
   const role = (session?.user as { role?: string } | undefined)?.role

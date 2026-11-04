@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 
@@ -6,10 +7,19 @@ export interface RateLimitConfig {
   maxRequests: number
 }
 
+/**
+ * Why a limit decision came out the way it did. "exceeded" means the caller
+ * genuinely used up the window; the store reasons mean we could not ask, which
+ * is a different problem and must not be reported to the person as "you have
+ * tried too many times".
+ */
+export type RateLimitReason = 'ok' | 'exceeded' | 'store_unavailable' | 'store_not_configured'
+
 export interface RateLimitResult {
   allowed: boolean
   remaining: number
   resetAt: number
+  reason: RateLimitReason
 }
 
 export const RATE_LIMITS = {
@@ -44,15 +54,15 @@ function localRateLimit(key: string, config: RateLimitConfig): RateLimitResult {
   const current = localWindows.get(key)
   if (!current || now >= current.resetAt) {
     if (!current && localWindows.size >= MAX_LOCAL_KEYS) {
-      return { allowed: false, remaining: 0, resetAt: now + config.windowMs }
+      return { allowed: false, remaining: 0, resetAt: now + config.windowMs, reason: 'store_unavailable' }
     }
     const next = { count: 1, resetAt: now + config.windowMs }
     localWindows.set(key, next)
-    return { allowed: true, remaining: Math.max(0, config.maxRequests - 1), resetAt: next.resetAt }
+    return { allowed: true, remaining: Math.max(0, config.maxRequests - 1), resetAt: next.resetAt, reason: 'ok' }
   }
-  if (current.count >= config.maxRequests) return { allowed: false, remaining: 0, resetAt: current.resetAt }
+  if (current.count >= config.maxRequests) return { allowed: false, remaining: 0, resetAt: current.resetAt, reason: 'exceeded' }
   current.count += 1
-  return { allowed: true, remaining: config.maxRequests - current.count, resetAt: current.resetAt }
+  return { allowed: true, remaining: config.maxRequests - current.count, resetAt: current.resetAt, reason: 'ok' }
 }
 
 /** Shared Redis limiter. Production fails closed when Redis is unavailable. */
@@ -60,7 +70,9 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
   if (isAuthorizedCILocalMode()) return localRateLimit(key, config)
   if (!redis) {
     if (process.env.NODE_ENV === 'production' || process.env.APP_MODE === 'production') {
-      return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs }
+      // Fail closed for safety, but say WHY: the person has not exceeded
+      // anything, the deployment is missing its shared store.
+      return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs, reason: 'store_not_configured' }
     }
     return localRateLimit(key, config)
   }
@@ -71,10 +83,11 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
       allowed: result.success,
       remaining: Math.max(0, result.remaining),
       resetAt: result.reset,
+      reason: result.success ? 'ok' : 'exceeded',
     }
   } catch (error) {
     console.error('[rate-limit] shared store unavailable', error instanceof Error ? error.message : 'unknown error')
-    return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs }
+    return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs, reason: 'store_unavailable' }
   }
 }
 
@@ -98,17 +111,60 @@ function isValidAddress(value: string): boolean {
   return value.length <= 128 && /^[0-9a-fA-F:.]+$/.test(value)
 }
 
+export interface RateLimitDenial {
+  status: 429 | 503
+  body: { error: string; retryAfter: number }
+  /** Informational: why the request was denied. */
+  reason: Exclude<RateLimitReason, 'ok'>
+  headers: { 'Retry-After': string }
+}
+
+/**
+ * Map a limiter result to an HTTP answer.
+ *
+ * 429 means the caller really used up the window. 503 means we could not consult
+ * the shared store — the visitor has done nothing wrong, and telling them they
+ * "tried too many times" would be a lie that also hides an outage from the
+ * operator. Neither message names Redis or any infrastructure detail.
+ */
+export function buildRateLimitDenial(result: RateLimitResult, now = Date.now()): RateLimitDenial | null {
+  if (result.allowed) return null
+  const retryAfter = Math.max(1, Math.ceil((result.resetAt - now) / 1000))
+  const reason = result.reason === 'ok' ? 'exceeded' : result.reason
+
+  if (reason === 'exceeded') {
+    return {
+      status: 429,
+      body: { error: 'You have tried too many times in the last minute. Please wait a minute and try again.', retryAfter },
+      reason,
+      headers: { 'Retry-After': String(retryAfter) },
+    }
+  }
+
+  // 'store_unavailable' | 'store_not_configured'
+  return {
+    status: 503,
+    body: { error: "We're temporarily unable to complete this request. Please try again in a minute.", retryAfter: Math.max(60, retryAfter) },
+    reason,
+    headers: { 'Retry-After': String(Math.max(60, retryAfter)) },
+  }
+}
+
 export async function checkRateLimit(
   req: Request,
   endpoint: string,
   config: RateLimitConfig
-): Promise<null | { status: number; body: { error: string; retryAfter: number } }> {
+): Promise<RateLimitDenial | null> {
   const result = await rateLimit(`${getClientIP(req)}:${endpoint}`, config)
-  if (!result.allowed) {
-    return {
-      status: 429,
-      body: { error: 'Too many requests. Please try again in a moment.', retryAfter: Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000)) },
-    }
+  const denial = buildRateLimitDenial(result)
+  if (denial && denial.reason !== 'exceeded') {
+    // Operators need the cause; customers must not see it.
+    console.error(`[rate-limit] denying ${endpoint}: ${denial.reason}`)
   }
-  return null
+  return denial
+}
+
+/** Build the response for a denial, carrying Retry-After. */
+export function rateLimitResponse(denial: RateLimitDenial) {
+  return NextResponse.json(denial.body, { status: denial.status, headers: denial.headers })
 }

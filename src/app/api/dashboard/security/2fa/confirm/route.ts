@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireBusinessAdmin, logAudit } from '@/lib/auth-helpers'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { confirmEnrollment } from '@/lib/two-factor-enrollment'
 import { handleApiError } from '@/lib/api-errors'
 
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     // Verification attempts are the brute-force surface: keep them tight.
     const limited = await checkRateLimit(req, '2fa-confirm', { windowMs: 60_000, maxRequests: 8 })
-    if (limited) return NextResponse.json(limited.body, { status: limited.status })
+    if (limited) return rateLimitResponse(limited)
 
     const body = await req.json().catch(() => ({}))
     const token = typeof body.code === 'string' ? body.code.trim() : ''
