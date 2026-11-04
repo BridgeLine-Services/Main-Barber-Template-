@@ -5,12 +5,14 @@ set -euo pipefail
 # Never run this against the master repository or a production checkout.
 
 APPLY=false
+STRIP_TESTS=false
 TARGET="$(pwd)"
 for arg in "$@"; do
   case "$arg" in
     --apply) APPLY=true ;;
+    --strip-tests) STRIP_TESTS=true ;;
     --target=*) TARGET="${arg#*=}" ;;
-    -h|--help) printf 'Usage: %s [--target=DIR] [--apply]\n' "$0"; exit 0 ;;
+    -h|--help) printf 'Usage: %s [--target=DIR] [--apply] [--strip-tests]\n' "$0"; exit 0 ;;
     *) printf 'Unknown option: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -41,6 +43,14 @@ REMOVALS=(
   scripts/qa-dash.mjs scripts/qa-featured-work.mjs scripts/qa-gallery-states.mjs scripts/qa-screens.mjs scripts/qa-team-chips.mjs
   src/app/api/test
 )
+# The client distribution is a running shop, not a development checkout. Its copy
+# should not carry the internal test suites, the QA owner credentials that live in
+# the E2E specs and the CI workflow, or the browser harness. The master repository
+# keeps all of it.
+if [[ "$STRIP_TESTS" == true ]]; then
+  REMOVALS+=(tests e2e playwright.config.ts test-results playwright-report .github)
+fi
+
 MANIFEST="$TARGET/client-copy-removals.txt"
 EXISTING=()
 for relative in "${REMOVALS[@]}"; do
@@ -63,4 +73,21 @@ fi
 for relative in "${EXISTING[@]}"; do
   rm -rf -- "$TARGET/$relative"
 done
+
+if [[ "$STRIP_TESTS" == true && -f "$TARGET/package.json" ]]; then
+  # Scripts pointing at removed files would fail confusingly on the client
+  # machine, so they go along with the files they run.
+  node -e '
+    const fs = require("fs");
+    const path = process.argv[1];
+    const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+    const keep = {};
+    for (const [name, command] of Object.entries(pkg.scripts || {})) {
+      if (!/tests\/|e2e|playwright|architecture:check|client:independence|license:inventory|db:backup-verify/.test(command)) keep[name] = command;
+    }
+    pkg.scripts = keep;
+    fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+  ' "$TARGET/package.json"
+  printf 'Removed test scripts from package.json (their files were removed too).\n'
+fi
 printf 'Applied approved removals. Review client-copy-removals.txt and run the client build.\n'

@@ -227,3 +227,26 @@ clearing both categories with two WITHDRAWN records, duplicate delivery not
 duplicating records, START restoring transactional only with a single
 TRANSACTIONAL RE_GRANTED record and no MARKETING record, the reply wording, and
 a customer with pre-existing marketing consent keeping it.
+
+---
+
+## 7. Client copies no longer ship internal test material
+
+**File:** `scripts/prepare-client-copy.sh`
+
+**Problem found by running it.** I built a real client copy (fresh clone, client
+branch, `--apply`) and scanned it. The copy still contained `tests/`, `e2e/`,
+`playwright.config.ts` and `.github/` — and four files in it carried the QA owner
+password `E2eOwner!Passw0rd`: three E2E specs and the CI workflow. None of that
+belongs in a shop's checkout, and a customer reading their own repository should
+not find internal QA accounts in it.
+
+**Change.** New `--strip-tests` mode removes `tests/`, `e2e/`,
+`playwright.config.ts`, `test-results/`, `playwright-report/` and `.github/`, then
+drops the `package.json` scripts that pointed at them, so the client machine never
+has a script whose file is missing. Default behaviour is unchanged, and the master
+repository keeps every suite.
+
+**Verified on a real clone:** after `--strip-tests`, no occurrence of the QA
+password anywhere in the copy, no `tests/`, `e2e/` or `.github/` directories, no
+remaining script referencing a removed path, and `package.json` still parses.
