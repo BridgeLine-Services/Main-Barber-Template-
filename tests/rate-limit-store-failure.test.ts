@@ -24,6 +24,18 @@ const brokenStore = {
 async function main() {
   const env = process.env as Record<string, string | undefined>
   const original = env.NODE_ENV
+  // CI runs deliberately use the in-memory limiter, which short-circuits the
+  // shared store entirely — the very path this suite needs to exercise. Step
+  // out of CI-local mode for the duration and put it back afterwards.
+  const ciVars = ['CI', 'GITHUB_ACTIONS', 'RATE_LIMIT_CI_IN_MEMORY'] as const
+  const savedCi = Object.fromEntries(ciVars.map((k) => [k, env[k]]))
+  for (const k of ciVars) delete env[k]
+  const restoreCi = () => {
+    for (const k of ciVars) {
+      if (savedCi[k] === undefined) delete env[k]
+      else env[k] = savedCi[k]
+    }
+  }
   // The seam refuses to run in production; this suite is not production.
   env.NODE_ENV = 'test'
 
@@ -71,6 +83,7 @@ async function main() {
   assert(refused, 'the test seam refuses to run in production')
   env.NODE_ENV = original
 
+  restoreCi()
   console.log(`\nRate limit store failure tests: ${passed} passed, ${failed} failed`)
   process.exit(failed === 0 ? 0 : 1)
 }
