@@ -288,3 +288,29 @@ that honour it are marketing mail (`src/lib/marketing.ts`,
 (`src/lib/review-requests.ts`). Appointment email is deliberately unaffected. I
 left the schema comment alone rather than touch the migration baseline for a
 comment, but the contract is documented here and in the new suite.
+
+---
+
+## 9. Swept for predictable signing keys and found one more
+
+After fixing the 2FA encryption fallback earlier in this cycle I grepped every
+`process.env.SOMETHING || 'literal'` in `src/` rather than trusting that the fix
+covered the class. One remained: the Google Business OAuth state key
+(`src/lib/google-business.ts`) fell back to the fixed string
+`development-only-oauth-state-secret` in any environment.
+
+**Why it matters.** The state parameter is what stops a callback being replayed
+into another session. With a key that is published in the source, an attacker can
+mint a valid state for any user/business pair and complete a connection flow they
+did not start, binding their own Google Business Profile to a shop that never
+consented to it.
+
+**Change.** Production now fails closed: with no `NEXTAUTH_SECRET` (or
+`CRON_SECRET`) configured, the key is not produced at all. Minting throws so the
+connection is refused with a clear configuration error; verification returns
+false rather than crash a page. Development keeps the convenience fallback.
+
+**Tests:** `tests/oauth-state-signing.test.ts` (9) — round trip, wrong user,
+wrong business, garbage, empty, modified signature, re-signed-looking payload,
+eleven-minute-old state, and a state signed with the public development key
+rejected even though one is never used in a configured deployment.

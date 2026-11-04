@@ -407,7 +407,22 @@ export function isGBPConnected(): boolean {
   )
 }
 
-  const oauthStateSecret = () => process.env.NEXTAUTH_SECRET || 'development-only-oauth-state-secret'
+  /**
+   * Signing key for the OAuth state parameter.
+   *
+   * Production fails closed. A fixed development key would be public knowledge,
+   * so an attacker could mint a state for any user/business pair and complete a
+   * Google connection flow they did not start — binding their own Google
+   * Business Profile to someone else's shop.
+   */
+  const oauthStateSecret = () => {
+    const configured = process.env.NEXTAUTH_SECRET || process.env.CRON_SECRET
+    if (configured) return configured
+    if (process.env.NODE_ENV === 'production' || process.env.APP_MODE === 'production') {
+      throw new Error('OAuth state signing secret is not configured (set NEXTAUTH_SECRET)')
+    }
+    return 'development-only-oauth-state-secret'
+  }
 
   export function createGBPOAuthState(userId: string, businessId: string): string {
     const payload = `${userId}:${businessId}:${Date.now()}`
