@@ -196,3 +196,34 @@ SMTP credentials, the Vercel deployment, migrations, domain connection, and the
 
 **Not claimed:** commercial readiness, legal compliance, accessibility
 compliance, or live payment/notification reliability.
+
+---
+
+## 6. Inbound SMS consent: START is not marketing consent
+
+**File:** `src/app/api/webhooks/twilio/route.ts`
+
+**Problem.** STOP correctly cleared both consent categories. START set
+`smsConsent: true` **and** `marketingSmsConsent: true`, and wrote a MARKETING
+consent record claiming the customer had agreed to marketing. Someone replying
+START to get their appointment reminders back was silently opted in to
+promotional texts — the kind of thing that turns into a TCPA complaint, since
+marketing consent has to be given knowingly.
+
+**Change.** START now restores transactional consent only and leaves marketing
+exactly as it was: if the customer had opted in before, that stands; if STOP
+revoked it, it stays revoked until they opt in again. The consent log records
+only the category that actually changed, so there is no MARKETING row asserting
+consent nobody gave. The reply says so in plain words: "You will get appointment
+messages again. Marketing texts stay off unless you opt in at the shop or in your
+account."
+
+**Why it matters downstream:** `src/lib/marketing.ts` only queues a marketing SMS
+when `marketingSmsConsent === true`, so the flag this route writes is the flag
+that decides whether someone is texted a promotion.
+
+**Tests:** `tests/twilio-consent.test.ts` (17) — unsigned webhook rejected, STOP
+clearing both categories with two WITHDRAWN records, duplicate delivery not
+duplicating records, START restoring transactional only with a single
+TRANSACTIONAL RE_GRANTED record and no MARKETING record, the reply wording, and
+a customer with pre-existing marketing consent keeping it.

@@ -52,22 +52,46 @@ export async function POST(request: Request) {
       ? await prisma.smsConsentLog.findFirst({ where: { businessId: business.id, providerEventId }, select: { id: true } })
       : null
     if (!existing) {
+      // STOP is unambiguous: stop everything, both categories.
+      //
+      // START is not. Replying START to a reminder resumes the messages the
+      // customer was already expecting — appointment confirmations and
+      // reminders. It is NOT permission to start sending marketing texts: that
+      // needs its own opt-in, given knowingly. Treating START as marketing
+      // consent is the classic way a shop ends up texting promotions to someone
+      // who only ever asked to get their appointment reminders back.
+      //
+      // So START restores transactional consent and leaves marketing exactly as
+      // it was. If the customer had granted marketing before, it stays granted;
+      // if STOP revoked it, it stays revoked until they opt in again.
+      const consentAction = action === 'STOP' ? 'WITHDRAWN' : 'RE_GRANTED'
       await prisma.$transaction(async (tx) => {
         await tx.customer.update({
           where: { id: customer.id },
           data: action === 'STOP'
             ? { smsConsent: false, marketingSmsConsent: false, smsOptedOutAt: new Date() }
-            : { smsConsent: true, marketingSmsConsent: true, smsOptedOutAt: null },
+            : { smsConsent: true, smsOptedOutAt: null },
         })
         await tx.smsConsentLog.createMany({
-          data: [
-            { businessId: business.id, customerId: customer.id, phone: from, category: 'TRANSACTIONAL', action, disclosure: SMS_CONSENT_DISCLOSURES.transactional, source: 'TWILIO_INBOUND', providerEventId },
-            { businessId: business.id, customerId: customer.id, phone: from, category: 'MARKETING', action, disclosure: SMS_CONSENT_DISCLOSURES.marketing, source: 'TWILIO_INBOUND', providerEventId: providerEventId ? `${providerEventId}:MARKETING` : null },
-          ],
+          data: action === 'STOP'
+            ? [
+                { businessId: business.id, customerId: customer.id, phone: from, category: 'TRANSACTIONAL', action: consentAction, disclosure: SMS_CONSENT_DISCLOSURES.transactional, source: 'TWILIO_INBOUND', providerEventId },
+                { businessId: business.id, customerId: customer.id, phone: from, category: 'MARKETING', action: consentAction, disclosure: SMS_CONSENT_DISCLOSURES.marketing, source: 'TWILIO_INBOUND', providerEventId: providerEventId ? `${providerEventId}:MARKETING` : null },
+              ]
+            : [
+                // Marketing state did not change, so there is nothing honest to
+                // record for it. A MARKETING row here would claim consent that
+                // the customer never gave.
+                { businessId: business.id, customerId: customer.id, phone: from, category: 'TRANSACTIONAL', action: consentAction, disclosure: SMS_CONSENT_DISCLOSURES.transactional, source: 'TWILIO_INBOUND', providerEventId },
+              ],
         })
       })
     }
-    return twiml(action === 'STOP' ? 'You have been unsubscribed from all text messages. Reply START to re-subscribe.' : 'You are subscribed to text messages again. Reply STOP to unsubscribe.')
+    return twiml(
+      action === 'STOP'
+        ? 'You have been unsubscribed from all text messages. Reply START to get appointment messages again.'
+        : 'You will get appointment messages again. Marketing texts stay off unless you opt in at the shop or in your account.',
+    )
   }
 
   if (message === 'HELP' || message === 'INFO') {

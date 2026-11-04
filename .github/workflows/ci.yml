@@ -129,6 +129,10 @@ jobs:
       RATE_LIMIT_REGISTER_MAX: '25'
       # E2E accepts three staff invitations from one IP within a minute.
       RATE_LIMIT_ACCEPT_POST_MAX: '15'
+      # The inbound SMS consent suite signs its webhook payloads with this
+      # value. A fixed test token, not a credential: it exists so the STOP/START
+      # signature path is exercised without a Twilio account.
+      TWILIO_AUTH_TOKEN: test-twilio-auth-token
     services:
       postgres:
         image: postgres:15
