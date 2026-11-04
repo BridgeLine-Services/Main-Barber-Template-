@@ -103,3 +103,17 @@ hiding UI.
 Verified: `tests/session-revocation.test.ts` (21 assertions) covers two live
 sessions, wrong-password refusal, both sessions dying, the audit entry, and a
 fresh sign-in afterwards.
+
+## Making 2FA mandatory for a shop
+
+Set `REQUIRE_OWNER_2FA=true` in that deployment. Owners and business admins who
+have not enrolled are sent to `Security` with a plain banner; they keep full
+access to that page so they can enrol, and API routes are never redirected (a
+half-working dashboard is worse than a clear prompt).
+
+Why a flag rather than outright enforcement: making the second factor compulsory
+for every installation is a product decision per client, and a policy that can
+lock an owner out of their own shop is not a security improvement. The decision
+logic is covered by `tests/security-policy.test.ts`, which asserts that the
+page where enrolment happens, the password-change flow and every API path stay
+reachable under the policy.

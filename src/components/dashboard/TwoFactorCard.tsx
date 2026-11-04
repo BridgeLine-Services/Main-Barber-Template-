@@ -22,6 +22,8 @@ type Status = {
   enabledAt: string | null
   setupStarted: boolean
   recoveryCodesRemaining: number
+  /** This shop requires two-factor authentication (REQUIRE_OWNER_2FA). */
+  policyRequired?: boolean
 }
 
 type Stage = 'idle' | 'setup' | 'codes' | 'disabling'
@@ -159,6 +161,19 @@ export function TwoFactorCard() {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {status.policyRequired && !status.enabled && (
+          <p
+            role="status"
+            className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-foreground"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Your shop requires two-factor authentication. Turn it on below to keep using the
+              dashboard. It takes about two minutes and you will need an authenticator app on your
+              phone.
+            </span>
+          </p>
+        )}
         {error && (
           <p role="alert" className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}

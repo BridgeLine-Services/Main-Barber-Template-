@@ -13,9 +13,10 @@
 // targets (the onboarding page) without infinite redirect loops.
 // ============================================================================
 
+import { SECURITY_SETTINGS_PATH, isOwnerTwoFactorRequired, needsTwoFactorEnrolment } from '@/lib/security-policy'
 import { prisma } from '@/lib/prisma'
 
-export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding' | 'platform-owner' | 'customer'
+export type DashboardAccessReason = 'unauthenticated' | 'password' | 'onboarding' | 'platform-owner' | 'customer' | 'two-factor'
 
 /**
  * Access decision for the dashboard gate.
@@ -97,11 +98,11 @@ export async function checkDashboardAccess(
   // Resolve mutable authorization state from the database. The JWT is a
   // session cache and cannot be the source of truth after onboarding links the
   // first Business during the same authenticated session.
-  let dbUser: { role: string; businessId: string | null; mustChangePassword: boolean } | null = null
+  let dbUser: { role: string; businessId: string | null; mustChangePassword: boolean; twoFactorEnabled: boolean } | null = null
   try {
     dbUser = await prisma.user.findUnique({
       where: user.id ? { id: user.id } : user.email ? { email: user.email } : undefined,
-      select: { role: true, businessId: true, mustChangePassword: true },
+      select: { role: true, businessId: true, mustChangePassword: true, twoFactorEnabled: true },
     })
   } catch (error) {
     // If the DB is unreachable, fail safe: block dashboard access.
@@ -150,7 +151,22 @@ export async function checkDashboardAccess(
     }
   }
 
-  // Priority 4 — access allowed
+  // Priority 4 — shop security policy
+  // Only when the deployment asks for it (REQUIRE_OWNER_2FA=true). The owner is
+  // sent to the page where they enrol rather than blocked, so this can never
+  // lock anyone out of their own shop.
+  if (
+    needsTwoFactorEnrolment({
+      role: dbUser.role,
+      twoFactorEnabled: dbUser.twoFactorEnabled,
+      pathname,
+      policyEnabled: isOwnerTwoFactorRequired(),
+    })
+  ) {
+    return { allowed: false, redirectTo: SECURITY_SETTINGS_PATH, reason: 'two-factor' }
+  }
+
+  // Priority 5 — access allowed
   return { allowed: true }
 }
 

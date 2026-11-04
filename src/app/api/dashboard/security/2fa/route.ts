@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
+import { isOwnerTwoFactorRequired } from '@/lib/security-policy'
 
 // ============================================================================
 // Two-factor authentication status for the signed-in account.
@@ -37,6 +38,8 @@ export async function GET() {
       // A stored secret without confirmation means an abandoned setup attempt.
       setupStarted: !user.twoFactorEnabled && Boolean(user.twoFactorSecretEnc),
       recoveryCodesRemaining: user.twoFactorEnabled ? remaining : 0,
+      // Shown as a banner: this shop requires two-factor authentication.
+      policyRequired: isOwnerTwoFactorRequired(),
     })
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/security/2fa')
