@@ -30,3 +30,35 @@ The existing `/accessibility` statement describes ongoing improvement and does n
 ## Release gate
 
 Do not approve production release until dependency advisories have an owner and upgrade decision, generated license inventory and third-party notices are reviewed, migrations/RLS are verified on staging, all required regression tests pass, the client-copy dry run is reviewed, legal drafts are approved by counsel, and a human signs off staging acceptance. Required runtime variables are documented in `docs/environment-configuration.md`; never commit or log their values.
+
+## Dependency audit — 2026-11-04
+
+`npm audit --omit=dev` reported 6 advisories (5 high, 1 moderate). Handled:
+
+| Package | Was | Now | Reason |
+| --- | --- | --- | --- |
+| `nodemailer` | ^10.0.12 (advisory GHSA-8c8m-p3m8-cjg8, addressparser comment nesting) | ^10.3.1 | Fixed in 10.1.4; the app sends through this directly, so the vulnerable parser was reachable from email addresses we pass in |
+| `zod` | ^4.4.3 (< 4.6.6, memory exhaustion on oversized constrained collections) | ^4.6.7 | Any endpoint validating caller-supplied arrays could be made to allocate without bound |
+| `undici` | transitive, 6.5.0–6.29.0 | resolved by the above installs | DoS via the EventSource parser; not reachable from our code paths, upgraded regardless |
+
+Verified after the upgrade: `tsc --noEmit` clean, `next build` clean, `test:ci`
+green, `notification-resilience` 16/16 (real SMTP path), `marketing` 44/44
+(consent and suppression), `session-revocation` 21/21.
+
+**Accepted risk — `@vercel/blob` (4 remaining high):**
+
+The advisories reach us through `@vercel/blob` → `@vercel/oidc` →
+`@vercel/cli-config` → a nested `zod` older than 4.6.6. npm's only offered
+"fix" is to **downgrade** `@vercel/blob` to 2.4.0, which would put the image and
+media upload pipeline (a protected feature) onto an older client to satisfy a
+build-time config parser. That trade is wrong, so it is recorded here instead of
+silently applied:
+
+- The vulnerable schema lives in Vercel's CLI/config reader, not in our request
+  handling; no caller-supplied payload reaches it.
+- The runtime blob client we use (put/del) does not validate with that schema.
+- Revisit when `@vercel/oidc` ships a version whose `@vercel/cli-config` no
+  longer pins the old `zod`; the upgrade path is then automatic.
+
+This is an accepted, understood risk with a named condition for removal — not a
+claim that the dependency tree is clean.
