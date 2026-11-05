@@ -397,3 +397,42 @@ creating a row. `tests/payments.test.ts` still passes 70/70.
 acceptance. It proves the claim logic and the signature gate; it does not prove a
 real renewal invoice, a real refund, or a real gift-card purchase settles
 correctly. That still needs test-mode credentials and events from Stripe itself.
+
+---
+
+## 12. Two customers, one slot: the guard worked, the message did not
+
+**Files:** `src/lib/availability.ts`, `tests/booking-concurrency.test.ts`
+
+The double-booking design was already right in principle, and this cycle did not
+change it: `createAppointmentSafely` re-checks availability inside a
+`SERIALIZABLE` transaction, and the database backs that with an
+`Appointment_no_active_overlap` exclusion constraint. What was missing was any
+proof it survives real simultaneity, so this suite fires eight bookings at one slot
+at the same moment instead of trusting a read of the code. It found two defects.
+
+**Defect 1 — a serialization abort was reported as a taken slot.** Postgres
+aborts a `SERIALIZABLE` transaction it cannot order against a concurrent one
+(`P2034`), which is an instruction to retry, not a verdict. The code mapped it
+straight to "that appointment time was just booked". The test caught it on the
+*harmless* case: two customers booking **different barbers** at the same instant,
+where neither slot was taken, and one was still told the time had gone. Bookings
+now retry up to three times on `P2034` only. A genuine conflict still surfaces
+immediately, because `SLOT_TAKEN` is thrown on every attempt and never retried.
+
+**Defect 2 — the raw database error reached the customer.** When two requests did
+collide on the same slot, the exclusion constraint fired and Prisma wrapped it in a
+connector error with no `.code`, so the existing `error?.code === '23P01'` check
+never matched. The customer was shown
+`conflicting key value violates exclusion constraint "Appointment_no_active_overlap"`.
+The wrapped form is now matched too, and the message is the plain sentence it was
+always meant to be. Unmapped failures no longer escape as raw text either: a
+technical message is logged and the customer gets a sentence they can act on, while
+the thrown codes callers branch on (`BARBER_OFF`, `BLOCKED`, `TOO_SOON`, and the
+rest) still pass through untouched.
+
+**Tests:** `tests/booking-concurrency.test.ts` (7) — one winner and seven
+refusals for eight simultaneous attempts, every refusal in plain language, exactly
+one row on the calendar, two barbers bookable at the same instant, and a replayed
+idempotency key returning the original appointment rather than a duplicate.
+`tests/booking-rules.test.ts` 25/25 and `tests/booking.test.ts` 20/20 unchanged.

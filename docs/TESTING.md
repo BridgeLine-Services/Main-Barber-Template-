@@ -79,7 +79,10 @@ replay refused, ten-minute expiry, and the public development key rejected), rat
 IPv6 accepted, and unidentifiable callers sharing one bucket deliberately), and
 stripe-event-claim (a fresh claim respected, a crashed claim taken over after
 five minutes so Stripe's retries are not refused forever, FAILED reclaimable,
-completed duplicates acknowledged, unsigned and forged deliveries refused).
+completed duplicates acknowledged, unsigned and forged deliveries refused), and
+booking-concurrency (eight simultaneous bookings for one slot yield exactly one
+appointment and seven plain-language refusals, two barbers can be booked at the
+same instant, and a replayed idempotency key returns the original row).
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
 

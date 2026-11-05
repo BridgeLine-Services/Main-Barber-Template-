@@ -610,7 +610,7 @@ export async function createAppointmentSafely(params: {
   const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign, staffManual } = params
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const runBooking = () => prisma.$transaction(async (tx) => {
       // 1. Verify the barber belongs to this business (tenant isolation)
       const barber = await tx.barber.findFirst({
         where: { id: barberId, businessId, isActive: true },
@@ -823,10 +823,44 @@ export async function createAppointmentSafely(params: {
       return appointment
     }, { isolationLevel: 'Serializable' })
 
+    // SERIALIZABLE aborts a transaction it could not order against a concurrent
+    // one (P2034). That is not the same thing as a taken slot: a booking for a
+    // DIFFERENT barber at the same instant trips it too. Postgres' instruction
+    // is to try again, so we do. Without this, two customers booking different
+    // barbers simultaneously would both be told the time had just been booked
+    // when nothing had been booked at all. A genuine conflict still surfaces
+    // fast, because SLOT_TAKEN is thrown on every attempt and is not retried.
+    let result: Awaited<ReturnType<typeof runBooking>> | undefined
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        result = await runBooking()
+        break
+      } catch (error) {
+        if ((error as { code?: string }).code === 'P2034' && attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 25 * attempt))
+          continue
+        }
+        throw error
+      }
+    }
+    if (!result) throw new Error('SLOT_TAKEN')
+
     return { success: true, appointment: result, customerAccessToken: result.customerAccessToken }
   } catch (error) {
     const message = error.message || 'Unknown error'
-    if (message === 'SLOT_TAKEN' || error?.code === 'P2034' || error?.code === '23P01') {
+    const code = (error as { code?: string })?.code
+    // The database owns the last word on overlapping bookings: the
+    // Appointment_no_active_overlap exclusion constraint rejects a second
+    // appointment for the same barber and time even when two requests slip past
+    // the application check. Prisma reports that as a wrapped connector error
+    // with no .code, so matching on .code alone let the raw driver text
+    // ("conflicting key value violates exclusion constraint ...") reach the
+    // customer. Match the wrapped form as well.
+    const isOverlapConflict =
+      code === '23P01' ||
+      message.includes('23P01') ||
+      message.includes('Appointment_no_active_overlap')
+    if (message === 'SLOT_TAKEN' || code === 'P2034' || isOverlapConflict) {
       return { success: false, error: 'That appointment time was just booked by another customer. Please choose another time.' }
     }
     if (message === 'BARBER_OFF') {
@@ -838,6 +872,14 @@ export async function createAppointmentSafely(params: {
     if (message === 'CLOSED') {
       return { success: false, error: 'The shop is closed at this time (holiday or closure).' }
     }
-    return { success: false, error: message }
+    // Anything unmapped is a technical failure, not something a customer can act
+    // on. Keep the detail in the server log and hand back a sentence a person can
+    // read. A thrown code that the caller branches on (BARBER_OFF, BLOCKED,
+    // CLOSED, TOO_SOON, OUTSIDE_WINDOW, SERVICE_NOT_OFFERED) is passed through
+    // above and never reaches here.
+    const isCallerFacingCode = /^[A-Z_]{3,40}$/.test(message)
+    if (isCallerFacingCode) return { success: false, error: message }
+    console.error('booking failed unexpectedly:', message)
+    return { success: false, error: 'We could not complete that booking just now. Please try again in a moment.' }
   }
 }
