@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 import { isCustomerRegistrationOpen, isOwnerRegistrationOpen } from '@/lib/owner-registration'
 
@@ -47,13 +47,13 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const registerLimit = Number(process.env.RATE_LIMIT_REGISTER_MAX ?? 3) || 3
-  const rateLimitResult = await checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
-  if (rateLimitResult) {
-    return NextResponse.json(
-      { error: 'Too many attempts. Please wait a minute and try again.' },
-      { status: rateLimitResult.status }
-    )
-  }
+  // One limiter, one answer. The shared denial helper distinguishes a caller who
+  // really exhausted the window (429) from infrastructure we could not reach
+  // (503), and carries Retry-After. Building a second message here is how the
+  // registration page ended up telling a first owner "too many attempts" when the
+  // truth was that the shared rate-limit store was not configured at all.
+  const rateLimitDenial = await checkRateLimit(req, 'register', { windowMs: 60_000, maxRequests: registerLimit })
+  if (rateLimitDenial) return rateLimitResponse(rateLimitDenial)
 
   try {
     const body = await req.json().catch(() => null)

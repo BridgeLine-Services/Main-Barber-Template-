@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { passwordPolicySchema } from '@/lib/validation'
 
 /** Tokens are stored as SHA-256 hashes — never raw. */
@@ -31,9 +31,9 @@ const resetSchema = z.object({
  * passwordChangedAt set, mustChangePassword cleared, audit recorded.
  */
 export async function POST(req: NextRequest) {
-  const rateLimitResult = await checkRateLimit(req, 'auth-reset', RATE_LIMITS.PASSWORD_RESET)
-  if (rateLimitResult) {
-    return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: rateLimitResult.status })
+  const rateLimitDenial = await checkRateLimit(req, 'auth-reset', RATE_LIMITS.PASSWORD_RESET)
+  if (rateLimitDenial) {
+    return rateLimitResponse(rateLimitDenial)
   }
 
   try {

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createAppointmentSafely } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,12 +11,9 @@ export async function POST(request: NextRequest) {
     // it is the one unauthenticated route where guessing has a prize. Every
     // sibling public route was limited; this one was not.
     const limited = await checkRateLimit(request, 'waitlist-claim', RATE_LIMITS.CUSTOMER_ACTION)
-    if (limited) {
-      return NextResponse.json(
-        { success: false, error: 'Too many attempts. Please try again in a minute.' },
-        { status: 429 }
-      )
-    }
+    // Same rule as everywhere else: 429 for a caller who exhausted the window,
+    // 503 when the limiter itself is unavailable, never one message for both.
+    if (limited) return rateLimitResponse(limited)
 
   // Soft-deactivated shops do not accept public activity
   if (await isPublicBusinessDeactivated()) {
