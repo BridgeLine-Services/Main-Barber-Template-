@@ -37,6 +37,9 @@ const GUARDED: Array<[string, string]> = [
   ['src/app/api/dashboard/loyalty/program/route.ts', 'loyalty'],
   ['src/app/api/dashboard/payments/checkout/[appointmentId]/route.ts', 'onlinePayments'],
   ['src/app/api/dashboard/analytics/route.ts', 'analytics'],
+  ['src/app/api/dashboard/payments/intent/route.ts', 'deposits'],
+  ['src/app/api/public/portal/lookup/route.ts', 'customerPortal'],
+  ['src/lib/notification-worker.ts', 'smsNotifications'],
 ]
 
 async function main() {
@@ -88,7 +91,7 @@ async function main() {
     for (const [file, key] of GUARDED) {
       let text = ''
       try { text = readFileSync(file, 'utf8') } catch { text = '' }
-      assert(text.includes(`'${key}'`) && /Feature gate|feature gate|assertFeatureEnabled|isFeatureEnabledForBusiness/.test(text),
+      assert(text.includes(`'${key}'`) && /Feature gate|feature gate|assertFeatureEnabled|isFeatureEnabled/.test(text),
         `${file} still consults '${key}'`)
     }
   } finally {
