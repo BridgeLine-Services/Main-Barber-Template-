@@ -114,3 +114,21 @@ should, with the owner's authorization:
 
 None of these change application behaviour, and none should be done silently: making a
 public repository private changes who can find it.
+
+## Running the navigation spec locally
+
+The browser suite needs the app served from a production build (`npm run build`
+then `npm run start`), a seeded database, and the sign-in route working. Sign-in
+fails closed when no shared limiter is configured, which is correct in production
+but blocks every authenticated spec locally. The supported way through is the
+existing CI seam:
+
+```
+CI=true GITHUB_ACTIONS=true RATE_LIMIT_CI_IN_MEMORY=true \
+E2E_OWNER_EMAIL=<seeded owner> E2E_OWNER_PASSWORD=<seeded password> \
+npx playwright test e2e/nav-active-state.spec.ts
+```
+
+`RATE_LIMIT_CI_IN_MEMORY` is refused outside an authorized CI-shaped environment,
+so this cannot weaken a real deployment. Verified 5 November 2026: 6 passed,
+1 skipped (the barber cases need `E2E_BARBER_EMAIL`/`PASSWORD`).

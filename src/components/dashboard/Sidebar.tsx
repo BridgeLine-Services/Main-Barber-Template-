@@ -148,18 +148,39 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const ownerSections: NavSection[] = [
     {
       label: 'overview',
+      // Two destinations stay flat because they are where a shift starts, not
+      // something you go looking for. Everything else is grouped by the question
+      // an owner is actually asking: what is happening today, who is booked, and
+      // what the shop sells. Routes and permissions are unchanged.
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Setup Checklist', href: '/dashboard/setup', icon: Rocket },
         { name: 'Barber Mode', href: '/barber-mode', icon: Smartphone },
-        { name: 'Daily Ops', href: '/dashboard/operations', icon: Activity },
-        { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-        { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDays },
-        { name: 'Customers', href: '/dashboard/customers', icon: Users },
-        { name: 'Barbers', href: '/dashboard/barbers', icon: UserCircle },
-        { name: 'Services', href: '/dashboard/services', icon: Scissors },
-        { name: 'Reviews', href: '/dashboard/reviews', icon: Star },
-        { name: 'Waitlist', href: '/dashboard/waitlist', icon: Users },
+      ],
+      groups: [
+        {
+          label: 'Today',
+          items: [
+            { name: 'Daily Ops', href: '/dashboard/operations', icon: Activity },
+            { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+            { name: 'Waitlist', href: '/dashboard/waitlist', icon: Users },
+          ],
+        },
+        {
+          label: 'Bookings and People',
+          items: [
+            { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDays },
+            { name: 'Customers', href: '/dashboard/customers', icon: Users },
+            { name: 'Reviews', href: '/dashboard/reviews', icon: Star },
+          ],
+        },
+        {
+          label: 'Team and Services',
+          items: [
+            { name: 'Barbers', href: '/dashboard/barbers', icon: UserCircle },
+            { name: 'Services', href: '/dashboard/services', icon: Scissors },
+          ],
+        },
       ],
     },
     {
