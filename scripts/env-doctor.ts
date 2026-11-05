@@ -97,8 +97,24 @@ async function main() {
       }
       if (spec.name === 'UPSTASH_REDIS_REST_URL' || spec.name === 'UPSTASH_REDIS_REST_TOKEN') {
         if (!redisUrl || !redisToken) {
+          // Say which of the two situations this is. Telling an operator that
+          // "only one of the two is set" when neither is set sends them looking
+          // for a value they never entered.
+          if (!redisUrl && !redisToken) {
+            return {
+              ...evaluation,
+              status: 'MISSING',
+              detail: 'neither Upstash value is set, so sign-in and registration are refused for everyone',
+            }
+          }
           // A half-configured pair is worse than none: it looks set up.
-          return { ...evaluation, status: 'INVALID', detail: 'only one of the two Upstash values is set; both are required' }
+          return {
+            ...evaluation,
+            status: 'INVALID',
+            detail: redisUrl
+              ? 'UPSTASH_REDIS_REST_URL is set but UPSTASH_REDIS_REST_TOKEN is not; both are required'
+              : 'UPSTASH_REDIS_REST_TOKEN is set but UPSTASH_REDIS_REST_URL is not; both are required',
+          }
         }
         const probe = await probeRedis(redisUrl, redisToken)
         return { ...evaluation, status: probe.status, detail: probe.detail }
