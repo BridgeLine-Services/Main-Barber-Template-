@@ -1,14 +1,14 @@
 import { readFileSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
 const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
 const dependencies = { ...manifest.dependencies, ...manifest.devDependencies, ...manifest.optionalDependencies }
 const packages = new Map()
 
 for (const name of Object.keys(dependencies)) {
   try {
-    const metadata = require(`${name}/package.json`)
+    // Read the file rather than resolving `pkg/package.json`: packages with an
+    // `exports` map (upstash, vercel/blob) refuse that subpath, which made two
+    // real dependencies show up as UNKNOWN in a document meant for legal review.
+    const metadata = JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8'))
     const license = typeof metadata.license === 'string'
       ? metadata.license
       : Array.isArray(metadata.licenses)
