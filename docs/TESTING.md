@@ -82,7 +82,10 @@ five minutes so Stripe's retries are not refused forever, FAILED reclaimable,
 completed duplicates acknowledged, unsigned and forged deliveries refused), and
 booking-concurrency (eight simultaneous bookings for one slot yield exactly one
 appointment and seven plain-language refusals, two barbers can be booked at the
-same instant, and a replayed idempotency key returns the original row).
+same instant, a replayed idempotency key returns the original row), and
+timezone-dst (23- and 25-hour days, wall-clock conversions on both sides of each
+change, the non-existent 02:30 normalising forward rather than backwards, and the
+invariant that no slot label is ever offered twice).
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
 

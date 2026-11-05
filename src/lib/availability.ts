@@ -209,7 +209,13 @@ export async function getAvailableSlots(params: {
   // Don't show past times (if checking today)
 
   // Walk the day in duration-minute increments
-  const slots: { time: string; available: boolean }[] = []
+  // Keyed by display label, because a label must identify exactly one bookable
+  // instant. On the night the clocks go back, 01:00 happens twice and both
+  // occurrences format identically; a booking for "1:00 AM" can only ever
+  // produce one of them, so offering both gives the customer an offer they
+  // cannot actually book. Keep the occurrence that the booking path resolves
+  // the label to (it prefers standard time, i.e. the later one).
+  const slotsByLabel = new Map<string, { time: string; available: boolean }>()
   const slotInterval = 15 // 15-minute granularity for slot start times
 
   let cursor = new Date(dayStart)
@@ -273,7 +279,7 @@ export async function getAvailableSlots(params: {
     }
 
     // Format the slot time in the business timezone for display
-    slots.push({
+    slotsByLabel.set(formatInTimezone(slotStart, timezone, 'h:mm a'), {
       time: formatInTimezone(slotStart, timezone, 'h:mm a'),
       available,
     })
@@ -281,7 +287,7 @@ export async function getAvailableSlots(params: {
     cursor = addMinutes(cursor, slotInterval)
   }
 
-  return slots
+  return [...slotsByLabel.values()]
 }
 
 /**

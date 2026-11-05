@@ -483,3 +483,37 @@ real appointments should not ship to a client: it is gated on session, role,
 `NODE_ENV`, `VERCEL_ENV` and an explicit `ENABLE_E2E_TESTS` flag, and
 `prepare-client-copy.sh --strip-tests` removes the whole `src/app/api/test` tree
 from a client copy. Left as is.
+
+---
+
+## 14. The hour that happens twice, offered to customers twice
+
+**Files:** `src/lib/availability.ts`, `tests/timezone-dst.test.ts`
+
+Nothing in the repository tested the two days a year that break booking systems, so
+I wrote the suite before changing anything and let it tell me whether the code was
+right. Most of it was. Day boundaries come out at 23 and 25 hours. 09:00 local
+converts to 16:00Z on the spring-forward day and 17:00Z on the fall-back day, with
+the days either side correct too. A non-existent 02:30 normalises forward to 03:30
+rather than backwards into the previous hour, which is the failure that silently
+books someone an hour early.
+
+**The defect it found.** On 7 November in America/Los_Angeles, 01:00 to 02:00
+happens twice. Slot generation walked the 25-hour day in 15-minute steps and
+formatted every step, so it offered "1:00 AM", "1:15 AM", "1:30 AM" and "1:45 AM"
+**twice each**: 96 slots where 92 are bookable. The two entries are genuinely
+different instants, but they carry identical labels, and the booking path resolves
+that label to exactly one of them. So four of the offers on screen could never be
+booked as shown. Two customers choosing the same visible time would also get
+different times.
+
+Slots are now keyed by their display label, keeping the occurrence that a booking
+for that label actually produces (the booking path prefers standard time, the later
+occurrence). The repeated hour is offered once, at the instant a customer will
+actually get. Spring-forward day was already clean at 88 distinct slots and stays
+that way.
+
+**Tests:** `tests/timezone-dst.test.ts` (18) covering both days end to end, with
+`booking-rules` 25/25 and `booking` 20/20 unchanged. The suite derives each slot's
+instant from its own label, because a slot list that only carries labels can hide
+this class of bug from its own tests.
