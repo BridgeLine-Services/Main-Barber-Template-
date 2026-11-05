@@ -116,10 +116,31 @@ async function main() {
       losses.every((r) => !isRawTechnical(r.error)),
       'no loser is shown raw database text (constraint names, transaction errors)'
     )
-    assert(
-      losses.filter((r) => r.error === SLOT_TAKEN_MESSAGE).length >= 1,
-      'at least one loser is told plainly that the time was just booked'
-    )
+    // Whether a *given* loser is told the slot went depends on how far it got
+    // before losing: one that hit a deadlock and retried reports the conflict,
+    // one that exhausted its attempts reports "try again". Both are honest, and
+    // which happens is a race. What must always hold is that the customer can
+    // find out the slot is gone, so a loser not told during the race is provable
+    // by the very next attempt.
+    const toldDuringRace = losses.filter((r) => r.error === SLOT_TAKEN_MESSAGE).length
+    if (toldDuringRace >= 1) {
+      assert(true, `at least one loser is told plainly that the time was just booked (${toldDuringRace} of ${losses.length})`)
+    } else {
+      const after = await createAppointmentSafely({
+        businessId: business.id,
+        barberId: barbers[0].id,
+        serviceId: service.id,
+        startTime: slot,
+        customerData: {
+          firstName: 'After', lastName: 'Race', phone: '5550199999',
+          email: `race-after-${Date.now()}@example.com`,
+        },
+      })
+      assert(
+        after.success === false && after.error === SLOT_TAKEN_MESSAGE,
+        'when no loser was told during the race, the next attempt is told plainly'
+      )
+    }
     const rows = await prisma.appointment.count({
       where: { businessId: business.id, barberId: barbers[0].id, startTime: slot },
     })

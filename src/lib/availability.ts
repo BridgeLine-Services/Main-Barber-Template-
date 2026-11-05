@@ -851,10 +851,20 @@ export async function createAppointmentSafely(params: {
         break
       } catch (error) {
         const retryCode = (error as { code?: string }).code
+        const retryMessage = String((error as { message?: string }).message ?? '')
         // P2034: serialization failure. P2028: the transaction outlived its own
-        // timeout and was rolled back. Both are safe to repeat because neither
-        // committed anything, and both are contention rather than a verdict.
-        const contention = retryCode === 'P2034' || retryCode === 'P2028'
+        // timeout and was rolled back. 40P01: Postgres detected a deadlock and
+        // killed one side. All three are contention, all three rolled back, none
+        // is a verdict on the slot, so all three are safe to repeat.
+        //
+        // 40P01 arrives wrapped in a connector error with no .code, exactly like
+        // the exclusion-constraint violation that once leaked raw driver text to
+        // a customer, so the message is matched as well as the code.
+        const contention =
+          retryCode === 'P2034' ||
+          retryCode === 'P2028' ||
+          retryMessage.includes('40P01') ||
+          retryMessage.includes('deadlock detected')
         if (contention && attempt < 3) {
           await new Promise((resolve) => setTimeout(resolve, 40 * attempt))
           continue
