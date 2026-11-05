@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAnalytics } from '@/lib/analytics'
 import { handleApiError } from '@/lib/api-errors'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 
 export async function GET(request: Request) {
   try {
@@ -15,6 +16,12 @@ export async function GET(request: Request) {
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden — owner access required' }, { status: 403 })
     }
+    // Feature gate: the reports are the feature. Refusing here keeps the numbers out of
+    // a shop that switched analytics off, without touching any underlying data.
+    if (user.businessId && !(await isFeatureEnabledForBusiness(user.businessId, 'analytics'))) {
+      return NextResponse.json({ error: 'Reports are switched off for this shop.' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const parsedDays = Number.parseInt(searchParams.get('days') || '30', 10)
     const rangeDays = Number.isInteger(parsedDays) ? Math.min(Math.max(parsedDays, 1), 366) : 30

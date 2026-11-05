@@ -72,7 +72,7 @@ gate for "master template ready".
 
 ---
 
-## Enforcement status, verified 5 November 2026 (afternoon revision)
+## Enforcement status, verified 5 November 2026 (evening revision)
 
 `npm run audit:features` walks `src`, and for every key in `FEATURE_KEYS` reports whether
 any server file both mentions the key and consults the feature layer
@@ -114,11 +114,17 @@ Enforced on the server as of this revision, each proven by `tests/feature-enforc
 - `reviews` — published reviews are no longer presented on the public site.
 - `barberProfiles` — the public profile page returns 404.
 - `reviewRequests` — the cron stops enqueuing new requests; queued ones are untouched.
+- `memberships` — enrolling a customer is refused; existing memberships are untouched.
+- `gallery` — adding a picture is refused; existing pictures stay.
+- `multipleBarbers` — adding a barber is refused.
+- `loyalty` — configuring the programme is refused.
+- `onlinePayments` — starting a card payment is refused before a Payment row exists.
+- `analytics` — the report payload is refused.
 
 Still presentation-only, and must not be described to owners as fully switched off:
-customerPortal, gallery, promotions, loyalty, waitlist, analytics, multipleBarbers,
-deposits, pwa, emailNotifications, smsNotifications, onlinePayments, memberships.
+customerPortal, promotions, waitlist, deposits, pwa, emailNotifications,
+smsNotifications.
 
-That is 8 of 21 enforced, 13 outstanding. The count is deliberately stated as a number
+That is 13 of 21 enforced, 8 outstanding. The count is deliberately stated as a number
 so it can be checked rather than believed.
 

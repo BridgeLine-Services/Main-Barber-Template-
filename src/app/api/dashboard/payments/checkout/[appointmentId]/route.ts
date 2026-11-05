@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import {
   buildCheckoutSummary, canRunCheckout, completeCheckout,
   getPosSettings, type CheckoutLineItem,
@@ -24,6 +25,12 @@ async function guard(appointmentId: string): Promise<Guard> {
   if (!user) return { ok: false, error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   if (user.role === 'CUSTOMER') return { ok: false, error: NextResponse.json({ error: 'Staff access required' }, { status: 403 }) }
   const businessId = user.businessId!
+
+  // Feature gate: a shop that has online payments switched off must not start a card
+  // payment through the API. No Payment row exists until this passes.
+  if (!(await isFeatureEnabledForBusiness(businessId, 'onlinePayments'))) {
+    return { ok: false, error: NextResponse.json({ error: 'Online payments are switched off for this shop.' }, { status: 403 }) }
+  }
   const appointment = await prisma.appointment.findFirst({
     where: { id: appointmentId, businessId },
     select: { businessId: true, barberId: true },

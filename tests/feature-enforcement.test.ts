@@ -31,6 +31,12 @@ const GUARDED: Array<[string, string]> = [
   ['src/app/api/ecommerce/checkout/route.ts', 'ecommerce'],
   ['src/app/(customer)/reviews/page.tsx', 'reviews'],
   ['src/app/(customer)/barbers/[slug]/page.tsx', 'barberProfiles'],
+  ['src/app/api/dashboard/media/route.ts', 'gallery'],
+  ['src/app/api/dashboard/memberships/route.ts', 'memberships'],
+  ['src/app/api/dashboard/barbers/route.ts', 'multipleBarbers'],
+  ['src/app/api/dashboard/loyalty/program/route.ts', 'loyalty'],
+  ['src/app/api/dashboard/payments/checkout/[appointmentId]/route.ts', 'onlinePayments'],
+  ['src/app/api/dashboard/analytics/route.ts', 'analytics'],
 ]
 
 async function main() {

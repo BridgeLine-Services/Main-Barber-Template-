@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { handleApiError } from '@/lib/api-errors'
 
 // GET /api/dashboard/loyalty/program
@@ -53,6 +54,10 @@ export async function PUT(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
+    // Feature gate: turning on a loyalty programme is exactly what this switch governs.
+    if (businessId && !(await isFeatureEnabledForBusiness(businessId, 'loyalty'))) {
+      return NextResponse.json({ error: 'Loyalty points are switched off for this shop.' }, { status: 403 })
+    }
     const userRole = session.user?.role
     const userId = session.user?.id
     if (userRole !== 'OWNER') {
