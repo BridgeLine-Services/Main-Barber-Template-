@@ -15,7 +15,7 @@
 
 import { ReviewRequestStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { isFeatureEnabledForBusiness } from '@/lib/features'
+import { isFeatureEnabled, isFeatureEnabledForBusiness } from '@/lib/features'
 import { sanitizeErrorMessage } from '@/lib/notifications'
 
 // ─── Policy constants ───────────────────────────────────────────────────────
@@ -247,11 +247,23 @@ export async function enqueueDueReviewRequests(businessId?: string, limit = CRON
   const now = new Date()
   const lookback = new Date(now.getTime() - ENQUEUE_LOOKBACK_DAYS * 24 * 3600_000)
 
+  // Feature gate: a shop with review requests switched off must not queue new ones.
+  // Requests already queued or sent are left alone — the switch governs new
+  // automation, not history, and nothing here deletes what already happened.
+  const allowedBusinesses = await prisma.business.findMany({
+    where: businessId ? { id: businessId } : {},
+    select: { id: true, featureOverrides: true },
+  })
+  const enabledIds = new Set(
+    allowedBusinesses.filter((b) => isFeatureEnabled(b, 'reviewRequests')).map((b) => b.id)
+  )
+  if (enabledIds.size === 0) return { queued: 0, suppressed: 0, skipped: 0, considered: 0 }
+
   const candidates = await prisma.appointment.findMany({
     where: {
       status: 'COMPLETED',
       completedAt: { not: null, gte: lookback },
-      ...(businessId ? { businessId } : {}),
+      businessId: businessId ?? { in: [...enabledIds] },
     },
     include: { customer: true, service: true },
     orderBy: { completedAt: 'asc' },
