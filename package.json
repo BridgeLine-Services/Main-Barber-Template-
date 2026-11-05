@@ -78,7 +78,8 @@
     "env:doctor:deep": "npx tsx scripts/env-doctor.ts --deep",
     "client:preflight": "npx tsx scripts/client-preflight.ts",
     "env:template": "npx tsx scripts/generate-env-template.ts",
-    "env:drift": "node scripts/check-env-drift.mjs"
+    "env:drift": "node scripts/check-env-drift.mjs",
+    "audit:features": "tsx scripts/audit-feature-flags.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
