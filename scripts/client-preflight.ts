@@ -12,7 +12,7 @@
  */
 import { PrismaClient } from '@prisma/client'
 import { readFileSync, existsSync } from 'node:fs'
-import { evaluateVar, getEnvSpec, isPresent, resolveEffective, type EnvName } from '../src/lib/env-registry'
+import { ENV_REGISTRY, evaluateVar, getEnvSpec, isPresent, resolveEffective, type EnvName } from '../src/lib/env-registry'
 
 const args = process.argv.slice(2)
 const environment = (args.find((a) => a.startsWith('--environment='))?.split('=')[1] ?? 'production') as EnvName
@@ -90,6 +90,89 @@ function checkEnvFile(): Check {
     : { name: 'Environment template', ok: false, blocker: false, detail: `not documented in .env.example: ${missingFromTemplate.join(', ')}` }
 }
 
+
+/**
+ * A demo deployment is not a shop. It seeds a known owner password and sample
+ * customers, so opening real registration on it invites a stranger into sample
+ * data — and the owner would be configuring a shop that is not theirs.
+ */
+function checkAppMode(): Check {
+  const raw = (process.env.APP_MODE ?? '').trim().toLowerCase()
+  if (raw === 'demo') {
+    return {
+      name: 'Shop mode',
+      ok: false,
+      blocker: true,
+      detail: 'APP_MODE is demo, so this deployment runs the sample dataset with a published demo password. Set it to production (or leave it unset) before handing the shop over',
+    }
+  }
+  return { name: 'Shop mode', ok: true, blocker: true, detail: 'production behaviour' }
+}
+
+/**
+ * A migration recorded as failed leaves the schema in an unknown state: part of
+ * it applied, part of it not. Registration could "pass" and then fail on the
+ * first write that touches a missing column.
+ */
+async function checkMigrations(): Promise<Check> {
+  const url = process.env.DATABASE_URL?.trim()
+  if (!url) return { name: 'Migrations', ok: false, blocker: true, detail: 'no database connection, so migration state is unknown' }
+  const client = new PrismaClient({ datasources: { db: { url } } })
+  try {
+    const rows = await client.$queryRaw<Array<{ migration_name: string; finished_at: Date | null; rolled_back_at: Date | null }>>`
+      SELECT migration_name, finished_at, rolled_back_at
+      FROM _prisma_migrations
+      ORDER BY started_at DESC
+      LIMIT 50
+    `
+    const failed = rows.filter((r) => !r.finished_at && !r.rolled_back_at)
+    if (failed.length) {
+      return {
+        name: 'Migrations',
+        ok: false,
+        blocker: true,
+        detail: `${failed.length} migration(s) did not finish (${failed.map((f) => f.migration_name).join(', ')}). The schema is half-applied; apply them before opening registration`,
+      }
+    }
+    return { name: 'Migrations', ok: true, blocker: true, detail: `${rows.length} migration(s) recorded, none unfinished` }
+  } catch {
+    return {
+      name: 'Migrations',
+      ok: false,
+      blocker: true,
+      detail: 'could not read migration history; run migrations before opening registration',
+    }
+  } finally {
+    await client.$disconnect()
+  }
+}
+
+/**
+ * The template is what an operator reads when a value is missing, so a stale one
+ * sends them looking for variables that no longer exist, or fails to mention the
+ * one that is actually required.
+ */
+function checkTemplateFreshness(): Check {
+  try {
+    const template = readFileSync('.env.example', 'utf8')
+    const missing = ENV_REGISTRY
+      .filter((spec) => !spec.platformManaged && !spec.retired)
+      .filter((spec) => !template.includes(`${spec.name}=`))
+      .map((spec) => spec.name)
+    if (missing.length) {
+      return {
+        name: 'Environment template',
+        ok: false,
+        blocker: false,
+        detail: `${missing.length} variable(s) are declared but absent from .env.example (${missing.slice(0, 4).join(', ')}). Run npm run env:template`,
+      }
+    }
+    return { name: 'Environment template', ok: true, blocker: false, detail: 'matches the registry' }
+  } catch {
+    return { name: 'Environment template', ok: false, blocker: false, detail: 'could not read .env.example; run npm run env:template' }
+  }
+}
+
 async function main() {
   console.log(`\nPre-registration preflight — ${environment}\n`)
   const checks: Check[] = [
@@ -98,6 +181,9 @@ async function main() {
     checkPublicUrl(),
     await checkRedis(),
     checkEnvFile(),
+    checkAppMode(),
+    await checkMigrations(),
+    checkTemplateFreshness(),
   ]
 
   for (const check of checks) {
