@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { resolveBusiness } from '@/lib/tenant'
 import { hashValue, normalizeContact, PORTAL_SESSION_COOKIE } from '@/lib/portal-security'
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
     const contact = normalizeContact(body.email, body.phone)
     if (!contact) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })
     const business = await resolveBusiness()
+    // Feature gate: the customer portal is a feature. With it off, a portal link stops
+    // resolving. Customer records, appointments and messages are untouched.
+    if (business && !(await isFeatureEnabledForBusiness(business.id, 'customerPortal'))) {
+      return NextResponse.json({ error: 'The customer portal is switched off for this shop.' }, { status: 403 })
+    }
     const sessionToken = req.cookies.get(PORTAL_SESSION_COOKIE)?.value
     const session = sessionToken ? await prisma.portalSession.findFirst({ where: { businessId: business.id, tokenHash: hashValue(sessionToken), revokedAt: null, expiresAt: { gt: new Date() } } }) : null
     if (!session) return NextResponse.json({ error: UNAUTHORIZED }, { status: 401 })

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { createBarberSchema } from '@/lib/validation'
 import bcrypt from 'bcryptjs'
 import { handleApiError, validationError } from '@/lib/api-errors'
@@ -38,6 +39,11 @@ export async function POST(req: NextRequest) {
     if (session.user?.role !== 'OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const businessId = session.user?.businessId
     if (!businessId) return NextResponse.json({ error: 'Business setup required' }, { status: 409 })
+    // Feature gate: adding a barber is the operation this switch governs. An owner who
+    // has it off cannot add staff through a direct request either.
+    if (!(await isFeatureEnabledForBusiness(businessId, 'multipleBarbers'))) {
+      return NextResponse.json({ error: 'Adding barbers is switched off for this shop.' }, { status: 403 })
+    }
     const body = await req.json().catch(() => null)
     // Validate barber fields (password/email are separate, not in schema)
     const parseResult = createBarberSchema.safeParse(body)

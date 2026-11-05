@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction, MediaType } from '@prisma/client'
@@ -47,6 +48,11 @@ export async function GET(req: NextRequest) {
     if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const role = session.user?.role
     const businessId = session.user?.businessId
+    // Feature gate: a shop with its gallery switched off must not add pictures through
+    // the API. Existing pictures stay; this only refuses new ones.
+    if (session.user?.businessId && !(await isFeatureEnabledForBusiness(session.user.businessId, 'gallery'))) {
+      return NextResponse.json({ error: 'The gallery is switched off for this shop.' }, { status: 403 })
+    }
     const sessionBarberId = session.user?.barberId
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type') as MediaType | null

@@ -11,6 +11,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import {
   MembershipError,
   enrollCustomer,
@@ -34,6 +35,11 @@ export async function GET() {
     const user = session?.user
     if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const businessId = user.businessId
+    // Feature gate: enrolling someone creates a recurring agreement, so it must be
+    // refused when memberships are off. Existing memberships are untouched.
+    if (!(await isFeatureEnabledForBusiness(user.businessId, 'memberships'))) {
+      return NextResponse.json({ error: 'Memberships are switched off for this shop.' }, { status: 403 })
+    }
 
     const [settings, stats, memberships] = await Promise.all([
       getMembershipSettings(businessId),

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabled } from '@/lib/features'
 import nodemailer from 'nodemailer'
 import { isTwilioConfigured, sendSms } from '@/lib/twilio'
 import { getSmtpFromAddress } from '@/lib/app-config'
@@ -37,6 +38,20 @@ export async function processDueNotifications(limit = 50) {
     select: { id: true },
   })
 
+  // Channel switches, resolved once per run. A shop that has SMS or email switched off
+  // must not have messages sent on its behalf. Queued rows are marked with the reason
+  // rather than deleted, so the owner can see what did not go out and why.
+  const channelBusinesses = await prisma.business.findMany({
+    select: { id: true, featureOverrides: true },
+  })
+  const channelAllowed = new Map<string, { sms: boolean; email: boolean }>()
+  for (const b of channelBusinesses) {
+    channelAllowed.set(b.id, {
+      sms: isFeatureEnabled(b, 'smsNotifications'),
+      email: isFeatureEnabled(b, 'emailNotifications'),
+    })
+  }
+
   let sent = 0
   let failed = 0
   for (const row of pending) {
@@ -51,6 +66,24 @@ export async function processDueNotifications(limit = 50) {
       include: { customer: { select: { smsConsent: true, marketingSmsConsent: true, smsOptedOutAt: true, emailOptOut: true } } },
     }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
     if (!notification) continue
+
+    // Honour the shop's channel switches before any provider is called.
+    const allowed = channelAllowed.get(notification.businessId)
+    if (allowed) {
+      const switchedOff = notification.channel === 'SMS' ? !allowed.sms : !allowed.email
+      if (switchedOff) {
+        await prisma.notificationLog.update({
+          where: { id: row.id },
+          data: {
+            status: 'FAILED',
+            failureReason: notification.channel === 'SMS'
+              ? 'Text messages are switched off for this shop'
+              : 'Emails are switched off for this shop',
+          },
+        })
+        continue
+      }
+    }
     try {
       if ((notification.channel === 'SMS' &&
           (!notification.customer || notification.customer.smsOptedOutAt ||

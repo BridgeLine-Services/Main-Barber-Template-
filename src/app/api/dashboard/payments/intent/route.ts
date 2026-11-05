@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { resolvePaymentProvider, stripeConfigured } from '@/lib/payments'
 import { missingStripeConfiguration } from '@/lib/payments/providers/stripe-client'
 import { canRunCheckout, getPosSettings } from '@/lib/payments/pos'
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (user.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = user.businessId!
+
+    // Feature gate: with deposits switched off the shop must not request one. No intent
+    // is created, so no money can move.
+    if (!(await isFeatureEnabledForBusiness(businessId, 'deposits'))) {
+      return NextResponse.json({ error: 'Deposits are switched off for this shop.' }, { status: 403 })
+    }
     const settings = await getPosSettings(businessId)
     if (!settings.enabled) return NextResponse.json({ error: 'Payments & POS is disabled' }, { status: 400 })
     if (!stripeConfigured()) {
