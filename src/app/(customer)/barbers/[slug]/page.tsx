@@ -4,6 +4,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -72,6 +73,13 @@ export default async function BarberProfilePage(props: PageProps) {
   })
 
   if (!barber || !barber.isActive) {
+    notFound()
+  }
+
+  // Feature gate: profiles are a public presentation feature. Switching it off hides
+  // the page, and the barber's records, appointments and assignments stay exactly
+  // where they are.
+  if (barber.business && !(await isFeatureEnabledForBusiness(barber.business.id, 'barberProfiles'))) {
     notFound()
   }
 

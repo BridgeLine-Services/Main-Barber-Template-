@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveBusiness, isPublicBusinessDeactivated } from '@/lib/tenant'
 import { startOfDayUTC } from '@/lib/timezone'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import {
   computeQueuePositions,
   entriesAheadOf,
@@ -43,6 +44,15 @@ export async function POST(req: NextRequest) {
   const business = await resolveBusiness().catch(() => null)
   if (!business) {
     return NextResponse.json({ success: false, error: 'Queue unavailable' }, { status: 404 })
+  }
+
+  // Feature gate: a shop with the queue switched off must not accept a public
+  // queue join through the API either, not just hide the button.
+  if (!(await isFeatureEnabledForBusiness(business.id, 'queue'))) {
+    return NextResponse.json(
+      { success: false, error: 'The walk-in queue is turned off for this shop.' },
+      { status: 403 }
+    )
   }
 
   // Gated by the business's own walk-in setting

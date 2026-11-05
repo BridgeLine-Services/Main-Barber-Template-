@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { handleApiError } from '@/lib/api-errors'
 import { toAuditJson } from '@/lib/auth-helpers'
 import type { Prisma } from '@prisma/client'
@@ -14,6 +15,11 @@ export async function GET(request: Request) {
     }
     if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const user = session.user
+    // Feature gate: inventory management is a switch the owner controls, so the
+    // API must honour it. Historical items stay readable for anyone still allowed in.
+    if (!(await isFeatureEnabledForBusiness(user.businessId!, 'inventory'))) {
+      return NextResponse.json({ error: 'Inventory management is turned off for this shop.' }, { status: 403 })
+    }
     if (user.role !== 'OWNER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

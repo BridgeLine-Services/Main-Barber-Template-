@@ -19,6 +19,10 @@
  *
  * Run: npx tsx tests/customer-auth-security.test.ts  (server on :3000)
  */
+// Requires a live server AND RATE_LIMIT_REGISTER_MAX raised (npm run test:auth does
+// this). The suite registers several accounts in one run, and the shipped limit of
+// three per minute makes later assertions receive 429 instead of the code they
+// expect. A 429 here is the limiter working, not an authorization hole.
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
 import { can, capabilitiesOf } from '../src/lib/permissions'

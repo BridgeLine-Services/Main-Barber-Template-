@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { createCampaign, resolveCampaignAudience } from '@/lib/marketing'
 import { CampaignAudience } from '@prisma/client'
 import { handleApiError } from '@/lib/api-errors'
@@ -32,6 +33,11 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (session.user?.role === 'CUSTOMER') return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
     const businessId = session.user?.businessId
+    // Feature gate: marketing campaigns are switched off shop-wide when the
+    // marketing feature is off, including for an owner who can otherwise see it.
+    if (businessId && !(await isFeatureEnabledForBusiness(businessId, 'marketing'))) {
+      return NextResponse.json({ error: 'Marketing is turned off for this shop.' }, { status: 403 })
+    }
     const userId = session.user?.id
     const userRole = session.user?.role
     // Marketing operations (preview AND creation) require OWNER role
