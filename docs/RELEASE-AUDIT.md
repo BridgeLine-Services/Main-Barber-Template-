@@ -45,20 +45,31 @@ Verified after the upgrade: `tsc --noEmit` clean, `next build` clean, `test:ci`
 green, `notification-resilience` 16/16 (real SMTP path), `marketing` 44/44
 (consent and suppression), `session-revocation` 21/21.
 
-**Accepted risk — `@vercel/blob` (4 remaining high):**
+**Resolved — `@vercel/blob` path (previously 4 accepted high):**
 
-The advisories reach us through `@vercel/blob` → `@vercel/oidc` →
-`@vercel/cli-config` → a nested `zod` older than 4.6.6. npm's only offered
-"fix" is to **downgrade** `@vercel/blob` to 2.4.0, which would put the image and
-media upload pipeline (a protected feature) onto an older client to satisfy a
-build-time config parser. That trade is wrong, so it is recorded here instead of
-silently applied:
+The advisories reached us through `@vercel/blob` → `@vercel/oidc` →
+`@vercel/cli-config` → a nested `zod` older than 4.6.6. The condition recorded
+here for revisiting has now been met: `@vercel/cli-config` **0.3.6** is the same
+minor version and requires `zod ^4.6.6`, while the old 0.3.1 pinned `4.1.11`.
 
-- The vulnerable schema lives in Vercel's CLI/config reader, not in our request
-  handling; no caller-supplied payload reaches it.
-- The runtime blob client we use (put/del) does not validate with that schema.
-- Revisit when `@vercel/oidc` ships a version whose `@vercel/cli-config` no
-  longer pins the old `zod`; the upgrade path is then automatic.
+`@vercel/oidc` pins `@vercel/cli-config` to exactly `0.3.1`, so npm cannot pick
+0.3.6 on its own. `package.json` therefore carries a single narrow override:
 
-This is an accepted, understood risk with a named condition for removal — not a
-claim that the dependency tree is clean.
+```json
+"overrides": { "@vercel/cli-config": "0.3.6" }
+```
+
+This is deliberately not the "fix" npm suggested (downgrading `@vercel/blob` to
+2.4.0), which would have moved the media upload pipeline — a protected feature —
+onto an older client to satisfy a config parser.
+
+**Evidence:** `npm audit --omit=dev` → `found 0 vulnerabilities`;
+`npx tsc --noEmit` clean; `npx prisma validate` clean; `npm run lint` 0 errors;
+`npx next build` → "✓ Compiled successfully"; `tests/file-validation.test.ts`
+27/27 and the media upload suite green.
+
+**Residual judgement:** the override moves a transitive dependency one patch
+within the same minor, against a package that pinned its version exactly. If a
+future `@vercel/oidc` release pins a different `@vercel/cli-config`, drop the
+override and take the upgrade.
+

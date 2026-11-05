@@ -125,5 +125,8 @@
     "tsx": "^4.23.12",
     "typescript": "^5.5.4"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "overrides": {
+    "@vercel/cli-config": "0.3.6"
+  }
 }
