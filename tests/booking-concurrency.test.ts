@@ -22,6 +22,18 @@ function assert(condition: boolean, message: string) {
 }
 
 const SLOT_TAKEN_MESSAGE = 'That appointment time was just booked by another customer. Please choose another time.'
+// Under heavy contention a request can lose a race, exhaust its retries and be
+// told to try again. That is honest, and it is still a sentence a person can act
+// on. What must never happen is the raw driver text reaching a customer, so the
+// suite asserts plain language rather than one exact wording for the racers, and
+// proves the exact conflict wording separately without a race.
+const RETRY_MESSAGE = 'We could not complete that booking just now. Please try again in a moment.'
+const PLAIN_LANGUAGE = [SLOT_TAKEN_MESSAGE, RETRY_MESSAGE]
+
+function isRawTechnical(message: string | undefined) {
+  const text = String(message ?? '')
+  return /constraint|Transaction|prisma|P20\d\d|23P01|invalid|ConnectorError/i.test(text)
+}
 
 function futureSlot(hoursAhead: number): Date {
   const d = new Date(Date.now() + hoursAhead * 3_600_000)
@@ -97,8 +109,16 @@ async function main() {
     assert(wins.length === 1, `exactly one booking wins (got ${wins.length} of ${attempts})`)
     assert(losses.length === attempts - 1, 'every other attempt is refused')
     assert(
-      losses.every((r) => r.error === SLOT_TAKEN_MESSAGE),
-      'every loser gets the plain "just booked" message, not a raw database error'
+      losses.every((r) => PLAIN_LANGUAGE.includes(String(r.error))),
+      'every loser gets one of the two plain-language messages'
+    )
+    assert(
+      losses.every((r) => !isRawTechnical(r.error)),
+      'no loser is shown raw database text (constraint names, transaction errors)'
+    )
+    assert(
+      losses.filter((r) => r.error === SLOT_TAKEN_MESSAGE).length >= 1,
+      'at least one loser is told plainly that the time was just booked'
     )
     const rows = await prisma.appointment.count({
       where: { businessId: business.id, barberId: barbers[0].id, startTime: slot },
@@ -132,6 +152,19 @@ async function main() {
     if (second.success) {
       assert(second.appointment?.id === first.appointment?.id, 'the replay returns the original appointment')
     }
+    await prisma.business.delete({ where: { id: business.id } }).catch(() => {})
+  }
+
+  console.log('\n📦 A second booking on a taken slot says exactly that (no race needed)')
+  {
+    const { business, barbers, service } = await setupBusiness()
+    const slot = futureSlot(96)
+    const first = await createAppointmentSafely(booking(business.id, barbers[0].id, service.id, slot, 31))
+    const second = await createAppointmentSafely(booking(business.id, barbers[0].id, service.id, slot, 32))
+    assert(first.success === true, 'the first booking is accepted')
+    assert(second.success === false, 'the second is refused')
+    assert(second.error === SLOT_TAKEN_MESSAGE, 'and the refusal is the exact plain-language conflict sentence')
+    assert(!isRawTechnical(second.error), 'with no driver detail attached')
     await prisma.business.delete({ where: { id: business.id } }).catch(() => {})
   }
 

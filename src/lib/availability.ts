@@ -821,7 +821,15 @@ export async function createAppointmentSafely(params: {
       }
 
       return appointment
-    }, { isolationLevel: 'Serializable' })
+    }, {
+      isolationLevel: 'Serializable',
+      // Room to finish under contention. The default 5 s is enough for a quiet
+      // booking and not for eight people submitting the same slot at once; a
+      // transaction that runs out of time does not double-book anyone, it just
+      // tells a customer "try again" for no reason they can act on.
+      timeout: 15_000,
+      maxWait: 5_000,
+    })
 
     // SERIALIZABLE aborts a transaction it could not order against a concurrent
     // one (P2034). That is not the same thing as a taken slot: a booking for a
@@ -836,8 +844,13 @@ export async function createAppointmentSafely(params: {
         result = await runBooking()
         break
       } catch (error) {
-        if ((error as { code?: string }).code === 'P2034' && attempt < 3) {
-          await new Promise((resolve) => setTimeout(resolve, 25 * attempt))
+        const retryCode = (error as { code?: string }).code
+        // P2034: serialization failure. P2028: the transaction outlived its own
+        // timeout and was rolled back. Both are safe to repeat because neither
+        // committed anything, and both are contention rather than a verdict.
+        const contention = retryCode === 'P2034' || retryCode === 'P2028'
+        if (contention && attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 40 * attempt))
           continue
         }
         throw error

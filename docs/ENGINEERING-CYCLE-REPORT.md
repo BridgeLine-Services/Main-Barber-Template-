@@ -417,7 +417,10 @@ aborts a `SERIALIZABLE` transaction it cannot order against a concurrent one
 straight to "that appointment time was just booked". The test caught it on the
 *harmless* case: two customers booking **different barbers** at the same instant,
 where neither slot was taken, and one was still told the time had gone. Bookings
-now retry up to three times on `P2034` only. A genuine conflict still surfaces
+now retry up to three times on `P2034` only, and the transaction timeout was raised
+from Prisma's 5 s default to 15 s with a 5 s wait, because eight people submitting
+the same slot at once is exactly the load the default was never sized for (CI proved
+it: a 5006 ms transaction killed a request that had done nothing wrong). A genuine conflict still surfaces
 immediately, because `SLOT_TAKEN` is thrown on every attempt and never retried.
 
 **Defect 2 — the raw database error reached the customer.** When two requests did
@@ -436,3 +439,9 @@ refusals for eight simultaneous attempts, every refusal in plain language, exact
 one row on the calendar, two barbers bookable at the same instant, and a replayed
 idempotency key returning the original appointment rather than a duplicate.
 `tests/booking-rules.test.ts` 25/25 and `tests/booking.test.ts` 20/20 unchanged.
+
+The race assertions check the contract, not a stopwatch: exactly one appointment,
+every refusal in one of two plain-language sentences, none containing constraint or
+transaction text, and at least one saying the time was just booked. The exact
+conflict wording is proven by a separate sequential test that needs no race, so a
+slow CI runner cannot turn wording into flakiness.
