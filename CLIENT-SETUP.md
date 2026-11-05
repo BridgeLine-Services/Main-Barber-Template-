@@ -34,3 +34,39 @@ Check the message first and run `npm run db:doctor`. Common causes are a missing
 ## Configuration boundaries
 
 Required deployment variables are connection/authentication values. SMTP, Twilio, Google Business Profile, and cron values are optional integrations. Client-specific business information belongs in database records, not in the master template or committed environment files.
+
+---
+
+## The guided path (recommended, and the one that catches the old failure)
+
+A new deployment used to fail in the same place every time: someone opened the site,
+tried to create the first owner account, and got "Too many attempts" because the
+rate-limit store was never configured. The registration form was the last thing to
+find out. Now the configuration is verified before anyone can reach it.
+
+```bash
+npm run client:setup       # guided, dry run: answers questions, writes nothing
+npm run client:setup -- --apply   # saves the values it collected to .env.local (0600)
+npm run client:preflight   # the gate: exits 0 only if registration would work
+npm run env:doctor         # per-variable status plus database and Redis probes
+```
+
+`client:preflight` refuses to pass unless all of these are true:
+
+1. **Database** — reachable, schema applied (`Business` table exists), no migration left
+   unfinished.
+2. **Session secret** — `NEXTAUTH_SECRET` present and at least 32 characters.
+3. **Public URL** — `NEXTAUTH_URL` set, or derivable from the platform hostname.
+4. **Rate-limit store** — both Upstash values present **and** answering `PING`.
+5. **Environment template** — `.env.example` documents the required variables.
+
+If it fails, it says which item and why, in terms an operator can act on, and prints no
+secret values. Do not open registration while it is failing: the site will answer 503
+to every visitor who tries, which looks like the shop is broken.
+
+### What the wizard will not do
+
+It never overwrites a value that already exists, never rotates `NEXTAUTH_SECRET` or
+`TWO_FACTOR_ENCRYPTION_KEY` (rotating them signs everyone out and invalidates existing
+2FA enrolments), never resets or re-seeds the database, and never enables an optional
+integration you did not ask for. Running it twice is safe.

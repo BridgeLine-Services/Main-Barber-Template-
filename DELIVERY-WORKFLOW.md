@@ -101,3 +101,25 @@ A live client site changes only when its own repository and deployment are delib
 ## Updating the master template
 
 Make improvements on a feature branch, run `npm run test:all`, `npm run typecheck`, `npm run build`, and the smoke test against an isolated preview. Merge only reviewed changes. New client projects may adopt the updated template deliberately; existing client sites remain unchanged until explicitly updated.
+
+---
+
+## Preflight is now a step in the delivery sequence, not an afterthought
+
+Insert these between "configure the environment" and "deploy" for every new shop:
+
+| # | Step | Command | Pass condition |
+| --- | --- | --- | --- |
+| 5a | Guided configuration | `npm run client:setup` | report ends "safe to enable" |
+| 5b | Independent verification | `npm run client:preflight` | exit code 0 |
+| 5c | Store diagnosis | `npm run env:doctor` | Upstash shows `PING succeeded` |
+| 9a | Post-deploy check | `curl -s -o /dev/null -w '%{http_code}' -X POST https://<shop>/api/auth/register -H 'content-type: application/json' -d '{"email":"x"}'` | `400`, **never** `503` |
+
+A `503` from that last request means the deploy cannot rate-limit, so it cannot accept
+a first owner. A `429` means the store is working and the caller simply probed too
+often. A `400` means the limiter passed the request to validation, which is what you
+want before handing the shop over.
+
+Never "fix" a `503` by raising `RATE_LIMIT_REGISTER_MAX` or setting
+`RATE_LIMIT_CI_IN_MEMORY`: the first hides a flood, the second removes the shared
+store in production.

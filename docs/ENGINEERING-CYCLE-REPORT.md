@@ -517,3 +517,56 @@ that way.
 `booking-rules` 25/25 and `booking` 20/20 unchanged. The suite derives each slot's
 instant from its own label, because a slot list that only carries labels can hide
 this class of bug from its own tests.
+
+---
+
+## Registration repair and environment automation — 2026-11-04
+
+### The cause, stated plainly
+
+`src/app/api/auth/register/route.ts` called `checkRateLimit()` and then discarded the
+shared denial, building its own body: `{ error: 'Too many attempts. Please wait a
+minute and try again.' }` with whatever status the limiter returned. The limiter
+correctly returns 503 when the shared store is missing or unreachable. So a deployment
+with no Upstash configuration told the first owner they had tried too many times, when
+they had tried once and the infrastructure was absent.
+
+Two other routes carried the same shape and were corrected with it:
+`api/auth/reset-password` (identical defect) and `api/public/waitlist/claim` (always
+answered 429 regardless of store state).
+
+**Verified on the live deployment** `main-barber-template.vercel.app` on 2026-11-04: a
+registration request with an invalid payload returned
+
+```
+HTTP 503, retry-after: 60
+{"error":"We're temporarily unable to complete this request. Please try again in a minute.","retryAfter":60}
+```
+
+which is the honest answer, and simultaneously proves the store is **not configured in
+that deployment**. Until Upstash is set there, no owner can register — by design, not by
+bug. `npm run client:preflight` reports exactly this in one command.
+
+### What was built
+
+- `src/lib/env-registry.ts` — one declaration for all 52 application variables with
+  category, per-environment requiredness, secret/public status, build/runtime timing,
+  feature conditionality, aliases, documented fallbacks, format validation, acquisition
+  and repair instructions.
+- `src/lib/env-check.ts` — now derives its exported arrays from the registry, removing
+  the second hand-maintained list that had let Redis go missing while remaining
+  mandatory.
+- `scripts/env-doctor.ts`, `scripts/client-preflight.ts`, `scripts/client-setup.ts`,
+  `scripts/generate-env-template.ts` and the `env:check`, `env:doctor`,
+  `env:doctor:deep`, `client:preflight`, `client:setup`, `env:template` commands.
+- `.env.example` regenerated: 32 → 52 variables.
+- `tests/registration-route.test.ts` (23 assertions, calls the real handler) and
+  `tests/env-registry.test.ts` (51 assertions) added to `test:all`, now 40 suites.
+
+### Honest limits
+
+- The Redis check cannot be performed against a *configured* production deployment from
+  here, because no deployment currently has it configured. The probe path itself is
+  exercised in tests against a stub store and against the real endpoint's absence.
+- Stripe test-mode acceptance, Twilio and SMTP live delivery, the CSP nonce in staging,
+  attorney review and an independent accessibility pass remain externally blocked.
