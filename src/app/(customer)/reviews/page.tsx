@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { visualConfigFromContent } from '@/lib/visual-config'
 import { resolveBusiness } from '@/lib/tenant'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { formatFullDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -28,10 +29,14 @@ export default async function ReviewsPage() {
   try {
     business = await resolveBusiness()
     if (business) {
-      reviews = await prisma.review.findMany({
-        where: { businessId: business.id, isPublished: true },
-        orderBy: { createdAt: 'desc' },
-      })
+      // Feature gate: the toggle must hide published reviews from the public site,
+      // not just the dashboard. Records are untouched; only presentation stops.
+      if (await isFeatureEnabledForBusiness(business.id, 'reviews')) {
+        reviews = await prisma.review.findMany({
+          where: { businessId: business.id, isPublished: true },
+          orderBy: { createdAt: 'desc' },
+        })
+      }
     }
   } catch (error) {
     console.error('Failed to load reviews:', error)

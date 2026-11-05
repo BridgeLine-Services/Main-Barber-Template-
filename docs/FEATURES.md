@@ -72,7 +72,7 @@ gate for "master template ready".
 
 ---
 
-## Enforcement status, verified 5 November 2026
+## Enforcement status, verified 5 November 2026 (afternoon revision)
 
 `npm run audit:features` walks `src`, and for every key in `FEATURE_KEYS` reports whether
 any server file both mentions the key and consults the feature layer
@@ -103,3 +103,22 @@ payments, notifications and marketing is exactly the change that breaks working 
 Do not describe these toggles to an owner as disabling the capability. The honest wording
 is that the switch hides the feature from the interface. `onlineBooking` is the only
 toggle that can be described as fully disabling its feature.
+
+Enforced on the server as of this revision, each proven by `tests/feature-enforcement.test.ts`:
+
+- `onlineBooking` — the booking flow was already gated; unchanged.
+- `queue` — a public queue join is refused.
+- `inventory` — creating stock is refused; reading stays open so history remains visible.
+- `marketing` — creating a campaign is refused, checked before the owner test.
+- `ecommerce` — checkout is refused before any order is created.
+- `reviews` — published reviews are no longer presented on the public site.
+- `barberProfiles` — the public profile page returns 404.
+- `reviewRequests` — the cron stops enqueuing new requests; queued ones are untouched.
+
+Still presentation-only, and must not be described to owners as fully switched off:
+customerPortal, gallery, promotions, loyalty, waitlist, analytics, multipleBarbers,
+deposits, pwa, emailNotifications, smsNotifications, onlinePayments, memberships.
+
+That is 8 of 21 enforced, 13 outstanding. The count is deliberately stated as a number
+so it can be checked rather than believed.
+

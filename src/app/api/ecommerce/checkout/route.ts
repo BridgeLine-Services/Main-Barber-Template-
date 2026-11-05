@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { StorefrontError, createOrder } from '@/lib/ecommerce'
 import { z } from 'zod'
 
@@ -37,6 +38,12 @@ export async function POST(request: Request) {
     if (!slug) return NextResponse.json({ error: 'Missing shop slug' }, { status: 400 })
     const business = await prisma.business.findUnique({ where: { slug }, select: { id: true } })
     if (!business) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
+
+    // Feature gate: a shop with its storefront switched off must not take an order
+    // through the API. Nothing is created before this check.
+    if (!(await isFeatureEnabledForBusiness(business.id, 'ecommerce'))) {
+      return NextResponse.json({ error: 'This shop is not taking online orders right now.' }, { status: 403 })
+    }
 
     const parsed = checkoutSchema.safeParse(await request.json().catch(() => null))
     if (!parsed.success) {
