@@ -79,6 +79,27 @@ const rules = [
 ]
 
 
+// Every unauthenticated route that changes something must declare a rate limit.
+// The waitlist claim endpoint took a token and created an appointment for months
+// with no limiter at all, purely because nothing checked. An allowlist keeps the
+// exemption deliberate and explained rather than forgotten.
+const publicRateLimitAllowlist = new Map([
+  [
+    'src/app/api/public/portal/logout/route.ts',
+    "logout only revokes the caller's own session; limiting it could trap a customer in a session they want to end",
+  ],
+])
+
+for (const file of files) {
+  const relative = path.relative(root, file).split(path.sep).join('/')
+  if (!/^src\/app\/api\/public\//.test(relative)) continue
+  const text = fs.readFileSync(file, 'utf8')
+  if (!/export async function POST/.test(text)) continue
+  if (/checkRateLimit|rateLimit\(/.test(text)) continue
+  if (publicRateLimitAllowlist.has(relative)) continue
+  findings.push(`${relative}: public POST route has no rate limit and is not allowlisted`)
+}
+
 for (const file of files) {
   const relative = path.relative(root, file)
   const text = fs.readFileSync(file, 'utf8')

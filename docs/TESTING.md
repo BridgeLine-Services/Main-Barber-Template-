@@ -153,3 +153,11 @@ release; record results per client deployment.
   browser tests. The Architecture Constitution workflow separately enforces
   the architecture rules on every PR. Obsolete runs on the same PR/ref are
   cancelled; neither workflow runs production migrations.
+
+### Architecture: public write routes must be rate limited
+
+`npm run architecture:check` fails if a route under `src/app/api/public/` exports
+`POST` without calling `checkRateLimit`, unless the path is in the script's
+allowlist with a stated reason (`portal/logout` is the only one). This exists
+because the waitlist claim endpoint, which converts a token into a real
+appointment, shipped with no limiter and nothing noticed.

@@ -3,9 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { createAppointmentSafely } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // This endpoint takes a claim token and turns it into a real appointment, so
+    // it is the one unauthenticated route where guessing has a prize. Every
+    // sibling public route was limited; this one was not.
+    const limited = await checkRateLimit(request, 'waitlist-claim', RATE_LIMITS.CUSTOMER_ACTION)
+    if (limited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many attempts. Please try again in a minute.' },
+        { status: 429 }
+      )
+    }
+
   // Soft-deactivated shops do not accept public activity
   if (await isPublicBusinessDeactivated()) {
     return NextResponse.json(

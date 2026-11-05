@@ -445,3 +445,41 @@ every refusal in one of two plain-language sentences, none containing constraint
 transaction text, and at least one saying the time was just booked. The exact
 conflict wording is proven by a separate sequential test that needs no race, so a
 slow CI runner cannot turn wording into flakiness.
+
+---
+
+## 13. One public endpoint where guessing had a prize
+
+**Files:** `src/app/api/public/waitlist/claim/route.ts`,
+`scripts/check-template-architecture.mjs`
+
+I audited every unauthenticated route that changes something and found that nine
+of the ten had a rate limit and one did not: **waitlist claim**. It is the most
+consequential one to leave open. It takes a claim token and turns it into a real
+appointment, so an unlimited attempt rate is a token-guessing budget against other
+people's bookings, and every guess that lands books a slot. It now shares the
+customer-action budget (10 requests a minute) with its siblings and answers 429 in
+plain language.
+
+**Why it was open.** Nothing checked. A one-off audit fixes today and not
+tomorrow, so the architecture check now fails the build when a route under
+`src/app/api/public/` exports `POST` without calling `checkRateLimit`. Exemptions
+live in an explicit allowlist with a stated reason, and there is exactly one:
+`portal/logout`, because limiting a logout could trap a customer inside a session
+they are trying to end, and it only ever revokes the caller's own session.
+
+I do not trust a guard I have not seen fail, so I added a throwaway public route
+with no limiter and confirmed the check rejects it, then removed it.
+
+**Tenant isolation, audited and unchanged.** I swept all 40 writes that target a
+record by id in `src/app/api`. Every dashboard write resolves the record through a
+`businessId`-scoped lookup first, and the one unauthenticated id-based write
+(waitlist claim) is token-scoped with a conditional update so simultaneous claims
+are first-wins. Nothing needed changing; the finding worth recording is that this
+held under inspection.
+
+The E2E booking endpoint also earned a second look, because a route that writes
+real appointments should not ship to a client: it is gated on session, role,
+`NODE_ENV`, `VERCEL_ENV` and an explicit `ENABLE_E2E_TESTS` flag, and
+`prepare-client-copy.sh --strip-tests` removes the whole `src/app/api/test` tree
+from a client copy. Left as is.
