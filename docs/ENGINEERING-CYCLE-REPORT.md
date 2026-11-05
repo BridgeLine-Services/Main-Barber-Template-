@@ -314,3 +314,48 @@ false rather than crash a page. Development keeps the convenience fallback.
 wrong business, garbage, empty, modified signature, re-signed-looking payload,
 eleven-minute-old state, and a state signed with the public development key
 rejected even though one is never used in a configured deployment.
+
+---
+
+## 10. The rate limiter could be told its own key
+
+**Files:** `src/lib/rate-limit.ts`, `tests/rate-limit-outcomes.test.ts`,
+`tests/rate-limit-ip.test.ts`, `.github/workflows/ci.yml`
+
+**Problem.** `getClientIP()` read `x-real-ip` unconditionally. On Vercel that
+header is written by the platform and is trustworthy. Anywhere else it is an
+ordinary request header the caller controls, so anyone could send a different
+value per attempt and receive a **fresh rate-limit bucket each time** — which
+turns "three registrations per minute" into no limit at all. The directive asked
+for exactly this (`5.1`/`2.1 C`: do not trust forwarded headers outside a trusted
+proxy), and the old unit test asserted the insecure behaviour as correct.
+
+**Change.** Trust is now explicit: `VERCEL === '1'`, or `RATE_LIMIT_TRUST_PROXY
+=== 'true'` for a self-hosted deployment behind its own proxy. With neither set,
+forwarding headers are ignored and the caller lands in the shared `unknown`
+bucket. That direction is deliberate — unidentifiable callers get *fewer* chances,
+never more.
+
+**Second defect, found by the tests.** `isValidAddress()` was a character
+allowlist (`^[0-9a-fA-F:.]+$`), so `999.999.999.999` passed as an address. It now
+uses Node's `isIP()`, which accepts real IPv4 and IPv6 only.
+
+**Behaviour left alone:** `unknown` is still one shared bucket rather than one per
+visitor. Handing each unidentified caller their own bucket would be the bypass
+this change closes.
+
+**Tests:** `tests/rate-limit-ip.test.ts` (19) — headers ignored with no proxy
+trusted, honoured on Vercel, closest hop chosen, IPv6 reported as-is, garbage,
+empty, whitespace, oversized and out-of-range values rejected, bad primary with a
+good fallback still resolving, the opt-in requiring exactly `true`, and two
+unidentifiable callers sharing one bucket. `tests/rate-limit-outcomes.test.ts`
+updated: it previously asserted that a bare `x-real-ip` is used, which was the
+vulnerability; it now asserts both the ignored case and the trusting case (23
+passing). CI's e2e job sets `RATE_LIMIT_TRUST_PROXY=true` because four suites act
+as several visitors by sending those headers.
+
+**Verification gap, stated plainly:** the HTTP suites that exercise this through a
+running server (`customer-password-reset`, `staff-invitations`) could not be
+verified against my ad-hoc local server — I started it with `APP_MODE=demo`, which
+does not return development reset links. CI runs them with the job configuration
+below and is the gate that counts here.

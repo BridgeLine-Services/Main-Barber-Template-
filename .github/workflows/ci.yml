@@ -133,6 +133,10 @@ jobs:
       # value. A fixed test token, not a credential: it exists so the STOP/START
       # signature path is exercised without a Twilio account.
       TWILIO_AUTH_TOKEN: test-twilio-auth-token
+      # The suites below act as several different visitors by sending forwarding
+      # headers. Those headers are ignored unless a proxy is trusted, so the test
+      # environment opts in explicitly — production relies on Vercel's.
+      RATE_LIMIT_TRUST_PROXY: 'true'
     services:
       postgres:
         image: postgres:15

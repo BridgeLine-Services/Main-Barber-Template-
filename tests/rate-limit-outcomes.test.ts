@@ -55,7 +55,16 @@ console.log('--- allowed requests ---')
 console.log('--- client IP ---')
 {
   const mk = (headers: Record<string, string>) => new Request('http://localhost/api/x', { headers })
-  assert(getClientIP(mk({ 'x-real-ip': '203.0.113.9' })) === '203.0.113.9', 'a valid x-real-ip is used')
+  // Forwarding headers are only trusted where a proxy sets them. Outside that,
+  // honouring them would let a caller choose their own rate-limit bucket.
+  assert(getClientIP(mk({ 'x-real-ip': '203.0.113.9' })) === 'unknown', 'x-real-ip is ignored when no proxy is trusted')
+  {
+    const savedProxy = process.env.RATE_LIMIT_TRUST_PROXY
+    process.env.RATE_LIMIT_TRUST_PROXY = 'true'
+    assert(getClientIP(mk({ 'x-real-ip': '203.0.113.9' })) === '203.0.113.9', 'a valid x-real-ip is used by a trusting deployment')
+    if (savedProxy === undefined) delete process.env.RATE_LIMIT_TRUST_PROXY
+    else process.env.RATE_LIMIT_TRUST_PROXY = savedProxy
+  }
   assert(getClientIP(mk({ 'x-real-ip': 'not-an-ip' })) === 'unknown', 'a malformed address is rejected rather than echoed')
   assert(getClientIP(mk({ 'x-real-ip': '' })) === 'unknown', 'an empty header is rejected')
   assert(getClientIP(mk({ 'x-real-ip': 'x'.repeat(200) })) === 'unknown', 'an over-long header is rejected')

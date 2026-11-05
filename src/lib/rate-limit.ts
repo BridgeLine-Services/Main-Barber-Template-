@@ -1,3 +1,4 @@
+import { isIP } from 'node:net'
 import { NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
@@ -108,7 +109,19 @@ export async function isRateLimited(key: string, config: RateLimitConfig): Promi
   return !result.allowed
 }
 
+/**
+ * Forwarding headers are only trustworthy when something in front of the app
+ * sets them. On Vercel that is the platform. Anywhere else they are ordinary
+ * request headers the caller controls, and honouring them would hand out a
+ * fresh rate-limit bucket for every attempt — an unlimited number of tries.
+ * A self-hosted deployment behind a proxy opts in with RATE_LIMIT_TRUST_PROXY.
+ */
+function trustsProxyHeaders(): boolean {
+  return process.env.VERCEL === '1' || process.env.RATE_LIMIT_TRUST_PROXY === 'true'
+}
+
 export function getClientIP(req: Request): string {
+  if (!trustsProxyHeaders()) return 'unknown'
   const realIP = req.headers.get('x-real-ip')?.trim()
   if (realIP && isValidAddress(realIP)) return realIP
   if (process.env.VERCEL === '1') {
@@ -120,7 +133,10 @@ export function getClientIP(req: Request): string {
 }
 
 function isValidAddress(value: string): boolean {
-  return value.length <= 128 && /^[0-9a-fA-F:.]+$/.test(value)
+  const candidate = value.trim()
+  // Exact validation, not a character allowlist: '999.999.999.999' matches the
+  // shape of an address, and a key that is not an address is still a bucket.
+  return candidate.length <= 128 && isIP(candidate) !== 0
 }
 
 export interface RateLimitDenial {

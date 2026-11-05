@@ -71,9 +71,12 @@ email-optout (unsubscribe link works, preview/`GET` changes nothing, tampered
 and expired links refused, cross-business payload blocked, unsubscribed
 customers skipped, postal address and unsubscribe link present in every
 marketing email, sending blocked without a postal address), and
-dashboard-smoke (see the E2E list below), and oauth-state-signing (Google
+dashboard-smoke (see the E2E list below), oauth-state-signing (Google
 Business OAuth state: round trip, wrong user/business refused, tampering and
-replay refused, ten-minute expiry, and the public development key rejected).
+replay refused, ten-minute expiry, and the public development key rejected), and rate-limit-ip
+(forwarding headers trusted only behind Vercel or with
+`RATE_LIMIT_TRUST_PROXY=true`, malformed and out-of-range addresses rejected,
+IPv6 accepted, and unidentifiable callers sharing one bucket deliberately).
 
 Run the full set locally: start `npm run dev`, then `npm run test:all`.
 
