@@ -91,3 +91,26 @@ and simply were not written down, and because "every remaining point is attribut
 rows above" only holds when the rows are complete. It is not 100% and must not be described
 as production-ready until the live deployment registers a first owner and the provider
 acceptances have actually run.
+
+## 7. Commercial hosting and repository protection
+
+Both are release blockers that no code change closes, and both need explicit owner
+authorization before anything is touched.
+
+**Hosting.** The project runs on a Vercel Hobby plan. Hobby is for personal, non-commercial
+projects and does not permit commercial use, so every client deployment must sit on a paid
+plan (Pro, or the client's own team). This is a billing decision, not an engineering one,
+and nothing in this repository upgrades it automatically.
+
+**Repository protection.** The master repository is public and the LICENSE is a structural
+framework awaiting attorney approval. Before the first client deployment the operator
+should, with the owner's authorization:
+
+1. Make the repository private (GitHub → Settings → General → Danger Zone).
+2. Protect `main`: require a pull request, require the `Validate template` and
+   `Architecture Constitution` checks to pass, disallow force pushes, disallow deletion.
+3. Keep a recoverable master: tag each release (`git tag -a v0.x -m ...`) and never let a
+   client repository become the upstream for another client.
+
+None of these change application behaviour, and none should be done silently: making a
+public repository private changes who can find it.
