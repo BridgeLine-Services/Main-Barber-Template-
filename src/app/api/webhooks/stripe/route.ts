@@ -13,6 +13,9 @@ import { verifyStripeSignature } from '@/lib/payments/providers/stripe-client'
 import { canTransition, transitionError } from '@/lib/payments'
 import { prisma } from '@/lib/prisma'
 
+/** How long a claim may sit in PROCESSING before another delivery takes it over. */
+const STALE_CLAIM_MS = 5 * 60 * 1000
+
 export async function POST(request: Request) {
   if (!process.env.STRIPE_WEBHOOK_SECRET?.trim()) {
     return NextResponse.json({ error: 'Stripe webhook is not configured (STRIPE_WEBHOOK_SECRET is missing)' }, { status: 503 })
@@ -38,14 +41,28 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true, duplicate: true })
       }
       if (existing?.status === 'PROCESSING') {
-        return NextResponse.json({ error: 'Webhook is already processing' }, { status: 409 })
-      }
-      const reclaimed = await prisma.stripeEvent.updateMany({
-        where: { eventId, status: 'FAILED' },
-        data: { status: 'PROCESSING', failedAt: null, failure: null },
-      })
-      if (reclaimed.count !== 1) {
-        return NextResponse.json({ error: 'Webhook claim unavailable' }, { status: 409 })
+        // A delivery whose process died mid-handler leaves the row PROCESSING
+        // with nothing to move it on. Every later Stripe retry would then get a
+        // 409 for as long as Stripe keeps trying (three days), and the event
+        // would be lost for good. PROCESSING is therefore a lease, not a lock:
+        // a claim older than STALE_CLAIM_MS is taken over. The update is
+        // conditional on the row still being that old, so two retries racing
+        // each other cannot both win, and every handler below is idempotent.
+        const reclaimedStale = await prisma.stripeEvent.updateMany({
+          where: { eventId, status: 'PROCESSING', processedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } },
+          data: { processedAt: new Date(), failedAt: null, failure: null },
+        })
+        if (reclaimedStale.count !== 1) {
+          return NextResponse.json({ error: 'Webhook is already processing' }, { status: 409 })
+        }
+      } else {
+        const reclaimed = await prisma.stripeEvent.updateMany({
+          where: { eventId, status: 'FAILED' },
+          data: { status: 'PROCESSING', failedAt: null, failure: null, processedAt: new Date() },
+        })
+        if (reclaimed.count !== 1) {
+          return NextResponse.json({ error: 'Webhook claim unavailable' }, { status: 409 })
+        }
       }
     }
 
@@ -118,6 +135,10 @@ export async function POST(request: Request) {
 
     if (!payment) {
       // Not ours (or missing metadata) — acknowledge so Stripe stops retrying.
+      // The claim is settled rather than left in PROCESSING: a row that stays
+      // in flight forever misreports what happened, and this event is finished
+      // work, not abandoned work.
+      await prisma.stripeEvent.update({ where: { eventId }, data: { status: 'COMPLETED', processedAt: new Date() } })
       return NextResponse.json({ received: true, ignored: true })
     }
 

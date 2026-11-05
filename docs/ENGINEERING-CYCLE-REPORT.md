@@ -359,3 +359,41 @@ running server (`customer-password-reset`, `staff-invitations`) could not be
 verified against my ad-hoc local server — I started it with `APP_MODE=demo`, which
 does not return development reset links. CI runs them with the job configuration
 below and is the gate that counts here.
+
+---
+
+## 11. A crashed Stripe delivery lost the event permanently
+
+**Files:** `src/app/api/webhooks/stripe/route.ts`,
+`tests/stripe-event-claim.test.ts`
+
+**Problem.** Every Stripe delivery claims its event by inserting a row with status
+`PROCESSING`, and any later delivery of the same event id is answered with **409
+"already processing"**. That is right for a genuine concurrent delivery and wrong
+for a crash: if the process dies between the claim and the completion, nothing
+moves the row on, so every one of Stripe's retries (three days of them) gets 409
+and the payment, membership, gift card or order is never applied. The claim was a
+lock with no expiry.
+
+**Change.** `PROCESSING` is now a lease. A claim older than five minutes can be
+taken over, and the takeover is an `updateMany` conditional on the row still being
+older than that, so two retries racing each other cannot both win. This is safe
+because every handler downstream is already idempotent or transition-guarded,
+which was proven separately.
+
+**Second defect, found while testing the first.** Events the route deliberately
+ignores (not ours, or no `paymentId` in metadata) returned 200 but left their row
+in `PROCESSING` forever — finished work reported as in-flight. They are now settled
+to `COMPLETED`.
+
+**Tests:** `tests/stripe-event-claim.test.ts` (13) drives the real route with real
+HMAC signatures: a fresh claim is refused with 409 and left untouched, a ten-minute
+old claim is taken over and completed, four minutes is still in flight, six minutes
+is takeover-able, `FAILED` is reclaimable at any age, a completed duplicate is
+acknowledged as a duplicate, and unsigned or forged deliveries are refused without
+creating a row. `tests/payments.test.ts` still passes 70/70.
+
+**Not covered, and I will not pretend otherwise:** this is not Stripe test-mode
+acceptance. It proves the claim logic and the signature gate; it does not prove a
+real renewal invoice, a real refund, or a real gift-card purchase settles
+correctly. That still needs test-mode credentials and events from Stripe itself.
