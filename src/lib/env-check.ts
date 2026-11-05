@@ -4,6 +4,11 @@
 // Used by health check and deployment verification.
 // ============================================================================
 
+import { ENV_REGISTRY, evaluateAll, isPresent, type EnvVarSpec } from './env-registry'
+
+type EnvCategory_ = EnvVarSpec['category']
+type LegacyCategory = 'CORE' | 'OPTIONAL_FEATURE' | 'INTERNAL' | 'DEVELOPMENT_ONLY'
+
 export interface EnvCheckResult {
   variable: string
   set: boolean
@@ -23,43 +28,41 @@ export interface FeatureConfig {
   missing: string[]
 }
 
-export const REQUIRED_ENV_VARS = [
-  { variable: 'DATABASE_URL', description: 'PostgreSQL connection string', category: 'CORE' as const, secret: true },
-  { variable: 'NEXTAUTH_SECRET', description: 'NextAuth session encryption secret', category: 'CORE' as const, secret: true },
-  { variable: 'NEXTAUTH_URL', description: 'Public URL of the deployment', category: 'CORE' as const, secret: false },
-  { variable: 'NEXT_PUBLIC_APP_URL', description: 'Public URL used for canonical links and metadata', category: 'CORE' as const, secret: false },
-  { variable: 'NEXT_PUBLIC_APP_NAME', description: 'Public application name', category: 'CORE' as const, secret: false },
-]
+// The lists below are DERIVED from the one environment registry. They used to be
+// maintained by hand, which is how Redis came to be mandatory in production while
+// being absent from the inventory, why the retired provisioning token still
+// appeared in it, and why a whitespace-only value counted as configured.
+const legacyCategory = (category: EnvCategory_): LegacyCategory => {
+  switch (category) {
+    case 'CORE': case 'SECURITY': case 'DATABASE': case 'STORAGE': case 'TENANT_CONFIGURATION':
+      return 'CORE'
+    case 'INTERNAL': case 'DEVELOPMENT_ONLY': case 'PLATFORM_MANAGED': case 'RETIRED':
+      return 'INTERNAL'
+    default:
+      return 'OPTIONAL_FEATURE'
+  }
+}
 
-export const OPTIONAL_ENV_VARS = [
-  { variable: 'EMAIL_ENABLED', description: 'Enable email notifications', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'SMTP_HOST', description: 'Email server host', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'SMTP_PORT', description: 'Email server port', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'SMTP_USER', description: 'Email server username', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'SMTP_PASS', description: 'Email server password', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'email' as const },
-  { variable: 'SMTP_FROM', description: 'From email address for notifications', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'CONTACT_EMAIL', description: 'Recipient for public contact-form submissions (falls back to SMTP_USER)', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'email' as const },
-  { variable: 'SMS_ENABLED', description: 'Enable SMS notifications', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'sms' as const },
-  { variable: 'TWILIO_ACCOUNT_SID', description: 'Twilio account SID', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'sms' as const },
-  { variable: 'TWILIO_AUTH_TOKEN', description: 'Twilio authentication token', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'sms' as const },
-  { variable: 'TWILIO_PHONE_NUMBER', description: 'Twilio sender phone number', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'sms' as const },
-  { variable: 'GOOGLE_ENABLED', description: 'Enable Google Business integration', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
-  { variable: 'GOOGLE_CLIENT_ID', description: 'Google OAuth client ID', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
-  { variable: 'GOOGLE_CLIENT_SECRET', description: 'Google OAuth client secret', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'google' as const },
-  { variable: 'GBP_ACCESS_TOKEN', description: 'Google Business Profile access token', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'google' as const },
-  { variable: 'GBP_REFRESH_TOKEN', description: 'Google Business Profile refresh token', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'google' as const },
-  { variable: 'GBP_ACCOUNT_ID', description: 'Google Business Profile account ID', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
-  { variable: 'GBP_LOCATION_ID', description: 'Google Business Profile location ID', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'google' as const },
-  { variable: 'REMINDERS_ENABLED', description: 'Enable scheduled reminders', category: 'OPTIONAL_FEATURE' as const, secret: false, feature: 'reminders' as const },
-  { variable: 'OBSERVABILITY_WEBHOOK_URL', description: 'Webhook that receives forwarded production error events (Sentry/Better Stack/Datadog relay)', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'observability' as const },
-  { variable: 'CRON_SECRET', description: 'Secret for protecting cron job endpoints', category: 'OPTIONAL_FEATURE' as const, secret: true, feature: 'reminders' as const },
-]
+const toLegacy = (spec: EnvVarSpec) => ({
+  variable: spec.name,
+  description: spec.description,
+  category: legacyCategory(spec.category),
+  secret: spec.secret,
+  ...(spec.feature && spec.feature !== 'rateLimit' && spec.feature !== 'payments' && spec.feature !== 'storage' && spec.feature !== 'twoFactorPolicy'
+    ? { feature: spec.feature as FeatureName }
+    : {}),
+})
 
-export const INTERNAL_ENV_VARS = [
-  { variable: 'SINGLE_BUSINESS_ID', description: 'Configured tenant for a single-business deployment', category: 'INTERNAL' as const, secret: false },
-  { variable: 'OWNER_PROVISIONING_TOKEN', description: 'Secret required to create owner accounts (provisioning)', category: 'INTERNAL' as const, secret: true },
-  { variable: 'APP_MODE', description: 'Demo or production runtime mode', category: 'INTERNAL' as const, secret: false },
-]
+export const REQUIRED_ENV_VARS = ENV_REGISTRY.filter((s) => !s.retired && !s.platformManaged && s.requiredIn.length > 0).map(toLegacy)
+
+export const OPTIONAL_ENV_VARS = ENV_REGISTRY.filter(
+  (s) => !s.retired && !s.platformManaged && s.requiredIn.length === 0
+    && !['INTERNAL', 'DEVELOPMENT_ONLY'].includes(s.category)
+).map(toLegacy)
+
+export const INTERNAL_ENV_VARS = ENV_REGISTRY.filter(
+  (s) => !s.retired && !s.platformManaged && s.requiredIn.length === 0 && ['INTERNAL', 'DEVELOPMENT_ONLY'].includes(s.category)
+).map(toLegacy)
 
 const FEATURE_REQUIREMENTS: Record<FeatureName, string[]> = {
   email: ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'],
@@ -82,14 +85,14 @@ export function getFeatureConfig(feature: FeatureName): FeatureConfig {
   // Observability has no separate *_ENABLED flag: setting the webhook URL
   // is what turns error forwarding on.
   if (feature === 'observability') {
-    const enabled = !!process.env.OBSERVABILITY_WEBHOOK_URL?.trim()
+    const enabled = isPresent(process.env.OBSERVABILITY_WEBHOOK_URL)
     return { enabled, configured: enabled, missing: [] as string[] }
   }
   const flag = feature === 'email' ? 'EMAIL_ENABLED'
     : feature === 'sms' ? 'SMS_ENABLED'
       : feature === 'google' ? 'GOOGLE_ENABLED' : 'REMINDERS_ENABLED'
   const enabled = isFeatureEnabled(flag)
-  const missing = enabled ? FEATURE_REQUIREMENTS[feature].filter((name) => !process.env[name]?.trim()) : []
+  const missing = enabled ? FEATURE_REQUIREMENTS[feature].filter((name) => !isPresent(process.env[name])) : []
   return { enabled, configured: missing.length === 0, missing }
 }
 
@@ -101,18 +104,24 @@ export function checkEnvironment(): {
   const results: EnvCheckResult[] = []
   const missing: string[] = []
 
+  // Evaluate the EFFECTIVE configuration: aliases and documented fallbacks
+  // count, whitespace does not, and a malformed value is reported as missing
+  // because the deployment will fail on first use either way.
+  const evaluations = new Map(evaluateAll().map((e) => [e.spec.name, e]))
+
   for (const { variable, description, category, secret } of REQUIRED_ENV_VARS) {
-    const isSet = !!process.env[variable]
+    const evaluation = evaluations.get(variable)
+    const isSet = evaluation ? evaluation.status === 'CONFIGURED' || evaluation.status === 'VERIFIED' || evaluation.status === 'WARNING' : isPresent(process.env[variable])
     results.push({ variable, set: isSet, required: true, description, category, secret })
     if (!isSet) missing.push(variable)
   }
 
   for (const { variable, description, category, secret, feature } of OPTIONAL_ENV_VARS) {
-    results.push({ variable, set: !!process.env[variable], required: false, description, category, secret, feature })
+    results.push({ variable, set: isPresent(process.env[variable]), required: false, description, category, secret, feature })
   }
 
   for (const { variable, description, category, secret } of INTERNAL_ENV_VARS) {
-    results.push({ variable, set: !!process.env[variable], required: false, description, category, secret })
+    results.push({ variable, set: isPresent(process.env[variable]), required: false, description, category, secret })
   }
 
   return {

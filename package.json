@@ -59,7 +59,7 @@
     "test:daily-operations": "npx tsx tests/daily-operations.test.ts",
     "test:marketing": "npx tsx tests/marketing.test.ts",
     "test:calendar-export": "npx tsx tests/calendar-export.test.ts",
-    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:files && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:calendar-export && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue && npm run test:commissions && npm run test:time-clock && npm run test:payroll && npm run test:gift-cards && npm run test:memberships && npm run test:memberships-renewals && npm run test:ecommerce && npm run test:owner-registration && npx tsx tests/image-roles.test.ts && npx tsx tests/session-revocation.test.ts && npx tsx tests/unsubscribe-flow.test.ts && npx tsx tests/rate-limit-store-health.test.ts && npx tsx tests/session-devices.test.ts && npx tsx tests/twilio-consent.test.ts && npx tsx tests/email-optout.test.ts && npx tsx tests/oauth-state-signing.test.ts && npx tsx tests/rate-limit-ip.test.ts && npx tsx tests/stripe-event-claim.test.ts && npx tsx tests/booking-concurrency.test.ts && npx tsx tests/timezone-dst.test.ts",
+    "test:all": "npm run architecture:check && npm run test:architecture && npm run test:files && npm run test:tenant && npm run test:booking && npm run test:permissions && npm run test:reliability && npm run test:cancellation-fill && npm run test:customer-history && npm run test:daily-operations && npm run test:marketing && npm run test:calendar-export && npm run test:factory-readiness && npm run test:factory-launch && npm run test:barber-mode && npm run test:specialty && npm run test:portfolio && npm run test:queue && npm run test:commissions && npm run test:time-clock && npm run test:payroll && npm run test:gift-cards && npm run test:memberships && npm run test:memberships-renewals && npm run test:ecommerce && npm run test:owner-registration && npx tsx tests/image-roles.test.ts && npx tsx tests/session-revocation.test.ts && npx tsx tests/unsubscribe-flow.test.ts && npx tsx tests/rate-limit-store-health.test.ts && npx tsx tests/session-devices.test.ts && npx tsx tests/twilio-consent.test.ts && npx tsx tests/email-optout.test.ts && npx tsx tests/oauth-state-signing.test.ts && npx tsx tests/rate-limit-ip.test.ts && npx tsx tests/stripe-event-claim.test.ts && npx tsx tests/booking-concurrency.test.ts && npx tsx tests/timezone-dst.test.ts && npx tsx tests/env-registry.test.ts && npx tsx tests/registration-route.test.ts",
     "db:apply-rls": "tsx scripts/apply-rls.ts",
     "db:rls-status": "tsx scripts/rls-status.ts",
     "client:independence": "tsx scripts/client-independence.ts",
@@ -72,7 +72,12 @@
     "test:a11y": "playwright test accessibility.spec.ts",
     "e2e:install-browsers": "playwright install chromium",
     "db:backup": "tsx scripts/backup.ts",
-    "db:backup-verify": "tsx scripts/backup.ts --verify"
+    "db:backup-verify": "tsx scripts/backup.ts --verify",
+    "env:check": "npx tsx scripts/env-doctor.ts --check",
+    "env:doctor": "npx tsx scripts/env-doctor.ts",
+    "env:doctor:deep": "npx tsx scripts/env-doctor.ts --deep",
+    "client:preflight": "npx tsx scripts/client-preflight.ts",
+    "env:template": "npx tsx scripts/generate-env-template.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
@@ -128,5 +133,8 @@
   "license": "UNLICENSED",
   "overrides": {
     "@vercel/cli-config": "0.3.6"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
