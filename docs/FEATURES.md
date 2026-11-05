@@ -72,7 +72,7 @@ gate for "master template ready".
 
 ---
 
-## Enforcement status, verified 5 November 2026 (late revision)
+## Enforcement status, verified 5 November 2026 (final revision)
 
 `npm run audit:features` walks `src`, and for every key in `FEATURE_KEYS` reports whether
 any server file both mentions the key and consults the feature layer
@@ -127,16 +127,15 @@ Enforced on the server as of this revision, each proven by `tests/feature-enforc
   did not go out.
 
 Still presentation-only, and must not be described to owners as fully switched off:
-- `waitlist` — no separate enforcement point exists. Waitlist behaviour today runs through
-  the walk-in queue, which is gated by `queue`. Treating this key as enforced would be
-  a claim without a mechanism.
-- `promotions` — appears nowhere but the feature registry. There is no implementation to
-  switch off, so the toggle currently does nothing. Do not offer it to owners as a
-  working feature.
-- `pwa` — the manifest and install prompt are presentation. Refusing the manifest would
-  break the site rather than disable a capability.
+- `waitlist` — claiming an opening is refused; the waitlist entry is left in place so the
+  owner still sees it.
+- `pwa` — the manifest stops being installable (no icons, `display: browser`). The site
+  itself is unaffected.
 
-That is 16 of 21 enforced by a server check, 1 governed by another key, 2 with no
-mechanism, and 2 presentation-only — counted honestly rather than rounded up. The count is deliberately stated as a number
+`promotions` has been removed. Nothing in the application implemented it, so the toggle
+could not do anything, and a switch that does nothing is worse than no switch: an owner
+turns it off and believes something changed.
+
+That is 20 of 20 enforced by a server check, with no presentation-only keys left. The count is deliberately stated as a number
 so it can be checked rather than believed.
 

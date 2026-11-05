@@ -40,6 +40,8 @@ const GUARDED: Array<[string, string]> = [
   ['src/app/api/dashboard/payments/intent/route.ts', 'deposits'],
   ['src/app/api/public/portal/lookup/route.ts', 'customerPortal'],
   ['src/lib/notification-worker.ts', 'smsNotifications'],
+  ['src/app/api/public/waitlist/claim/route.ts', 'waitlist'],
+  ['src/app/manifest.ts', 'pwa'],
 ]
 
 async function main() {
