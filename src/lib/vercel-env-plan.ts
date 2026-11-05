@@ -39,6 +39,13 @@ export interface PlanInput {
   local: Record<string, string | undefined>
   /** Environments this deployment must cover. Production shops need both. */
   requiredTargets?: VercelTarget[]
+  /**
+   * Integrations the operator switched on for THIS deployment (email, sms, ...).
+   * Their variables are required here even though the registry marks them
+   * optional: a shop that has enabled SMS cannot be reported ready while its
+   * Twilio values are still missing.
+   */
+  enabledFeatures?: string[]
 }
 
 const isPresent = (value: string | undefined): boolean => Boolean(value && value.trim())
@@ -66,7 +73,13 @@ export function planVercelSync(input: PlanInput): SyncPlan {
       continue
     }
 
-    const wantsHere = spec.requiredIn.some((env) => requiredTargets.includes(env as VercelTarget))
+    const requiredByTarget = spec.requiredIn.some((env) => requiredTargets.includes(env as VercelTarget))
+    // A feature-gated variable becomes required when its feature is on. The
+    // planner used to read only requiredIn, so enabling email or SMS in the
+    // wizard left those variables classified as unnecessary and the shop could
+    // be pronounced ready with dead notifications.
+    const requiredByFeature = Boolean(spec.feature) && (input.enabledFeatures ?? []).includes(String(spec.feature))
+    const wantsHere = requiredByTarget || requiredByFeature
     const remote = remoteByName.get(spec.name)
 
     if (!wantsHere) {
@@ -140,4 +153,34 @@ export function describePlan(plan: SyncPlan): string[] {
   }
   if (lines.length === 0) lines.push('  nothing to do')
   return lines
+}
+
+
+export interface DeployDecision {
+  deploy: boolean
+  reason: string
+}
+
+/**
+ * Whether to run `vercel --prod` after a sync.
+ *
+ * This exists because the wizard wrote `if (redeploy && confirm('Deploy now?'))`.
+ * confirm() returns a Promise, a Promise is always truthy, and so answering "No"
+ * deployed anyway — the one thing a confirmation prompt must never do.
+ */
+export function shouldDeploy(input: {
+  requested: boolean
+  assumeYes: boolean
+  confirmed: boolean
+  checksPassed: boolean
+}): DeployDecision {
+  if (!input.requested) return { deploy: false, reason: 'Redeploy not requested.' }
+  if (input.assumeYes) {
+    return { deploy: false, reason: 'Redeploy needs an explicit answer, so --yes never deploys. Run without --yes to be asked.' }
+  }
+  if (!input.checksPassed) {
+    return { deploy: false, reason: 'Not deploying: the environment still does not match. Fix that first, then redeploy.' }
+  }
+  if (!input.confirmed) return { deploy: false, reason: 'Redeploy declined.' }
+  return { deploy: true, reason: 'Deploying.' }
 }

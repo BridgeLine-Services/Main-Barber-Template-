@@ -11,14 +11,18 @@
  */
 
 import { ENV_REGISTRY } from '../src/lib/env-registry'
-import { describePlan, planVercelSync, type RemoteVar } from '../src/lib/vercel-env-plan'
+import { describePlan, planVercelSync, shouldDeploy, type RemoteVar } from '../src/lib/vercel-env-plan'
 
 let passed = 0
 let failed = 0
+const needsValue = (plan: ReturnType<typeof planVercelSync>) => plan.needsValue
 function assert(condition: boolean, message: string) {
-  if (condition) { console.log(`  ✅ ${message}`); passed++ }
+  if (condition) {
+
+console.log(`  ✅ ${message}`); passed++ }
   else { console.error(`  ❌ ${message}`); failed++ }
 }
+const assertTrue = assert
 
 const REQUIRED_IN_PROD = ENV_REGISTRY.filter((s) => s.requiredIn.includes('production'))
 const names = (plan: ReturnType<typeof planVercelSync>, kind: string) =>
@@ -105,6 +109,43 @@ console.log('\n📦 Idempotence: planning twice changes nothing')
   assert(first.clean && second.clean, 'both runs are clean')
   assert(JSON.stringify(first.actions) === JSON.stringify(second.actions), 'and produce identical plans')
 }
+
+
+// ── The deploy prompt ────────────────────────────────────────────────────────
+// The wizard once wrote `if (redeploy && confirm('Deploy now?'))`. confirm() returns
+// a Promise, a Promise is always truthy, and "No" therefore deployed. These pin the
+// decision so that can never be true again.
+console.log('\n📦 Redeploy is never assumed')
+assertTrue(shouldDeploy({ requested: false, assumeYes: false, confirmed: true, checksPassed: true }).deploy === false,
+  'no --redeploy means no deployment')
+assertTrue(shouldDeploy({ requested: true, assumeYes: false, confirmed: false, checksPassed: true }).deploy === false,
+  'answering No does not deploy')
+assertTrue(shouldDeploy({ requested: true, assumeYes: false, confirmed: true, checksPassed: true }).deploy === true,
+  'answering Yes deploys once the environment matches')
+assertTrue(shouldDeploy({ requested: true, assumeYes: true, confirmed: true, checksPassed: true }).deploy === false,
+  '--yes never deploys on its own')
+assertTrue(shouldDeploy({ requested: true, assumeYes: false, confirmed: true, checksPassed: false }).deploy === false,
+  'a failed environment sync blocks the deployment')
+console.log('  ✅ decline, accept, --yes and failed-sync all behave')
+
+// ── Enabled integrations are required, disabled ones are not ────────────────
+console.log('\n📦 An integration that is on must be configured')
+const disabled = planVercelSync({ specs: ENV_REGISTRY, remote: [], local: {}, requiredTargets: ['production'] })
+const withEmail = planVercelSync({ specs: ENV_REGISTRY, remote: [], local: {}, requiredTargets: ['production'], enabledFeatures: ['email'] })
+
+const emailVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM']
+for (const name of emailVars) {
+  assert(!needsValue(disabled).includes(name), `${name} is not demanded while email is off`)
+}
+const asked = needsValue(withEmail)
+assert(emailVars.every((n) => asked.includes(n)), 'enabling email makes every SMTP value required')
+console.log('  ✅ disabling email leaves SMTP alone; enabling it requires the values')
+
+const smsOff = planVercelSync({ specs: ENV_REGISTRY, remote: [], local: {}, requiredTargets: ['production'] })
+const smsOn = planVercelSync({ specs: ENV_REGISTRY, remote: [], local: {}, requiredTargets: ['production'], enabledFeatures: ['sms'] })
+assert(!needsValue(smsOff).includes('TWILIO_AUTH_TOKEN'), 'SMS is optional by default')
+assert(needsValue(smsOn).includes('TWILIO_AUTH_TOKEN'), 'enabled SMS requires its credentials')
+console.log('  ✅ the same rule holds for SMS')
 
 console.log(`\nVercel env plan: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exitCode = 1

@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -15,7 +16,7 @@ const MIGRATION_ATTEMPTS = MIGRATION_RETRY_DELAYS_MS.length + 1
 // migration file is then re-applied for real — nothing is marked applied
 // without its SQL actually running.
 export const RECOVERABLE_FAILED_MIGRATION = '20261017203707_review_requests_booking_source_analytics'
-const DATABASE_URL_VARIABLES = ['DATABASE_URL', 'NEON_POSTGRES_PRISMA_URL', 'NEON_POSTGRES_URL']
+export const DATABASE_URL_VARIABLES = JSON.parse(readFileSync(new URL('../config/db-url-aliases.json', import.meta.url), 'utf8')).aliases
 
 // One-shot evidence-gated recovery for the confirmed 2026-10-18 production
 // incident: _prisma_migrations holds a failed record for the FIRST

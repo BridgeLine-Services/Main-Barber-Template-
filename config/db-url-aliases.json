@@ -1,0 +1,4 @@
+{
+  "_comment": "The one list of database connection variable names. Read by scripts/vercel-build.mjs (build), src/lib/env-registry.ts (runtime diagnostics, preflight, env:check) and the tests. Order matters: the first name that is set wins.",
+  "aliases": ["DATABASE_URL", "NEON_POSTGRES_PRISMA_URL", "POSTGRES_PRISMA_URL", "NEON_POSTGRES_URL", "POSTGRES_URL"]
+}

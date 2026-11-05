@@ -66,15 +66,45 @@ const PROD: EnvName[] = ['production']
 const PROD_PREVIEW: EnvName[] = ['production', 'preview']
 const NONE: EnvName[] = []
 
+import aliasContract from '../../config/db-url-aliases.json'
+
+/** Every name a Postgres connection may arrive under, in priority order. */
+export const DB_URL_ALIASES: string[] = aliasContract.aliases
+
 export const ENV_REGISTRY: EnvVarSpec[] = [
   // ── Database ───────────────────────────────────────────────────────────────
   {
     name: 'DATABASE_URL', description: 'PostgreSQL connection string', category: 'DATABASE',
     secret: true, public: false, platformManaged: false, requiredIn: PROD_PREVIEW, requiredAt: 'runtime',
-    aliases: ['NEON_POSTGRES_PRISMA_URL', 'POSTGRES_PRISMA_URL', 'NEON_POSTGRES_URL', 'POSTGRES_URL'],
+    // Read from the shared contract that scripts/vercel-build.mjs also reads. The
+    // two lists had drifted: the registry accepted POSTGRES_PRISMA_URL and
+    // POSTGRES_URL while the build script did not, so a deployment could pass
+    // every diagnostic and then fail to build.
+    aliases: DB_URL_ALIASES.filter((name) => name !== 'DATABASE_URL'),
     format: 'postgres-url', connectivityTestable: true,
     howToObtain: 'Create a Postgres database (Neon, Vercel Postgres, RDS, Supabase) and copy its pooled connection string.',
     howToFix: 'Set DATABASE_URL to the full postgresql:// URL including user, password, host and database. Never commit it.',
+  },
+  {
+    name: 'POSTGRES_PRISMA_URL', description: 'Alternate Postgres connection name used by some Vercel/Prisma integrations', category: 'DATABASE',
+    secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build',
+    format: 'postgres-url', connectivityTestable: true,
+    howToObtain: 'Supplied by a Database integration that uses Prisma naming. Set DATABASE_URL instead when adding it by hand.',
+    howToFix: 'Either provide it or set DATABASE_URL. Never point it at a different database than the app uses.',
+  },
+  {
+    name: 'POSTGRES_URL', description: 'Alternate Postgres connection name used by some Vercel/Marketplace integrations', category: 'DATABASE',
+    secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build',
+    format: 'postgres-url', connectivityTestable: true,
+    howToObtain: 'Supplied by a Vercel Postgres integration. Set DATABASE_URL instead when adding it by hand.',
+    howToFix: 'Either provide it or set DATABASE_URL. Never point it at a different database than the app uses.',
+  },
+  {
+    name: 'NEON_POSTGRES_URL', description: 'Alternate Neon connection name read by the build', category: 'DATABASE',
+    secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build',
+    format: 'postgres-url', connectivityTestable: true,
+    howToObtain: 'Supplied by the Neon integration when it does not provide DATABASE_URL.',
+    howToFix: 'Either provide it or set DATABASE_URL. Never point it at a different database than the app uses.',
   },
   {
     name: 'NEON_POSTGRES_PRISMA_URL', description: 'Neon-specific alias read by scripts/vercel-build.mjs', category: 'DATABASE',
