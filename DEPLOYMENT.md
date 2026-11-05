@@ -170,3 +170,62 @@ completed with `npm ci`.
 - Ensure `NEXTAUTH_SECRET` is set
 - Verify `NEXTAUTH_URL` matches your deployment URL exactly (no trailing slash)
 - Check browser console for cookie/domain mismatch errors
+
+---
+
+## Rate limiting is mandatory, and it is documented here only once
+
+**Every production and preview deployment must set both of these:**
+
+| Variable | Required in | Secret |
+| --- | --- | --- |
+| `UPSTASH_REDIS_REST_URL` | Production, Preview | No |
+| `UPSTASH_REDIS_REST_TOKEN` | Production, Preview | Yes |
+
+### Why mandatory
+
+The limiter stops a flood of registration or booking attempts reaching the database.
+It is deliberately **fail-closed**: when it cannot reach the shared store it refuses
+the request rather than allowing unlimited traffic.
+
+Getting this wrong is what made first-owner registration look broken. The page said
+*"Too many attempts. Please wait a minute and try again."* when the truth was that no
+store was configured at all. That wording is fixed — a missing or unreachable store
+now answers **503** with "We're temporarily unable to complete this request" — but the
+requirement stands: configure Upstash.
+
+### How to create it
+
+1. Sign in at <https://upstash.com> and create a Redis database in the region closest
+   to the deployment.
+2. Open the database → **REST API** → **.env** tab.
+3. Copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+4. In Vercel → Project → Settings → Environment Variables, add both, ticked for
+   **Production** and **Preview** (Preview matters: registration gets tested there).
+5. Redeploy. Environment changes only reach a running deployment on a new build.
+
+### Verify it, do not assume it
+
+```bash
+npm run env:doctor          # probes the database and the Redis store
+npm run client:preflight    # answers: is it safe to open owner registration?
+```
+
+`env:doctor` performs a real Redis `PING`. Never paste the token into a shell to test
+it by hand.
+
+### Recovering from an outage
+
+The site stays up: browsing, existing sessions and the dashboard keep working while
+rate-limited endpoints answer 503 with a message that does not blame the visitor.
+Restoring the store restores those endpoints on the next request; there is no state to
+clear. If an outage is expected to last, say so on the shop's own channels rather than
+editing limits. **Never** raise `RATE_LIMIT_REGISTER_MAX` or set
+`RATE_LIMIT_CI_IN_MEMORY` to work around it.
+
+### Which variables are optional
+
+Everything under EMAIL, SMS, GOOGLE, PAYMENTS, STORAGE, SCHEDULED_TASKS and
+OBSERVABILITY in `src/lib/env-registry.ts` is conditional: a disabled integration is
+never required. `npm run env:check` prints the status of all 52 variables and marks
+exactly which are required for an environment.

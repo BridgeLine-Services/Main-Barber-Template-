@@ -1,6 +1,6 @@
 # 💈 Barber Booking System
 
-A modern, full-stack, multi-tenant barber shop web application built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **Prisma ORM with PostgreSQL**.
+A modern, full-stack, multi-tenant barber shop web application built with **Next.js 16 (App Router)**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **Prisma ORM with PostgreSQL**.
 
 Designed as a white-label barbershop platform — each shop deploys with its own database-driven brand (colors, fonts, imagery) while sharing one hardened booking, CRM, and multi-tenant engine — this application provides a seamless online booking experience for clients, comprehensive management tools for shop owners and barbers, and zero online payment overhead (**pay in person at the shop**).
 
@@ -97,7 +97,7 @@ database access, provider accounts, and the final booking test.
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router, Server Components)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Server Components)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
 - **Icons**: [lucide-react](https://lucide.react.dev/)

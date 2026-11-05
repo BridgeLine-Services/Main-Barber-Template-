@@ -1,3 +1,32 @@
+# Environment configuration
+
+**The authoritative list is `src/lib/env-registry.ts`.** Every variable's purpose,
+category, requiredness, visibility, format, validation and repair instructions live
+there once. `.env.example` is generated from it (`npm run env:template`), and the
+runtime checker, `npm run env:check`, `npm run env:doctor` and
+`npm run client:preflight` all read the same file, so they cannot contradict each
+other.
+
+```bash
+npm run env:check        # safe inventory: what is set, what is required, what is retired
+npm run env:doctor       # the same, plus database and Redis connectivity probes
+npm run env:doctor:deep  # adds read-only Stripe and SMTP reachability
+npm run client:preflight # fails unless first-owner registration would actually work
+```
+
+Secrets are never printed: the report shows presence and length only.
+
+## Required in production
+
+`DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (or a derivable platform
+hostname), `NEXT_PUBLIC_APP_URL`, `UPSTASH_REDIS_REST_URL`,
+`UPSTASH_REDIS_REST_TOKEN`.
+
+Everything else is conditional on an enabled feature. See DEPLOYMENT.md for the
+Upstash procedure and the recovery path.
+
+---
+
 # Environment Configuration Reference
 
 This document details all environment variables for the Next.js barbershop application. Variables are parsed and validated across `src/lib/app-config.ts`, `src/lib/auth.ts`, `scripts/vercel-build.mjs`, and `package.json`.

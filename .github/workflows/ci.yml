@@ -50,9 +50,9 @@ jobs:
       - run: npm ci
       - run: npm run test:vercel-build
       - run: npm run test:optional-integrations
-      # Production dependency audit: fails the build on any critical
+      # Production dependency audit: fails the build on any high or critical
       # advisory. Dev-only advisories are excluded (--omit=dev).
-      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run license:inventory
       - run: npm run architecture:check
       - run: npm run test:architecture
