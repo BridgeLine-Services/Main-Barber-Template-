@@ -21,9 +21,9 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { PrismaClient } from '@prisma/client'
 import {
-  ENV_REGISTRY, evaluateAll, getEnvSpec, isPresent, resolveEffective, validateFormat, type EnvName,
+  ENV_REGISTRY, evaluateAll, getEnvSpec, isFeatureEnabled, isPresent, resolveEffective, validateFormat, type EnvName,
 } from '../src/lib/env-registry'
-import { describePlan, planVercelSync } from '../src/lib/vercel-env-plan'
+import { describePlan, planVercelSync, shouldDeploy } from '../src/lib/vercel-env-plan'
 
 const args = process.argv.slice(2)
 const apply = args.includes('--apply')
@@ -290,6 +290,15 @@ async function main() {
   console.log('')
 
   // ── Step 7b: sync Vercel, only when explicitly asked ───────────────────────
+  // Which integrations are switched on for this shop. Read from the same
+  // registry flags the application reads, so the wizard and the app cannot
+  // disagree about whether email or SMS is enabled.
+  const featureEnv: Record<string, string | undefined> = { ...process.env, ...Object.fromEntries(collected) }
+  const enabledFeatures = ENV_REGISTRY
+    .map((spec) => spec.feature)
+    .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature))
+    .filter((feature) => isFeatureEnabled(featureEnv, feature))
+
   if (pushVercel) {
     // A shop lives in Production and Preview. 'test' (the local suite) maps to
     // Development, which is the only Vercel environment it can mean.
@@ -311,6 +320,7 @@ async function main() {
         remote,
         local: Object.fromEntries(collected),
         requiredTargets: vercelTargets,
+        enabledFeatures,
       })
       for (const line of describePlan(plan)) console.log(line)
 
@@ -345,6 +355,7 @@ async function main() {
             console.log('  These did not take:')
             for (const item of failed) console.log(`    • ${item}`)
           }
+          let synced = false
           const after = readVercelVars()
           if (after) {
             const stillMissing = planVercelSync({
@@ -352,15 +363,26 @@ async function main() {
               remote: after,
               local: Object.fromEntries(collected),
               requiredTargets: vercelTargets,
+              enabledFeatures,
             })
-            console.log(stillMissing.clean
+            synced = stillMissing.clean
+            console.log(synced
               ? '  ✅ Verified: Vercel now matches the registry.'
               : '  ⚠ Vercel still does not match; re-run to see what remains.')
           }
           console.log('  A new deployment is required: environment changes do not reach an existing build.')
-          if (redeploy && confirm('Deploy now with `vercel --prod`?')) {
+          // confirm() is async. `if (redeploy && confirm(...))` awaited nothing,
+          // so the Promise was truthy and "No" deployed anyway.
+          const decision = shouldDeploy({
+            requested: redeploy,
+            assumeYes,
+            confirmed: redeploy && !assumeYes ? await confirm('Deploy now with `vercel --prod`?') : false,
+            checksPassed: synced,
+          })
+          if (decision.deploy) {
             execFileSync('vercel', ['--prod'], { stdio: 'inherit' })
           } else {
+            console.log(`  ${decision.reason}`)
             console.log('  Redeploy when ready: vercel --prod')
           }
         }

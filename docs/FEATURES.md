@@ -69,3 +69,37 @@ client data (phone numbers, emails, non-platform domains) and fails on
 findings. `npm run master:check` chains architecture, independence, lint,
 typecheck, Prisma validate/generate and the production build into one
 gate for "master template ready".
+
+---
+
+## Enforcement status, verified 5 November 2026
+
+`npm run audit:features` walks `src`, and for every key in `FEATURE_KEYS` reports whether
+any server file both mentions the key and consults the feature layer
+(`isFeatureEnabled`, `isFeatureEnabledForBusiness`, `assertFeatureEnabled`).
+
+Result at this commit: **1 of 24 keys is enforced server-side.**
+
+| Enforced | `onlineBooking` — `src/app/api/public/appointments/route.ts` refuses the write |
+| --- | --- |
+| Settings-only (no server enforcement found) | `customerPortal`, `reviews`, `gallery`, `promotions`, `loyalty`, `waitlist`, `queue`, `marketing`, `analytics`, `inventory`, `memberships`, `giftCards`, `ecommerce`, `multipleBarbers`, `barberProfiles`, `deposits`, `pwa`, `emailNotifications`, `smsNotifications`, `onlinePayments` |
+
+### What this means, stated plainly
+
+For every key except `onlineBooking`, turning the switch off removes navigation and hides
+UI, but the corresponding API routes still accept the operation. A shop that switches off
+`reviews` still accepts a review submission; one that switches off `waitlist` still accepts
+a waitlist claim. This is a real gap, not a documentation problem.
+
+### Why it is recorded rather than patched in a single pass
+
+Each of those routes needs an `assertFeatureEnabled(businessId, key)` guard placed after
+tenant resolution and before the write, plus a regression test proving the refusal and
+proving the enabled path still works. Doing 23 guards blind, in one commit, across booking,
+payments, notifications and marketing is exactly the change that breaks working features.
+
+### Until then
+
+Do not describe these toggles to an owner as disabling the capability. The honest wording
+is that the switch hides the feature from the interface. `onlineBooking` is the only
+toggle that can be described as fully disabling its feature.

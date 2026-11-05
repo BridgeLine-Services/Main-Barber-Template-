@@ -30,10 +30,10 @@ the store is missing or unreachable, each with its own wording and `Retry-After`
 
 ## 2. Environment registry
 
-`src/lib/env-registry.ts` is the single contract: 52 variables, fifteen categories,
+`src/lib/env-registry.ts` is the single contract: 79 declared variables (74 of them in the generated .env.example; the rest are platform-managed or retired), fifteen categories,
 required-at-build vs required-at-runtime, conditional requirements per feature, aliases
 and fallbacks, format validation, and a redaction helper. `.env.example` is generated
-from it (`npm run env:template`) and now documents 52 variables instead of 32.
+from it (`npm run env:template`) and now documents 79 declared variables (74 of them in the generated .env.example; the rest are platform-managed or retired) instead of 32.
 
 Resolved conflicts: Redis, Blob, Stripe, the 2FA key, `REQUIRE_OWNER_2FA` and
 `CSP_NONCE_ENABLED` are all in the inventory; the retired provisioning token is out;
