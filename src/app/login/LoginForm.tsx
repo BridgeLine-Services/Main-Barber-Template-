@@ -89,6 +89,11 @@ export default function LoginForm({
             // Someone claimed the owner slot between page load and submit.
             setError(data.error || 'Owner registration is closed.')
             setMode('login')
+          } else if (res.status === 503) {
+            // The service is not ready to accept accounts — a setup problem, not
+            // something the person in front of the screen did wrong. Say so, and
+            // tell them who can fix it, without naming any infrastructure.
+            setError(`${data?.error ?? "We're temporarily unable to complete this request."} If this keeps happening, contact your setup administrator.`)
           } else {
             setError(data.error || 'Registration failed')
           }
