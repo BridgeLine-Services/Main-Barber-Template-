@@ -98,6 +98,11 @@ blob client, which would put the upload pipeline on an older client to satisfy a
 build-time config parser. Recorded as accepted risk with a named condition for
 revisit.
 
+**Superseded, 5 November 2026:** those transitive advisories were cleared by a narrow
+`@vercel/cli-config` override. `npm audit --omit=dev` now reports **0 vulnerabilities**, and
+the CI gate has moved from `--audit-level=critical` to `--audit-level=high`. This paragraph
+is kept as the historical record of the decision that preceded the override.
+
 **Verified after upgrade:** `tsc` clean, `next build` clean, `test:ci` green,
 `notification-resilience` 16/16 (real SMTP path), `marketing` 44/44.
 

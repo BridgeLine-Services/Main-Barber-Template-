@@ -1,3 +1,8 @@
+> **Historical document.** Superseded by `docs/LAUNCH-READINESS.md` (5 November 2026),
+> which reflects the environment registry, the registration repair, the deployment
+> preflight and the current blocker list. Kept for the audit trail; do not use its
+> numbers as the current state.
+
 # Final acceptance report
 
 **Repository:** BridgeLine-Services/Main-Barber-Template-

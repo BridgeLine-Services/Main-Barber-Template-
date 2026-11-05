@@ -21,12 +21,15 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { PrismaClient } from '@prisma/client'
 import {
-  evaluateAll, getEnvSpec, isPresent, resolveEffective, validateFormat, type EnvName,
+  ENV_REGISTRY, evaluateAll, getEnvSpec, isPresent, resolveEffective, validateFormat, type EnvName,
 } from '../src/lib/env-registry'
+import { describePlan, planVercelSync } from '../src/lib/vercel-env-plan'
 
 const args = process.argv.slice(2)
 const apply = args.includes('--apply')
 const assumeYes = args.includes('--yes')
+const pushVercel = args.includes('--push-vercel')
+const redeploy = args.includes('--redeploy')
 const environmentArg = args.find((a) => a.startsWith('--environment='))?.split('=')[1] as EnvName | undefined
 
 // Collected values are keyed by variable name and held in a Map: they are
@@ -36,6 +39,51 @@ const environmentArg = args.find((a) => a.startsWith('--environment='))?.split('
 const collected = new Map<string, string>()
 const actions: string[] = []
 const rl = createInterface({ input: process.stdin, output: process.stdout })
+
+
+/**
+ * Reads Vercel's variable names and target environments.
+ *
+ * Only names and targets: `vercel env pull` would download values, and values are the one
+ * thing this tool must never handle. Returns null when the CLI is missing or the project
+ * is not linked, so the caller can print a precise manual fallback instead of pretending.
+ */
+function readVercelVars(): { key: string; targets: ('production' | 'preview' | 'development')[] }[] | null {
+  try {
+    const out = execFileSync('vercel', ['env', 'ls', '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    const parsed = JSON.parse(out)
+    const list = Array.isArray(parsed) ? parsed : (parsed.envs ?? [])
+    return list
+      .map((entry: { key?: string; target?: string | string[] }) => {
+        const key = entry.key
+        if (!key) return null
+        const raw = Array.isArray(entry.target) ? entry.target : [entry.target ?? '']
+        const targets = raw
+          .flatMap((t) => String(t).split(','))
+          .map((t) => t.trim().toLowerCase())
+          .filter((t): t is 'production' | 'preview' | 'development' =>
+            t === 'production' || t === 'preview' || t === 'development')
+        return { key, targets }
+      })
+      .filter((v: unknown): v is { key: string; targets: ('production' | 'preview' | 'development')[] } => v !== null)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Adds one variable to one environment. The value travels on stdin, never in argv:
+ * arguments are visible in `ps` and land in shell history, and a secret in either is a
+ * leak that outlives the deployment.
+ */
+function addVercelVar(name: string, target: string, value: string): boolean {
+  try {
+    execFileSync('vercel', ['env', 'add', name, target], { input: `${value}\n`, stdio: ['pipe', 'ignore', 'pipe'] })
+    return true
+  } catch {
+    return false
+  }
+}
 
 async function ask(question: string, options: { masked?: boolean } = {}): Promise<string> {
   if (assumeYes) return ''
@@ -240,6 +288,85 @@ async function main() {
     for (const name of pending) console.log(`    - ${name}${getEnvSpec(name)?.secret ? ' (secret)' : ''}`)
   }
   console.log('')
+
+  // ── Step 7b: sync Vercel, only when explicitly asked ───────────────────────
+  if (pushVercel) {
+    // A shop lives in Production and Preview. 'test' (the local suite) maps to
+    // Development, which is the only Vercel environment it can mean.
+    const vercelTargets: ('production' | 'preview' | 'development')[] =
+      environment === 'production' ? ['production', 'preview']
+        : environment === 'preview' ? ['preview']
+        : ['development']
+    console.log('\n  Checking Vercel against the registry...')
+    const remote = readVercelVars()
+    if (!remote) {
+      console.log('  ❌ Could not read the Vercel project.')
+      console.log('     Either the Vercel CLI is not installed (`npm i -g vercel`), it is not authenticated')
+      console.log('     (`vercel login`), or this directory is not linked (`vercel link`).')
+      console.log('     Nothing was changed. Add the variables listed above by hand, or run those three')
+      console.log('     commands and repeat with --push-vercel.')
+    } else {
+      const plan = planVercelSync({
+        specs: ENV_REGISTRY,
+        remote,
+        local: Object.fromEntries(collected),
+        requiredTargets: vercelTargets,
+      })
+      for (const line of describePlan(plan)) console.log(line)
+
+      if (plan.clean) {
+        console.log('  ✅ Vercel already matches the registry. Nothing to write.')
+      } else if (assumeYes) {
+        // --yes means "do not ask". It must never mean "yes, write to production".
+        console.log('  Refusing to write to Vercel in --yes mode: remote changes need explicit confirmation.')
+        console.log('  Re-run without --yes to be asked about each variable.')
+      } else {
+        const missing = plan.actions.filter((a) => a.kind === 'ADD' || a.kind === 'ADD_TARGET')
+        const approved = await confirm(`Write ${missing.length} variable assignment(s) to Vercel? (existing values are never replaced)`)
+        if (!approved) {
+          console.log('  Nothing written. The list above is what a manual run would add.')
+        } else {
+          let written = 0
+          const failed: string[] = []
+          for (const action of missing) {
+            if (action.kind !== 'ADD' && action.kind !== 'ADD_TARGET') continue
+            const value = collected.get(action.name) ?? process.env[action.name] ?? ''
+            if (!value.trim()) {
+              failed.push(`${action.name} (no value available)`)
+              continue
+            }
+            for (const target of action.targets) {
+              if (addVercelVar(action.name, target, value.trim())) written++
+              else failed.push(`${action.name} → ${target}`)
+            }
+          }
+          console.log(`  Wrote ${written} assignment(s).`)
+          if (failed.length) {
+            console.log('  These did not take:')
+            for (const item of failed) console.log(`    • ${item}`)
+          }
+          const after = readVercelVars()
+          if (after) {
+            const stillMissing = planVercelSync({
+              specs: ENV_REGISTRY,
+              remote: after,
+              local: Object.fromEntries(collected),
+              requiredTargets: vercelTargets,
+            })
+            console.log(stillMissing.clean
+              ? '  ✅ Verified: Vercel now matches the registry.'
+              : '  ⚠ Vercel still does not match; re-run to see what remains.')
+          }
+          console.log('  A new deployment is required: environment changes do not reach an existing build.')
+          if (redeploy && confirm('Deploy now with `vercel --prod`?')) {
+            execFileSync('vercel', ['--prod'], { stdio: 'inherit' })
+          } else {
+            console.log('  Redeploy when ready: vercel --prod')
+          }
+        }
+      }
+    }
+  }
 
   // ── Step 8: report ────────────────────────────────────────────────────────
   if (apply && pending.length > 0) {

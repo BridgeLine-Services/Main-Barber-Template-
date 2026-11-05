@@ -67,18 +67,27 @@ Secret values are never printed, never sent to the browser, and never written in
 | Nonce CSP | `CSP_NONCE_ENABLED` verified in staging across site, booking, portal, dashboard, previews, exports |
 | Legal review | Attorney |
 | Accessibility | Independent pass with assistive technology |
+| Master repository protection | Make the repository private, protect `main`, require reviewed PRs and passing CI, block force pushes — needs the owner's explicit authorisation |
+| Commercial hosting | The Vercel project runs on Hobby, which the documentation already states is not appropriate for commercial client hosting — needs an owner decision, not a code change |
 
 No amount of further code closes these; each needs a credential, a machine, or a person.
 
 ## 5. Test evidence
 
-Verified locally and/or in CI: registration route 23, environment registry 51, booking
-concurrency 13, timezone/DST 18, optional integrations 20. The full chain runs 40
-suites via `npm run test:all`.
+Verified locally and/or in CI: registration route 23, environment registry 51, environment
+enum contract 22, booking concurrency 13, timezone/DST 18, optional integrations 20. The
+full chain runs 41 suites via `npm run test:all`, and `npm run env:drift` fails the build
+if the source reads a variable the registry does not declare.
 
 ## 6. Readiness
 
-Roughly 82% of a commercial launch, with every remaining point attributable to the six
-rows above rather than to unfinished code. This is not 100% and should not be described
+Roughly 80% of a commercial launch. Every remaining point is one of the **nine** rows
+above — three of which (payments, SMS, email) are provider acceptance runs rather than
+code, and two of which (repository protection, hosting plan) are decisions that belong to
+the owner.
+
+The figure moved down, not up, because this round added two blockers that were always true
+and simply were not written down, and because "every remaining point is attributable to the
+rows above" only holds when the rows are complete. It is not 100% and must not be described
 as production-ready until the live deployment registers a first owner and the provider
 acceptances have actually run.
