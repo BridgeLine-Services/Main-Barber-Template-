@@ -21,3 +21,30 @@ Set `DATABASE_URL` and `SEED_OWNER_PASSWORD` in the environment. The command als
 The command returns structured counts and verifies that the business, owner, expected services, barbers, schedules, and relationships are present. `npm run db:verify` and `npm run db:doctor` remain available for broader database checks.
 
 Production deployments continue to use `prisma migrate deploy`; provisioning is separate from migration execution.
+
+---
+
+## Mandatory before the first owner registers: the sign-in protection store
+
+Sign-in, registration and every public endpoint are rate limited, and the limiter **fails
+closed**. With no shared store, the entire deployment refuses every sign-in and every
+registration with a 503. This is the single most common cause of a fresh copy of the
+template looking broken.
+
+1. Create a free Redis database at upstash.com.
+2. Copy the REST URL and REST token from the database's detail page.
+3. Add both to the Vercel project (Settings -> Environment Variables) for **Production
+   and Preview**: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+4. Redeploy. Environment changes do not reach a running deployment.
+5. Verify: `npm run client:preflight` must print
+   `Rate-limit store (Upstash): configuration present and PING answered`, or open
+   `/dashboard/factory-launch` as the owner once one exists.
+
+If registration answers 503, the store is missing or the provider is down — it is never a
+rate-limit violation, and raising limits or setting `RATE_LIMIT_CI_IN_MEMORY` in a
+customer deployment are not workarounds: the first does nothing and the second disables
+the protection.
+
+Recovery from an outage: confirm the Upstash database still exists and is not suspended,
+confirm both variables are still present, then confirm the deployment can reach Upstash.
+No code change is needed; the deployment resumes by itself.
