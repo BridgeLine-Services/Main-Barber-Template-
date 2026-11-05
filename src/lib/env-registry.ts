@@ -124,10 +124,15 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
     howToFix: 'Optional. Remove it once NEXT_PUBLIC_APP_URL is set.',
   },
   {
-    name: 'APP_MODE', description: 'Distinguishes template/development behaviour from a client deployment', category: 'CORE',
+    name: 'APP_MODE', description: 'Selects the normal application behaviour or the demo dataset (see src/lib/app-config.ts)', category: 'CORE',
     secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime',
-    format: 'enum', enumValues: ['template', 'client', 'development'], connectivityTestable: false,
-    howToObtain: 'Set to client for a customer deployment.', howToFix: 'Optional.',
+    // The values the application actually reads. 'prod' is accepted as an alias of
+    // 'production'; anything unrecognised falls back to production behaviour, so a
+    // wrong value here is harmless rather than a lockout. The registry previously
+    // advertised template/client/development, none of which the code reads.
+    format: 'enum', enumValues: ['production', 'prod', 'demo'], connectivityTestable: false,
+    howToObtain: 'Leave unset. Unset means production behaviour, which is what a client deployment must run.',
+    howToFix: 'Set APP_MODE=demo only to load the sample dataset for a demonstration. Never set it on a live shop.',
   },
 
   // ── Rate limiting (mandatory in production, and the reason registration broke) ──
@@ -202,11 +207,15 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
     howToObtain: 'The business id after provisioning.', howToFix: 'Optional; used for single-tenant deployments.',
   },
   {
-    name: 'OWNER_REGISTRATION_MODE', description: 'Controls whether registration is open', category: 'TENANT_CONFIGURATION',
+    name: 'OWNER_REGISTRATION_MODE', description: 'Controls first-owner and customer self-registration (see src/lib/owner-registration.ts)', category: 'TENANT_CONFIGURATION',
     secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime',
-    format: 'enum', enumValues: ['open', 'owner-only', 'closed'], connectivityTestable: false,
-    howToObtain: 'Leave unset for the default (owner while none exists, customers after).',
-    howToFix: 'Optional. Closing it early locks the first owner out of sign-up.',
+    // The application reads exactly these three values and treats anything else as
+    // 'disabled'. The registry used to advertise open/owner-only/closed, so an
+    // operator who followed it would close first-owner registration on a brand new
+    // deployment and then be unable to get in at all.
+    format: 'enum', enumValues: ['onboarding', 'invite_only', 'disabled'], connectivityTestable: false,
+    howToObtain: 'Leave unset on a new deployment: unset behaves as onboarding, which admits the first owner and then closes.',
+    howToFix: 'Use disabled to stop all self-registration, or invite_only once the owner exists. Any unrecognised value is treated as disabled.',
   },
 
   // ── Storage ────────────────────────────────────────────────────────────────
@@ -291,6 +300,30 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
   { name: 'E2E_OWNER_EMAIL', description: 'Owner email for browser acceptance runs', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build', format: 'email', connectivityTestable: false, howToObtain: 'Test environment.', howToFix: 'Do not ship to a client copy.' },
   { name: 'E2E_OWNER_PASSWORD', description: 'Owner password for browser acceptance runs', category: 'DEVELOPMENT_ONLY', secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build', connectivityTestable: false, howToObtain: 'Test environment.', howToFix: 'Do not ship to a client copy.' },
   { name: 'RATE_LIMIT_ACCEPT_POST_MAX', description: 'Relaxed limit used by acceptance runs', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'number', connectivityTestable: false, howToObtain: 'Acceptance harness only.', howToFix: 'Do not ship to a client copy.' },
+
+  // ── Operator and development tooling ───────────────────────────────────────
+  //
+  // Found by scripts/check-env-drift.mjs: read by the source but absent from this
+  // registry, so nothing could report them missing. None is a customer setting.
+  { name: 'DATABASE_ADMIN_URL', description: 'Elevated connection used only by the RLS administration scripts', category: 'INTERNAL', secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'postgres-url', connectivityTestable: true, howToObtain: 'The database owner account string, held by the operator only.', howToFix: 'Never place this in a customer deployment or in NEXT_PUBLIC_*. It is not needed at runtime.' },
+  { name: 'RLS_APP_ROLE', description: 'Database role the RLS scripts grant policies to', category: 'INTERNAL', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'The application database role.', howToFix: 'Only needed while applying prisma/rls/production-rls.sql.' },
+  { name: 'PGBIN_DIR', description: 'Directory holding pg_dump and pg_restore for backups', category: 'INTERNAL', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'path', connectivityTestable: false, howToObtain: 'Local PostgreSQL installation.', howToFix: 'Only needed by scripts/backup.ts outside Vercel.' },
+  { name: 'SMOKE_BASE_URL', description: 'Deployment the smoke test checks', category: 'INTERNAL', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'url', connectivityTestable: true, howToObtain: 'The deployment URL being verified.', howToFix: 'Pass it when running npm run smoke.' },
+  { name: 'PERF_STRICT', description: 'Turns performance warnings into failures', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'boolean', connectivityTestable: false, howToObtain: 'Set to true in CI.', howToFix: 'Leave unset locally.' },
+  { name: 'QA_BASE', description: 'Base URL for the internal QA browser scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'url', connectivityTestable: false, howToObtain: 'A local or preview deployment.', howToFix: 'Internal tooling only; never ship it to a client copy.' },
+  { name: 'QA_LOGIN_EMAIL', description: 'Account the internal QA scripts sign in as', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'email', connectivityTestable: false, howToObtain: 'A QA account.', howToFix: 'Internal tooling only; never ship it to a client copy.' },
+  { name: 'QA_LOGIN_PASSWORD', description: 'Password for the internal QA account', category: 'DEVELOPMENT_ONLY', secret: true, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'A QA account.', howToFix: 'Internal tooling only; never ship it to a client copy.' },
+  { name: 'E2E_BASE_URL', description: 'Deployment Playwright runs against', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build', format: 'url', connectivityTestable: false, howToObtain: 'Playwright configuration.', howToFix: 'Acceptance harness only.' },
+  { name: 'E2E_NO_WEBSERVER', description: 'Use an already-running server instead of starting one', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build', format: 'boolean', connectivityTestable: false, howToObtain: 'Playwright configuration.', howToFix: 'Acceptance harness only.' },
+  { name: 'E2E_TRACE', description: 'Trace level for Playwright runs', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build', format: 'enum', enumValues: ['on', 'off', 'retain-on-failure'], connectivityTestable: false, howToObtain: 'Playwright configuration.', howToFix: 'Acceptance harness only.' },
+  { name: 'RATE_LIMIT_ACCEPT_GET_MAX', description: 'Relaxed read limit used by acceptance runs', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'number', connectivityTestable: false, howToObtain: 'Acceptance harness only.', howToFix: 'Do not ship to a client copy.' },
+  { name: 'SEED_BUSINESS_NAME', description: 'Shop name written by the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input for a new shop.', howToFix: 'Only read by scripts/provision-business.ts and prisma/seed.ts, never by the running app.' },
+  { name: 'SEED_BUSINESS_SLUG', description: 'Shop slug for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
+  { name: 'SEED_BUSINESS_EMAIL', description: 'Shop contact email for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', format: 'email', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
+  { name: 'SEED_BUSINESS_PHONE', description: 'Shop phone for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
+  { name: 'SEED_BUSINESS_CITY', description: 'Shop city for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
+  { name: 'SEED_BUSINESS_STATE', description: 'Shop state for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
+  { name: 'SEED_TIMEZONE', description: 'Shop timezone for the seed and provisioning scripts', category: 'DEVELOPMENT_ONLY', secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Provisioning input.', howToFix: 'Only read by provisioning and seed scripts.' },
 
   // ── Platform-managed ───────────────────────────────────────────────────────
   { name: 'VERCEL', description: 'Set to 1 inside Vercel', category: 'PLATFORM_MANAGED', secret: false, public: false, platformManaged: true, requiredIn: NONE, requiredAt: 'runtime', connectivityTestable: false, howToObtain: 'Injected by Vercel.', howToFix: 'Never set this by hand.' },

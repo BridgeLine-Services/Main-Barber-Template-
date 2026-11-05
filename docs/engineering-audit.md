@@ -1,3 +1,10 @@
+> **Superseded in part — 5 November 2026.** `OWNER_PROVISIONING_TOKEN` and the
+> token-gated `/api/auth/register-owner` endpoint described below no longer exist. The
+> first owner now registers through the public form and is protected by a PostgreSQL
+> advisory lock plus server-side role assignment; registration closes once an owner
+> exists. Treat any instruction on this page to call `register-owner` with a token header
+> as historical. See `docs/LAUNCH-READINESS.md`.
+
 # Baseline Engineering Audit
 
 ## Current architecture and technology stack

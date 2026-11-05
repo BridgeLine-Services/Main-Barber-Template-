@@ -8,6 +8,7 @@
  * handshake, observability endpoint) and is opt-in because it touches the network.
  */
 import { PrismaClient } from '@prisma/client'
+import { inspectCronSecret, inspectGoogleCredentials, probeBlob, probeTwilio, probeWebhook } from './provider-probes'
 import {
   ENV_REGISTRY, describeValue, evaluateAll, isPresent, normalizeEnvironment, resolveEffective,
   type EnvEvaluation, type EnvName,
@@ -121,6 +122,32 @@ async function main() {
       }
       if (deep && spec.name === 'STRIPE_SECRET_KEY' && evaluation.status === 'CONFIGURED') {
         const probe = await probeStripe(resolveEffective('STRIPE_SECRET_KEY').value!)
+        return { ...evaluation, status: probe.status, detail: probe.detail }
+      }
+      if (deep && spec.name === 'TWILIO_ACCOUNT_SID' && evaluation.status === 'CONFIGURED') {
+        const token = resolveEffective('TWILIO_AUTH_TOKEN').value
+        if (!token) return { ...evaluation, status: 'INVALID', detail: 'the account SID is set but TWILIO_AUTH_TOKEN is not' }
+        const probe = await probeTwilio(resolveEffective('TWILIO_ACCOUNT_SID').value!, token)
+        return { ...evaluation, status: probe.status, detail: probe.detail }
+      }
+      if (deep && spec.name === 'BLOB_READ_WRITE_TOKEN' && evaluation.status === 'CONFIGURED') {
+        const probe = await probeBlob(resolveEffective('BLOB_READ_WRITE_TOKEN').value!)
+        return { ...evaluation, status: probe.status, detail: probe.detail }
+      }
+      if (deep && spec.name === 'OBSERVABILITY_WEBHOOK_URL' && evaluation.status === 'CONFIGURED') {
+        const probe = await probeWebhook(resolveEffective('OBSERVABILITY_WEBHOOK_URL').value!)
+        return { ...evaluation, status: probe.status, detail: probe.detail }
+      }
+      if (spec.name === 'GOOGLE_CLIENT_ID' && evaluation.status === 'CONFIGURED') {
+        const probe = inspectGoogleCredentials(
+          resolveEffective('GOOGLE_CLIENT_ID').value!,
+          resolveEffective('GOOGLE_CLIENT_SECRET').value ?? '',
+          resolveEffective('GBP_REFRESH_TOKEN').value,
+        )
+        return { ...evaluation, status: probe.status, detail: probe.detail }
+      }
+      if (spec.name === 'CRON_SECRET' && evaluation.status === 'CONFIGURED') {
+        const probe = inspectCronSecret(resolveEffective('CRON_SECRET').value!)
         return { ...evaluation, status: probe.status, detail: probe.detail }
       }
       if (deep && spec.name === 'SMTP_HOST' && evaluation.status === 'CONFIGURED') {

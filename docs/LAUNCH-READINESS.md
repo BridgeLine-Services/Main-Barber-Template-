@@ -67,18 +67,50 @@ Secret values are never printed, never sent to the browser, and never written in
 | Nonce CSP | `CSP_NONCE_ENABLED` verified in staging across site, booking, portal, dashboard, previews, exports |
 | Legal review | Attorney |
 | Accessibility | Independent pass with assistive technology |
+| Master repository protection | Make the repository private, protect `main`, require reviewed PRs and passing CI, block force pushes — needs the owner's explicit authorisation |
+| Commercial hosting | The Vercel project runs on Hobby, which the documentation already states is not appropriate for commercial client hosting — needs an owner decision, not a code change |
 
 No amount of further code closes these; each needs a credential, a machine, or a person.
 
 ## 5. Test evidence
 
-Verified locally and/or in CI: registration route 23, environment registry 51, booking
-concurrency 13, timezone/DST 18, optional integrations 20. The full chain runs 40
-suites via `npm run test:all`.
+Verified locally and/or in CI: registration route 23, environment registry 51, environment
+enum contract 22, booking concurrency 13, timezone/DST 18, optional integrations 20. The
+full chain runs 41 suites via `npm run test:all`, and `npm run env:drift` fails the build
+if the source reads a variable the registry does not declare.
 
 ## 6. Readiness
 
-Roughly 82% of a commercial launch, with every remaining point attributable to the six
-rows above rather than to unfinished code. This is not 100% and should not be described
+Roughly 80% of a commercial launch. Every remaining point is one of the **nine** rows
+above — three of which (payments, SMS, email) are provider acceptance runs rather than
+code, and two of which (repository protection, hosting plan) are decisions that belong to
+the owner.
+
+The figure moved down, not up, because this round added two blockers that were always true
+and simply were not written down, and because "every remaining point is attributable to the
+rows above" only holds when the rows are complete. It is not 100% and must not be described
 as production-ready until the live deployment registers a first owner and the provider
 acceptances have actually run.
+
+## 7. Commercial hosting and repository protection
+
+Both are release blockers that no code change closes, and both need explicit owner
+authorization before anything is touched.
+
+**Hosting.** The project runs on a Vercel Hobby plan. Hobby is for personal, non-commercial
+projects and does not permit commercial use, so every client deployment must sit on a paid
+plan (Pro, or the client's own team). This is a billing decision, not an engineering one,
+and nothing in this repository upgrades it automatically.
+
+**Repository protection.** The master repository is public and the LICENSE is a structural
+framework awaiting attorney approval. Before the first client deployment the operator
+should, with the owner's authorization:
+
+1. Make the repository private (GitHub → Settings → General → Danger Zone).
+2. Protect `main`: require a pull request, require the `Validate template` and
+   `Architecture Constitution` checks to pass, disallow force pushes, disallow deletion.
+3. Keep a recoverable master: tag each release (`git tag -a v0.x -m ...`) and never let a
+   client repository become the upstream for another client.
+
+None of these change application behaviour, and none should be done silently: making a
+public repository private changes who can find it.
