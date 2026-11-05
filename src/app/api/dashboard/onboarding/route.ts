@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
       })
     } catch (error) {
       console.error('Onboarding GET error:', error)
-      return NextResponse.json({ error: 'Failed to load onboarding state' }, { status: 500 })
+      return NextResponse.json({ error: "We couldn't load your setup progress. Refresh the page and try again." }, { status: 500 })
     }
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/onboarding')
@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
       const parsed = createSchema.safeParse(body)
       if (!parsed.success) {
         return NextResponse.json(
-          { error: 'Invalid input', details: parsed.error.flatten() },
+          { error: 'Please check the highlighted details and try again.', details: parsed.error.flatten() },
           { status: 400 }
         )
       }
@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
       if (error?.code === 'P2002') {
         return NextResponse.json({ error: 'That URL slug is already taken' }, { status: 409 })
       }
-      return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
+      return NextResponse.json({ error: "We couldn't finish setting up your shop. Please try again." }, { status: 500 })
     }
   } catch (error) {
     return handleApiError(error, 'POST /api/dashboard/onboarding')
@@ -308,13 +308,13 @@ export async function PATCH(req: NextRequest) {
         select: { id: true, businessId: true },
       })
       if (!dbUser?.businessId) {
-        return NextResponse.json({ error: 'No business to update' }, { status: 409 })
+        return NextResponse.json({ error: 'This shop has no details saved yet. Fill in the basics first.' }, { status: 409 })
       }
       const body = await req.json()
       const parsed = patchSchema.safeParse(body)
       if (!parsed.success) {
         return NextResponse.json(
-          { error: 'Invalid input', details: parsed.error.flatten() },
+          { error: 'Please check the highlighted details and try again.', details: parsed.error.flatten() },
           { status: 400 }
         )
       }
