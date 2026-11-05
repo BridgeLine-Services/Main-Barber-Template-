@@ -79,7 +79,8 @@
     "client:preflight": "npx tsx scripts/client-preflight.ts",
     "env:template": "npx tsx scripts/generate-env-template.ts",
     "env:drift": "node scripts/check-env-drift.mjs",
-    "audit:features": "tsx scripts/audit-feature-flags.ts"
+    "audit:features": "tsx scripts/audit-feature-flags.ts",
+    "test:roles": "tsx tests/role-matrix.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
