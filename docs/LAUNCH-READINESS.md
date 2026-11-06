@@ -240,8 +240,10 @@ empty database to a working dashboard, is exercised end to end rather than
 assumed.
 
 What this does not prove: that the same migrations succeed against the production
-Neon instance, which still requires its connection string, and that a restore from
-backup works, which has never been rehearsed. Both are on the list above.
+Neon instance, which still requires its connection string. It does not bear on
+backup restoration, which is verified separately — and only against a throwaway
+database. See "Backup and restore" below for exactly what has and has not been
+proven.
 
 ## Session revocation: verified, not assumed
 
@@ -256,19 +258,56 @@ Run against the freshly migrated database:
 So revoking a single device, revoking all sessions, and the device labels a
 person sees are all enforced server-side. Session revocation is done.
 
-## Backup and restore: still unrehearsed, and why
+## Backup and restore: the procedure is proven, the production setup is not
 
-A rehearsal needs `pg_dump` and `psql`. Neither is present in this environment
-(the embedded Postgres ships only `initdb`, `pg_ctl` and `postgres`), and
-installing the client tools is blocked. So the restore procedure remains the one
-operational step with no evidence behind it, exactly as stated above. Rehearse it
-somewhere that has the client tools before the first paying client:
+These are two different claims and this document previously ran them together.
+Corrected on 2026-11-05.
 
-```
-pg_dump "$DATABASE_URL" -f backup.sql
-createdb restore_check && psql restore_check -f backup.sql
-# then compare table and row counts, and sign in as the owner
-```
+### A. CI backup verification — verified
+
+`.github/workflows/ci.yml` runs a step named **Backup and restore verification**
+(around lines 165-172). It installs `postgresql-client` on the runner and executes
+`npm run db:backup-verify`, which:
+
+1. dumps `DATABASE_URL` with `pg_dump` (`--no-owner`, schema and data),
+2. creates a scratch database,
+3. restores the dump into it,
+4. asserts the restore exposes at least ten base tables, and
+5. compares row counts for `Business`, `User` and `Appointment` between source
+   and restored copy.
+
+That step passed on the current baseline. Evidence: **Template CI run
+42166463819**, conclusion `success`, head `eb05d8f`, branch `main`
+(https://github.com/BridgeLine-Services/Main-Barber-Template-/actions/runs/42166463819).
+
+What that proves: the dump/restore procedure works, and a restore can produce a
+database with the full application schema and matching row counts for the tables
+that matter most.
+
+What that does **not** prove: anything about production. The scratch database is
+local to a CI runner, built from a seeded test dataset minutes earlier, on a
+Postgres version that matches the runner rather than necessarily the production
+provider. It is not a rehearsal of recovering a real shop's data.
+
+### B. Production backup configuration — not done
+
+Production still requires, and none of it exists yet:
+
+- Automated daily database backups at the provider, with retention (the suggested
+  minimum is 7 days daily plus 4 weeks weekly — see `docs/OPERATIONS.md`).
+- Backup configuration for uploaded media, which lives outside the database and
+  is therefore not covered by any database backup.
+- An off-site copy, so a provider incident cannot take the backups with the
+  primary.
+- One real restoration of a production backup, timed and recorded, confirming a
+  person can actually sign in to the restored shop afterwards.
+- A written recovery procedure with names against each step, and the restore
+  attempt recorded in it.
+
+**Production disaster recovery is not complete and this template is not
+protected against data loss today.** Run `npm run db:backup-verify` against a
+staging copy of production data as the first real rehearsal, before the first
+paying client.
 
 ## Database-level RLS: off by design, not by mistake
 

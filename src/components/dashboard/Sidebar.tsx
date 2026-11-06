@@ -509,11 +509,11 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 {isOwner ? (
                   <span className="inline-flex items-center gap-1 text-[var(--dash-brand)] font-medium">
-                    <Shield className="w-3 h-3" /> Owner
+                    <Shield className="w-3 h-3" /> {roleLabel(userRole)}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <User className="w-3 h-3" /> Barber
+                    <User className="w-3 h-3" /> {roleLabel(userRole)}
                   </span>
                 )}
               </div>

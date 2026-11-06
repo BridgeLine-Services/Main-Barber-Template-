@@ -15,6 +15,14 @@ each deployment must configure it per client.
 | Config | Environment variables, domain settings, DNS records | Vercel/DB consoles |
 | Code | Client repository, migrations | GitHub |
 
+**Status of this section (2026-11-05).** The commands below exist and the verified-restore
+test runs in CI on every push to `main` (step "Backup and restore verification",
+Template CI run 42166463819 on `eb05d8f`). That proves the procedure. It does **not**
+mean production backups are configured: no provider backup schedule, retention window,
+media backup, off-site copy or production restore rehearsal exists yet. Treat everything
+below as the requirement still to be met per deployment, not as a description of a
+system in place. See `docs/LAUNCH-READINESS.md` for the full split.
+
 **Database backups (required per deployment)**
 
 - Automated daily backups with at least a 7-day retention window; weekly

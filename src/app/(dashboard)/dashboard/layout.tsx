@@ -9,6 +9,7 @@ import { checkDashboardAccess } from '@/lib/onboarding'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
 import { ExternalLink } from 'lucide-react'
+import { roleLabel } from '@/lib/role-labels'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,7 +114,7 @@ export default async function DashboardLayout({
             <div className="text-right min-w-0">
               <p className="text-sm font-medium text-foreground truncate max-w-[12rem] xl:max-w-[16rem]">{userName}</p>
               <span className="inline-block text-[11px] font-semibold text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] px-2 py-0.5 rounded-full capitalize">
-                {userRole.toLowerCase()}
+                {roleLabel(userRole)}
               </span>
             </div>
             <div className="w-9 h-9 rounded-full bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-sm shrink-0" aria-hidden="true">
