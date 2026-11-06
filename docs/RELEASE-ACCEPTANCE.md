@@ -7,6 +7,13 @@ was checked against the repository, and none of them is satisfied by code in it.
 columns are deliberate: **Evidence needed** is the thing to show someone, not the thing
 to believe.
 
+## Canonical release positions
+
+The ten positions (backups, media, off-site, restore rehearsal, monitoring, legal,
+accessibility, optional-vs-required, provider acceptance, CSP nonce) are stated once, in
+the canonical table in `docs/LAUNCH-READINESS.md#canonical-release-positions`. This file
+holds the checklist and the evidence required to close each row; it does not restate them.
+
 ## Release recommendation
 
 **READY AFTER EXTERNAL ACCEPTANCE.** See the end of this file for what that means.

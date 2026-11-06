@@ -77,7 +77,13 @@ database access, provider accounts, and the final booking test.
 - **Confirmation & Management**: Instant confirmation code (e.g., `BRB-8F42K`), transactional email notifications, and self-service cancellation links.
 
 ### 🛡️ Owner & Barber Dashboard
-- **Role-Based Access Control (RBAC)**: Distinct permissions for Shop Owners (`OWNER`) and Barbers (`BARBER`) authenticated via NextAuth.js.
+- **Role-Based Access Control (RBAC)**: Authenticated via NextAuth.js with five distinct roles, each enforced on the server rather than only in the interface:
+  - **Platform Owner** (`PLATFORM_OWNER`) — runs the template itself; not a shop role.
+  - **Business Owner** (`OWNER`) — full control of one shop, including staff, billing, ownership transfer, data export and shop deactivation.
+  - **Co-owner** (`BUSINESS_ADMIN`) — a trusted staff member with delegated operational access: services, barbers, appointments, schedule, settings and publishing. A co-owner **cannot** transfer ownership, export the full business data set, or deactivate the shop, and cannot manage the owner or other co-owners.
+  - **Barber** (`BARBER`) — their own schedule, their own appointments, and the parts of their own profile they are allowed to edit.
+  - **Customer** (`CUSTOMER`) — the customer portal for their own bookings only, never another customer's.
+  The interface always shows these as words, never as the internal identifiers in brackets.
 - **Appointment Management**: View today's agenda, filter by status or barber, create manual walk-in appointments, reschedule, or cancel bookings.
 - **Barber & Schedule Controls**: Custom working hours per day of week, lunch breaks, and blocked vacation time.
 - **Service & Menu Management**: Add, edit, reorder, or toggle active status for haircut and beard services.
