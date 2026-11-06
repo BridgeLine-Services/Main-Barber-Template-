@@ -42,6 +42,8 @@ const GUARDED: Array<[string, string]> = [
   ['src/lib/notification-worker.ts', 'smsNotifications'],
   ['src/app/api/public/waitlist/claim/route.ts', 'waitlist'],
   ['src/app/manifest.ts', 'pwa'],
+  ['src/lib/notification-worker.ts', 'emailNotifications'],
+  ['src/lib/review-requests.ts', 'reviewRequests'],
 ]
 
 async function main() {
