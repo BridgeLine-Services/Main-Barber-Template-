@@ -532,7 +532,7 @@ export function PayrollClient({ enabled }: { enabled: boolean }) {
                               </span>
                               <span className="font-medium">
                                 {a.amount > 0 ? '+' : ''}
-                                {money(a.amount).replace('$', '$')}
+                                {money(a.amount)}
                               </span>
                             </li>
                           ))}

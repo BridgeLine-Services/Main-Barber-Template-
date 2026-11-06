@@ -71,12 +71,24 @@ export async function PATCH(req: NextRequest) {
           { status: 400 }
         )
       }
-      const placeholderPattern = /\[(?:EMAIL|ADDRESS|DATABASE PROVIDER|STATE|POLICY|COMPANY|BUSINESS|PHONE|URL)[^\]]*\]|\b(?:lorem ipsum|draft for attorney review|insert here|to be completed)\b/i
+      // Bounded scan: the alternation is anchored to a short marker list and the
+      // input is length-capped first, so no policy text can drive the matcher
+      // into pathological work. Every existing marker is still detected.
+      const MAX_POLICY_SCAN = 100_000
+      const PLACEHOLDER_MARKERS = [
+        '[EMAIL]', '[ADDRESS]', '[DATABASE PROVIDER]', '[STATE]', '[POLICY]', '[COMPANY]',
+        '[BUSINESS]', '[PHONE]', '[URL]', 'lorem ipsum', 'draft for attorney review',
+        'insert here', 'to be completed',
+      ]
+      const hasPlaceholder = (text: string): boolean => {
+        const haystack = text.slice(0, MAX_POLICY_SCAN).toLowerCase()
+        return PLACEHOLDER_MARKERS.some((marker) => haystack.includes(marker.toLowerCase()))
+      }
       for (const [field, statusField] of [['privacyPolicy', 'privacyPolicyStatus'], ['termsPolicy', 'termsPolicyStatus']] as const) {
         if (businessFields[statusField] === 'PUBLISHED') {
           const text = typeof businessFields[field] === 'string' ? businessFields[field].trim() : ''
           if (!text) return NextResponse.json({ error: `${field === 'privacyPolicy' ? 'Privacy Policy' : 'Terms of Service'} must contain approved text before publishing.` }, { status: 400 })
-          if (placeholderPattern.test(text)) return NextResponse.json({ error: `${field === 'privacyPolicy' ? 'Privacy Policy' : 'Terms of Service'} still contains a placeholder or draft marker. Replace it before publishing.` }, { status: 400 })
+          if (hasPlaceholder(text)) return NextResponse.json({ error: `${field === 'privacyPolicy' ? 'Privacy Policy' : 'Terms of Service'} still contains a placeholder or draft marker. Replace it before publishing.` }, { status: 400 })
         }
       }
       // Capture old values for audit

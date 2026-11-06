@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { createRecurringAppointments, RecurringInterval } from '@/lib/recurring'
+import { createRecurringAppointments, parsePreferredTime, PREFERRED_TIME_ERROR, RecurringInterval } from '@/lib/recurring'
 import { handleApiError } from '@/lib/api-errors'
 
 // POST /api/dashboard/recurring/create
@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
     const validIntervals = [2, 3, 4]
     if (!validIntervals.includes(intervalWeeks)) {
       return NextResponse.json({ error: 'Interval must be 2, 3, or 4 weeks' }, { status: 400 })
+    }
+    // Rejected before anything is created: a silently-invalid time used to
+    // become midnight, so occurrences were booked at the wrong hour.
+    if (!parsePreferredTime(preferredTime)) {
+      return NextResponse.json({ error: PREFERRED_TIME_ERROR }, { status: 400 })
     }
     const maxOccurrences = 12
     const occurrences = Math.min(totalOccurrences || 6, maxOccurrences)

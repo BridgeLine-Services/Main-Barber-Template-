@@ -184,6 +184,22 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+/**
+ * Escape a value that lands between double quotes in an attribute.
+ *
+ * The text escaper used by the email body is not sufficient here: a bare quote
+ * in the value would close the attribute and let the rest of the string become
+ * markup. Ampersand goes first so the escapes we add are not double-encoded.
+ */
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 /** Keep the link clickable in HTML mail while escaping dangerous chars. */
 function encodeUrlForHtml(url: string): string {
   return url.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E')
@@ -540,15 +556,20 @@ function buildReviewEmailHtml(
   }
   const body = renderReviewMessage(settings.messageTemplate, vars)
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // Re-checked at render time: a row stored before destination validation was
+  // introduced must not become a live attribute in an outgoing email.
+  const reviewHref = isValidReviewDestination(settings.destinationUrl) ? escapeAttr(settings.destinationUrl!.trim()) : null
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #1a1a1a;">${esc(request.business.name)}</h1>
       <p style="font-size: 16px; line-height: 1.6;">${body}</p>
       <p style="margin: 28px 0;">
-        <a href="${esc(settings.destinationUrl!)}"
+        ${reviewHref
+          ? `<a href="${reviewHref}"
            style="display: inline-block; background: #d4af37; color: #1a1a1a; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
           Leave a review
-        </a>
+        </a>`
+          : `<strong>Leave a review:</strong> ask the shop for their review link when you next visit.`}
       </p>
       <p style="font-size: 13px; color: #888;">
         Sent by ${esc(request.business.name)}${request.business.email ? ` &middot; ${esc(request.business.email)}` : ''}.

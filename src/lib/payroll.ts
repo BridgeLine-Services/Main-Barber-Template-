@@ -521,8 +521,15 @@ export const PAYROLL_CSV_HEADER =
   'Barber,Pay Period,Regular Hours,Overtime Hours,Service Revenue,Tips,Commission,Adjustments,Estimated Payout'
 
 const csvCell = (v: string | number) => {
-  const s = String(v)
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  const raw = String(v)
+  // Spreadsheet apps treat a leading =, +, -, @, tab or CR as the start of a
+  // formula, so a barber named "=HYPERLINK(...)" would become live content when
+  // the accountant opens the file. Quoting does not prevent that; prefixing the
+  // value with an apostrophe does. Plain numbers are left untouched so the
+  // report stays numeric for the payroll provider.
+  const isPlainNumber = typeof v === 'number' || /^-?\d+(\.\d+)?$/.test(raw)
+  const safe = !isPlainNumber && /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /**

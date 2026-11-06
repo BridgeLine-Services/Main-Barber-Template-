@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isFeatureEnabledForBusiness } from '@/lib/features'
 import { createBarberSchema } from '@/lib/validation'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/passwords'
 import { handleApiError, validationError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
     // Create the barber and the optional user account atomically: a
     // duplicate-email race fails the whole transaction (no orphaned barber).
-    const passwordHash = normalizedEmail ? await bcrypt.hash(password, 10) : undefined
+    const passwordHash = normalizedEmail ? await hashPassword(password) : undefined
     const barber = await prisma.$transaction(async (tx) => {
       const created = await tx.barber.create({
         data: {
