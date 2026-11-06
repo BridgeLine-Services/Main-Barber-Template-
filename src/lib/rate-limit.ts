@@ -185,9 +185,11 @@ export async function checkRateLimit(
 ): Promise<RateLimitDenial | null> {
   const result = await rateLimit(`${getClientIP(req)}:${endpoint}`, config)
   const denial = buildRateLimitDenial(result)
-  if (denial && denial.reason !== 'exceeded') {
-    // Operators need the cause; customers must not see it.
-    console.error(`[rate-limit] denying ${endpoint}: ${denial.reason}`)
+  if (denial) {
+    // Operators need the cause; customers must not see it. The 'exceeded' case is
+    // logged too: without it a 429 in a regression run cannot be attributed to a
+    // limiter, which turns a five-minute fix into an afternoon of guessing.
+    console.warn(`[rate-limit] denying ${endpoint}: ${denial.reason}`)
   }
   return denial
 }

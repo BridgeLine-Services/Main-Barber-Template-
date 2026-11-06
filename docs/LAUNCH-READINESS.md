@@ -132,3 +132,75 @@ npx playwright test e2e/nav-active-state.spec.ts
 `RATE_LIMIT_CI_IN_MEMORY` is refused outside an authorized CI-shaped environment,
 so this cannot weaken a real deployment. Verified 5 November 2026: 6 passed,
 1 skipped (the barber cases need `E2E_BARBER_EMAIL`/`PASSWORD`).
+
+## Regression run: the exact environment that passes
+
+Run against a production build (`npm run build` then `npm run start`) with the
+database seeded. The browser suite signs up customers and signs in many times, so
+three limits have to match what the suite does:
+
+```
+CI=true GITHUB_ACTIONS=true RATE_LIMIT_CI_IN_MEMORY=true \
+RATE_LIMIT_REGISTER_MAX=60 \
+E2E_OWNER_EMAIL=<seeded owner> E2E_OWNER_PASSWORD=<seeded password> \
+npx playwright test
+```
+
+`RATE_LIMIT_CI_IN_MEMORY` is refused outside a CI-shaped environment, so none of
+this reaches a real shop. `RATE_LIMIT_REGISTER_MAX` is an ordinary published
+variable and defaults to its production value when unset.
+
+Result, 5 November 2026: **43 passed, 1 skipped, 0 failed, 0 flaky (53s)**. The
+skipped case is the barber navigation spec, which needs `E2E_BARBER_EMAIL` and
+`E2E_BARBER_PASSWORD`.
+
+### Why that mattered
+
+The suite used to report a *flaky* invitation spec. It was never the invitation
+code: the customer-signup specs exhausted the registration limiter, so the
+customer the invitation spec expected did not exist, and the failure surfaced
+one spec later as a sign-in timeout. The 429s are correct behaviour.
+
+Denials of every reason are now logged with their endpoint
+(`[rate-limit] denying <endpoint>: <reason>`), so the next occurrence is
+attributable in one grep instead of an afternoon. The message a customer sees is
+unchanged.
+
+## Phase 7 status: what is verified, what needs a human
+
+Verified locally, with evidence:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Schema valid | `npx prisma validate` | valid |
+| Env registry drift | `npm run env:drift` | 79 declared, 70 referenced, 0 drift |
+| Master stays generic | `npm run client:independence` | no client-specific hardcoding |
+| Architecture rules | `npm run architecture:check` | 600 files, passed |
+| Unit/integration | `npm run test:ci` | exit 0 |
+| Feature enforcement | `npm run test:features` | contract tests pass |
+| Role matrix | `npm run test:roles` | 35 passed, 0 failed |
+| Browser journeys | `npx playwright test` | 43 passed, 1 skipped |
+| Production build | `npm run build` | compiled successfully |
+
+`npm run client:preflight` correctly refuses to open registration in this
+environment and names all three missing items in plain language: a session
+signing secret of at least 32 characters, the public application URL, and the
+rate-limit store. This is the intended behaviour, not a defect.
+
+Still requires credentials or a decision from the owner:
+
+1. **Upstash Redis** (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) —
+   without it registration answers 503 for everyone.
+2. **Neon/Postgres production URL** — migrations are recorded and none are
+   unfinished, but they have only ever run against a local database.
+3. **Stripe test-mode acceptance** — keys, one real test payment, one webhook
+   delivery.
+4. **Twilio and SMTP** — live credentials, one send each.
+5. **`CSP_NONCE_ENABLED`** in staging only.
+6. **`NEXTAUTH_SECRET`** of at least 32 characters for staging and production.
+7. **Legal review** — Terms, Privacy Policy and cookie disclosures are drafts and
+   are not represented as attorney-approved.
+8. **Independent accessibility pass** — the suite covers structure, labels and
+   keyboard order; it is not a substitute for a human screen-reader review.
+
+Nothing in that list can be closed from inside the repository.
