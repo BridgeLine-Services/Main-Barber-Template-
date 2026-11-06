@@ -26,6 +26,17 @@ export interface BasicsForm {
   email: string
 }
 
+/**
+ * One line of plain-language explanation under a field.
+ *
+ * A first-time owner asked the same questions at every field: what goes here,
+ * where does it show up, and can I change it later. The label alone answered
+ * none of them.
+ */
+function FieldHelp({ children }: { children: React.ReactNode }) {
+  return <p className="mt-1 text-[11px] leading-snug text-zinc-400">{children}</p>
+}
+
 interface BusinessBasicsStepProps {
   initial: BasicsForm
   mode: 'create' | 'update' // create = no business yet; update = editing existing record
@@ -209,6 +220,7 @@ export function BusinessBasicsStep({
               className={inputClass('businessName')}
               disabled={submitting}
             />
+            <FieldHelp>The name customers see at the top of your website and on their appointment emails.</FieldHelp>
             {touched.businessName && errors.businessName && (
               <p className="mt-1.5 text-xs text-red-400">{errors.businessName}</p>
             )}
@@ -292,6 +304,7 @@ export function BusinessBasicsStep({
                 className={inputClass('phone')}
                 disabled={submitting}
               />
+              <FieldHelp>The number customers can call. It also appears on your website.</FieldHelp>
               {touched.phone && errors.phone && <p className="mt-1.5 text-xs text-red-400">{errors.phone}</p>}
             </div>
             <div>
@@ -311,6 +324,7 @@ export function BusinessBasicsStep({
                 className={inputClass('email')}
                 disabled={submitting}
               />
+              <FieldHelp>Where booking confirmations and customer replies are sent. Use an address you check.</FieldHelp>
               {touched.email && errors.email && <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>}
             </div>
           </div>

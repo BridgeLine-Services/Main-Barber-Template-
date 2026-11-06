@@ -413,6 +413,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Marcus"
               />
+              <p className="mt-1 text-[11px] leading-snug text-zinc-500">Only a first name is needed. Customers see it when they pick who cuts their hair.</p>
               {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
             </div>
             <div>
@@ -435,6 +436,7 @@ export function TeamStep({ submitting, serverError, onContinue, onBack }: TeamSt
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               placeholder="A short intro customers will see on the barber's public page"
             />
+            <p className="mt-1 text-[11px] leading-snug text-zinc-500">Optional. Two or three sentences are plenty; this appears on the barber's page of your website.</p>
           </div>
 
           <div>

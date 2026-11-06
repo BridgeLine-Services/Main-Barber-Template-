@@ -84,7 +84,8 @@ export function ReviewStep({
         <p className="eyebrow-accent mb-3">Almost There</p>
         <h2 className="display-heading text-display-3 text-foreground">Review & Confirm</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Please review your appointment details before confirming.
+          Check the service, barber, date and time below. Nothing is booked until you press
+          the confirm button, and you can still go back to change anything.
         </p>
       </div>
 
