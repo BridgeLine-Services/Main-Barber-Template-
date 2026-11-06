@@ -83,7 +83,7 @@ export default function AuditLogPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <ScrollText className="h-6 w-6 text-[var(--dash-brand)]" />
-          Audit Log
+          Activity History
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Track all administrative actions across your shop. {total} total events.

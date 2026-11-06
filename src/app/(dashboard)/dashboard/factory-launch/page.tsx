@@ -19,12 +19,21 @@ export default async function FactoryLaunchPage() {
   if (!auth.success) redirect('/login')
   const user = await prisma.user.findUnique({
     where: auth.user.id ? { id: auth.user.id } : { email: auth.user.email },
-    select: { businessId: true },
+    select: { businessId: true, role: true },
   })
   if (!user?.businessId) redirect('/dashboard/onboarding')
 
   const report = await verifyFactoryLaunch(user.businessId)
-  const grouped = report.checks.reduce<Record<string, typeof report.checks>>((result, check) => {
+  // Infrastructure categories describe the deployment, not the business. They
+  // are shown to whoever operates the platform, and kept out of a shop owner's
+  // way, because a list of database and DNS items is not something they can act
+  // on. The checks themselves are unchanged; only who sees them is.
+  const INFRASTRUCTURE_CATEGORIES = new Set(['Database', 'Domain', 'Security', 'Tenant'])
+  const isPlatformOperator = user.role === 'PLATFORM_OWNER'
+  const visibleChecks = isPlatformOperator
+    ? report.checks
+    : report.checks.filter((check) => !INFRASTRUCTURE_CATEGORIES.has(check.category))
+  const grouped = visibleChecks.reduce<Record<string, typeof report.checks>>((result, check) => {
     ;(result[check.category] ||= []).push(check)
     return result
   }, {})
@@ -34,8 +43,8 @@ export default async function FactoryLaunchPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Barber Website Factory</p>
-        <h1 className="mt-2 text-3xl font-bold text-foreground">Factory Launch Console</h1>
-        <p className="mt-2 text-muted-foreground">One prioritized workflow for deployment, configuration, testing, domain verification, and launch review.</p>
+        <h1 className="mt-2 text-3xl font-bold text-foreground">Launch Checklist</h1>
+        <p className="mt-2 text-muted-foreground">Everything on this page is about your shop. Site and server checks are handled for you, so nothing here needs a technical decision.</p>
       </div>
       <section className={`rounded-xl border p-5 ${overallClass}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">

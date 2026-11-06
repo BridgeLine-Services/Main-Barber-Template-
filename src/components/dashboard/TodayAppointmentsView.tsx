@@ -13,6 +13,7 @@ import {
   XCircle,
   Scissors,RefreshCw } from 'lucide-react'
 import { formatFullDate } from '@/lib/utils'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
@@ -28,7 +29,8 @@ export function TodayAppointmentsView({
   initialAppointments,
   todayDateStr,
   userName,
-    barberId,
+  userRole,
+  barberId,
 }: TodayAppointmentsViewProps) {
   const router = useRouter()
   const [appointments, setAppointments] = useState(initialAppointments)
@@ -97,6 +99,32 @@ export function TodayAppointmentsView({
           </Button>
         </div>
       </div>
+
+      {/* Quick actions. Every one of these is a plain link to a page that
+          already exists; this adds a starting point, not a second workflow.
+          Barbers get their own work surface and are not shown owner jobs. */}
+      {userRole !== 'BARBER' && (
+        <nav aria-label="Quick actions" className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Get started:</span>
+          {[
+            { label: 'Appointments', href: '/dashboard/appointments', hint: 'See everything booked' },
+            { label: 'Add a service', href: '/dashboard/services', hint: 'Set prices and how long things take' },
+            { label: 'Add a barber', href: '/dashboard/barbers', hint: 'Put someone on your team' },
+            { label: 'Set your hours', href: '/dashboard/settings?tab=hours', hint: 'When customers can book' },
+            { label: 'Customers', href: '/dashboard/customers', hint: 'Your customer list' },
+            { label: 'View your website', href: '/dashboard/website-preview', hint: 'See what customers see' },
+          ].map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              title={action.hint}
+              className="text-xs h-8 inline-flex items-center px-3 rounded-full border border-border bg-[var(--dash-surface)] text-foreground/85 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dash-brand)]"
+            >
+              {action.label}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

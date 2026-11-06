@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 /**
  * Navigation regression: mutually exclusive active states for routes that
  * share a URL prefix (Online Shop /dashboard/ecommerce vs Shop Orders
- * /dashboard/ecommerce/orders), plus the Branding → Dashboard Preview and
+ * /dashboard/ecommerce/orders), plus the Branding → Screen Preview and
  * System → Deactivate destinations.
  *
  * The sidebar marks the active destination with aria-current="page" on the
@@ -69,14 +69,14 @@ test('browser back and forward keep the active state correct', async ({ page }) 
   await expect(navLink(page, 'Shop Orders')).not.toHaveAttribute('aria-current', 'page')
 })
 
-test('Branding group exposes Dashboard Preview and it opens the settings tab', async ({ page }) => {
+test('Branding group exposes Screen Preview and it opens the settings tab', async ({ page }) => {
   await expand(page, /website section/i)
   await expand(page, /branding section/i)
-  const link = navLink(page, 'Dashboard Preview')
+  const link = navLink(page, 'Screen Preview')
   await expect(link).toBeVisible()
   await link.click()
   await page.waitForURL(/dashboard\/settings\?tab=dashboard-preview/)
-  await expect(navLink(page, 'Dashboard Preview')).toHaveAttribute('aria-current', 'page')
+  await expect(navLink(page, 'Screen Preview')).toHaveAttribute('aria-current', 'page')
 })
 
 test('Branding & Theme consolidates typography and website design; legacy tab URLs normalize', async ({ page }) => {

@@ -111,10 +111,11 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Scissors className="w-6 h-6 text-[var(--dash-brand)]" />
-            <span>Service Catalog</span>
+            <span>Services</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Manage haircuts, treatments, pricing, and assigned barbers
+            Everything you sell. Each service sets what a customer pays and how long it
+            holds the chair, which is how your online booking knows what to offer.
           </p>
         </div>
 
@@ -133,18 +134,19 @@ export function ServicesClient({ initialServices, barbers }: ServicesClientProps
             <thead className="bg-card/80 uppercase font-semibold text-muted-foreground border-b border-border">
               <tr>
                 <th className="p-3.5 pl-4">Service Name</th>
-                <th className="p-3.5">Duration</th>
+                <th className="p-3.5">Time needed</th>
                 <th className="p-3.5">Price</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Assigned Barbers</th>
-                <th className="p-3.5 pr-4 text-right">Actions</th>
+                <th className="p-3.5 pr-4 text-right">What you can do</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {initialServices.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    No services found. Click "Add Service" to create your first offering.
+                    No services yet. Add your first one, a haircut is the usual starting point, and it
+                    becomes bookable on your website straight away.
                   </td>
                 </tr>
               ) : (

@@ -49,7 +49,7 @@ const MEDIA_TYPES = [
   { value: 'BARBER_PHOTO', label: 'Barber Photos', icon: ImageIcon },
   { value: 'BARBER_PORTFOLIO', label: 'Barber Portfolio', icon: ImageIcon },
   { value: 'SERVICE_PHOTO', label: 'Service Photos', icon: ImageIcon },
-  { value: 'OG_IMAGE', label: 'OG Image', icon: ImageIcon },
+  { value: 'OG_IMAGE', label: 'Share Preview Image', icon: ImageIcon },
   { value: 'FAVICON', label: 'Favicon', icon: ImageIcon },
 ]
 
