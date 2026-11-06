@@ -80,7 +80,8 @@ export function CustomerInfoStep({
       <div className="mb-6">
         <h2 className="display-heading text-display-3 text-foreground">Your Details</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Provide your contact details to complete your appointment booking.
+          So the shop knows who is coming and can reach you if anything changes. We only use
+          these details for this appointment.
         </p>
         {/* Optional auth: guests never hit a login wall. An account is a
             convenience for managing bookings, never a requirement. */}

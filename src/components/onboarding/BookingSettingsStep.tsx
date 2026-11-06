@@ -172,6 +172,7 @@ export function BookingSettingsStep({
                   setForm({ ...form, customerRescheduleMinNoticeHours: e.target.value })
                 }
               />
+            <p className="mt-1 text-[11px] leading-snug text-zinc-500">How close to the appointment a customer may still move it themselves. After that, they call you.</p>
               {errors.notice && <p className="mt-1 text-xs text-red-400">{errors.notice}</p>}
             </div>
             <div>

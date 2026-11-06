@@ -388,3 +388,37 @@ I do not have the text of Parts 14 through 22. It is not in this conversation's
 context, not in the workspace, and not in the repository, so I did not guess at nine
 parts of work and then report them as done. Send those part numbers again and they
 are next.
+
+---
+
+# Fourth pass: field-level explanations (branch ux/usability-gaps)
+
+Base: main 69118ed. Commit 4520326 plus this one. Wording only: no route,
+query parameter, permission, query, API shape, schema field or publishing rule changed.
+
+## What changed
+
+- src/components/onboarding/BusinessBasicsStep.tsx: FieldHelp line under name, phone and email saying where the value appears and who sees it.
+- src/components/onboarding/ServicesStep.tsx: duration and price explain what they control.
+- src/components/onboarding/TeamStep.tsx: name and bio explained as what customers read.
+- src/components/onboarding/BookingSettingsStep.tsx: reschedule notice explained.
+- src/app/(dashboard)/dashboard/settings/page.tsx: Business Hours distinguishes shop hours from barber hours; Review Requests notes that invitations need email or text switched on.
+- src/components/booking/CustomerInfoStep.tsx and ReviewStep.tsx: why details are needed, and that nothing is booked until confirm.
+- src/components/dashboard/TodayAppointmentsView.tsx: empty state explains a manual booking behaves like any other.
+- src/components/dashboard/BarberForm.tsx: states that these fields are the barber page customers read.
+
+## Verified
+
+typecheck clean; lint 0 errors (97 pre-existing warnings); build compiled;
+plain-language 3/3; test:ci exit 0; test:tenant 22/22; test:booking 20/20;
+test:permissions 37/37; test:coowner-permissions 35/35; test:barber-mode 23/23;
+test:factory-readiness 21/21; test:factory-launch 10/10;
+test:auth 58/58 on a cold run.
+
+## Known issues, not fixed
+
+- axe reports one color-contrast node (serious) on Settings -> Security. My probe of that page authenticated as a customer view instead of the owner dashboard, so I could not identify the element reliably and did not change the shared text-primary token on unreliable evidence.
+- Playwright was cut off by my own timeout at 13 of 70 specs. There is no browser-suite result for this branch.
+- test:smoke requires SMOKE_BASE_URL and targets a deployed site; it cannot run here.
+- test:auth fails with 429 when the suite is run twice within a minute. The reschedule limiter is per-IP per-minute; repeated local runs trip it. Not code.
+- No human screen-reader assessment, no staging verification, no provider acceptance.

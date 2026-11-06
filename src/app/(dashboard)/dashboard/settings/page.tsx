@@ -330,7 +330,7 @@ export default function SettingsPage() {
   // destinations (the old horizontal tab row was redundant and is gone).
   const TAB_META: Record<Tab, { title: string; description: string }> = {
     business: { title: 'Business Information', description: 'Your shop name, contact details and address - shown to customers on your website.' },
-    hours: { title: 'Business Hours', description: 'When your shop is open. Customers can only book inside these hours.' },
+    hours: { title: 'Business Hours', description: 'When your shop is open to customers. Each barber has their own working hours under Team, and a customer can only book a time when both agree.' },
     branding: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
     layout: { title: 'Page Layout', description: 'How your website is arranged and how it behaves for visitors.' },
     'homepage-sections': { title: 'Homepage Sections', description: 'Choose which sections appear on your homepage and in what order.' },
@@ -341,7 +341,7 @@ export default function SettingsPage() {
     faq: { title: 'FAQ', description: 'Common questions and answers shown on your website.' },
     website: { title: 'Website Content', description: 'The words and images customers read on your website.' },
     booking: { title: 'Booking Questions', description: 'Extra questions customers answer when they book.' },
-    reviews: { title: 'Review Requests', description: 'Ask customers for reviews after their visit.' },
+    reviews: { title: 'Review Requests', description: 'Invite a customer to leave a review after their appointment. The invitation is only sent when email or text messages are switched on for your shop.' },
     'danger-zone': { title: 'Deactivate Shop', description: 'Temporarily close your shop or reset shop data. High-risk actions live here.' },
     features: { title: 'Features', description: 'Turn optional parts of the system on or off. Nothing is deleted when you switch something off.' },
     security: { title: 'Security', description: 'Protect your own account. Two-factor authentication adds a code from your phone when you sign in.' },

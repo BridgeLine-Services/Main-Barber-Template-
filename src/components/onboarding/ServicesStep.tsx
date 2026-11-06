@@ -313,6 +313,7 @@ export function ServicesStep({ submitting, serverError, onContinue, onBack }: Se
                 value={form.duration}
                 onChange={(e) => setForm({ ...form, duration: e.target.value })}
               />
+            <p className="mt-1 text-[11px] leading-snug text-zinc-500">Count everything the chair is held for, including the tidy-up. Booking uses this to work out which times it can offer.</p>
               {errors.duration && <p className="mt-1 text-xs text-red-400">{errors.duration}</p>}
             </div>
             <div>
@@ -326,6 +327,7 @@ export function ServicesStep({ submitting, serverError, onContinue, onBack }: Se
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
                 placeholder="0.00"
               />
+            <p className="mt-1 text-[11px] leading-snug text-zinc-500">Shown to customers before they book. You can change it later without affecting appointments already booked.</p>
               {errors.price && <p className="mt-1 text-xs text-red-400">{errors.price}</p>}
             </div>
           </div>

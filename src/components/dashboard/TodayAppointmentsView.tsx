@@ -192,7 +192,8 @@ export function TodayAppointmentsView({
             <div>
               <h3 className="text-base font-semibold text-foreground">No appointments today</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                There are no appointments scheduled for today. You can manually create one anytime.
+                Nobody is booked in today. If someone calls or walks in, you can put them in the
+                calendar here and it behaves like any other appointment.
               </p>
             </div>
             <Button
