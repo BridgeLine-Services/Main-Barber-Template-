@@ -204,3 +204,41 @@ Still requires credentials or a decision from the owner:
    keyboard order; it is not a substitute for a human screen-reader review.
 
 Nothing in that list can be closed from inside the repository.
+
+## Migration integrity: proven from empty
+
+The migrations had only ever run against the development database, which is the
+weakest possible evidence: a schema that only exists because of locally applied
+drift still looks fine there. Verified on 5 November 2026 against a database
+created empty for the purpose:
+
+```
+createdb barber_fresh                     # zero tables
+npx prisma migrate deploy                 # all migrations applied in order
+```
+
+| Database | Public tables | Applied migrations | Unfinished |
+| --- | --- | --- | --- |
+| `barber_fresh` (started empty) | 67 | 57 | 0 |
+| `barber_test` (development) | 67 | 57 | 0 |
+
+Identical. The migration history alone reproduces the schema, so a new client's
+database can be built by running `prisma migrate deploy` and nothing else.
+
+### First-run onboarding on that empty database
+
+With the app pointed at `barber_fresh` and no seed data of any kind:
+
+```
+npm run test:owner-registration
+→ 28 passed, 0 failed, 28 total
+```
+
+The journey covers the redirect for a signed-out visitor, first-owner signup,
+sign-in, and reaching the dashboard. So the path a brand-new shop takes, from an
+empty database to a working dashboard, is exercised end to end rather than
+assumed.
+
+What this does not prove: that the same migrations succeed against the production
+Neon instance, which still requires its connection string, and that a restore from
+backup works, which has never been rehearsed. Both are on the list above.
