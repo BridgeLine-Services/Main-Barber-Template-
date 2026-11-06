@@ -164,3 +164,22 @@ release; record results per client deployment.
 allowlist with a stated reason (`portal/logout` is the only one). This exists
 because the waitlist claim endpoint, which converts a token into a real
 appointment, shipped with no limiter and nothing noticed.
+
+---
+
+## Current state of the suites (2026-11-05, commit b56f310)
+
+Everything below this note describes suites that exist today; the note exists because
+the numbers in the body drift with every commit, so treat the body as method and this
+note as status.
+
+- `npm run test:ci` — 44 suites, exit 0.
+- `npx playwright test` — 67 passed, 1 skipped, 0 failed. The skip is the barber-navigation
+  spec, which needs `E2E_BARBER_EMAIL`/`E2E_BARBER_PASSWORD`.
+- `npm run test:a11y` — 8 passed (axe, WCAG A/AA, on public and authenticated pages).
+- `npm run env:drift`, `npm run client:independence`, `npm run architecture:check`,
+  `npm run test:architecture`, `npm run master:check` — all clean.
+- Automation is not a human accessibility review. No screen-reader pass has been done.
+- CI needs `RATE_LIMIT_REGISTER_MAX` raised for the auth suites; production keeps the
+  stricter default. Widening a limit for tests is a test-environment concession, not a
+  relaxation of the shipped configuration.

@@ -69,3 +69,24 @@ This document details all environment variables for the Next.js barbershop appli
 | `OBSERVABILITY_WEBHOOK_URL` | Collector URL for structured error reporting (Sentry/Better Stack) | Secret (Server) | Optional (Unset = no-op) | Dev/Preview/Prod (Runtime) | Monitoring provider | Webhook receiver endpoint | Structured error event emission check |
 | `ENABLE_E2E_TESTS` | Toggle test endpoints for automated Playwright E2E suites | Server | Optional (Must be `false` in Prod) | E2E Test Environments (Runtime) | Test framework config | Keep unset / `false` in client production | Playwright test execution |
 | `VERCEL` | Runtime signal used by the rate limiter to apply Vercel's documented proxy-header behavior | Server | Platform-provided | Vercel deployments (Runtime) | Vercel platform | Do not manually set in self-hosted deployments | Rate-limit IP extraction check |
+
+---
+
+## Database URL aliases, restated (verified 2026-11-05)
+
+`config/db-url-aliases.json` is the single list of accepted connection variable names,
+and the order in it is the precedence order:
+
+`DATABASE_URL` → `NEON_POSTGRES_PRISMA_URL` → `POSTGRES_PRISMA_URL` → `NEON_POSTGRES_URL` → `POSTGRES_URL`
+
+The first name that is set wins. The file is read by `scripts/vercel-build.mjs` (build),
+`src/lib/env-registry.ts` (runtime diagnostics and preflight) and the tests, so there is
+one contract rather than several competing sources. Adding a sixth alias means editing
+that file, not teaching each consumer a new name.
+
+Diagnostics never print a credential: `describeValue()` reports secrets as
+`(set, N characters)`. The build's migration step pipes its output through
+`redactDatabaseUrl()` so a driver error cannot echo the connection string into CI logs.
+
+Environment identity (development, preview, production) is resolved from the registry and
+reported per run; nothing here writes to or replaces production values.
