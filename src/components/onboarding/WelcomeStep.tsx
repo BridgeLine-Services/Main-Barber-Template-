@@ -59,7 +59,10 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         Let&apos;s get started
         <ArrowRight className="h-4 w-4" />
       </button>
-      <p className="mt-3 text-xs text-zinc-500">Takes about 2 minutes</p>
+      <p className="mt-3 text-xs text-zinc-500">
+        Set aside a few minutes. There is no time limit, and you can stop and come back
+        whenever you like.
+      </p>
     </div>
   )
 }

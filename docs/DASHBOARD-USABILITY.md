@@ -185,3 +185,66 @@ throughout settings (Part 8), website management wording (Part 9), services and
 scheduling help text (Part 10), customer journey copy (Part 11), a systematic
 error-message audit (Part 12), responsive testing at tablet and mobile widths
 (Part 13), and the human screen-reader assessment.
+
+---
+
+# Third pass: keeping infrastructure out of the owner's way
+
+## Part 7 — the launch checklist was showing deployment diagnostics to shop owners
+
+`/dashboard/setup` already does the business checklist properly, and in plain
+language: Business ("your shop name, phone, address and time zone"), Branding,
+Services, Team, Schedules, Booking and policies, Search and sharing, Launch review.
+
+The problem was the page behind it. `/dashboard/factory-launch` — reachable from
+the nav as Launch Checklist and from the setup checklist's own "Launch review" step
+— rendered **every** check, including categories called Database, Domain, Security
+and Tenant, with items such as "Authentication URL", "URL alignment", "Migration
+status" and "Deployment binding". An owner following "a last look before you go
+live" arrived at a list of things they cannot act on.
+
+What changed:
+
+- Infrastructure categories (Database, Domain, Security, Tenant) are now shown
+  only to a `PLATFORM_OWNER`. A shop owner sees the business categories.
+- The page's subtitle no longer reads like a deployment runbook. It now says that
+  everything on the page is about their shop, and that site and server checks are
+  handled for them.
+- Two library labels lost their jargon: "Live acceptance test" became "Booking a
+  real appointment yourself", and "Automated test suite" became "Our automated
+  checks".
+
+The checks themselves are untouched. Nothing was deleted, and the platform
+operator still sees the full report. Only the audience changed.
+
+## Part 6 — one honest promise removed from onboarding
+
+`WelcomeStep` already told owners their progress is saved, which is true. It also
+said "Takes about 2 minutes" for a seven-step wizard covering business details,
+branding, services, team, hours and booking rules. That is a promise the product
+cannot keep, and a new owner who runs past it learns not to trust the rest of the
+copy.
+
+It now reads: "Set aside a few minutes. There is no time limit, and you can stop
+and come back whenever you like." Same reassurance, no invented duration.
+
+## Verification for this pass
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run build` | compiled successfully |
+| `npm run test:ci` | exit 0 |
+| `npx playwright test` (full) | 43 passed, 1 skipped, 0 failed |
+
+## Honest position on Parts 8–22
+
+Part 8 (draft versus published explanations) turned out to be largely present
+already: publishing runs through `PublishWebsiteCard`, and the settings API's 403
+already says "Draft saved — not live yet, an owner must publish". I did not add
+another explanation on top of it.
+
+Still not done, and not claimed anywhere: Part 9 website management wording,
+Part 10 services and scheduling help text, Part 11 customer journey copy, Part 12
+the systematic error-message audit, Part 13 responsive testing at tablet and mobile
+widths, and the human screen-reader assessment.

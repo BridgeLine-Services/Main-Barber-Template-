@@ -208,13 +208,13 @@ export async function verifyFactoryLaunch(businessId: string): Promise<FactoryLa
     },
     ...evaluateDomainReadiness(),
     {
-      key: 'automated-tests', category: 'Testing', label: 'Automated test suite',
+      key: 'automated-tests', category: 'Testing', label: 'Our automated checks',
       status: 'MANUAL' as const, required: true, secret: false,
       detail: 'The application does not execute the repository test suite from the owner dashboard.',
       remediation: 'Run npm run test:all in the deployment environment and record the result.',
     },
     {
-      key: 'live-acceptance', category: 'Testing', label: 'Live acceptance test',
+      key: 'live-acceptance', category: 'Testing', label: 'Booking a real appointment yourself',
       status: 'MANUAL' as const, required: true, secret: false,
       detail: 'A live booking and notification test requires human approval and cleanup.',
       remediation: 'Create one test appointment, confirm the customer experience, verify the notification, and cancel it.',
