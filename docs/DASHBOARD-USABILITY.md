@@ -324,3 +324,67 @@ scheduling help text, Part 11 customer journey copy, Parts 14-22 (which I have n
 been able to read from the truncated directive, so I will not guess at them), and
 the human screen-reader assessment, which needs a person with a screen reader rather
 than a script.
+
+---
+
+# Fifth pass: Parts 9, 10 and 11
+
+## Part 9 — website management was already right, so I verified instead of rewriting
+
+The two places an owner meets their website both already say the right thing:
+
+- `PublishWebsiteCard`: "One click: **Save Changes** saves your edits and makes them
+  live on…", with a status line that distinguishes "Never published" from
+  "Unpublished draft changes".
+- The preview page carries a banner when it is not embedded in a settings iframe:
+  "DRAFT PREVIEW — only visible to signed-in staff. This is exactly what your
+  homepage will show once you press Publish website in Settings."
+
+I checked the banner actually renders rather than trusting the comment above it that
+claimed it did. It does, behind `{!embedded && …}`. Adding a second explanation on
+top of working copy would make the screen worse, so I left it.
+
+## Part 10 — services, described by what they do
+
+- The page title was "Service Catalog". It is now "Services", with a line that says
+  what the screen is for: "Everything you sell. Each service sets what a customer
+  pays and how long it holds the chair, which is how your online booking knows what
+  to offer."
+- The empty state was "No services found. Click 'Add Service' to create your first
+  offering." It now names the usual first step and the consequence: add a haircut
+  and it becomes bookable on the website straight away.
+- Column headers "Duration" and "Actions" became "Time needed" and "What you can do".
+- The form field "Duration (Minutes) *" is now "How long it takes (minutes)" with
+  help text: count everything, the cut, the conversation and the tidy-up, because
+  booking uses this to work out which slots to offer. Its validation error likewise
+  stopped reciting a rule and started giving an example: "Enter how long this takes,
+  for example 30 minutes."
+
+## Part 11 — the customer journey's dead ends
+
+Two customer pages greeted visitors with **"Shop Not Configured"** and "An
+administrator needs to run the setup process." That is a developer's status message
+shown to someone trying to book a haircut.
+
+- `/services` now says "Our services are not online yet", and explains what to do:
+  the shop is still getting set up, contact it directly in the meantime.
+- `/accessibility` now says "This page is not ready yet" with the same guidance.
+- Cancelling online said "Failed to cancel. Please try again or call the shop." It
+  now reads "We could not cancel this appointment just now. Please try again in a
+  moment, or call the shop and they will do it for you."
+
+## Verification for this pass
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run build` | compiled successfully |
+| `npm run test:ci` | exit 0 |
+| `npx playwright test` (full) | 67 passed, 1 skipped, 0 failed |
+
+## Parts 14 to 22 were never in my hands
+
+I do not have the text of Parts 14 through 22. It is not in this conversation's
+context, not in the workspace, and not in the repository, so I did not guess at nine
+parts of work and then report them as done. Send those part numbers again and they
+are next.

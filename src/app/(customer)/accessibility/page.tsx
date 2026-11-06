@@ -22,8 +22,8 @@ export default async function AccessibilityStatementPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="text-center">
-          <h1 className="display-heading text-display-3 text-foreground mb-4">Shop Not Configured</h1>
-          <p className="text-muted-foreground">An administrator needs to run the setup process.</p>
+          <h1 className="display-heading text-display-3 text-foreground mb-4">This page is not ready yet</h1>
+          <p className="text-muted-foreground max-w-md mx-auto">This shop is still getting set up. If you need an appointment in the meantime, please contact the shop directly.</p>
         </div>
       </div>
     )

@@ -63,7 +63,7 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
 
     const durNum = parseInt(duration, 10)
     if (isNaN(durNum) || durNum <= 0) {
-      setError('Duration must be greater than 0 minutes')
+      setError('Enter how long this takes, for example 30 minutes.')
       return
     }
 
@@ -139,14 +139,18 @@ export function ServiceForm({ service, barbers, isOpen, onClose, onSave }: Servi
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary of what this service includes..."
+              placeholder="What the customer gets, e.g. wash, cut and style finished with a hot towel"
               className="bg-card border-border text-xs focus:border-ring min-h-[70px]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-foreground/85">Duration (Minutes) *</Label>
+              <Label className="text-xs text-foreground/85">How long it takes (minutes) *</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Count everything: the cut, the conversation and the tidy-up. Booking uses
+                this to work out which slots to offer.
+              </p>
               <Input
                 type="number"
                 min="5"

@@ -30,10 +30,10 @@ export default function CancelButton({
       if (data.success) {
         router.refresh()
       } else {
-        alert(data.error || 'Failed to cancel. Please try again or call the shop.')
+        alert(data.error || 'We could not cancel this appointment just now. Please try again in a moment, or call the shop and they will do it for you.')
       }
     } catch (_err) {
-      alert('Failed to cancel. Please try again or call the shop.')
+      alert('We could not cancel this appointment just now. Please try again in a moment, or call the shop and they will do it for you.')
     } finally {
       setIsCancelling(false)
     }

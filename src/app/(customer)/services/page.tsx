@@ -29,8 +29,8 @@ export default async function ServicesPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <h1 className="display-heading text-display-3 text-foreground mb-4">Shop Not Configured</h1>
-          <p className="text-muted-foreground">An administrator needs to run the setup process.</p>
+          <h1 className="display-heading text-display-3 text-foreground mb-4">Our services are not online yet</h1>
+          <p className="text-muted-foreground max-w-md mx-auto">This shop is still getting set up. If you need an appointment in the meantime, please contact the shop directly.</p>
         </div>
       </div>
     )
