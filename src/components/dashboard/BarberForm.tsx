@@ -155,6 +155,10 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
           )}
 
           <div className="space-y-1.5">
+            <p className="text-[11px] text-muted-foreground">
+              This is the person&apos;s page on your website. The name, photo, specialty and bio below
+              are what a customer reads while deciding who should cut their hair.
+            </p>
             <Label className="text-xs text-foreground/85">Barber Name *</Label>
             <Input
               value={name}
