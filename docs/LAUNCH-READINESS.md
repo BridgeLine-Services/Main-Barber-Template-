@@ -278,3 +278,26 @@ per-transaction `app.business_id` setting. Enabling it while the app connects as
 the table owner would either be silently bypassed or break every query. The
 enforced isolation boundary is the application layer, covered by the cross-tenant
 IDOR matrix and the role matrix.
+
+
+---
+
+## Reconciliation note — 2026-11-05 (commit 4105997)
+
+This document mixes reports written at different points in the project. To keep the
+audit trail without letting old claims read as current ones:
+
+- Statements below that describe the dashboard as a technical console, or that count
+  enforced features as a single digit, are **historical**. The current counts and the
+  enforcement contract live at the top of `docs/FEATURES.md` and are produced by
+  `npm run audit:features`, not by hand.
+- **Staging acceptance has not happened.** No deployment has been made against real
+  Upstash, Neon, Stripe, Twilio or SMTP credentials. Local suites, a local production
+  build and a local database are all that has been exercised. Nothing in this
+  repository should be read as evidence of a live integration test.
+- **No human accessibility review has taken place.** There are automated checks
+  (`npm run test:a11y`, axe-based, plus the responsive width suite), and they are not
+  the same thing as a person using a screen reader. That gap stays open and named.
+- A feature is not production-ready because a source file for it exists. The audit
+  proves a server file consults the key; it does not prove the provider behind it
+  works, and it does not stand in for an end-to-end test with real credentials.

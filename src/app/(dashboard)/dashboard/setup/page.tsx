@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, CircleAlert, ArrowRight, Rocket, Building2, Palette, Scissors, Users, Clock3, CalendarCheck, Search, ShieldCheck } from 'lucide-react'
+import { ToggleRight } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ const setupSections = [
   { category: 'Team', label: 'Barbers', description: 'Who works here, and which services each person offers.', href: '/dashboard/barbers', icon: Users },
   { category: 'Schedule', label: 'Schedules', description: 'When you are open, when you take breaks, and days you are closed.', href: '/dashboard/schedule', icon: Clock3 },
   { category: 'Booking', label: 'Booking & policies', description: 'How far ahead people can book, your cancellation policy, and what to tell customers.', href: '/dashboard/settings?tab=booking', icon: CalendarCheck },
+  { category: 'Features', label: 'Optional features', description: 'Turn things like online booking, the gallery or text reminders on or off. Switching one off never deletes anything.', href: '/dashboard/settings?tab=features', icon: ToggleRight },
   { category: 'SEO', label: 'Search and sharing', description: 'What people see when your shop comes up in Google or is shared in a message.', href: '/dashboard/settings?tab=seo', icon: Search },
   { category: 'Testing', label: 'Launch review', description: 'A last look before you go live: your address, your payments, and one test booking.', href: '/dashboard/factory-launch', icon: ShieldCheck },
 ]

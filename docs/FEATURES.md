@@ -1,3 +1,28 @@
+# Optional features
+
+> **Current state — verified 2026-11-05 at commit 4105997 on `feat/non-technical-business-dashboard`.**
+>
+> Every claim below this banner that contradicts the audit output is historical and
+> kept as a record of what was true at the commit it names. Read this box first.
+>
+> - `npm run audit:features` reports **20 of 20 keys consulted by server code**. Note
+>   the precise word: *consulted*. For read-oriented features (gallery, reviews,
+>   analytics) that means the server withholds the data; for write-oriented features
+>   (online booking, waitlist, queue) it means the endpoint refuses the action. A
+>   switch is never described to an owner as "deleting" anything, because none do.
+> - There is now an owner-facing **Settings > Features** tab
+>   (`src/components/dashboard/FeaturesTab.tsx`). Before this commit the toggles were
+>   enforced server-side but had no interface at all, which meant an owner could not
+>   see or change them.
+> - Features that depend on an outside service (email, SMS, online payments, review
+>   requests) fail closed when that service is not configured, and the tab says so in
+>   the owner's own words rather than listing an environment variable.
+> - Disabling a feature never deletes business data: appointments, photos, membership
+>   records and customer details are untouched, and the copy states that.
+>
+> The historical audit sections below (including the one that found "1 of 24 keys
+> enforced") are intentionally preserved. They are how the gap was found and closed.
+
 # Feature configuration
 
 Centralized, tenant-aware feature configuration (Requirement 27).
