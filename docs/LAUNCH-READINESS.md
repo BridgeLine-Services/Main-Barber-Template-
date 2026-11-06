@@ -242,3 +242,39 @@ assumed.
 What this does not prove: that the same migrations succeed against the production
 Neon instance, which still requires its connection string, and that a restore from
 backup works, which has never been rehearsed. Both are on the list above.
+
+## Session revocation: verified, not assumed
+
+Run against the freshly migrated database:
+
+| Suite | Result |
+| --- | --- |
+| `tests/session-revocation.test.ts` | 21 passed, 0 failed |
+| `tests/session-security.test.ts` | 12 passed, 0 failed |
+| `tests/session-devices.test.ts` | 19 passed, 0 failed |
+
+So revoking a single device, revoking all sessions, and the device labels a
+person sees are all enforced server-side. Session revocation is done.
+
+## Backup and restore: still unrehearsed, and why
+
+A rehearsal needs `pg_dump` and `psql`. Neither is present in this environment
+(the embedded Postgres ships only `initdb`, `pg_ctl` and `postgres`), and
+installing the client tools is blocked. So the restore procedure remains the one
+operational step with no evidence behind it, exactly as stated above. Rehearse it
+somewhere that has the client tools before the first paying client:
+
+```
+pg_dump "$DATABASE_URL" -f backup.sql
+createdb restore_check && psql restore_check -f backup.sql
+# then compare table and row counts, and sign in as the owner
+```
+
+## Database-level RLS: off by design, not by mistake
+
+`npm run db:rls-status` reports 0/51 tables protected. That is the documented
+state, not a regression: RLS requires a dedicated runtime role and a
+per-transaction `app.business_id` setting. Enabling it while the app connects as
+the table owner would either be silently bypassed or break every query. The
+enforced isolation boundary is the application layer, covered by the cross-tenant
+IDOR matrix and the role matrix.
