@@ -62,3 +62,32 @@ untouched.
 No staging or production run, no real provider credentials, no CodeQL re-run
 (the token cannot read or trigger code scanning), no pull request (403 on
 `POST /pulls`), and no human accessibility review.
+
+## Verification limits (read before trusting the numbers)
+
+Three things about this branch are easy to misread, so they are stated plainly.
+
+**No CI has run on this branch.** `ci.yml` triggers on `pull_request` and on
+pushes to `main` or `v0/**`. A pushed feature branch triggers nothing, and the
+available token cannot open the pull request (403 on `POST /pulls`, four tokens
+in a row). Every result below is a local run against a sandbox Postgres, not CI.
+
+**`npm run test:all` is red on this branch and on `main`.** One pair of suites
+is order dependent: after `npm run test:owner-registration` runs, the following
+`tests/registration-route.test.ts` reports 10 passed / 13 failed, because the
+registration route answers 503 once a first owner already exists in the database.
+Run on its own, that suite is 23/23. This reproduces identically on a clean
+worktree of the audited baseline `0952684`, so it pre-dates this branch and is a
+harness-ordering defect, not an application regression. It was deliberately left
+unfixed: changing the assertions to match would hide the ordering problem.
+
+**`npm run master:check` exits 1 on `main` as well.** It ends in
+`perf-check --strict`, which exits 1 whenever any N+1 candidate exists; the
+baseline reports the same 13 candidates. Making it green means triaging those
+candidates or dropping `--strict`, both of which weaken a gate, so neither was
+done here.
+
+**`npm run db:backup-verify` cannot run in this environment.** It needs
+`pg_dump` and `psql`; neither is installed and `apt` has no `postgresql-client`
+package. The workflow step `.github/workflows/ci.yml` ("Backup and restore
+verification") is the place that proves it.

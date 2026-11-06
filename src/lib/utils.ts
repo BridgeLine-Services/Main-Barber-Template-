@@ -11,10 +11,13 @@ import crypto from 'crypto'
 /** Generate a unique confirmation number: BRB-XXXXX (6 alphanumeric, crypto-based) */
 export function generateConfirmationNumber(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no confusing chars (no 0, O, 1, I)
-  const bytes = crypto.randomBytes(6)
+  // randomInt() rejects values outside the range instead of wrapping, so every
+  // character is equally likely. The previous `% chars.length` was unbiased too
+  // by luck (32 symbols divide 256 evenly), but it is the pattern that becomes
+  // biased the moment the alphabet changes length.
   let code = ''
   for (let i = 0; i < 6; i++) {
-    code += chars[bytes[i] % chars.length]
+    code += chars[crypto.randomInt(chars.length)]
   }
   return `BRB-${code}`
 }

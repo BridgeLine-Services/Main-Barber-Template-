@@ -6,6 +6,7 @@
  */
 import { payrollReportCsv } from '../src/lib/payroll'
 import { parsePreferredTime } from '../src/lib/recurring'
+import { generateConfirmationNumber } from '@/lib/utils'
 import { hashPassword, verifyPassword, BCRYPT_COST } from '../src/lib/passwords'
 import bcrypt from 'bcryptjs'
 
@@ -63,6 +64,15 @@ console.log('Preferred time parsing')
 
 console.log('Password hashing policy')
 async function main() {
+console.log('Confirmation numbers')
+{
+  const vals = Array.from({ length: 300 }, () => generateConfirmationNumber())
+  assert(vals.every((v) => /^BRB-[A-Z2-9]{6}$/.test(v)), 'format is BRB- plus six allowed characters')
+  assert(vals.every((v) => !/[01OI]/.test(v.slice(4))), 'confusing characters 0, O, 1, I never appear')
+  assert(new Set(vals).size > 290, 'a 300-value sample is effectively unique (not a randomness proof)')
+}
+
+
 {
   assert(BCRYPT_COST >= 12, 'policy is at least cost 12')
   const hash = await hashPassword('correct horse battery staple')
