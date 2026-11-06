@@ -340,3 +340,27 @@ audit trail without letting old claims read as current ones:
 - A feature is not production-ready because a source file for it exists. The audit
   proves a server file consults the key; it does not prove the provider behind it
   works, and it does not stand in for an end-to-end test with real credentials.
+
+
+---
+
+## Canonical release positions (2026-11-05)
+
+`docs/LAUNCH-READINESS.md` and `docs/RELEASE-ACCEPTANCE.md` are the current release
+records. Where an older section anywhere in this repository disagrees with the table
+below, this table is correct and the older text is history.
+
+| # | Item | Position |
+| --- | --- | --- |
+| 1 | Production database backups | **Mandatory before the first client.** Not configured. |
+| 2 | Uploaded-media backups | **Mandatory.** Uploads live outside the database, so no database backup covers them. Not configured. |
+| 3 | Off-site backup copies | **Mandatory.** Without them a provider incident takes the primary and its backups together. Not configured. |
+| 4 | Production restoration rehearsed | **Mandatory.** The CI scratch-database restore proves the procedure only. Never rehearsed against production. |
+| 5 | Monitoring and human alerts | **Mandatory.** Not configured; no alert has ever been delivered to a person. |
+| 6 | Legal review | **Outstanding until an attorney approves.** `LICENSE` and `docs/LEGAL-PLACEHOLDERS.md` say so themselves; nothing here is legally approved. |
+| 7 | Human accessibility review | **Outstanding until a qualified person completes it.** Automated axe checks are not a substitute. |
+| 8 | Optional integrations vs required infrastructure | Payments, email and SMS are **optional**; a shop can operate without them. Upstash, the database, the auth secret and the public URL are **required**. |
+| 9 | Stripe, Twilio, SMTP | **Not working and not claimed to be.** Each is disabled by default, fails closed when unconfigured, and has never been accepted against the real provider. |
+| 10 | CSP nonce in staging | **Not accepted.** Nonce generation exists; it has never been observed in a staging response. Same status in both release documents. |
+
+Disaster recovery is not complete, and a passing CI restore test is not evidence that it is.
