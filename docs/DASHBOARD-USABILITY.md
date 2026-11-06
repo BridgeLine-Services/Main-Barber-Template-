@@ -107,3 +107,81 @@ outstanding is part of the assignment, so:
    in every previous round.
 
 None of that is claimed as done, and no documentation elsewhere claims it is.
+
+---
+
+# Second pass: owner navigation and a starting point on the dashboard
+
+## Navigation (Part 4)
+
+The owner sidebar kept its three sections (Overview, Website, System), because that
+shape is what existing links, tests and habits are built on. What changed is the
+grouping inside Overview, which was organised by nothing in particular.
+
+The problem was concrete: Staff, Commissions, Payroll, Time Clock, Gift Cards,
+Online Shop, Shop Orders and Analytics all lived under **System**. No shop owner
+opens something called "System" to run payroll.
+
+Where they live now:
+
+| Group | What is in it |
+| --- | --- |
+| Appointments | Today at a Glance, Calendar, Appointments, Cancellations, No-Shows, Waitlist, Recurring, Closures |
+| Customers | Customers, Reviews |
+| Team | Barbers, Staff, Time Clock, Commissions, Payroll |
+| Services and Stock | Services, Inventory |
+| Business Growth | Marketing, Loyalty, Gift Cards, Online Shop, Shop Orders, Analytics |
+
+System is now only what it says: Activity History, Security, Deactivate, Launch
+Checklist, System Health.
+
+**Proof that nothing was lost.** Before and after the change, every `href` in the
+sidebar was extracted and sorted:
+
+```
+before=68 after=68
+diff → no differences: identical set
+```
+
+So no route was dropped, added, or renamed. Only its parent group moved. The
+barber navigation was not touched at all, and it still exposes no owner tools.
+
+## Dashboard home (Part 5)
+
+The dashboard showed today's appointments and nothing else, which answers "what is
+happening" but not "what do I do next". A row of quick actions now sits under the
+header for owners and co-owners only:
+
+Appointments · Add a service · Add a barber · Set your hours · Customers · View your website
+
+Each one is a plain link to a page that already exists, with a hover description of
+what it is for. It adds a starting point, not a second workflow. Barbers do not see
+it, because their surface is their own chair's day.
+
+No statistics were invented. The counters on that screen still come from the same
+queries they came from before.
+
+## Verification for this pass
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run build` | compiled successfully |
+| `npm run test:ci` | exit 0 |
+| `npx playwright test` (full) | 43 passed, 1 skipped, 0 failed |
+| Sidebar link inventory | 68 before, 68 after, identical set |
+
+One build failure during this pass was my own: I ran the build without
+`NEXTAUTH_SECRET`, and `src/lib/auth.ts` correctly refuses to build in production
+without it. Re-ran with the environment set and it compiled. Worth recording
+because that guard is doing its job.
+
+## Still not done from the directive
+
+Unchanged from the list above, and not claimed anywhere as complete: onboarding
+copy and step guidance (Part 6), splitting business setup from infrastructure
+diagnostics on the launch checklist (Part 7), draft-versus-published explanations
+throughout settings (Part 8), website management wording (Part 9), services and
+scheduling help text (Part 10), customer journey copy (Part 11), a systematic
+error-message audit (Part 12), responsive testing at tablet and mobile widths
+(Part 13), and the human screen-reader assessment.

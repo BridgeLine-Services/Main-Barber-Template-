@@ -148,10 +148,12 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const ownerSections: NavSection[] = [
     {
       label: 'overview',
-      // Two destinations stay flat because they are where a shift starts, not
-      // something you go looking for. Everything else is grouped by the question
-      // an owner is actually asking: what is happening today, who is booked, and
-      // what the shop sells. Routes and permissions are unchanged.
+      // Three destinations stay flat because they are where a shift starts, not
+      // something an owner goes hunting for. Everything else is grouped by the
+      // job the owner is doing: who is booked, who is coming in, who works here,
+      // what the shop sells, and how it grows. Every previously reachable URL is
+      // still here exactly once; this is presentation only, and every server
+      // gate behind these links is untouched.
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Setup Checklist', href: '/dashboard/setup', icon: Rocket },
@@ -159,26 +161,56 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       ],
       groups: [
         {
-          label: 'Today',
+          // The diary, start to finish: what is on today, what is booked, what
+          // moved, and what never turned up.
+          label: 'Appointments',
           items: [
             { name: "Today at a Glance", href: '/dashboard/operations', icon: Activity },
             { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+            { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDays },
+            { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
+            { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
             { name: 'Waitlist', href: '/dashboard/waitlist', icon: Users },
+            { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
+            { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
           ],
         },
         {
-          label: 'Bookings and People',
+          label: 'Customers',
           items: [
-            { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDays },
             { name: 'Customers', href: '/dashboard/customers', icon: Users },
             { name: 'Reviews', href: '/dashboard/reviews', icon: Star },
           ],
         },
         {
-          label: 'Team and Services',
+          // People who work here and what they are owed. These used to sit under
+          // "System", which no shop owner would think to look in for payroll.
+          label: 'Team',
           items: [
             { name: 'Barbers', href: '/dashboard/barbers', icon: UserCircle },
+            { name: 'Staff', href: '/dashboard/staff', icon: UserCog },
+            { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
+            { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
+            { name: 'Payroll', href: '/dashboard/payroll', icon: Wallet },
+          ],
+        },
+        {
+          label: 'Services and Stock',
+          items: [
             { name: 'Services', href: '/dashboard/services', icon: Scissors },
+            { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
+          ],
+        },
+        {
+          // Selling more, keeping customers, and understanding the numbers.
+          label: 'Business Growth',
+          items: [
+            { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
+            { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
+            { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
+            { name: 'Online Shop', href: '/dashboard/ecommerce', icon: ShoppingCart },
+            { name: 'Shop Orders', href: '/dashboard/ecommerce/orders', icon: Package },
+            { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
           ],
         },
       ],
@@ -229,45 +261,15 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       ],
     },
     {
+      // Settings about the business itself and its security, not about daily
+      // work. Staff and shop destinations moved to Team and Business Growth.
       label: 'system',
       items: [
-        { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
         { name: 'Activity History', href: '/dashboard/audit-log', icon: ScrollText },
         { name: 'Security', href: '/dashboard/settings?tab=security', icon: ShieldCheck },
         { name: 'Deactivate', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
         { name: 'Launch Checklist', href: '/dashboard/factory-launch', icon: Shield },
         { name: 'System Health', href: '/dashboard/factory-status', icon: Shield },
-      ],
-      groups: [
-        {
-          label: 'Staff',
-          items: [
-            { name: 'Staff', href: '/dashboard/staff', icon: UserCog },
-            { name: 'Commissions', href: '/dashboard/commissions', icon: BadgePercent },
-            { name: 'Payroll', href: '/dashboard/payroll', icon: Wallet },
-          ],
-        },
-        {
-          label: 'Shop',
-          items: [
-            { name: 'Time Clock', href: '/dashboard/time-clock', icon: Clock },
-            { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-            { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
-            { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
-            { name: 'Closures', href: '/dashboard/closures', icon: CalendarOff },
-            { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
-            { name: 'Cancellations', href: '/dashboard/cancellations', icon: CalendarX },
-            { name: 'No-Shows', href: '/dashboard/no-shows', icon: UserX },
-          ],
-        },
-        {
-          label: 'Store',
-          items: [
-            { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
-            { name: 'Online Shop', href: '/dashboard/ecommerce', icon: ShoppingCart },
-            { name: 'Shop Orders', href: '/dashboard/ecommerce/orders', icon: Package },
-          ],
-        },
       ],
     },
   ]
