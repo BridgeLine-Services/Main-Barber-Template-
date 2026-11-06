@@ -66,4 +66,19 @@ test.describe('dashboard smoke', () => {
       expect(consoleErrors, `${route} threw in the browser`).toEqual([])
     })
   }
+
+  test('the header shows a human role label, never an internal identifier', async ({ page }) => {
+    await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
+    const header = page.locator('header')
+    const text = await header.innerText()
+    // The badge used to print userRole.toLowerCase(), so an owner saw "owner" and a
+    // co-owner saw "business_admin". Either is a leak of an internal identifier.
+    // Lowercase identifiers (what userRole.toLowerCase() produced) and shouting
+    // uppercase tokens are both leaks; the business name may legitimately contain
+    // the word "Barber", so the check is case- and token-specific.
+    expect(text).not.toMatch(/business_admin|platform_owner/)
+    expect(text).not.toMatch(/\b(BARBER|OWNER|BUSINESS_ADMIN|PLATFORM_OWNER|CUSTOMER)\b/)
+    expect(text).toMatch(/Owner|Co-owner|Barber|Platform Owner/)
+  })
 })
