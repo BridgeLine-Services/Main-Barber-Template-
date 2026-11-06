@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/passwords'
 import { z } from 'zod'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      const passwordHash = await bcrypt.hash(password, 10)
+      const passwordHash = await hashPassword(password)
       return tx.user.create({
         data: {
           email,

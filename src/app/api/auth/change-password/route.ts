@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction } from '@prisma/client'
+import { hashPassword } from '@/lib/passwords'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { passwordPolicySchema } from '@/lib/validation'
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     // Update password, clear the forced-change flag, stamp the change,
     // and clear any temporary-password expiry.
-    const passwordHash = await bcrypt.hash(newPassword, 10)
+    const passwordHash = await hashPassword(newPassword)
     await prisma.user.update({
       where: { id: user.id },
       data: {

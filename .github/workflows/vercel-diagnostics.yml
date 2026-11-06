@@ -24,6 +24,9 @@ concurrency:
   group: vercel-diagnostics
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   inspect:
     runs-on: ubuntu-latest
@@ -47,6 +50,8 @@ jobs:
       - name: Check out repository
         if: steps.token.outputs.available == 'true'
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Inspect failed deployment build logs
         if: steps.token.outputs.available == 'true'

@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/passwords'
 import { Prisma, PrismaClient, UserRole } from '@prisma/client'
 
 export type ProvisionBusinessInput = {
@@ -46,7 +46,7 @@ export async function provisionBusiness(
   prisma: PrismaClient,
   input: ProvisionBusinessInput,
 ): Promise<ProvisionBusinessResult> {
-  const passwordHash = await bcrypt.hash(input.owner.password, 10)
+  const passwordHash = await hashPassword(input.owner.password)
 
   return prisma.$transaction(async (tx) => {
     const business = await tx.business.upsert({

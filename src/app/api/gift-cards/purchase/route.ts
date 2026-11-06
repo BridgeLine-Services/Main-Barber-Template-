@@ -16,6 +16,11 @@ import { getGiftCardSettings, sellGiftCard } from '@/lib/gift-cards'
 import { prisma } from '@/lib/prisma'
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+// Addresses longer than 254 characters are invalid by RFC, and the cap also
+// keeps the test above from running over an unbounded string.
+const MAX_EMAIL_LENGTH = 254
+const isValidEmail = (value: unknown): boolean =>
+  typeof value === 'string' && value.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(value)
 
 export async function POST(request: Request) {
   try {
@@ -33,10 +38,10 @@ export async function POST(request: Request) {
     if (!body.amount || !body.purchaserName?.trim()) {
       return NextResponse.json({ error: 'amount and purchaserName are required' }, { status: 400 })
     }
-    if (body.purchaserEmail && !EMAIL_RE.test(body.purchaserEmail)) {
+    if (body.purchaserEmail && !isValidEmail(body.purchaserEmail)) {
       return NextResponse.json({ error: 'Invalid purchaser email' }, { status: 400 })
     }
-    if (body.recipientEmail && !EMAIL_RE.test(body.recipientEmail)) {
+    if (body.recipientEmail && !isValidEmail(body.recipientEmail)) {
       return NextResponse.json({ error: 'Invalid recipient email' }, { status: 400 })
     }
 

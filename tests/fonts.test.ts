@@ -7,6 +7,22 @@ import { generateThemeCSS, FONT_FAMILY_VALUES } from '../src/lib/theme'
 
 const BASE = 'http://localhost:3000'
 
+/**
+ * Resolve a link from the rendered page against the local origin.
+ *
+ * The previous check was a prefix test on the href, which accepts any external
+ * host and any lookalike prefix. Resolving through the URL parser and then
+ * requiring the same origin means the test only ever fetches the app it built.
+ */
+function resolveLocal(href: string): string {
+  const url = new URL(href, BASE)
+  if (url.origin !== new URL(BASE).origin) {
+    throw new Error(`font test refuses to fetch a non-local stylesheet: ${href}`)
+  }
+  return url.toString()
+}
+
+
 let passed = 0
 let failed = 0
 function assert(condition: boolean, message: string) {
@@ -27,7 +43,7 @@ async function main() {
   // Every supported family's CSS variable must actually be defined by the
   // build, otherwise the selected font silently falls back.
   const cssHrefs = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])
-  const cssText = (await Promise.all(cssHrefs.map((h) => fetch(`${BASE}${h}`).then((r) => r.text())))).join('\n')
+  const cssText = (await Promise.all(cssHrefs.map((h) => fetch(resolveLocal(h)).then((r) => r.text())))).join('\n')
   const declared = FONT_FAMILY_VALUES.filter((f) => cssText.includes(`--font-${f}`))
   assert(declared.length === FONT_FAMILY_VALUES.length,
     `built CSS defines every supported font variable (${declared.length}/${FONT_FAMILY_VALUES.length})`)
@@ -40,7 +56,7 @@ async function main() {
   // 3. Every supported family resolves to a locally served @font-face
   const cssLinks = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])
   const css = await Promise.all(
-    cssLinks.map((l) => fetch(l.startsWith('http') ? l : `${BASE}${l}`).then((r) => r.text()).catch(() => ''))
+    cssLinks.map((l) => fetch(resolveLocal(l)).then((r) => r.text()).catch(() => ''))
   ).then((all) => all.join('\n'))
   // Family-name shape also differs: older builds emit `font-family:__inter`,
   // newer ones `font-family:inter` (+ `inter Fallback`). Match the plain name
@@ -65,11 +81,13 @@ async function main() {
     // chunk at /_next/static/css/*.css references ../media/*.woff2), so
     // resolve against the CSS link instead of naively concatenating BASE.
     const firstCss = cssLinks[0]
-      ? (cssLinks[0].startsWith('http') ? cssLinks[0] : `${BASE}${cssLinks[0]}`)
+      ? resolveLocal(cssLinks[0])
       : null
-    const sampleUrl = sample.startsWith('http')
-      ? sample
-      : firstCss ? new URL(sample, firstCss).href : `${BASE}${sample}`
+    // Resolve the font file relative to the stylesheet that declares it, then
+    // require the result to stay on the local origin before fetching.
+    const sampleUrl = firstCss
+      ? resolveLocal(new URL(sample, firstCss).href)
+      : resolveLocal(sample)
     const res = await fetch(sampleUrl)
     assert(res.status === 200, 'font file is served locally (200)')
   }

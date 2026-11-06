@@ -43,26 +43,44 @@ async function getBusinessTimezone(businessId: string): Promise<string> {
 }
 
 /**
- * Parse a preferred time like "2:00 PM" or "14:00" into a UTC instant on the
- * given BUSINESS-LOCAL calendar date. The occurrence is a Luxon DateTime
- * already set to the business timezone.
+ * Parse a preferred time like "2:00 PM" or "14:00".
+ *
+ * Strict and bounded on purpose: the previous version ran an unbounded regular
+ * expression and, on anything it did not recognise, quietly produced midnight.
+ * A recurring appointment booked at 00:00 is worse than a clear rejection, so
+ * this returns null and callers refuse the input.
  */
-function slotInstantFromLocalTime(occurrenceLocal: DateTime, timeStr: string): Date {
-  let hours = 0
-  let minutes = 0
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
-  if (match) {
-    hours = parseInt(match[1], 10)
-    minutes = parseInt(match[2], 10)
-    const period = match[3].toUpperCase()
-    if (period === 'PM' && hours < 12) hours += 12
-    if (period === 'AM' && hours === 12) hours = 0
-  } else {
-    const parts = timeStr.split(':')
-    hours = parseInt(parts[0], 10) || 0
-    minutes = parseInt(parts[1], 10) || 0
+export const MAX_PREFERRED_TIME_LENGTH = 12
+
+export function parsePreferredTime(raw: unknown): { hours: number; minutes: number } | null {
+  if (typeof raw !== 'string') return null
+  const value = raw.trim()
+  if (value.length === 0 || value.length > MAX_PREFERRED_TIME_LENGTH) return null
+  const match = /^(\d{1,2}):(\d{2})(?:\s?([AaPp][Mm]))?$/.exec(value)
+  if (!match) return null
+  let hours = Number(match[1])
+  const minutes = Number(match[2])
+  const period = match[3]?.toUpperCase()
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null
+  if (minutes < 0 || minutes > 59) return null
+  if (period) {
+    if (hours < 1 || hours > 12) return null
+    hours = hours % 12
+    if (period === 'PM') hours += 12
+  } else if (hours > 23) {
+    return null
   }
-  const hhmm = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  return { hours, minutes }
+}
+
+/** Human-facing wording for a rejected preferred time. */
+export const PREFERRED_TIME_ERROR =
+  'Enter the visit time as HH:MM, for example 14:30 or 2:30 PM.'
+
+function slotInstantFromLocalTime(occurrenceLocal: DateTime, timeStr: string): Date {
+  const parsed = parsePreferredTime(timeStr)
+  if (!parsed) throw new Error(PREFERRED_TIME_ERROR)
+  const hhmm = `${parsed.hours.toString().padStart(2, '0')}:${parsed.minutes.toString().padStart(2, '0')}`
   return localTimeToUTCFromYMD(hhmm, occurrenceLocal.year, occurrenceLocal.month, occurrenceLocal.day, occurrenceLocal.zoneName)
 }
 
