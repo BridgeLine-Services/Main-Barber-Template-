@@ -9,14 +9,14 @@ import { requireOwner } from '@/lib/auth-helpers'
 import { verifyFactoryLaunch } from '@/lib/factory-launch'
 
 const setupSections = [
-  { category: 'Client', label: 'Business', description: 'Name, contact details, address, timezone, and public identity.', href: '/dashboard/settings?tab=business', icon: Building2 },
-  { category: 'Branding', label: 'Branding', description: 'Logo, colors, images, and the visual system for the public site.', href: '/dashboard/settings?tab=branding', icon: Palette },
-  { category: 'Services', label: 'Services', description: 'Your menu, pricing, durations, and active offerings.', href: '/dashboard/services', icon: Scissors },
-  { category: 'Team', label: 'Barbers', description: 'Staff profiles, service assignments, and active team members.', href: '/dashboard/barbers', icon: Users },
-  { category: 'Schedule', label: 'Schedules', description: 'Working hours, breaks, closures, and availability.', href: '/dashboard/schedule', icon: Clock3 },
-  { category: 'Booking', label: 'Booking & policies', description: 'Booking rules, cancellation policy, and customer instructions.', href: '/dashboard/settings?tab=booking', icon: CalendarCheck },
-  { category: 'SEO', label: 'SEO & social', description: 'Search metadata, local details, and social preview information.', href: '/dashboard/settings?tab=seo', icon: Search },
-  { category: 'Testing', label: 'Launch review', description: 'Environment, database, domain, and final acceptance checks.', href: '/dashboard/factory-launch', icon: ShieldCheck },
+  { category: 'Client', label: 'Business', description: 'Your shop name, phone, address and time zone. This is what customers see.', href: '/dashboard/settings?tab=business', icon: Building2 },
+  { category: 'Branding', label: 'Branding', description: 'Your logo, colours and photos. This is how your site looks to customers.', href: '/dashboard/settings?tab=branding', icon: Palette },
+  { category: 'Services', label: 'Services', description: 'What you sell, what it costs, and how long it takes.', href: '/dashboard/services', icon: Scissors },
+  { category: 'Team', label: 'Barbers', description: 'Who works here, and which services each person offers.', href: '/dashboard/barbers', icon: Users },
+  { category: 'Schedule', label: 'Schedules', description: 'When you are open, when you take breaks, and days you are closed.', href: '/dashboard/schedule', icon: Clock3 },
+  { category: 'Booking', label: 'Booking & policies', description: 'How far ahead people can book, your cancellation policy, and what to tell customers.', href: '/dashboard/settings?tab=booking', icon: CalendarCheck },
+  { category: 'SEO', label: 'Search and sharing', description: 'What people see when your shop comes up in Google or is shared in a message.', href: '/dashboard/settings?tab=seo', icon: Search },
+  { category: 'Testing', label: 'Launch review', description: 'A last look before you go live: your address, your payments, and one test booking.', href: '/dashboard/factory-launch', icon: ShieldCheck },
 ]
 
 export default async function SetupPage() {
@@ -42,9 +42,9 @@ export default async function SetupPage() {
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
-              <Badge variant="secondary" className="mb-3">Client setup</Badge>
+              <Badge variant="secondary" className="mb-3">Shop setup</Badge>
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Get your shop ready to launch.</h1>
-              <p className="mt-3 text-muted-foreground">Configure the essentials in one place. Your progress is saved to this client&apos;s database, so you can pause and return anytime.</p>
+              <p className="mt-3 text-muted-foreground">Set up the essentials in one place. Your progress is saved as you go, so you can pause and come back later.</p>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
               <Rocket className="size-5 text-primary" />

@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { resolvePublicBusiness } from '@/lib/tenant'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +12,17 @@ export const dynamic = 'force-dynamic'
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const business = await resolvePublicBusiness().catch(() => null)
 
+  // Feature gate: with installability switched off the manifest still resolves (browsers
+  // expect one) but carries no icons and display 'browser', which is what makes a site
+  // installable. Nothing about the site itself breaks; it simply cannot be installed.
+  const installable = business ? await isFeatureEnabledForBusiness(business.id, 'pwa') : true
+
   const name = business?.name || process.env.NEXT_PUBLIC_APP_NAME || 'Book Appointment'
   const themeColor = business?.primaryColor || '#1a1a1a'
+
+  if (!installable) {
+    return { name, short_name: name.split(' ')[0], display: 'browser' }
+  }
 
   return {
     name,

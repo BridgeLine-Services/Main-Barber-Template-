@@ -28,6 +28,10 @@ const ALLOW = [
   /schema\.org/, /www\.w3\.org/, /googleapis\.com/, /google\.com/,
   /instagram\.com/, /facebook\.com/, /tiktok\.com/, /youtube\.com/,
   /x\.com/, /twitter\.com/, /linkedin\.com/, /twilio\.com/,
+  // Vendor API hosts the template calls on every client's behalf. These are not
+  // a client's own domain, so they belong here rather than in the source as an
+  // exception. Without them the gate fails on day one and stops being read.
+  /api\.stripe\.com/, /g\.page/,
 ]
 
 const patterns: Array<{ name: string; re: RegExp }> = [

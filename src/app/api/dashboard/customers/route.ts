@@ -30,8 +30,13 @@ export async function GET(req: NextRequest) {
     // docs/CUSTOMER-DATA-LIFECYCLE.md). Pass ?includeArchived=true for an
     // explicit archived view.
     const where: Prisma.CustomerWhereInput = { businessId, ...(includeArchived ? {} : { archivedAt: null }) }
-    // BARBER role: only customers who have appointments with them
-    if (role === 'BARBER' && barberId) {
+    // BARBER role: only customers who have appointments with them. A barber account
+    // with no linked profile has no clients of its own, and must not fall through to
+    // the whole shop's customer list — the scope is applied or nothing is returned.
+    if (role === 'BARBER') {
+      if (!barberId) {
+        return NextResponse.json({ customers: [], total: 0, page: 1, pageSize: 0 })
+      }
       where.appointments = { some: { barberId } }
     }
     // Search by name, phone, email

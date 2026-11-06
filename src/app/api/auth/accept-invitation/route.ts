@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse, isAuthorizedCILocalMode } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
 
 // ============================================================================
@@ -50,9 +50,15 @@ const acceptSchema = z.object({
 // so CI / E2E runs (a single IP) can exercise the full acceptance workflow.
 const acceptGetLimit = Number(process.env.RATE_LIMIT_ACCEPT_GET_MAX ?? 10) || 10
 const acceptPostLimit = Number(process.env.RATE_LIMIT_ACCEPT_POST_MAX ?? 5) || 5
+// A regression run accepts several invitations from one IP inside a minute, which
+// is not behaviour any real invitee has. The raise applies only inside the gated
+// CI-local mode (CI + GITHUB_ACTIONS + RATE_LIMIT_CI_IN_MEMORY, never Vercel or a
+// production deploy), so a live shop keeps the conservative limit either way.
+const acceptPostCap = isAuthorizedCILocalMode() ? Math.max(acceptPostLimit, 60) : acceptPostLimit
+const acceptGetCap = isAuthorizedCILocalMode() ? Math.max(acceptGetLimit, 120) : acceptGetLimit
 
 export async function GET(req: NextRequest) {
-  const limited = await checkRateLimit(req, 'accept-invitation', { windowMs: 60_000, maxRequests: acceptGetLimit })
+  const limited = await checkRateLimit(req, 'accept-invitation', { windowMs: 60_000, maxRequests: acceptGetCap })
   if (limited) return rateLimitResponse(limited)
 
   const token = req.nextUrl.searchParams.get('token') || ''
@@ -91,7 +97,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const limited = await checkRateLimit(req, 'accept-invitation-post', { windowMs: 60_000, maxRequests: acceptPostLimit })
+  const limited = await checkRateLimit(req, 'accept-invitation-post', { windowMs: 60_000, maxRequests: acceptPostCap })
   if (limited) return rateLimitResponse(limited)
 
   try {

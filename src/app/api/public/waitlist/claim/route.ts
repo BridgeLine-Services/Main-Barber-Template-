@@ -4,6 +4,7 @@ import { createAppointmentSafely } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { isPublicBusinessDeactivated } from '@/lib/tenant'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
+import { isFeatureEnabledForBusiness } from '@/lib/features'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest) {
     if (!offer || !offer.offeredSlotStart || !offer.offeredSlotEnd || !offer.offeredBarberId) {
       return NextResponse.json({ success: false, error: 'This offer is invalid or no longer available' }, { status: 404 })
     }
+    // Feature gate: with the waitlist switched off, an outstanding offer must not turn
+    // into a booking. The entry is left untouched so the owner can see it in the list.
+    if (!(await isFeatureEnabledForBusiness(offer.businessId, 'waitlist'))) {
+      return NextResponse.json(
+        { success: false, error: 'The waitlist is switched off for this shop.' },
+        { status: 403 },
+      )
+    }
+
     if (offer.expiresAt && offer.expiresAt <= now) {
       await prisma.waitlistEntry.updateMany({ where: { id: offer.id, status: 'NOTIFIED' }, data: { status: 'EXPIRED' } })
       return NextResponse.json({ success: false, error: 'This opening offer has expired' }, { status: 410 })

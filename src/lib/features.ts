@@ -22,7 +22,6 @@ export const FEATURE_KEYS = [
   'customerPortal',     // token-based customer portal
   'reviews',            // public review display/submission
   'gallery',            // public gallery
-  'promotions',         // marketing campaigns
   'loyalty',            // reward programs
   'waitlist',           // waitlist entries
   'queue',              // walk-in queue
@@ -48,7 +47,6 @@ export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   customerPortal: true,
   reviews: true,
   gallery: true,
-  promotions: true,
   loyalty: true,
   waitlist: true,
   queue: true,
