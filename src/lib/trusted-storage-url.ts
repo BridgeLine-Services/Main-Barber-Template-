@@ -3,10 +3,10 @@
  *
  * Several cleanup paths decide whether to call Vercel Blob's `del()` on a URL
  * that came out of the database. A substring test such as
- * `url.includes('blob.vercel-storage.com')` answers the wrong question: it is
- * true for `https://blob.vercel-storage.com.attacker.example/x` and for
- * `https://evil-blob.vercel-storage.com/x`, so a crafted record could point the
- * application at a host it does not own.
+ * a substring test on the hostname answers the wrong question: it is true for a
+ * lookalike that merely contains the store's domain as a prefix, as a suffix,
+ * or as a path segment, so a crafted record could point cleanup at a host this
+ * application does not own.
  *
  * This module answers the actual question — "is this an object store URL this
  * application manages?" — by parsing and then checking every component.

@@ -307,9 +307,6 @@ export function sanitizeSvg(text: string): string | null {
 
   let root: SvgNode | undefined
   try {
-    const { DOMParser } = require('@xmldom/xmldom') as {
-      DOMParser: new (options?: unknown) => { parseFromString(source: string, mime: string): { documentElement: SvgNode | null } }
-    }
     // xmldom 0.9 takes a single callback, not the legacy per-level object, and
     // it writes parse complaints there. Silence them: the document is either
     // rebuilt successfully below or rejected outright.
