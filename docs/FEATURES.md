@@ -164,3 +164,24 @@ turns it off and believes something changed.
 That is 20 of 20 enforced by a server check, with no presentation-only keys left. The count is deliberately stated as a number
 so it can be checked rather than believed.
 
+
+## Enforcement classes, verified by location
+
+Checked on 2026-11-05 at `b56f310`. `audit:features` answers "does server code consult this key";
+this table answers the follow-up question an owner actually cares about: *what stops?*
+
+| Class | What the switch stops | Keys |
+| --- | --- | --- |
+| Refused at the API | The request is denied, so the operation cannot happen at all. | `onlineBooking`, `customerPortal`, `gallery`, `loyalty`, `waitlist`, `queue`, `inventory`, `marketing`, `analytics`, `multipleBarbers`, `deposits`, `onlinePayments`, `memberships`, `ecommerce` |
+| Changed on the public side | The public route or worker behaves differently; no dashboard feature is removed. | `reviews` (public `/reviews` page shows nothing), `barberProfiles` (public `/barbers/[slug]` page refuses), `pwa` (`app/manifest.ts` stops offering install), `emailNotifications` (notification worker skips the send), `smsNotifications` (notification worker skips the send), `reviewRequests` (review-request worker skips the request) |
+
+Two consequences for how this is described to owners:
+
+- The six in the second row must never be sold as "switches the feature off". They govern
+  publication and sending. The Features tab carries that sentence on each of those rows.
+- `reviews` has no public submission form. Reviews arrive through the dashboard reviews
+  screen and the Google Business import, so the switch withholds publication, and the tab
+  says "Reviews you have recorded appear on your website" rather than promising that
+  customers can post one.
+
+Nothing in either class deletes a record.

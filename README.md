@@ -524,3 +524,20 @@ the protection.
 Recovery from an outage: confirm the Upstash database still exists and is not suspended,
 confirm both variables are still present, then confirm the deployment can reach Upstash.
 No code change is needed; the deployment resumes by itself.
+
+
+## Project status
+
+A working multi-tenant barbershop template: public site, guest booking, owner dashboard,
+team and payroll, website publishing with draft/published separation, and optional
+features that can be switched off per business.
+
+What is proven: the suites in `docs/TESTING.md` run green locally, the production build
+compiles, and the migration history applies cleanly to an empty database.
+
+What is **not** proven, and should not be claimed: no deployment has been exercised
+against real Upstash, Neon, Stripe, Twilio or SMTP credentials, and no human
+screen-reader review has taken place. Staging acceptance is still outstanding.
+
+Where to read next: `docs/FEATURES.md` for what each optional switch actually stops,
+`docs/environment-configuration.md` for configuration, `docs/TESTING.md` for the suites.

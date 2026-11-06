@@ -34,7 +34,7 @@ type FeatureKey =
   | 'emailNotifications' | 'smsNotifications' | 'onlinePayments'
   | 'memberships' | 'ecommerce' | 'reviewRequests'
 
-type Copy = { label: string; on: string; needs?: string }
+type Copy = { label: string; on: string; needs?: string; scope?: string }
 
 const COPY: Record<FeatureKey, Copy> = {
   onlineBooking: {
@@ -47,7 +47,8 @@ const COPY: Record<FeatureKey, Copy> = {
   },
   reviews: {
     label: 'Reviews',
-    on: 'Customers can leave reviews and read them on your website.',
+    on: 'Reviews you have recorded appear on your website for people to read.',
+    scope: 'Affects your website only. Your reviews and the reviews screen in your dashboard stay exactly as they are.',
   },
   gallery: {
     label: 'Photo gallery',
@@ -75,6 +76,7 @@ const COPY: Record<FeatureKey, Copy> = {
   barberProfiles: {
     label: 'Barber profile pages',
     on: 'Each barber gets their own page on your website.',
+    scope: 'Affects your website only. Your team, their schedules and their appointments are unchanged.',
   },
   deposits: {
     label: 'Deposits',
@@ -83,16 +85,19 @@ const COPY: Record<FeatureKey, Copy> = {
   pwa: {
     label: 'Installable on a phone',
     on: 'Customers can add your site to their home screen and it opens like an app.',
+    scope: 'Affects what your website offers to phones. Nothing else in the system changes.',
   },
   emailNotifications: {
     label: 'Email notifications',
     on: 'Email customers about their appointments, and yourself about new bookings.',
     needs: 'Sending needs an email service connected for your shop. Without one, nothing is sent and you will see the booking only in your dashboard.',
+    scope: 'Stops messages leaving your shop. Appointments, customers and your inbox in the dashboard are unchanged.',
   },
   smsNotifications: {
     label: 'Text message reminders',
     on: 'Text customers about their appointments.',
     needs: 'Sending needs a texting service connected for your shop. Without one, no texts go out and nothing is charged.',
+    scope: 'Stops messages leaving your shop. Appointments and customer records are unchanged.',
   },
   onlinePayments: {
     label: 'Take payment online',
@@ -105,6 +110,7 @@ const COPY: Record<FeatureKey, Copy> = {
     label: 'Automatic review requests',
     on: 'After a visit, the shop asks the customer for a review without you chasing them.',
     needs: 'Needs email or text notifications working, because that is how the request is delivered.',
+    scope: 'Stops the requests being sent. Past visits and reviews already received are unchanged.',
   },
 }
 
@@ -230,6 +236,9 @@ export function FeaturesTab() {
                     <p className="mt-1 text-sm text-muted-foreground">{copy.on}</p>
                     {copy.needs && (
                       <p className="mt-1 text-xs text-muted-foreground">{copy.needs}</p>
+                    )}
+                    {copy.scope && (
+                      <p className="mt-1 text-xs text-muted-foreground/90">{copy.scope}</p>
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       {enabled ? 'Currently on.' : 'Currently off.'}

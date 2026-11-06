@@ -89,3 +89,21 @@ Not finished, and not finishable from the repository: staging itself needs the
 Upstash pair, a Neon connection string, Stripe test keys, Twilio and SMTP
 credentials, and a 32+ character signing secret. Until those exist, acceptance
 against a real staging deployment cannot be claimed.
+
+---
+
+## Reading this document later
+
+This is the Phase 3-7 record, written when those phases ran. It is a **historical**
+document: the counts, file lists and pass/fail numbers in it describe the commits it
+was written against, not the current tree.
+
+Three of its statements were true then and must not be read as current proof:
+
+- Feature enforcement has since been widened; the current, machine-produced count lives
+  at the top of `docs/FEATURES.md` and comes from `npm run audit:features`.
+- The role/tenant invariants it records are still enforced, and `npm run test:roles`
+  remains the way to check them.
+- Staging acceptance was listed as a remaining step then, and it is still outstanding
+  now. Nothing has been deployed against real Upstash, Neon, Stripe, Twilio or SMTP
+  credentials.
