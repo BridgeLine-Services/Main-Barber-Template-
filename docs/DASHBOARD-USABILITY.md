@@ -248,3 +248,79 @@ Still not done, and not claimed anywhere: Part 9 website management wording,
 Part 10 services and scheduling help text, Part 11 customer journey copy, Part 12
 the systematic error-message audit, Part 13 responsive testing at tablet and mobile
 widths, and the human screen-reader assessment.
+
+---
+
+# Fourth pass: Part 12 (error copy) and Part 13 (responsive behaviour)
+
+## Part 12 — the audit found the API layer already clean, so I protected it
+
+The directive assumed technical error text reaches owners. I checked before
+changing anything, and it largely does not:
+
+- 135 of 178 API routes return errors through `src/lib/api-errors.ts`.
+- The 13 routes that return a raw `error.message` all do it inside an
+  `instanceof SomeDomainError` branch, where the message was written for a person
+  ("Consent withdrawn before delivery", "SMS notifications are not configured").
+  Everything else falls through to the shared handler.
+- That handler already maps driver codes to sentences rather than leaking them:
+  `P2002` becomes "A record with that information already exists", `P1001` becomes
+  "This service is temporarily unavailable. Please try again in a moment."
+- The original grep for technical strings returned **0** matches.
+
+So the useful Part 12 work was not editing messages, it was making sure this does
+not drift. `tests/plain-language.test.ts` walks the source for string literals that
+are the value of a key a person reads (`error:`, `message:`, `description:`,
+`label:`, `title:`, `detail:`, `toast:`) and fails if one contains `Prisma`,
+`ECONNREFUSED`, `P2002`, `P2025`, `P1001`, `TypeError`, `Cannot read properties`,
+`Internal Server Error` and friends.
+
+Deliberate exclusions, each for a real reason: `src/app/api/**` (covered by the
+shared handler and its own tests), `src/lib/env-registry.ts` (developer
+documentation for environment setup), `src/lib/notification-worker.ts` (failure
+rows written to the database), and comments, because a comment that names a Prisma
+code is a good comment.
+
+Two iterations of the test itself were wrong before it was right, and that is worth
+recording: the first version flagged `code === 'P2002'`, which is logic, not copy.
+It now requires the banned word to appear inside a quoted value that is assigned to
+a user-facing key. Result: 3 passed, 0 failed, wired into `npm run test:ci`.
+
+## Part 13 — responsive behaviour, measured rather than assumed
+
+There was no responsive test at all. `e2e/responsive.spec.ts` now loads real pages
+at **phone (390x844)** and **tablet (768x1024)** and compares
+`documentElement.scrollWidth` against `clientWidth`. Tolerance is 2px, because
+sub-pixel rounding in a flex row is not a defect, while a table hanging 40px off
+the edge is.
+
+Covered: 4 public routes (`/`, `/barbers`, `/gallery`, `/book`) and 8 owner
+dashboard routes (home, appointments, calendar, customers, services, barbers,
+analytics, branding settings) at both widths, plus a check that the `main` region
+itself does not exceed the viewport.
+
+Result: **24 of 24 pass**. Nothing overflows sideways at either width today. That is
+worth having as a fact and as a tripwire, not as a claim that every screen has been
+eyeballed on a device.
+
+## Verification for this pass
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run build` | compiled successfully |
+| `npm run test:ci` (now 44 suites incl. plain-language) | exit 0, plain-language 3/3 |
+| `npx playwright test` (full) | 67 passed, 1 skipped, 0 failed |
+
+## Where this leaves the directive
+
+Done: Part 3 (wording), Part 4 (owner navigation grouped by job), Part 5 (quick
+actions on the dashboard), Part 6 (honest onboarding promise), Part 7 (infrastructure
+hidden from owners), Part 8 (verified already correct), Part 12 (audit plus guard),
+Part 13 (responsive regression at two widths).
+
+Not done, and not claimed: Part 9 website management wording, Part 10 services and
+scheduling help text, Part 11 customer journey copy, Parts 14-22 (which I have not
+been able to read from the truncated directive, so I will not guess at them), and
+the human screen-reader assessment, which needs a person with a screen reader rather
+than a script.
