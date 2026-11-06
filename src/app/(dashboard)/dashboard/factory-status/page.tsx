@@ -24,14 +24,14 @@ export default async function FactoryStatusPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Barber Website Factory</p>
-        <h1 className="mt-2 text-3xl font-bold text-foreground">Factory status</h1>
+        <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">System</p>
+        <h1 className="mt-2 text-3xl font-bold text-foreground">System health</h1>
         <p className="mt-2 text-muted-foreground">A launch checklist for this shop. Secrets are checked on the server and are never displayed.</p>
       </div>
       <div className={`rounded-xl border p-5 ${report.overall === 'READY' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-red-500/40 bg-red-500/10'}`}>
         <p className="text-sm text-foreground/85">Overall status</p>
-        <p className={`mt-1 text-2xl font-bold ${report.overall === 'READY' ? 'text-emerald-300' : 'text-red-300'}`}>{report.overall}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{report.passed} passed, {report.failed} failed, {report.warnings} optional features disabled.</p>
+        <p className={`mt-1 text-2xl font-bold ${report.overall === 'READY' ? 'text-emerald-300' : 'text-red-300'}`}>{report.overall === 'READY' ? 'Ready to launch' : 'Needs attention'}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{report.passed} checks passed, {report.failed} need attention, {report.warnings} optional features are switched off.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {Object.entries(grouped).map(([category, checks]) => (

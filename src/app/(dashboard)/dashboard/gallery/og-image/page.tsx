@@ -14,7 +14,7 @@ export default async function OgImagePage() {
   return (
     <MediaPage
       initialType="OG_IMAGE"
-      title="OG Image"
+      title="Share Preview Image"
       description="The image shown when your website link is shared on social media."
     />
   )

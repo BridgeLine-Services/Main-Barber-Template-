@@ -34,7 +34,7 @@ export default async function FactoryLaunchPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Barber Website Factory</p>
-        <h1 className="mt-2 text-3xl font-bold text-foreground">Factory Launch Console</h1>
+        <h1 className="mt-2 text-3xl font-bold text-foreground">Launch Checklist</h1>
         <p className="mt-2 text-muted-foreground">One prioritized workflow for deployment, configuration, testing, domain verification, and launch review.</p>
       </div>
       <section className={`rounded-xl border p-5 ${overallClass}`}>

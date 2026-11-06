@@ -331,7 +331,7 @@ export default function SettingsPage() {
     business: { title: 'Business Information', description: 'Your shop name, contact details and address - shown to customers on your website.' },
     hours: { title: 'Business Hours', description: 'When your shop is open. Customers can only book inside these hours.' },
     branding: { title: 'Branding & Theme', description: 'Your logo, colors, fonts and website design - with a live preview of your site.' },
-    layout: { title: 'Layout & Behavior', description: 'How your website is arranged and how it behaves for visitors.' },
+    layout: { title: 'Page Layout', description: 'How your website is arranged and how it behaves for visitors.' },
     'homepage-sections': { title: 'Homepage Sections', description: 'Choose which sections appear on your homepage and in what order.' },
     'dashboard-preview': { title: 'Dashboard Preview', description: 'See how your branding will look across the management dashboard.' },
     social: { title: 'Social Links', description: 'Links to your social media profiles, shown in your website footer.' },

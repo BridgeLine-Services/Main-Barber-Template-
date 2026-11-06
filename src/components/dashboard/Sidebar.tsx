@@ -161,7 +161,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         {
           label: 'Today',
           items: [
-            { name: 'Daily Ops', href: '/dashboard/operations', icon: Activity },
+            { name: "Today at a Glance", href: '/dashboard/operations', icon: Activity },
             { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
             { name: 'Waitlist', href: '/dashboard/waitlist', icon: Users },
           ],
@@ -191,9 +191,9 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           items: [
             { name: 'Branding & Theme', href: '/dashboard/settings?tab=branding', icon: Palette },
             { name: 'Site Preview', href: '/dashboard/website-preview', icon: Eye },
-            { name: 'Layout & Behavior', href: '/dashboard/settings?tab=layout', icon: LayoutGrid },
+            { name: 'Page Layout', href: '/dashboard/settings?tab=layout', icon: LayoutGrid },
             { name: 'Homepage Sections', href: '/dashboard/settings?tab=homepage-sections', icon: ListOrdered },
-            { name: 'Dashboard Preview', href: '/dashboard/settings?tab=dashboard-preview', icon: MonitorSmartphone },
+            { name: 'Screen Preview', href: '/dashboard/settings?tab=dashboard-preview', icon: MonitorSmartphone },
           ],
         },
         {
@@ -220,7 +220,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             { name: 'Barber Photos', href: '/dashboard/gallery/barber-photos', icon: UserCircle },
             { name: 'Barber Portfolio', href: '/dashboard/gallery/barber-portfolio', icon: ImageIcon },
             { name: 'Service Photos', href: '/dashboard/gallery/service-photos', icon: ImageIcon },
-            { name: 'OG Image', href: '/dashboard/gallery/og-image', icon: ImageIcon },
+            { name: 'Share Preview Image', href: '/dashboard/gallery/og-image', icon: ImageIcon },
             { name: 'Favicon', href: '/dashboard/gallery/favicon', icon: ImageIcon },
             { name: 'Photos', href: '/dashboard/media', icon: ImageIcon },
             { name: 'Before & After', href: '/dashboard/before-after', icon: ArrowLeftRight },
@@ -232,11 +232,11 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       label: 'system',
       items: [
         { name: 'Recurring', href: '/dashboard/recurring', icon: Repeat },
-        { name: 'Audit Log', href: '/dashboard/audit-log', icon: ScrollText },
+        { name: 'Activity History', href: '/dashboard/audit-log', icon: ScrollText },
         { name: 'Security', href: '/dashboard/settings?tab=security', icon: ShieldCheck },
         { name: 'Deactivate', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
-        { name: 'Launch Console', href: '/dashboard/factory-launch', icon: Shield },
-        { name: 'Factory Status', href: '/dashboard/factory-status', icon: Shield },
+        { name: 'Launch Checklist', href: '/dashboard/factory-launch', icon: Shield },
+        { name: 'System Health', href: '/dashboard/factory-status', icon: Shield },
       ],
       groups: [
         {
