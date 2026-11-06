@@ -1,3 +1,5 @@
+import { DOMParser } from '@xmldom/xmldom'
+
 // ============================================================================
 // FILE VALIDATION — server-side content inspection for uploaded assets.
 //
@@ -116,40 +118,227 @@ function isSvgText(text: string): boolean {
 // icons/logos. For fully untrusted SVG, a hardened pipeline would parse with
 // a strict XML parser and rebuild the tree from an allowlist.
 
-const SCRIPT_BLOCK = /<script\b[\s\S]*?<\/script\s*>/gi
-const EVENT_ATTR = /\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi
-const JS_URL = /(?:href|xlink:href|src|data)\s*=\s*(?:"\s*(?:javascript|vbscript):[^"]*"|'\s*(?:javascript|vbscript):[^']*'|\s*(?:javascript|vbscript):[^\s>]*)/gi
-const FOREIGN_OBJECT_START = /<foreignObject\b/i
-const EXTERNAL_ENTITY = /<!ENTITY[^>]*>/gi
+// ---------------------------------------------------------------------------
+// SVG sanitization: parse, then rebuild from an allowlist.
+//
+// The previous implementation was a set of regular expressions that stripped
+// known-bad patterns. That approach fails in two directions: a pattern it does
+// not know about survives, and a single pass can leave a dangerous fragment
+// behind that only becomes dangerous after the browser re-parses it.
+//
+// This implementation parses the document as XML, discards everything that is
+// not explicitly allowed, and serializes a fresh document from the allowed
+// nodes. Nothing from the input is copied through verbatim, so a construct the
+// allowlist has never heard of cannot reach the browser.
+// ---------------------------------------------------------------------------
+
+/** Hard cap on the raw document, checked before any parsing work. */
+const MAX_SVG_CHARS = 100_000
+/** Hard cap on emitted nodes, so a small input cannot expand into a huge one. */
+const MAX_SVG_NODES = 5_000
+/** Nesting limit; real logos are shallow, deeply nested input is not a logo. */
+const MAX_SVG_DEPTH = 32
+
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
+
+/** Elements a logo or icon can legitimately need. Everything else is dropped. */
+const ALLOWED_ELEMENTS = new Set([
+  'svg', 'g', 'defs', 'symbol', 'title', 'desc',
+  'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
+  'text', 'tspan',
+  'linearGradient', 'radialGradient', 'stop', 'pattern',
+  'clipPath', 'mask', 'marker',
+])
 
 /**
- * Sanitize an SVG document. Returns the cleaned SVG text, or null when the
- * document still contains active content after cleaning (reject, don't
- * guess). An empty/truncated input also returns null.
+ * Elements that cannot be saved by stripping attributes and that signal the
+ * document was not an ordinary logo. A document containing one is rejected
+ * outright rather than quietly altered, because the result would not be the
+ * picture the owner uploaded.
+ *
+ * Everything else that is not on the allowlist (script, style, handler,
+ * animation, image, use, external references) is dropped with its subtree by
+ * the serializer: the shapes around it are kept and the active content never
+ * reaches the output.
  */
-export function sanitizeSvg(text: string): string | null {
-  if (!text || !text.trim()) return null
-  let svg = text
-  svg = svg.replace(/\uFEFF/, '')
-  // External entities are an XXE/SSRF vector — reject outright
-  if (/<!ENTITY/i.test(svg) || /SYSTEM\s+["']/i.test(svg)) return null
-  // foreignObject embeds arbitrary HTML inside the SVG — cannot be made safe
-  // by attribute stripping, so reject any document that uses it.
-  if (FOREIGN_OBJECT_START.test(svg)) return null
-  svg = svg.replace(SCRIPT_BLOCK, '')
-  svg = svg.replace(EVENT_ATTR, '').replace(JS_URL, '')
-  svg = svg.replace(EXTERNAL_ENTITY, '')
-  // If a script tag survived pattern cleaning (malformed markup), reject
-  if (/<script/i.test(svg)) return null
-  if (/javascript:/i.test(svg) || /vbscript:/i.test(svg)) return null
-  if (!/<svg[\s>]/i.test(svg)) return null
-  return svg
+const REJECTED_ELEMENTS = new Set(['foreignobject'])
+
+/** Presentation attributes that carry no script or URL semantics. */
+const ALLOWED_ATTRIBUTES = new Set([
+  'xmlns', 'width', 'height', 'viewBox', 'preserveAspectRatio', 'version',
+  'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points',
+  'd', 'pathLength',
+  'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width',
+  'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'stroke-opacity',
+  'stroke-dasharray', 'stroke-dashoffset', 'opacity', 'transform', 'transform-origin',
+  'offset', 'stop-color', 'stop-opacity', 'gradientUnits', 'gradientTransform',
+  'patternUnits', 'patternContentUnits', 'patternTransform',
+  'clip-path', 'clipPathUnits', 'mask', 'maskUnits', 'maskContentUnits',
+  'marker-start', 'marker-mid', 'marker-end', 'markerWidth', 'markerHeight',
+  'markerUnits', 'refX', 'refY', 'orient',
+  'font-family', 'font-size', 'font-weight', 'font-style', 'letter-spacing',
+  'text-anchor', 'dominant-baseline', 'textLength', 'dx', 'dy',
+  'id', 'class', 'role', 'aria-label', 'aria-hidden', 'focusable',
+])
+
+interface SvgNode {
+  nodeType: number
+  tagName?: string
+  nodeName?: string
+  namespaceURI?: string | null
+  childNodes: ArrayLike<SvgNode>
+  attributes?: ArrayLike<{ name: string; value: string } & SvgNode>
+  nodeValue?: string | null
 }
 
+const ELEMENT_NODE = 1
+const TEXT_NODE = 3
+
+function escapeSvgText(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function escapeSvgAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
+/**
+ * A URL-bearing attribute may only point inside the document itself. External
+ * references would let a stored SVG call out to another host when rendered.
+ */
+function isSafeInternalReference(value: string): boolean {
+  const v = value.trim()
+  if (!v.startsWith('#')) return false
+  return /^#[A-Za-z0-9_.:-]{1,128}$/.test(v)
+}
+
+/** Paint values: colours and "none", plus the handful of keywords SVG defines. */
+function isSafePaint(value: string): boolean {
+  const v = value.trim()
+  if (v.length > 64) return false
+  if (/^#(?:[0-9a-f]{3,8})$/i.test(v)) return true
+  if (/^[a-z]+$/i.test(v)) return true
+  if (/^(?:rgba?|hsla?)\([0-9.,%\s]{1,60}\)$/i.test(v)) return true
+  if (/^url\(#[-A-Za-z0-9_.:]{1,128}\)$/.test(v)) return true
+  return false
+}
+
+function serializeElement(node: SvgNode, out: string[], state: { nodes: number }, depth: number): boolean {
+  if (state.nodes++ > MAX_SVG_NODES) return false
+  if (depth > MAX_SVG_DEPTH) return false
+
+  const attrs: string[] = []
+  const attributeList = node.attributes
+  if (attributeList) {
+    for (let i = 0; i < attributeList.length; i++) {
+      const attr = attributeList[i]
+      if (!attr || typeof attr.name !== 'string') continue
+      const name = attr.name
+      const lower = name.toLowerCase()
+      const value = typeof attr.value === 'string' ? attr.value : ''
+      // Event handlers and any namespaced attribute are dropped, never rewritten.
+      if (lower.startsWith('on')) continue
+      if (name.includes(':')) {
+        // Only xlink:href is meaningful, and only when it points at a local id.
+        if (lower === 'xlink:href' && isSafeInternalReference(value)) attrs.push(`href="${escapeSvgAttribute(value)}"`)
+        else if (lower === 'xml:space' && /^(?:default|preserve)$/i.test(value.trim())) attrs.push(`xml:space="${escapeSvgAttribute(value)}"`)
+        continue
+      }
+      if (!ALLOWED_ATTRIBUTES.has(name)) {
+        // href is only allowed as an internal reference.
+        if (lower === 'href' && isSafeInternalReference(value)) attrs.push(`href="${escapeSvgAttribute(value)}"`)
+        continue
+      }
+      if (lower === 'fill' || lower === 'stroke' || lower === 'stop-color') {
+        if (!isSafePaint(value)) continue
+      }
+      if (value.length > 4000) continue
+      attrs.push(`${name}="${escapeSvgAttribute(value)}"`)
+    }
+  }
+
+  const tag = node.tagName as string
+  const inner: string[] = []
+  const children = node.childNodes
+  for (let i = 0; children && i < children.length; i++) {
+    const child = children[i]
+    if (!child) continue
+    if (child.nodeType === TEXT_NODE) {
+      const text = child.nodeValue ?? ''
+      if (text.trim()) inner.push(escapeSvgText(text))
+      continue
+    }
+    if (child.nodeType !== ELEMENT_NODE) continue
+    const rawTag = (child.tagName || child.nodeName || '').toLowerCase()
+    if (REJECTED_ELEMENTS.has(rawTag)) return false
+    if (!ALLOWED_ELEMENTS.has(child.tagName as string)) continue
+    if (child.namespaceURI && child.namespaceURI !== SVG_NAMESPACE) return false
+    if (!serializeElement(child, inner, state, depth + 1)) return false
+  }
+
+  const open = attrs.length ? `<${tag} ${attrs.join(' ')}` : `<${tag}`
+  // Empty elements are emitted self-closing, which is what the stored files and
+  // the existing tests expect.
+  if (inner.length === 0) out.push(`${open}/>`)
+  else out.push(`${open}>${inner.join('')}</${tag}>`)
+  return true
+}
+
+/**
+ * Sanitize an SVG document. Returns a freshly built SVG string, or null when
+ * the document cannot be confidently sanitized (malformed XML, a rejected
+ * element, an entity declaration, an oversized input). Null means reject.
+ */
+export function sanitizeSvg(text: string): string | null {
+  if (typeof text !== 'string') return null
+  if (!text || !text.trim()) return null
+  if (text.length > MAX_SVG_CHARS) return null
+
+  const input = text.replace(/^\uFEFF/, '')
+
+  // Reject DTD/entity constructs before the parser ever sees them: they are the
+  // XXE surface, and a legitimate logo never needs one.
+  if (/<!DOCTYPE/i.test(input) || /<!ENTITY/i.test(input) || /SYSTEM\s+["']/i.test(input)) return null
+
+  let root: SvgNode | undefined
+  try {
+    const { DOMParser } = require('@xmldom/xmldom') as {
+      DOMParser: new (options?: unknown) => { parseFromString(source: string, mime: string): { documentElement: SvgNode | null } }
+    }
+    // xmldom 0.9 takes a single callback, not the legacy per-level object, and
+    // it writes parse complaints there. Silence them: the document is either
+    // rebuilt successfully below or rejected outright.
+    const quiet = () => undefined
+    const doc = new DOMParser({ errorHandler: quiet }).parseFromString(input, 'image/svg+xml')
+    root = doc?.documentElement ?? undefined
+  } catch {
+    return null
+  }
+
+  if (!root) return null
+  const rootTag = (root.tagName || '').toLowerCase()
+  if (rootTag !== 'svg') return null
+  if (root.namespaceURI && root.namespaceURI !== SVG_NAMESPACE) return null
+
+  const out: string[] = []
+  if (!serializeElement(root, out, { nodes: 0 }, 0)) return null
+
+  const result = out.join('')
+  return result.length > 0 ? result : null
+}
+
+/**
+ * The result of a successful upload validation: the content type we trust
+ * (derived from the bytes, never from the request header) and the bytes to
+ * store — sanitized when the input was an SVG.
+ */
 export interface ValidatedFile {
-  /** The verified MIME type (authoritative — derived from content, not client). */
   contentType: AllowedImageType
-  /** The bytes to store: sanitized SVG text when applicable, otherwise the input. */
   buffer: Buffer
 }
 

@@ -8,6 +8,7 @@ import { updateBarberSchema } from '@/lib/validation'
 import { handleApiError, validationError } from '@/lib/api-errors'
 import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
+import { isManagedStorageUrl } from '@/lib/trusted-storage-url'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -175,7 +176,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     if (barberMedia.length > 0) {
       try {
         const { del } = await import('@vercel/blob')
-        const urls = barberMedia.map((m) => m.url).filter((u) => u.includes('blob.vercel-storage.com'))
+        const urls = barberMedia.map((m) => m.url).filter((u) => isManagedStorageUrl(u))
         if (urls.length > 0) await del(urls)
       } catch (storageError) {
         storageCleanupFailed = true

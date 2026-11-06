@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
 import { del } from '@vercel/blob'
 import type { Prisma } from '@prisma/client'
+import { isManagedStorageUrl } from '@/lib/trusted-storage-url'
 
 const createMediaSchema = z.object({
   url: z.string().url(),
@@ -192,7 +193,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (error) {
       try {
-        if (data.url.includes('.public.blob.vercel-storage.com/')) await del(data.url)
+        if (isManagedStorageUrl(data.url)) await del(data.url)
       } catch (cleanupError) {
         console.error('[media] orphan cleanup failed', cleanupError instanceof Error ? cleanupError.message : 'unknown error')
       }
@@ -321,7 +322,7 @@ export async function DELETE(req: NextRequest) {
     // files behind. Only Vercel Blob URLs we own are deleted; external URLs are
     // left alone. Failure is reported, never silently swallowed.
     let storageWarning: string | undefined
-    if (media.url && media.url.includes('blob.vercel-storage.com')) {
+    if (media.url && isManagedStorageUrl(media.url)) {
       try {
         const { del } = await import('@vercel/blob')
         await del(media.url)

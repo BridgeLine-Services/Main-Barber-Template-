@@ -105,7 +105,80 @@ assert(sanitizeSvg('<div>not svg</div>') === null, 'non-SVG markup rejected by s
   const v = validateImageUpload('image/svg+xml', svgBuf('<svg xmlns="http://www.w3.org/2000/svg"><circle onclick="evil()"/></svg>'))
   assert(v.buffer.toString('utf-8') === '<svg xmlns="http://www.w3.org/2000/svg"><circle/></svg>', 'stored SVG is the sanitized version, not the original')
 }
+// ── Malicious SVG corpus ────────────────────────────────────────────────────
+// Every case here is something a stored SVG could use to run code, contact an
+// external host, or smuggle active content past a stripping pass. The parser
+// rebuilds each document from an allowlist, so the assertion is the same for
+// all of them: whatever comes back must contain none of it.
+console.log('SVG active-content corpus')
+{
+  const NS = 'xmlns="http://www.w3.org/2000/svg"'
+  const clean = (svg: string) => {
+    const out = sanitizeSvg(svg)
+    return out === null ? '' : out
+  }
+  const dangerous = (svg: string, label: string) => {
+    const out = clean(svg)
+    assert(!/<script/i.test(out) && !/on[a-z]+\s*=/i.test(out) && !/javascript:/i.test(out)
+      && !/vbscript:/i.test(out) && !/foreignobject/i.test(out) && !/<image/i.test(out)
+      && !/<use/i.test(out) && !/http:\/\//i.test(out.replace('http://www.w3.org/2000/svg', ''))
+      && !/<!entity/i.test(out) && !/animate/i.test(out),
+      label + ': no active content survives')
+  }
 
-console.log('')
-console.log(`file-validation: ${passed} passed, ${failed} failed`)
+  dangerous(`<svg ${NS}><ScRiPt>alert(1)</ScRiPt><rect width="1" height="1"/></svg>`, 'mixed-case script')
+  dangerous(`<svg ${NS}><rect width="1" height="1" ONLOAD="alert(1)"/></svg>`, 'uppercase event handler')
+  dangerous(`<svg ${NS}><rect width="1" height="1" onfocusin="alert(1)"/></svg>`, 'less common event handler')
+  dangerous(`<svg ${NS}><a href="javascript:alert(1)"><text>x</text></a></svg>`, 'javascript href')
+  dangerous(`<svg ${NS}><a href="vbscript:msgbox(1)"><text>x</text></a></svg>`, 'vbscript href')
+  dangerous(`<svg ${NS}><a xlink:href="javascript:alert(1)"><text>x</text></a></svg>`, 'namespaced javascript href')
+  dangerous(`<svg ${NS}><image href="https://evil.example/pixel.png"/></svg>`, 'external image reference')
+  dangerous(`<svg ${NS}><use href="https://evil.example/sprite.svg#x"/></svg>`, 'external use reference')
+  dangerous(`<svg ${NS}><style>@import url(https://evil.example/x.css);</style><rect/></svg>`, 'external stylesheet')
+  dangerous(`<svg ${NS}><animate attributeName="href" to="javascript:alert(1)"/></svg>`, 'animation element')
+  dangerous(`<svg ${NS}><set attributeName="onload" to="alert(1)"/></svg>`, 'set element')
+  dangerous(`<svg ${NS}><handler/></svg>`, 'SVG handler element')
+  dangerous(`<svg ${NS}><rect width="1" height="1" style="background:url(javascript:alert(1))"/></svg>`, 'style attribute')
+  // A decoded scheme sitting in TEXT content is inert: it is not an attribute
+  // and the browser never executes it. What matters is that it stays text and
+  // does not become a link or a handler.
+  {
+    const t = clean(`<svg ${NS}><text>&#106;avascript:alert(1)</text></svg>`)
+    assert(t.length > 0 && !/href\s*=|xlink:href|on[a-z]+\s*=/i.test(t), 'entity-encoded text stays inert text, not an attribute')
+  }
+
+  // The attribute-visibility cases: these use encoding or casing to slip past a
+  // naive denylist. They must be absent from the rebuilt document.
+  dangerous(`<svg ${NS}><a xlink:href=" java&#115;cript:alert(1)"><text>x</text></a></svg>`, 'entity-encoded scheme')
+  dangerous(`<svg ${NS}><a href="JaVaScRiPt:alert(1)"><text>x</text></a></svg>`, 'mixed-case scheme')
+
+  // Rejected outright: cannot be rebuilt into the same picture.
+  assert(sanitizeSvg(`<svg ${NS}><foreignObject><div>x</div></foreignObject></svg>`) === null, 'foreignObject rejects the document')
+  assert(sanitizeSvg('<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg"/>') === null, 'DOCTYPE rejects the document')
+  {
+    // An undeclared entity must never be resolved. Either the document is
+    // refused, or the reference survives only as escaped text.
+    const x = sanitizeSvg(`<svg ${NS}>&xxe;</svg>`)
+    assert(x === null || !x.includes('&xxe;'), 'unknown entity is never resolved into content')
+  }
+  assert(sanitizeSvg(`<svg ${NS}>` + '<g>'.repeat(60) + '</g>'.repeat(60) + '</svg>') === null, 'pathologically nested document rejected')
+  assert(sanitizeSvg(`<svg ${NS}>` + '<rect/>'.repeat(6000) + '</svg>') === null, 'oversized node count rejected')
+  assert(sanitizeSvg(`<svg ${NS}><rect></svg>`) === null, 'malformed XML rejected')
+  assert(sanitizeSvg('not xml at all') === null, 'non-XML rejected')
+  assert(sanitizeSvg(`<svg ${NS}>` + 'a'.repeat(120000) + '</svg>') === null, 'oversized document rejected')
+
+  // Legitimate artwork still survives intact.
+  const logo = sanitizeSvg(`<svg ${NS} viewBox="0 0 24 24"><defs><linearGradient id="g1"><stop offset="0" stop-color="#ff0000"/></linearGradient></defs><g fill="url(#g1)"><path d="M1 1 L2 2"/><circle cx="3" cy="3" r="1"/></g><text x="0" y="10">Joes Barbershop</text></svg>`)
+  assert(logo !== null, 'clean logo survives sanitization')
+  assert(!!logo && /<path /.test(logo), 'paths preserved')
+  assert(!!logo && /<linearGradient /.test(logo), 'gradients preserved')
+  assert(!!logo && /<text /.test(logo) && logo.includes('Joes Barbershop'), 'text preserved')
+  assert(!!logo && /fill="url\(#g1\)"/.test(logo), 'internal paint reference preserved')
+
+  // The upload pipeline rejects rather than storing anything it cannot clean.
+  expectThrow(() => validateImageUpload('image/svg+xml', svgBuf(`<svg ${NS}><foreignObject><div>x</div></foreignObject></svg>`)),
+    'upload of unsanitizable SVG is refused with a user-facing message')
+}
+
+console.log(`\nfile-validation: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

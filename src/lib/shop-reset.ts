@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isManagedStorageUrl } from '@/lib/trusted-storage-url'
 
 /**
  * Shop configuration reset.
@@ -41,7 +42,7 @@ async function collectMediaUrls(businessId: string): Promise<string[]> {
     where: { businessId },
     select: { url: true },
   })
-  return media.map((m) => m.url).filter((u) => u.includes('blob.vercel-storage.com'))
+  return media.map((m) => m.url).filter((u) => isManagedStorageUrl(u))
 }
 
 /** Best-effort storage cleanup. Never throws; failures are reported. */
