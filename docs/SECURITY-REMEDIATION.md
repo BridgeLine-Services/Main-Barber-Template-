@@ -197,3 +197,29 @@ the aspect label is ordinary JSX text, and OAuth state uses `createHmac('sha256'
 `timingSafeEqual`. No escaping was added, no HMAC was replaced with bcrypt, no feature removed.
 Findings #23, #22, #21 remain protected by `src/lib/trusted-storage-url.ts` origin validation,
 unchanged by this pass.
+
+## 8. Second local verification pass (added after the first report)
+
+The three `test:auth` failures reported above were an environment defect on my side, not
+code: `.github/workflows/ci.yml` sets `RATE_LIMIT_TRUST_PROXY: 'true'` so the suites can act
+as several visitors, and I had omitted it, so every request shared one limiter key.
+
+With the CI environment reproduced:
+
+| Check | Result |
+| --- | --- |
+| `test:auth` (`APP_MODE=production`, trust proxy) | 58 passed, 0 failed; exit 1 from one dev-mode-only expectation that requires `APP_MODE=demo` |
+| `test:auth` (`APP_MODE=demo`) | 52 passed, 6 failed, all HTTP 429 on the reschedule limiter |
+| `test:owner-registration` | 27 passed, 1 failed: "incomplete public shop directs its authenticated owner to setup" (onboarding redirect, not a password path) |
+| `test:factory-readiness` | 21/21 |
+| `test:factory-launch` | 10/10 |
+| `test:smoke` (`SMOKE_BASE_URL=http://localhost:3000`) | passed, booking remains manual by design |
+| `npx playwright test e2e/security.spec.ts e2e/public-booking.spec.ts` | 5 passed, 0 failed, exit 0 |
+| full `test:e2e` | 18 of 70 tests completed with no failures before the 300 s harness cap killed the run |
+| `accessibility` + `customer-auth` + `dashboard-smoke` | 17 of 28 completed with no failures before the same cap |
+
+No password-related test fails anywhere. The single owner-registration failure is a redirect
+assertion on an incomplete shop, which this pass does not touch.
+
+Still not verified: GitHub CI and CodeQL (the PR cannot be opened), any staging or production
+deployment, and the settings contrast node from the earlier usability pass.
