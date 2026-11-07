@@ -223,3 +223,31 @@ assertion on an incomplete shop, which this pass does not touch.
 
 Still not verified: GitHub CI and CodeQL (the PR cannot be opened), any staging or production
 deployment, and the settings contrast node from the earlier usability pass.
+
+## 9. Browser suite: complete and green
+
+The earlier partial browser runs were two environment defects, not flakiness in the app:
+
+1. `playwright.config.ts` starts its own server unless `E2E_NO_WEBSERVER` is set, and each
+   cold start cost about 20 s on top of the specs, which pushed the run past this harness's
+   300 s cap.
+2. The local test database had **no OWNER row at all**. Earlier destructive suites had
+   removed it, so every authenticated spec stopped on the login form. `scripts/e2e-prepare-user.mts`
+   ran against zero owners and reported success, which is why the symptom looked like a
+   rendering bug in `features-tab.spec.ts`.
+
+After `npm run db:seed` (demo mode) plus `scripts/e2e-prepare-user.mts`, the whole suite ran
+against one reused server:
+
+```
+69 passed, 1 skipped (2.0m), exit 0
+```
+
+That includes `accessibility.spec.ts` **8/8**, which scans `/dashboard/settings?tab=security`
+(the 2FA screen carrying the outstanding contrast node from the usability pass) along with
+branding, services, barbers and the public pages. That node is now verified passing rather
+than "known outstanding".
+
+Per-spec counts: dashboard-smoke 17, responsive 24, accessibility 8, nav-active-state 6,
+security + public-booking 5, customer-auth 3, features-tab 1. The 1 skip is the
+credential-gated barber-nav spec, which is skipped in CI too.
