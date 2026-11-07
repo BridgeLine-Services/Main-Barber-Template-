@@ -7,10 +7,10 @@
 import { getServerSession } from 'next-auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import bcrypt from 'bcryptjs'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/auth-helpers'
+import { hashPassword } from '@/lib/passwords'
 
 async function requirePlatformUser(): Promise<{ id: string }> {
   const session = await getServerSession(authOptions)
@@ -89,7 +89,7 @@ export async function createBusiness(
   if (emailTaken) return { error: 'A user with that email already exists.' }
 
   const tempPassword = `BL-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`
-  const passwordHash = await bcrypt.hash(tempPassword, 12)
+  const passwordHash = await hashPassword(tempPassword)
 
   const business = await prisma.business.create({
     data: {

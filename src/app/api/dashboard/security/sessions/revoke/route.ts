@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin, logAudit } from '@/lib/auth-helpers'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
+import { verifyPassword } from '@/lib/passwords'
 
 // ============================================================================
 // POST /api/dashboard/security/sessions/revoke
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'We could not find your account.' }, { status: 404 })
     }
-    if (!(await bcrypt.compare(password, user.passwordHash))) {
+    if (!(await verifyPassword(password, user.passwordHash))) {
       return NextResponse.json({ error: 'That password did not match. Please try again.' }, { status: 400 })
     }
 

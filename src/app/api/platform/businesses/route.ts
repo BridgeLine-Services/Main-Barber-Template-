@@ -8,9 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
 import { requirePlatformOwner, logAudit } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
+import { hashPassword } from '@/lib/passwords'
 
 const createSchema = z.object({
   name: z.string().min(1, 'Business name required').max(100),
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
   // Generated one-time password; the owner must change it on first sign-in.
   const tempPassword = `BL-${crypto.randomUUID().slice(0, 8).toUpperCase()}!`
-  const passwordHash = await bcrypt.hash(tempPassword, 12)
+  const passwordHash = await hashPassword(tempPassword)
 
   const business = await prisma.business.create({
     data: {

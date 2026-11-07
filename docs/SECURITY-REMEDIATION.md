@@ -91,3 +91,199 @@ done here.
 `pg_dump` and `psql`; neither is installed and `apt` has no `postgresql-client`
 package. The workflow step `.github/workflows/ci.yml` ("Backup and restore
 verification") is the place that proves it.
+
+---
+
+# Final hardening pass (branch `security/codeql-final-pass`)
+
+Base: `main` `d512609cf84beec00c6f928643a7256aa3b02a1e` (PR #86 security, PR #87 usability already merged).
+
+## 1. Font test redirect hardening (Task One)
+
+New shared primitive `src/lib/local-origin.ts`:
+
+- `resolveLocalUrl(href, base)` parses with the URL constructor, requires `http`/`https`,
+  rejects credentials in the URL, and requires exact origin equality with `base`. No
+  `startsWith`, `includes` or any substring comparison is used anywhere in the path.
+- `fetchLocalUrl(href, base, init)` calls `fetch` with `redirect: 'error'`, so a 302 is a
+  rejection rather than a silent hop, and re-checks `response.url`'s origin afterwards.
+
+`tests/fonts.test.ts` keeps its `resolveLocal()` name and error text, now delegating to the
+primitive, and all three asset fetches (stylesheet, CSS text, font file) go through
+`fetchLocal()`. Font configuration, the seven families, CSS variable names and typography
+are unchanged.
+
+New `tests/font-url-guard.test.ts`, 14 assertions, hermetic (own stub server, no app
+needed): relative URL accepted; absolute local accepted; external host rejected; lookalike
+host `localhost:PORT.attacker.example` rejected; protocol-relative URL rejected;
+credentialed URL rejected; `file://` rejected; off-origin redirect rejected; same-origin
+redirect also rejected; local CSS still loads 200 with body intact; local font file loads
+200; seven families still present; each family still emits its CSS variable.
+
+## 2. Password hashing centralized (Task Two)
+
+Every production hash now calls `hashPassword()` from `src/lib/passwords.ts` at
+`BCRYPT_COST = 12`. Direct `bcrypt` imports were removed from:
+
+`prisma/seed.ts` (was cost **10**), `src/app/platform/actions.ts`,
+`src/app/api/platform/businesses/route.ts`, `src/app/api/auth/reset-password/route.ts`,
+`src/app/api/auth/accept-invitation/route.ts`,
+`src/app/api/dashboard/staff/[id]/route.ts`.
+
+## 3. Password verification centralized (Task Three)
+
+`bcrypt.compare` replaced with `verifyPassword()` in `src/lib/auth.ts`,
+`src/app/api/auth/change-password/route.ts` (both comparisons),
+`src/app/api/auth/2fa/required/route.ts`,
+`src/app/api/dashboard/security/2fa/disable/route.ts`,
+`src/app/api/dashboard/security/sessions/revoke/route.ts`.
+
+`bcrypt` now appears in exactly one file: `src/lib/passwords.ts`.
+
+No rehash-on-login, no forced resets, no changes to the credentials provider, login form,
+validation rules, rate limits or session behaviour. Existing digests keep verifying because
+bcrypt stores its own cost.
+
+## 4. Tests added
+
+`tests/security-hardening.test.ts` (now 34 assertions, was 28) additionally proves: the
+legacy helper really produces a cost-10 digest; the shared verifier accepts it; the shared
+verifier still rejects a wrong password against it; and a source scan finds no direct
+`bcrypt.hash(`/`bcrypt.compare(` anywhere in `src/` or `prisma/` outside the shared policy.
+
+`tests/font-url-guard.test.ts` is new (14 assertions).
+
+## 5. Executed locally on this branch
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | 0 errors, 97 pre-existing warnings |
+| `npx prisma validate` | schema valid |
+| `npm run build` | exit 0 |
+| `test:files` | 57/57 |
+| `tests/security-hardening.test.ts` | 34/34 |
+| `tests/trusted-storage-url.test.ts` | 24/24 |
+| `tests/oauth-state-signing.test.ts` | 9/9 |
+| `tests/font-url-guard.test.ts` | 14/14 |
+| `tests/fonts.test.ts` (live server) | 29 PASS, 0 FAIL |
+| `tests/plain-language.test.ts` | 3/3 |
+| `test:tenant` | 22/22 |
+| `test:booking` | 20/20 |
+| `test:permissions` | 37/37 |
+| `test:coowner-permissions` | 35/35 |
+| `test:barber-mode` | 23/23 |
+| `test:auth` | 55/58 — 3 failures are HTTP 429 on the owner-registration intent from repeated local runs |
+
+## 6. Not verified
+
+- **GitHub CI: not run.** Pushing works, but opening a pull request fails with
+  `403 Resource not accessible by personal access token` on every token provided so far, so
+  no workflow has been triggered for this branch.
+- **CodeQL: no fresh analysis.** Alert status for #23, #22, #21, #15, #8, #7 cannot be read
+  either — the same token cannot access the code-scanning alerts API. Nothing in this
+  document claims an alert is closed.
+- **`test:auth` 3 failures**: all `429` on the registration/closing-code assertions. Repeated
+  local runs exhaust the registration limiter; CI runs once against fresh state. Classified
+  as environment/order-dependent, not a regression, and not "fixed" by touching assertions.
+- **Playwright E2E and a11y**: not run this pass.
+- **No production deployment, no staging verification, no provider acceptance.**
+
+## 7. Tasks Four and Five: reported false positives and prior findings
+
+`BarberForm.tsx`, `media/page.tsx` and `google-business.ts` are byte-identical to `main`
+(`git diff --stat` empty). Verified on inspection: the barber photo is a plain `<img src={photo}>`,
+the aspect label is ordinary JSX text, and OAuth state uses `createHmac('sha256', ...)` with
+`timingSafeEqual`. No escaping was added, no HMAC was replaced with bcrypt, no feature removed.
+Findings #23, #22, #21 remain protected by `src/lib/trusted-storage-url.ts` origin validation,
+unchanged by this pass.
+
+## 8. Second local verification pass (added after the first report)
+
+The three `test:auth` failures reported above were an environment defect on my side, not
+code: `.github/workflows/ci.yml` sets `RATE_LIMIT_TRUST_PROXY: 'true'` so the suites can act
+as several visitors, and I had omitted it, so every request shared one limiter key.
+
+With the CI environment reproduced:
+
+| Check | Result |
+| --- | --- |
+| `test:auth` (`APP_MODE=production`, trust proxy) | 58 passed, 0 failed; exit 1 from one dev-mode-only expectation that requires `APP_MODE=demo` |
+| `test:auth` (`APP_MODE=demo`) | 52 passed, 6 failed, all HTTP 429 on the reschedule limiter |
+| `test:owner-registration` | 27 passed, 1 failed: "incomplete public shop directs its authenticated owner to setup" (onboarding redirect, not a password path) |
+| `test:factory-readiness` | 21/21 |
+| `test:factory-launch` | 10/10 |
+| `test:smoke` (`SMOKE_BASE_URL=http://localhost:3000`) | passed, booking remains manual by design |
+| `npx playwright test e2e/security.spec.ts e2e/public-booking.spec.ts` | 5 passed, 0 failed, exit 0 |
+| full `test:e2e` | 18 of 70 tests completed with no failures before the 300 s harness cap killed the run |
+| `accessibility` + `customer-auth` + `dashboard-smoke` | 17 of 28 completed with no failures before the same cap |
+
+No password-related test fails anywhere. The single owner-registration failure is a redirect
+assertion on an incomplete shop, which this pass does not touch.
+
+Still not verified: GitHub CI and CodeQL (the PR cannot be opened), any staging or production
+deployment, and the settings contrast node from the earlier usability pass.
+
+## 9. Browser suite: complete and green
+
+The earlier partial browser runs were two environment defects, not flakiness in the app:
+
+1. `playwright.config.ts` starts its own server unless `E2E_NO_WEBSERVER` is set, and each
+   cold start cost about 20 s on top of the specs, which pushed the run past this harness's
+   300 s cap.
+2. The local test database had **no OWNER row at all**. Earlier destructive suites had
+   removed it, so every authenticated spec stopped on the login form. `scripts/e2e-prepare-user.mts`
+   ran against zero owners and reported success, which is why the symptom looked like a
+   rendering bug in `features-tab.spec.ts`.
+
+After `npm run db:seed` (demo mode) plus `scripts/e2e-prepare-user.mts`, the whole suite ran
+against one reused server:
+
+```
+69 passed, 1 skipped (2.0m), exit 0
+```
+
+That includes `accessibility.spec.ts` **8/8**, which scans `/dashboard/settings?tab=security`
+(the 2FA screen carrying the outstanding contrast node from the usability pass) along with
+branding, services, barbers and the public pages. That node is now verified passing rather
+than "known outstanding".
+
+Per-spec counts: dashboard-smoke 17, responsive 24, accessibility 8, nav-active-state 6,
+security + public-booking 5, customer-auth 3, features-tab 1. The 1 skip is the
+credential-gated barber-nav spec, which is skipped in CI too.
+
+## 10. GitHub CI: green. CodeQL: still cannot be run.
+
+The pull request cannot be opened with any token supplied so far. Four different tokens have
+now been tried; the current one authenticates as `BridgeLine-Services User`, can push commits,
+and returns`403 Resource not accessible by personal access token` on `POST /pulls`. Workflow
+listing works (200), so the blocker is specifically the Pull requests permission.
+
+Because `ci.yml` triggers on `push` to `main` and `v0/**` as well as on pull requests, the
+branch content was mirrored to `v0/security-verify` and pushed. That produced a real run of
+the unmodified CI pipeline:
+
+```
+run 42330005749  Template CI @ 826e8e2
+  Validate template    completed  success
+  E2E browser tests    completed  success
+```
+
+That is the pipeline this work has never been through: `npm ci`, `prisma migrate deploy`,
+`prisma generate`, `db:seed`, `tsx scripts/e2e-prepare-user.mts`, `npm run build`, then
+Playwright. Both jobs pass, so the branch builds and its browser suite passes in a clean
+CI environment, not just in my sandbox.
+
+**CodeQL remains unverified and I am not claiming any alert status for #23, #22, #21, #15,
+#8 or #7.** Every route was tried and recorded:
+
+| Route | Result |
+| --- | --- |
+| `POST /pulls` | 403, Pull requests permission missing |
+| `GET /code-scanning/alerts` | 403, Security events permission missing |
+| `POST /actions/workflows/ci.yml/dispatches` | 404, the workflow has no `workflow_dispatch` trigger |
+| CodeQL workflow | dynamic (`github-code-scanning/codeql`), not addressable as `codeql.yml` (404) |
+| push to the branch | starts nothing, `ci.yml` does not list it and the branch-runs query returned `total_count: 0` |
+
+CodeQL runs only on pull requests and pushes to the default branch, so it needs either a real
+pull request or a token with Security events: read. Those are the two things outside my reach.

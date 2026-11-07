@@ -7,13 +7,13 @@ import { headers } from 'next/headers'
 
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { appConfig } from './app-config'
 import { rateLimit, isRateLimited, isAuthorizedCILocalMode, RATE_LIMITS, getClientIP } from './rate-limit'
 import { DEAD_CLAIM, PWD_CLAIM, SESSION_START_CLAIM, isSessionInvalidated, isSessionRevoked } from './session-security'
 import { SID_CLAIM, createSession, isSessionAllowed, touchSession } from './session-registry'
 import { consumeRecoveryCode, verifyEnrolledTotp } from './two-factor-enrollment'
+import { verifyPassword } from '@/lib/passwords'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           // owners are business-independent and always retain access.
           if (user.business?.deactivatedAt && user.role !== 'OWNER' && user.role !== 'PLATFORM_OWNER') return null
 
-          const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
+          const passwordValid = await verifyPassword(credentials.password, user.passwordHash)
           if (!passwordValid) {
             await rateLimit(ipKey, { windowMs: 60_000, maxRequests: 10 })
             await rateLimit(accountKey, RATE_LIMITS.AUTH)

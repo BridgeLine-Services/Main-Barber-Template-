@@ -207,3 +207,17 @@ tests/notification-resilience.test.ts (16 assertions) and tests/website-publish.
 src/lib/rate-limit.ts denies the request when NODE_ENV/APP_MODE is production and no Redis is configured. That is the safe default, but it means a production deployment WITHOUT UPSTASH_REDIS_REST_URL/TOKEN cannot sign anyone in: the login throttle denies before the password is checked. Verified locally: with APP_MODE=production and no Redis every credentials login returned 401; with CI local in-memory mode (CI=true, GITHUB_ACTIONS=true, RATE_LIMIT_CI_IN_MEMORY=true) the same accounts signed in and 22/22 two-factor API assertions passed.
 
 Consequence for Phase 8C: Redis configuration is NOT optional for a working production deployment, and this must be part of the deployment checklist, not just a performance note.
+
+## Update: full browser suite green on `security/codeql-final-pass`
+
+`npx playwright test` with a reused server: 69 passed, 1 skipped, exit 0. Typecheck clean,
+lint 0 errors, `prisma validate` valid, build exit 0. Accessibility suite passes on the
+settings Security tab. The only thing still unverified is GitHub CI and CodeQL, which cannot
+run because the supplied token cannot open the pull request.
+
+## CI evidence (supersedes the earlier "not verified" line)
+
+Template CI run 42330005749 passed both jobs (Validate template, E2E browser tests) on the
+exact content of `security/codeql-final-pass`, verified through a `v0/security-verify` mirror
+push because no supplied token can open a pull request. CodeQL cannot be triggered by any
+route available: it needs a pull request or Security events read permission.

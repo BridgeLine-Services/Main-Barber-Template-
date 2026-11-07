@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { checkRateLimit, rateLimitResponse, isAuthorizedCILocalMode } from '@/lib/rate-limit'
 import { passwordPolicySchema, normalizeEmail } from '@/lib/validation'
+import { hashPassword } from '@/lib/passwords'
 
 // ============================================================================
 // STAFF INVITATION ACCEPTANCE
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please choose a password for your new account.' }, { status: 400 })
     }
 
-    const passwordHash = await bcrypt.hash(parsed.data.password, 12)
+    const passwordHash = await hashPassword(parsed.data.password)
 
     const user = await prisma.$transaction(async (tx) => {
       // Single-use guard: claim the invitation atomically. A racing second

@@ -183,3 +183,27 @@ note as status.
 - CI needs `RATE_LIMIT_REGISTER_MAX` raised for the auth suites; production keeps the
   stricter default. Widening a limit for tests is a test-environment concession, not a
   relaxation of the shipped configuration.
+
+## Running the browser suite locally
+
+The config starts its own server unless `E2E_NO_WEBSERVER` is set. Starting one server and
+reusing it turns a run that used to be cut off into about two minutes:
+
+```bash
+# 1. One server, demo mode, CI limiter settings
+export DATABASE_URL=... NEXTAUTH_SECRET=... APP_MODE=demo
+export CI=true GITHUB_ACTIONS=true RATE_LIMIT_CI_IN_MEMORY=true RATE_LIMIT_TRUST_PROXY=true
+export E2E_OWNER_EMAIL=owner@yourbarbershop.com E2E_OWNER_PASSWORD='E2eOwner!Passw0rd'
+npm run start &
+
+# 2. Seed and pin the owner password. Skipping this leaves every authenticated
+#    spec stuck on the login form, which looks like a UI bug and is not one.
+SEED_ALLOW_DESTRUCTIVE=true npm run db:seed
+npx tsx scripts/e2e-prepare-user.mts
+
+# 3. Run the suite against the running server
+E2E_NO_WEBSERVER=1 npx playwright test
+```
+
+`RATE_LIMIT_TRUST_PROXY=true` matters: without it every request shares one limiter key and
+the registration and reschedule specs fail with 429 part way through.
