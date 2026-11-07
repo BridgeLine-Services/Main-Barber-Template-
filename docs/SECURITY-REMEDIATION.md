@@ -251,3 +251,39 @@ than "known outstanding".
 Per-spec counts: dashboard-smoke 17, responsive 24, accessibility 8, nav-active-state 6,
 security + public-booking 5, customer-auth 3, features-tab 1. The 1 skip is the
 credential-gated barber-nav spec, which is skipped in CI too.
+
+## 10. GitHub CI: green. CodeQL: still cannot be run.
+
+The pull request cannot be opened with any token supplied so far. Four different tokens have
+now been tried; the current one authenticates as `BridgeLine-Services User`, can push commits,
+and returns`403 Resource not accessible by personal access token` on `POST /pulls`. Workflow
+listing works (200), so the blocker is specifically the Pull requests permission.
+
+Because `ci.yml` triggers on `push` to `main` and `v0/**` as well as on pull requests, the
+branch content was mirrored to `v0/security-verify` and pushed. That produced a real run of
+the unmodified CI pipeline:
+
+```
+run 42330005749  Template CI @ 826e8e2
+  Validate template    completed  success
+  E2E browser tests    completed  success
+```
+
+That is the pipeline this work has never been through: `npm ci`, `prisma migrate deploy`,
+`prisma generate`, `db:seed`, `tsx scripts/e2e-prepare-user.mts`, `npm run build`, then
+Playwright. Both jobs pass, so the branch builds and its browser suite passes in a clean
+CI environment, not just in my sandbox.
+
+**CodeQL remains unverified and I am not claiming any alert status for #23, #22, #21, #15,
+#8 or #7.** Every route was tried and recorded:
+
+| Route | Result |
+| --- | --- |
+| `POST /pulls` | 403, Pull requests permission missing |
+| `GET /code-scanning/alerts` | 403, Security events permission missing |
+| `POST /actions/workflows/ci.yml/dispatches` | 404, the workflow has no `workflow_dispatch` trigger |
+| CodeQL workflow | dynamic (`github-code-scanning/codeql`), not addressable as `codeql.yml` (404) |
+| push to the branch | starts nothing, `ci.yml` does not list it and the branch-runs query returned `total_count: 0` |
+
+CodeQL runs only on pull requests and pushes to the default branch, so it needs either a real
+pull request or a token with Security events: read. Those are the two things outside my reach.

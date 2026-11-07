@@ -214,3 +214,10 @@ Consequence for Phase 8C: Redis configuration is NOT optional for a working prod
 lint 0 errors, `prisma validate` valid, build exit 0. Accessibility suite passes on the
 settings Security tab. The only thing still unverified is GitHub CI and CodeQL, which cannot
 run because the supplied token cannot open the pull request.
+
+## CI evidence (supersedes the earlier "not verified" line)
+
+Template CI run 42330005749 passed both jobs (Validate template, E2E browser tests) on the
+exact content of `security/codeql-final-pass`, verified through a `v0/security-verify` mirror
+push because no supplied token can open a pull request. CodeQL cannot be triggered by any
+route available: it needs a pull request or Security events read permission.
