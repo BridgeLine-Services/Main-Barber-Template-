@@ -5,12 +5,12 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentBusinessId } from '@/lib/business'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
 import { canManageStaffWithRole } from '@/lib/permissions'
 import { toAuditJson } from '@/lib/auth-helpers'
+import { hashPassword } from '@/lib/passwords'
 
 const updateSchema = z.object({
   role: z.enum(['OWNER', 'BUSINESS_ADMIN', 'BARBER']).optional(),
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       }
       // Generate new temp password
       const tempPassword = crypto.randomBytes(8).toString('base64url').slice(0, 12)
-      const passwordHash = await bcrypt.hash(tempPassword, 12)
+      const passwordHash = await hashPassword(tempPassword)
       await prisma.user.update({
         where: { id: params.id },
         data: { passwordHash },

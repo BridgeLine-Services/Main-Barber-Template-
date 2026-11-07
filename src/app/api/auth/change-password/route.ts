@@ -7,10 +7,9 @@ import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/auth-helpers'
 import { getClientIP } from '@/lib/rate-limit'
 import { AuditAction } from '@prisma/client'
-import { hashPassword } from '@/lib/passwords'
-import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { passwordPolicySchema } from '@/lib/validation'
+import { hashPassword, verifyPassword } from '@/lib/passwords'
 
 const changePasswordSchema = z
   .object({
@@ -59,13 +58,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the current password
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash)
+    const valid = await verifyPassword(currentPassword, user.passwordHash)
     if (!valid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 })
     }
 
     // New password must differ from the current one
-    const samePassword = await bcrypt.compare(newPassword, user.passwordHash)
+    const samePassword = await verifyPassword(newPassword, user.passwordHash)
     if (samePassword) {
       return NextResponse.json(
         { error: 'New password must be different from the current password' },

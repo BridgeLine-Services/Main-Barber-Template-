@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 import { handleApiError } from '@/lib/api-errors'
+import { verifyPassword } from '@/lib/passwords'
 
 // ============================================================================
 // POST /api/auth/2fa/required
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const invalid = () => NextResponse.json({ error: 'We could not verify that password.' }, { status: 401 })
     if (!user || user.isActive === false) return invalid()
 
-    const passwordValid = await bcrypt.compare(password, user.passwordHash)
+    const passwordValid = await verifyPassword(password, user.passwordHash)
     if (!passwordValid) return invalid()
 
     return NextResponse.json({ required: user.twoFactorEnabled })

@@ -9,6 +9,8 @@ import { parsePreferredTime } from '../src/lib/recurring'
 import { generateConfirmationNumber } from '@/lib/utils'
 import { hashPassword, verifyPassword, BCRYPT_COST } from '../src/lib/passwords'
 import bcrypt from 'bcryptjs'
+import { readdirSync, readFileSync } from 'fs'
+import { join } from 'path'
 
 let passed = 0
 let failed = 0
@@ -80,9 +82,36 @@ console.log('Confirmation numbers')
   assert(hash.slice(4, 6) === '12', 'digest records cost 12')
   assert(await verifyPassword('correct horse battery staple', hash), 'verifies the correct password')
   assert(!(await verifyPassword('wrong', hash)), 'rejects the wrong password')
-  // Hashes created before the change must keep working: bcrypt stores its own cost.
+  // Hashes created before the change must keep working: bcrypt stores its own
+  // cost inside the digest, so the shared verify path must accept cost 10.
   const legacy = await bcrypt.hash('legacy-password', 10)
-  assert(await bcrypt.compare('legacy-password', legacy), 'existing cost-10 hashes still verify')
+  assert(legacy.slice(4, 6) === '10', 'legacy helper really produces a cost-10 digest')
+  assert(await verifyPassword('legacy-password', legacy),
+    'shared verification accepts existing cost-10 hashes')
+  assert(!(await verifyPassword('not-the-password', legacy)),
+    'shared verification still rejects a wrong password against a cost-10 hash')
+
+  // Every production path must go through the shared policy. A direct bcrypt
+  // call outside src/lib/passwords.ts means a second cost constant has appeared,
+  // which is exactly how the cost differed between paths before this change.
+  const offenders: string[] = []
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
+        walk(full)
+      } else if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) {
+        if (full.endsWith(join('src', 'lib', 'passwords.ts'))) continue
+        const body = readFileSync(full, 'utf8')
+        if (/bcrypt\.(hash|compare)\s*\(/.test(body)) offenders.push(full)
+      }
+    }
+  }
+  walk('src')
+  walk('prisma')
+  assert(offenders.length === 0,
+    `no direct bcrypt hashing or comparison outside the shared policy (found: ${offenders.join(', ') || 'none'})`)
 }
 }
 

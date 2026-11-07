@@ -4,6 +4,7 @@
 // variables, and invalid font selections fall back to the default.
 
 import { generateThemeCSS, FONT_FAMILY_VALUES } from '../src/lib/theme'
+import { resolveLocalUrl, fetchLocalUrl } from '../src/lib/local-origin'
 
 const BASE = 'http://localhost:3000'
 
@@ -15,11 +16,22 @@ const BASE = 'http://localhost:3000'
  * requiring the same origin means the test only ever fetches the app it built.
  */
 function resolveLocal(href: string): string {
-  const url = new URL(href, BASE)
-  if (url.origin !== new URL(BASE).origin) {
+  try {
+    return resolveLocalUrl(href, BASE)
+  } catch {
     throw new Error(`font test refuses to fetch a non-local stylesheet: ${href}`)
   }
-  return url.toString()
+}
+
+/**
+ * Fetch a local asset without following redirects.
+ *
+ * The origin check above validates the URL we intend to request. fetch() would
+ * still follow a 302 to anywhere, so redirects are refused outright and the
+ * final response URL is checked too.
+ */
+async function fetchLocal(href: string): Promise<Response> {
+  return fetchLocalUrl(href, BASE)
 }
 
 
@@ -43,7 +55,7 @@ async function main() {
   // Every supported family's CSS variable must actually be defined by the
   // build, otherwise the selected font silently falls back.
   const cssHrefs = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])
-  const cssText = (await Promise.all(cssHrefs.map((h) => fetch(resolveLocal(h)).then((r) => r.text())))).join('\n')
+  const cssText = (await Promise.all(cssHrefs.map((h) => fetchLocal(h).then((r) => r.text())))).join('\n')
   const declared = FONT_FAMILY_VALUES.filter((f) => cssText.includes(`--font-${f}`))
   assert(declared.length === FONT_FAMILY_VALUES.length,
     `built CSS defines every supported font variable (${declared.length}/${FONT_FAMILY_VALUES.length})`)
@@ -56,7 +68,7 @@ async function main() {
   // 3. Every supported family resolves to a locally served @font-face
   const cssLinks = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])
   const css = await Promise.all(
-    cssLinks.map((l) => fetch(resolveLocal(l)).then((r) => r.text()).catch(() => ''))
+    cssLinks.map((l) => fetchLocal(l).then((r) => r.text()).catch(() => ''))
   ).then((all) => all.join('\n'))
   // Family-name shape also differs: older builds emit `font-family:__inter`,
   // newer ones `font-family:inter` (+ `inter Fallback`). Match the plain name
@@ -88,7 +100,7 @@ async function main() {
     const sampleUrl = firstCss
       ? resolveLocal(new URL(sample, firstCss).href)
       : resolveLocal(sample)
-    const res = await fetch(sampleUrl)
+    const res = await fetchLocal(sampleUrl)
     assert(res.status === 200, 'font file is served locally (200)')
   }
 

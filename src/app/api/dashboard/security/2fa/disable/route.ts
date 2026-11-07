@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { requireBusinessAdmin, logAudit } from '@/lib/auth-helpers'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { disableTwoFactor } from '@/lib/two-factor-enrollment'
 import { handleApiError } from '@/lib/api-errors'
+import { verifyPassword } from '@/lib/passwords'
 
 // ============================================================================
 // Turn two-factor OFF. Requires the account password AND a current code (or one
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Two-factor authentication is already off for this account.' })
     }
 
-    const passwordOk = await bcrypt.compare(password, user.passwordHash)
+    const passwordOk = await verifyPassword(password, user.passwordHash)
     if (!passwordOk) {
       return NextResponse.json({ error: 'That password did not match. Please try again.' }, { status: 400 })
     }

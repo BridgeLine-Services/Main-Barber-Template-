@@ -3,10 +3,10 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { passwordPolicySchema } from '@/lib/validation'
+import { hashPassword } from '@/lib/passwords'
 
 /** Tokens are stored as SHA-256 hashes — never raw. */
 function hashResetToken(raw: string): string {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const passwordHash = await bcrypt.hash(parsed.data.password, 12)
+    const passwordHash = await hashPassword(parsed.data.password)
 
     await prisma.user.update({
       where: { id: user.id },

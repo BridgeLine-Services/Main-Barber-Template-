@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto'
 import { PrismaClient, UserRole, AppointmentStatus } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '../src/lib/passwords'
 
 const prisma = new PrismaClient()
 
@@ -116,7 +116,7 @@ async function main() {
 
   // All seeded users must change their password before reaching the dashboard.
   // The dashboard access gate (src/lib/onboarding.ts) enforces this server-side.
-  const passwordHash = await bcrypt.hash(ownerPassword, 10)
+  const passwordHash = await hashPassword(ownerPassword)
   // Seeded credentials are temporary: they must be changed (mustChangePassword)
   // and expire after TEMP_PASSWORD_TTL_DAYS days.
   const TEMP_PASSWORD_TTL_DAYS = 7

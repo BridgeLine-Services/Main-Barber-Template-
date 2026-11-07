@@ -91,3 +91,109 @@ done here.
 `pg_dump` and `psql`; neither is installed and `apt` has no `postgresql-client`
 package. The workflow step `.github/workflows/ci.yml` ("Backup and restore
 verification") is the place that proves it.
+
+---
+
+# Final hardening pass (branch `security/codeql-final-pass`)
+
+Base: `main` `d512609cf84beec00c6f928643a7256aa3b02a1e` (PR #86 security, PR #87 usability already merged).
+
+## 1. Font test redirect hardening (Task One)
+
+New shared primitive `src/lib/local-origin.ts`:
+
+- `resolveLocalUrl(href, base)` parses with the URL constructor, requires `http`/`https`,
+  rejects credentials in the URL, and requires exact origin equality with `base`. No
+  `startsWith`, `includes` or any substring comparison is used anywhere in the path.
+- `fetchLocalUrl(href, base, init)` calls `fetch` with `redirect: 'error'`, so a 302 is a
+  rejection rather than a silent hop, and re-checks `response.url`'s origin afterwards.
+
+`tests/fonts.test.ts` keeps its `resolveLocal()` name and error text, now delegating to the
+primitive, and all three asset fetches (stylesheet, CSS text, font file) go through
+`fetchLocal()`. Font configuration, the seven families, CSS variable names and typography
+are unchanged.
+
+New `tests/font-url-guard.test.ts`, 14 assertions, hermetic (own stub server, no app
+needed): relative URL accepted; absolute local accepted; external host rejected; lookalike
+host `localhost:PORT.attacker.example` rejected; protocol-relative URL rejected;
+credentialed URL rejected; `file://` rejected; off-origin redirect rejected; same-origin
+redirect also rejected; local CSS still loads 200 with body intact; local font file loads
+200; seven families still present; each family still emits its CSS variable.
+
+## 2. Password hashing centralized (Task Two)
+
+Every production hash now calls `hashPassword()` from `src/lib/passwords.ts` at
+`BCRYPT_COST = 12`. Direct `bcrypt` imports were removed from:
+
+`prisma/seed.ts` (was cost **10**), `src/app/platform/actions.ts`,
+`src/app/api/platform/businesses/route.ts`, `src/app/api/auth/reset-password/route.ts`,
+`src/app/api/auth/accept-invitation/route.ts`,
+`src/app/api/dashboard/staff/[id]/route.ts`.
+
+## 3. Password verification centralized (Task Three)
+
+`bcrypt.compare` replaced with `verifyPassword()` in `src/lib/auth.ts`,
+`src/app/api/auth/change-password/route.ts` (both comparisons),
+`src/app/api/auth/2fa/required/route.ts`,
+`src/app/api/dashboard/security/2fa/disable/route.ts`,
+`src/app/api/dashboard/security/sessions/revoke/route.ts`.
+
+`bcrypt` now appears in exactly one file: `src/lib/passwords.ts`.
+
+No rehash-on-login, no forced resets, no changes to the credentials provider, login form,
+validation rules, rate limits or session behaviour. Existing digests keep verifying because
+bcrypt stores its own cost.
+
+## 4. Tests added
+
+`tests/security-hardening.test.ts` (now 34 assertions, was 28) additionally proves: the
+legacy helper really produces a cost-10 digest; the shared verifier accepts it; the shared
+verifier still rejects a wrong password against it; and a source scan finds no direct
+`bcrypt.hash(`/`bcrypt.compare(` anywhere in `src/` or `prisma/` outside the shared policy.
+
+`tests/font-url-guard.test.ts` is new (14 assertions).
+
+## 5. Executed locally on this branch
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | 0 errors, 97 pre-existing warnings |
+| `npx prisma validate` | schema valid |
+| `npm run build` | exit 0 |
+| `test:files` | 57/57 |
+| `tests/security-hardening.test.ts` | 34/34 |
+| `tests/trusted-storage-url.test.ts` | 24/24 |
+| `tests/oauth-state-signing.test.ts` | 9/9 |
+| `tests/font-url-guard.test.ts` | 14/14 |
+| `tests/fonts.test.ts` (live server) | 29 PASS, 0 FAIL |
+| `tests/plain-language.test.ts` | 3/3 |
+| `test:tenant` | 22/22 |
+| `test:booking` | 20/20 |
+| `test:permissions` | 37/37 |
+| `test:coowner-permissions` | 35/35 |
+| `test:barber-mode` | 23/23 |
+| `test:auth` | 55/58 — 3 failures are HTTP 429 on the owner-registration intent from repeated local runs |
+
+## 6. Not verified
+
+- **GitHub CI: not run.** Pushing works, but opening a pull request fails with
+  `403 Resource not accessible by personal access token` on every token provided so far, so
+  no workflow has been triggered for this branch.
+- **CodeQL: no fresh analysis.** Alert status for #23, #22, #21, #15, #8, #7 cannot be read
+  either — the same token cannot access the code-scanning alerts API. Nothing in this
+  document claims an alert is closed.
+- **`test:auth` 3 failures**: all `429` on the registration/closing-code assertions. Repeated
+  local runs exhaust the registration limiter; CI runs once against fresh state. Classified
+  as environment/order-dependent, not a regression, and not "fixed" by touching assertions.
+- **Playwright E2E and a11y**: not run this pass.
+- **No production deployment, no staging verification, no provider acceptance.**
+
+## 7. Tasks Four and Five: reported false positives and prior findings
+
+`BarberForm.tsx`, `media/page.tsx` and `google-business.ts` are byte-identical to `main`
+(`git diff --stat` empty). Verified on inspection: the barber photo is a plain `<img src={photo}>`,
+the aspect label is ordinary JSX text, and OAuth state uses `createHmac('sha256', ...)` with
+`timingSafeEqual`. No escaping was added, no HMAC was replaced with bcrypt, no feature removed.
+Findings #23, #22, #21 remain protected by `src/lib/trusted-storage-url.ts` origin validation,
+unchanged by this pass.
