@@ -104,9 +104,30 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           if ! sudo apt-get install -y -qq postgresql-client-15; then
-            echo "::warning::PGDG was unreachable; using the client the runner ships."
+            # The RLS test tolerates a newer client than the server (it drops the
+            # settings the server does not accept), so this is not fatal. It is
+            # reported as a warning rather than silently claimed as pinned.
+            echo "::warning::PGDG did not provide the PostgreSQL 15 client; the runner's own client will be used."
+            exit 0
           fi
+          # Installing the package is NOT enough to select it: Debian's
+          # /usr/bin/psql is pg_wrapper, which runs the newest client installed, so
+          # the runner's PostgreSQL 18 kept winning and the "pin" was cosmetic. The
+          # bin directory on PATH is what actually picks the version.
+          echo "/usr/lib/postgresql/15/bin" >> "$GITHUB_PATH"
+
+      # A separate step, because GITHUB_PATH only affects later steps. Prints what
+      # will really run, and says plainly which version was selected.
+      - name: Verify the PostgreSQL client matches the server
+        run: |
           psql --version && pg_dump --version
+          psql_major=$(psql --version | sed -E 's/.* ([0-9]+)\..*/\1/')
+          dump_major=$(pg_dump --version | sed -E 's/.* ([0-9]+)\..*/\1/')
+          if [ "$psql_major" = "15" ] && [ "$dump_major" = "15" ]; then
+            echo "Client matches the PostgreSQL 15 service."
+          else
+            echo "::warning::Client ${psql_major}/${dump_major} does not match the 15 server; the RLS test drops the settings this server cannot accept, so it still runs."
+          fi
       - run: npx prisma migrate deploy
       - run: npm run test:ci
       # Backup reliability gates (reliability hardening, Part 3):
@@ -263,9 +284,30 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           if ! sudo apt-get install -y -qq postgresql-client-15; then
-            echo "::warning::PGDG was unreachable; using the client the runner ships."
+            # The RLS test tolerates a newer client than the server (it drops the
+            # settings the server does not accept), so this is not fatal. It is
+            # reported as a warning rather than silently claimed as pinned.
+            echo "::warning::PGDG did not provide the PostgreSQL 15 client; the runner's own client will be used."
+            exit 0
           fi
+          # Installing the package is NOT enough to select it: Debian's
+          # /usr/bin/psql is pg_wrapper, which runs the newest client installed, so
+          # the runner's PostgreSQL 18 kept winning and the "pin" was cosmetic. The
+          # bin directory on PATH is what actually picks the version.
+          echo "/usr/lib/postgresql/15/bin" >> "$GITHUB_PATH"
+
+      # A separate step, because GITHUB_PATH only affects later steps. Prints what
+      # will really run, and says plainly which version was selected.
+      - name: Verify the PostgreSQL client matches the server
+        run: |
           psql --version && pg_dump --version
+          psql_major=$(psql --version | sed -E 's/.* ([0-9]+)\..*/\1/')
+          dump_major=$(pg_dump --version | sed -E 's/.* ([0-9]+)\..*/\1/')
+          if [ "$psql_major" = "15" ] && [ "$dump_major" = "15" ]; then
+            echo "Client matches the PostgreSQL 15 service."
+          else
+            echo "::warning::Client ${psql_major}/${dump_major} does not match the 15 server; the RLS test drops the settings this server cannot accept, so it still runs."
+          fi
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed

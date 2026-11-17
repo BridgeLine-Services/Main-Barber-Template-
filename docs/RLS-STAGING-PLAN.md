@@ -219,6 +219,12 @@ it is deliberately boring about where its data comes from:
    that the runtime and administrative sessions really are different roles.
 6. It drops the scratch database in a `finally` block.
 
+The copy step is deliberately forgiving about the client version and unforgiving about
+everything else: settings the target server does not recognise are dropped and named,
+and every other statement is applied exactly as dumped. A dump that fails still stops
+the run, names the failing side (dump or restore) and the offending statement, with
+connection strings and passwords redacted.
+
 Skip versus failure is explicit. Locally, a missing PostgreSQL prints `SKIPPED` with
 the reason and exits 3, and says plainly that enforcement was not verified. In CI
 (`RLS_TEST_REQUIRED=true`, or any GitHub Actions run) the same conditions are

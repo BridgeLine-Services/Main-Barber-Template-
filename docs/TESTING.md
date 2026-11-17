@@ -226,3 +226,25 @@ RLS_TEST_ADMIN_USER=postgres npm run test:rls-enforcement
 
 The test creates and drops its own uniquely named scratch database, copies only the
 schema, and inserts two synthetic tenants. It never reads or modifies shop data.
+
+### Client and server versions
+
+The dump is taken with whatever `pg_dump` is on PATH, and the restore has to survive a
+client that is newer than the server. Two things make that safe, and both are
+regression-tested:
+
+- CI tries to install the PostgreSQL 15 client and puts `/usr/lib/postgresql/15/bin`
+  first on `PATH`. Installing the package alone is not enough: Debian's `/usr/bin/psql`
+  is `pg_wrapper`, which runs the **newest** client installed, so an 18 client kept
+  winning and the "pin" only looked real. A separate step prints the versions that will
+  actually run, and warns instead of pretending when they do not match.
+- The restore drops only the settings the target server does not accept, and reports
+  which ones. PostgreSQL 18 dumps begin with `SET transaction_timeout = 0;`, which a 15
+  server rejects with `unrecognized configuration parameter`, and that single line
+  aborted every restore in CI. Everything else in the dump is restored byte for byte,
+  and any other error still stops the run with the offending statement named.
+
+The suite proves this rather than assuming it: it restores a dump that carries the
+PostgreSQL 18 line, asserts the unfiltered restore fails with exactly the CI error and
+leaves the database untouched, then asserts the same dump restores once the unsupported
+setting is dropped.

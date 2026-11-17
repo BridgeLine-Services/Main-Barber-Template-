@@ -247,16 +247,74 @@ function assertSafeIdentifier(name: string) {
   }
 }
 
+/**
+ * A pg_dump NEWER than the server writes settings the server has never heard of.
+ * PostgreSQL 18, for example, starts every dump with `SET transaction_timeout = 0;`
+ * and a 15 server answers `ERROR: unrecognized configuration parameter
+ * "transaction_timeout"` — which aborted the whole restore. Those lines are dropped
+ * from the dump's leading block; every other statement is left exactly as dumped,
+ * and an error anywhere else still stops the run.
+ */
+function preambleServerSafe(dump: string, known: Set<string>): { sql: string; removed: string[] } {
+  const removed: string[] = []
+  const out: string[] = []
+  let inPreamble = true
+  for (const line of dump.split('\n')) {
+    const trimmed = line.trim()
+    if (inPreamble) {
+      if (trimmed === '' || trimmed.startsWith('--')) { out.push(line); continue }
+      // psql meta-commands belong to the dump's opening block: recent pg_dump
+      // versions emit `\restrict <token>` there for injection safety, and treating
+      // that as "the preamble has ended" is what let a later SET slip through.
+      if (trimmed.startsWith('\\')) { out.push(line); continue }
+      const setting = /^SET\s+([A-Za-z_][A-Za-z0-9_]*)\s*=/i.exec(trimmed)
+      if (/^SELECT\s+pg_catalog\.set_config\(/i.test(trimmed)) { out.push(line); continue }
+      if (setting) {
+        if (known.has(setting[1].toLowerCase())) out.push(line)
+        else removed.push(trimmed)
+        continue
+      }
+      inPreamble = false
+    }
+    out.push(line)
+  }
+  return { sql: out.join('\n'), removed }
+}
+
+/** Every setting name the target server actually accepts. */
+function knownServerParameters(target: string): Set<string> {
+  return new Set(
+    psql(adminUrl(target), `SELECT name FROM pg_settings`)
+      .split('\n')
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean),
+  )
+}
+
+/** The statement PostgreSQL 18's pg_dump writes and a 15 server rejects. */
+const NEWER_CLIENT_PREAMBLE = 'SET transaction_timeout = 0;'
+
+/**
+ * A dump exactly as the CI client produces it: the same dump, with the one
+ * statement a newer pg_dump adds and this server has never accepted. This is not a
+ * mock of the restore, it is the real dump that failed in GitHub Actions.
+ */
+function asNewerClientDump(dump: string): string {
+  const lines = dump.split('\n')
+  const after = lines.findIndex((line) => /^SET\s+statement_timeout\s*=/i.test(line.trim()))
+  lines.splice(after >= 0 ? after + 1 : 0, 0, NEWER_CLIENT_PREAMBLE)
+  return lines.join('\n')
+}
+
 /** Schema only: no shop records, no customer records, no production data. */
-function copySchema(target: string) {
+function dumpSchema(): string {
   // --no-comments and --no-tablespaces keep the dump to statements that restore
   // anywhere: a COMMENT ON EXTENSION is owned by the extension, and a tablespace
   // only exists on the server that made it. Both are the classic reasons a
   // schema that dumps perfectly will not restore into a fresh database.
   const flags = ['--schema-only', '--no-owner', '--no-privileges', '--no-comments', '--no-tablespaces']
-  let dump: string
   try {
-    dump = execFileSync('pg_dump', [...flags, adminUrl(SOURCE_DB)], {
+    return execFileSync('pg_dump', [...flags, adminUrl(SOURCE_DB)], {
       encoding: 'utf8',
       maxBuffer: 256 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -265,16 +323,38 @@ function copySchema(target: string) {
   } catch (error) {
     throw new Error(`dumping the schema of "${SOURCE_DB}" failed: ${redact(stderrOf(error)) || 'no diagnostic output'}`)
   }
+}
+
+/** True when the scratch database is still empty, i.e. a failed restore created nothing. */
+function scratchTableCount(target: string): number {
+  return Number(psql(adminUrl(target), `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`))
+}
+
+/** Restores a dump, dropping only the settings this server does not accept. */
+function restoreSchema(target: string, dump: string, { filter = true }: { filter?: boolean } = {}) {  const { sql, removed } = filter ? preambleServerSafe(dump, knownServerParameters(target)) : { sql: dump, removed: [] as string[] }
+  if (removed.length > 0) {
+    // Reported, never silent: the operator should know the dump came from a newer
+    // client than the server, even though the restore is unaffected by it.
+    console.log(`  note: the dump carried ${removed.length} setting(s) this server does not accept; skipped ${removed.map((line) => line.split('=')[0].trim()).join(', ')}`)
+  }
   try {
     execFileSync('psql', [adminUrl(target), '-v', 'ON_ERROR_STOP=1', '-q'], {
-      input: dump,
+      input: sql,
       encoding: 'utf8',
       maxBuffer: 256 * 1024 * 1024,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: adminEnv(),
     })
   } catch (error) {
-    throw new Error(`restoring the schema into "${target}" failed: ${redact(stderrOf(error)) || 'no diagnostic output'}`)
+    const stderr = stderrOf(error)
+    const reported = /(?:<stdin>|LINE)\s*:?\s*(\d+)/i.exec(stderr)
+    const lineNumber = reported ? Number(reported[1]) : 0
+    const statement = lineNumber > 0 ? (sql.split('\n')[lineNumber - 1] ?? '').trim() : ''
+    const context = sql.split('\n').filter((line) => line.trim()).slice(0, 3).join(' | ')
+    throw new Error(
+      `restoring the schema into "${target}" failed: ${redact(stderr) || 'no diagnostic output'}` +
+        (statement ? ` (statement: ${redact(statement)})` : ` (dump starts: ${redact(context)})`),
+    )
   }
 }
 
@@ -321,6 +401,42 @@ function ids(url: string, table: string, column: string, tenant: string): string
 }
 
 function main() {
+  // Runs before any connection: this is the logic that decides what the restore is
+  // allowed to skip, and it must be verified even on a machine with no PostgreSQL.
+  console.log('📦 The restore only drops settings the server does not accept')
+  const pureChecksBefore = passed
+  const pureFailuresBefore = failed
+  {
+    const known = new Set(['statement_timeout', 'search_path', 'client_encoding'])
+    const dump = [
+      '--',
+      '-- PostgreSQL database dump',
+      '--',
+      '',
+      'SET statement_timeout = 0;',
+      'SET transaction_timeout = 0;',
+      "SET client_encoding = 'UTF8';",
+      "SELECT pg_catalog.set_config('search_path', '', false);",
+      'CREATE TABLE "Probe" (id text);',
+      'SET transaction_timeout = 0;',
+    ].join('\n')
+    const { sql, removed } = preambleServerSafe(dump, known)
+    assert(removed.length === 1 && removed[0] === 'SET transaction_timeout = 0;', 'the one setting this server lacks is dropped')
+    assert(sql.includes('SET statement_timeout = 0;'), 'a setting the server accepts is kept')
+    assert(sql.includes('SET client_encoding'), 'the encoding is kept, so restored text is not reinterpreted')
+    assert(sql.includes('SELECT pg_catalog.set_config'), 'the search_path reset is kept, so nothing is restored into the wrong schema')
+    assert(sql.includes('CREATE TABLE "Probe"'), 'the schema statements are untouched')
+    assert(sql.split('\n').filter((line) => line.includes('transaction_timeout')).length === 1, 'only the leading block is filtered: a later statement is left alone')
+    const withMeta = ['\\restrict abc', 'SET statement_timeout = 0;', 'SET transaction_timeout = 0;', 'CREATE TABLE "X" (id text);'].join('\n')
+    const metaResult = preambleServerSafe(withMeta, known)
+    assert(metaResult.removed.length === 1, 'a psql meta-command at the top of the dump does not end the block being checked')
+    assert(metaResult.sql.includes('\\restrict abc'), 'and the meta-command is preserved exactly')
+
+    const untouched = preambleServerSafe(dump, new Set(['statement_timeout', 'transaction_timeout', 'client_encoding']))
+    assert(untouched.removed.length === 0 && untouched.sql === dump, 'a client that matches the server changes nothing at all')
+  }
+  console.log(`  ${passed - pureChecksBefore} checks passed${failed > pureFailuresBefore ? `, ${failed - pureFailuresBefore} failed` : ''} (no database needed)\n`)
+
   const reachable = diagnoseConnection()
   if (reachable.ok === false) unavailable(reachable.reason)
   requireTool('psql')
@@ -351,16 +467,42 @@ function main() {
     } catch {
       unavailable('the scratch database could not be created (does this role have CREATEDB?)')
     }
+    let dump: string
     try {
-      copySchema(scratch)
+      dump = dumpSchema()
     } catch (error) {
       console.error('RLS enforcement tests: FAIL (the schema could not be copied into the scratch database)')
       console.error(`  ${error instanceof Error ? error.message : 'unknown error'}`)
       process.exitCode = 1
       return
     }
+
+    console.log('\n1b. A dump from a newer client than the server restores anyway (the CI failure)')
+    {
+      // The exact failure that turned both GitHub jobs red: the runner's pg_dump was
+      // 18.6 against a 15 server, so the dump began with a setting 15 has never had.
+      // The negative control runs first, on the empty scratch database: it is the
+      // real dump, restored without the compatibility step, and it must fail.
+      let message = ''
+      try {
+        restoreSchema(scratch, asNewerClientDump(dump), { filter: false })
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error)
+      }
+      assert(message.includes('unrecognized configuration parameter'), 'the unfiltered dump fails the way CI failed, so this really is the same bug')
+      assert(scratchTableCount(scratch) === 0, 'and the failed dump left the database untouched, not half-applied')
+      restoreSchema(scratch, asNewerClientDump(dump))
+      assert(scratchTableCount(scratch) > 50, 'the same dump restores once the unsupported setting is dropped')
+    }
+
+    const publicTables = (db: string) =>
+      psql(adminUrl(db), `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY 1`)
     const tables = Number(psql(adminUrl(scratch), `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`))
     if (!assert(tables > 50, `copied the schema (${tables} tables)`)) return
+    // Assertions must never run against a partial schema, so the copy is compared
+    // to the source table for table rather than trusted because psql exited 0.
+    const copied = publicTables(scratch) === publicTables(SOURCE_DB)
+    if (!assert(copied, `the scratch database has exactly the source's ${tables} tables, by name`)) return
 
     console.log('\n2. Creating two synthetic tenants (no real shop or customer data is used)')
     seedFixtures(scratch)
