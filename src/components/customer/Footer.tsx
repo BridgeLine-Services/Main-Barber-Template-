@@ -119,7 +119,7 @@ export function Footer({ business, giftCardsEnabled, shopEnabled }: FooterProps)
 
           {/* Contact Details */}
           <div className="space-y-3">
-            <h3 className="text-foreground font-semibold text-base">Contact & Location</h3>
+            <h2 className="text-foreground font-semibold text-base">Contact & Location</h2>
             <ul className="space-y-2.5">
               {fullAddress && (
                 <li className="flex items-start gap-2.5">
@@ -148,7 +148,7 @@ export function Footer({ business, giftCardsEnabled, shopEnabled }: FooterProps)
 
           {/* Quick Links */}
           <div className="space-y-3">
-            <h3 className="text-foreground font-semibold text-base">Quick Links</h3>
+            <h2 className="text-foreground font-semibold text-base">Quick Links</h2>
             <ul className="space-y-2">
               <li>
                 <Link href="/" className="hover:text-accent transition">Home</Link>
@@ -183,7 +183,7 @@ export function Footer({ business, giftCardsEnabled, shopEnabled }: FooterProps)
 
           {/* Policy & Hours */}
           <div className="space-y-3">
-            <h3 className="text-foreground font-semibold text-base">Shop Policies & Legal</h3>
+            <h2 className="text-foreground font-semibold text-base">Shop Policies & Legal</h2>
             <ul className="space-y-2">
               {business?.bookingPolicy && (
                 <li>

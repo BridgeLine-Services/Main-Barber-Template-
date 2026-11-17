@@ -41,7 +41,8 @@ interface SectionHeadingProps {
   description?: React.ReactNode
   /** Center = editorial hero-of-section; left = supporting sections */
   align?: 'center' | 'left'
-  as?: 'h2' | 'h3'
+  /** Use 'h1' only when this heading is the page's own title. */
+  as?: 'h1' | 'h2' | 'h3'
   /** Owner heading-scale override: concrete size tokens per level. */
   scale?: HeadingScale
   className?: string

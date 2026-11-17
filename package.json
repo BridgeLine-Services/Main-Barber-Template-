@@ -10,6 +10,7 @@
     "test:vercel-build": "node --test tests/vercel-build.test.mjs",
     "test:optional-integrations": "tsx tests/optional-integrations.test.ts",
     "start": "next start",
+    "a11y:browser": "node scripts/a11y-browser.mjs",
     "lint": "eslint .",
     "architecture:check": "node scripts/check-template-architecture.mjs",
     "test:architecture": "tsx tests/architecture.test.ts",

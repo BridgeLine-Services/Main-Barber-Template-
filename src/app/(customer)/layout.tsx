@@ -33,7 +33,7 @@ export default async function CustomerLayout({
     const isOwner = user?.role === 'OWNER'
 
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+      <main className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
         <div className="text-center max-w-md">
           <h1 className="display-heading text-display-3 text-foreground mb-4">
             {isOwner ? 'Your Shop Setup Is Incomplete' : 'Shop Coming Soon'}
@@ -61,7 +61,7 @@ export default async function CustomerLayout({
             {user && !isOwner && <SignOutButton redirectTo="/login" />}
           </div>
         </div>
-      </div>
+      </main>
     )
   }
 

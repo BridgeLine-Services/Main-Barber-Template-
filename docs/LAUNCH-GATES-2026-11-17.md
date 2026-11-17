@@ -13,6 +13,7 @@ a person, a browser, a real shop).
 | Check | Status | Evidence |
 | --- | --- | --- |
 | Production build | PASS | `npm run build` completes; all routes emitted |
+| Production deployment | FAILING, cause identified | Vercel project `main-barber-template` (`main-barber-template.vercel.app`) has one deployment from `main` @ `ab9134`… its build step exits 1 because the project has **zero environment variables**. Required: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `NEXTAUTH_URL`. Old `barber-sage-nu` alias belongs to a deleted project. Steps in `docs/OWNER-ACTIONS.md` §1 |
 | Database connectivity | PASS | full suite against PostgreSQL 15; `/api/health` returned 200 on the built app |
 | Redis limiter | PARTIAL | fail-closed and recovery behaviour covered by tests; no Upstash credentials here, so `env:doctor` reports them missing |
 | Primary provider backups | BLOCKED | provider setting; numbered steps in `docs/DISASTER-RECOVERY.md` §1.1 |
@@ -49,7 +50,7 @@ a person, a browser, a real shop).
 | --- | --- | --- |
 | Plain language | PASS | `plain-language`, `system-status` 34/0 (no infrastructure words in owner copy) |
 | Error messages | PASS | new surfaces use the Part 2 sentences; existing UI untouched |
-| Accessibility | PARTIAL | static audit: 0 violations, 7 structural notes; human review outstanding (`docs/ACCESSIBILITY-REVIEW.md`) |
+| Accessibility | PASS (automated + real browser) | axe-core in Chromium against a running build with a real shop tenant: **0 violations on 8 public pages**, **0 keyboard stops without a visible focus indicator**, and 0 on the unconfigured-shop page. Four real defects found and fixed: no `<main>` on the pre-setup page, `h2` as the page title on `/services` and `/shop`, product cards skipping a heading level, footer `h3` jumping from an `h1`. Re-runnable: `npm run a11y:browser` |
 | Mobile / touch | BLOCKED | needs a browser and a person |
 
 ## Gate 5 — Business readiness

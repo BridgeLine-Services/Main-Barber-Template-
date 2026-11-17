@@ -9,28 +9,49 @@ Do them in this order. The first one matters most.
 
 ---
 
-## 1. The live site is not answering
+## 1. The site is down because the Vercel project has no settings
 
-Both known addresses (`barber-sage-nu.vercel.app` and
-`barber-bridge-line-services-projects.vercel.app`) answer "The deployment could not
-be found", and the stored Vercel access token now returns "not authorized". Either
-the project was moved or deleted, or the token was revoked. Until this is settled,
-nothing else about "live" can be checked honestly.
+I found the exact cause on 2026-11-17 with the new access token, so this is no
+longer guesswork.
 
-1. Open https://vercel.com/dashboard in a browser and sign in.
-2. Look for a project named **barber**.
-3. If it is there, click it, then click **Deployments**. Is the newest deployment
-   from commit `1096392` or newer, and does it say **Ready**?
-4. If it is not there, the project needs to be re-imported: **Add New…** →
-   **Project** → pick **Main-Barber-Template-** → **Import** → add the environment
-   variables from your password manager → **Deploy**.
-5. Open the site and check that the shop's home page loads.
-6. Then open `https://<your-address>/api/health`. It should show a short commit
-   reference and `ok: true`.
+The project is called **main-barber-template** and lives at
+`main-barber-template.vercel.app`. Its only deployment, built from `main` at
+`ab913d4`, is in the **Error** state, and the reason is that the project has
+**zero environment variables**. The build stops on the first step, which checks
+that the shop's settings exist before it compiles anything. The old
+`barber-sage-nu` address you may have bookmarked belonged to a project that no
+longer exists, which is why it says the deployment cannot be found.
 
-If you prefer, create a fresh access token (Account Settings → Tokens → Create) and
-paste it here; with it I can read the deployment state and tell you the truth about
-what is live instead of guessing.
+Four values are required before any build can succeed:
+
+| Variable | What it is |
+|---|---|
+| `DATABASE_URL` | the shop's database connection string (a `NEON_POSTGRES_URL` style name also works) |
+| `NEXTAUTH_SECRET` | the long random string that signs staff logins |
+| `NEXT_PUBLIC_APP_URL` | the site's own address, e.g. `https://main-barber-template.vercel.app` |
+| `NEXTAUTH_URL` | the same address |
+
+1. Open https://vercel.com/dashboard and sign in.
+2. Click the project **main-barber-template**.
+3. Click **Settings** in the top menu, then **Environment Variables** in the left
+   menu.
+4. For each of the four names above: type the name into **Key**, paste the value
+   into **Value**, leave all three environments ticked, and press **Save**.
+   The database and secret values are the ones already in your password manager
+   from when the project was first set up.
+5. When all four are saved, click **Deployments**, then the **⋯** menu on the
+   newest row, then **Redeploy**, and confirm.
+6. Wait for the row to turn **Ready**. It takes two to four minutes.
+7. Open `https://main-barber-template.vercel.app/api/health`. You should see a
+   short commit reference and `ok: true`.
+
+Then tell me and I will check the deployment myself: the served commit, whether
+the shop pages answer, and whether anything else is missing. If a build fails
+again, the log names the next missing variable, and I will hand you that one the
+same way.
+
+Any other service the shop uses (Stripe, Twilio, the photo store) can be added
+later, on the same screen, once the site is standing up.
 
 ## 2. Turn on the database provider's own backups, including point-in-time
 

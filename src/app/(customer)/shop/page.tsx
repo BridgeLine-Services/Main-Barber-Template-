@@ -22,6 +22,7 @@ export default async function ShopPage() {
     return (
       <Section className="pt-12 lg:pt-20 pb-24">
         <SectionHeading
+          as="h1"
           eyebrow="Shop"
           title="Online shop coming soon"
           description="This shop's online store is not available right now. Check back soon or give us a call."

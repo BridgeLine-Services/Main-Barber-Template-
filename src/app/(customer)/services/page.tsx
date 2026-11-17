@@ -91,6 +91,7 @@ export default async function ServicesPage() {
     <Section className="pt-12 lg:pt-20">
       {/* Header */}
       <SectionHeading
+        as="h1"
         eyebrow="Service Menu"
         title="Barbering Services & Pricing"
         description="From classic precision haircuts to luxury beard sculpting and hot towel shaves. All services include consultation and style finishing."

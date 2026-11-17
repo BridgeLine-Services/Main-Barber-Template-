@@ -85,7 +85,7 @@ export function ShopClient({
               )}
               <CardContent className="flex-1 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold leading-tight">{p.name}</h3>
+                  <h2 className="font-semibold leading-tight">{p.name}</h2>
                   <div className="text-right shrink-0">
                     <p className="font-semibold">{formatPrice(p.price)}</p>
                     {p.compareAtPrice && p.compareAtPrice > p.price ? (
