@@ -1,0 +1,90 @@
+# Photo and media protection (Part 4), scheduled like the database backup.
+#
+# Photos are evidence of work: a before/after pair is what a customer chose the shop
+# for, and a portfolio image that vanishes is a lost sale that cannot be recreated.
+# The database backup does not contain them, because the bytes live in the blob
+# provider, not in Postgres.
+#
+# Configure these repository secrets (Settings -> Secrets and variables -> Actions):
+#   BLOB_READ_WRITE_TOKEN     the provider token that can read the photos
+#   MEDIA_BACKUP_ENDPOINT     where the copies are written (S3-compatible)
+#   MEDIA_BACKUP_ACCESS_KEY_ID, MEDIA_BACKUP_SECRET_ACCESS_KEY
+#   MEDIA_BACKUP_BUCKET, MEDIA_BACKUP_REGION (optional)
+#   BACKUP_ENCRYPTION_KEY     same key as the database copies, or a second one
+#   DATABASE_URL              needed for the index of which keys exist
+# Until the token exists the job exits 0 with a notice. An unconfigured backup is a
+# gap to report, not a red build that teaches people to ignore alerts.
+name: Media backup
+
+on:
+  schedule:
+    - cron: '43 3 * * *' # 03:43 UTC daily, after the database copy
+  workflow_dispatch:
+
+concurrency:
+  group: media-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Not configured?
+        id: config
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          if [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+            echo "::notice::Media backups are not configured yet (no BLOB_READ_WRITE_TOKEN). See docs/DISASTER-RECOVERY.md section 3."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Copy every indexed photo to the backup store
+        if: steps.config.outputs.configured == 'true'
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.MEDIA_BACKUP_DRIVER || 's3' }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.MEDIA_BACKUP_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.MEDIA_BACKUP_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.MEDIA_BACKUP_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.MEDIA_BACKUP_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.MEDIA_BACKUP_SECRET_ACCESS_KEY }}
+        run: npm run media:backup
+      - name: Prove a photo can be recovered, not just copied
+        if: steps.config.outputs.configured == 'true'
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.MEDIA_BACKUP_DRIVER || 's3' }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.MEDIA_BACKUP_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.MEDIA_BACKUP_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.MEDIA_BACKUP_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.MEDIA_BACKUP_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.MEDIA_BACKUP_SECRET_ACCESS_KEY }}
+        run: npm run media:restore-check
+      - name: Notify on failure
+        if: failure()
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ]; then
+            echo "::error::The media backup failed and no independent alert channel is configured (ALERT_WEBHOOK_URL)."
+            exit 1
+          fi
+          curl -sS -m 10 -X POST "$ALERT_WEBHOOK_URL" \
+            -H 'content-type: application/json' \
+            --data '{"severity":"critical","event":"media_backup.failed","source":"github-actions","message":"Photo backup failed. Bookings are unaffected; photos may not have new copies."}'

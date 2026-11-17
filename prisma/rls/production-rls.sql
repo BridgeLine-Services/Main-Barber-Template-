@@ -36,13 +36,16 @@
 --   3. Take a backup first. Test on a staging copy of the database.
 -- ═══════════════════════════════════════════════════════════════════════
 
--- ─── 1. Roles (adjust names/passwords via your secret manager) ─────────
--- Skip if you already provisioned these; shown for a fresh deployment.
--- CREATE ROLE barbershop_owner LOGIN;            -- migrations/DDL only
--- CREATE ROLE barbershop_app   LOGIN NOBYPASSRLS; -- runtime only
-
+-- ─── 1. Roles ─────────────────────────────────────────────────────────
+-- These are the SAME roles stage 1 creates (prisma/rls/stage-1-roles.sql):
+-- barber_migrator (owns the schema, runs migrations), barber_app (serves
+-- traffic, denied BYPASSRLS), barber_platform (support-only, no login).
+-- This file previously used a different pair of names, which meant a
+-- deployment that followed stage 1 could not run stage 2 at all.
+--
 -- The runtime role must never own tenant tables and must not bypass RLS.
-ALTER ROLE barbershop_app NOBYPASSRLS;
+ALTER ROLE barber_app NOBYPASSRLS;
+ALTER ROLE barber_app NOSUPERUSER;
 
 -- ─── 2. Which tables carry the tenant key directly ────────────────────
 -- Models with a `businessId` column (auto-generated from schema.prisma;
@@ -61,7 +64,7 @@ ALTER ROLE barbershop_app NOBYPASSRLS;
 --   GiftCardSettings, GiftCard, GiftCardTransaction
 --   StaffInvitation, MembershipSettings, MembershipPlan, Membership,
 --   MembershipUsage, EcommerceSettings, Product, ShopOrder,
---   ReviewRequestSettings, ReviewRequest
+--   ReviewRequestSettings, ReviewRequest, SmsConsentLog
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -114,7 +117,10 @@ DECLARE
     'EcommerceSettings','Product','ShopOrder',
     -- Review requests (migration 20261017203707): per-tenant delivery
     -- settings and the request ledger.
-    'ReviewRequestSettings','ReviewRequest'
+    'ReviewRequestSettings','ReviewRequest',
+    -- SMS consent (TCPA): who agreed to texts, per tenant. Added after the
+    -- enforcement test caught it as the one tenant table still unprotected.
+    'SmsConsentLog'
   ];
   tbl TEXT;
 BEGIN
@@ -167,10 +173,20 @@ END $$;
 
 -- ─── 3. Runtime role grants (least privilege) ──────────────────────────
 -- The app role gets DML only — no schema changes, no role management.
-GRANT USAGE ON SCHEMA public TO barbershop_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO barbershop_app;
+GRANT USAGE ON SCHEMA public TO barber_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO barber_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO barbershop_app;
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO barber_app;
+
+-- ─── 3b. About the app.platform_staff escape hatch ─────────────────────
+-- The policy lets a session that sets app.platform_staff = '1' see every
+-- tenant. That is deliberate (support tooling) and it is the weakest part
+-- of this design: any code able to run SQL on the runtime connection can
+-- set it. Treat it as a bug-containment layer, not as a defence against a
+-- compromised application. If you need that stronger guarantee, move the
+-- escape from a session setting to role membership
+-- (pg_has_role(current_user, 'barber_platform', 'member')) and keep the
+-- platform role out of barber_app's membership.
 
 -- ─── 4. How the runtime sets the tenant per transaction ────────────────
 -- Example (Prisma, per request):

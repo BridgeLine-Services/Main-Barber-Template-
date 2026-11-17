@@ -17,7 +17,7 @@ a person, a browser, a real shop).
 | Redis limiter | PARTIAL | fail-closed and recovery behaviour covered by tests; no Upstash credentials here, so `env:doctor` reports them missing |
 | Primary provider backups | BLOCKED | provider setting; numbered steps in `docs/DISASTER-RECOVERY.md` §1.1 |
 | Independent off-site backups | PARTIAL | ran end to end: dump → encrypt → upload → read back → restore (68 tables, 58 migrations). No real bucket exists yet |
-| Media backups | BLOCKED | correctly reports `NOT CONFIGURED` (no Blob token), exit 3, no alert storm |
+| Media backups | BLOCKED (scheduled job ready) | `media-backup` workflow now mirrors every indexed photo daily and then proves one can be recovered; `media:backup` reports `NOT CONFIGURED` with exit 3 and no alert. Needs the Blob token and destination secrets |
 | Restoration works | PASS | `db:backup:rehearse` restored from the stored copy in **5 s**, 0 foreign-key violations, 58 migrations |
 | Monitoring | PASS | `/api/health`, `/api/health/ready`, freshness watchdog, alert-channel readiness check |
 | Rollback | PARTIAL | `docs/ROLLBACK.md` and the `deploy:migration-check` gate; no Vercel project here to promote |
@@ -29,7 +29,7 @@ a person, a browser, a real shop).
 | Authentication / sessions | PASS | existing session suites unchanged and green |
 | Permissions / roles | PASS | `security-hardening` 34/0, role and co-owner suites unchanged |
 | Tenant isolation (application layer) | PASS | `tenant-isolation` 22/0, `tenant-key-sync` 6/0 |
-| Database-level isolation (RLS) | PARTIAL | role-split SQL, `withTenant()` using SET LOCAL, model classifier (0 unclassified), 16 tests. **Not applied.** Plan in `docs/RLS-STAGING-PLAN.md` |
+| Database-level isolation (RLS) | PARTIAL, now proven offline | policies executed against a throwaway copy of the real schema as the runtime role: 18/18 checks, cross-tenant reads/writes refused, fail-closed with no tenant set, setting cleared at COMMIT. Found and fixed a genuinely unprotected table (`SmsConsentLog`) and a role-name mismatch between stage 1 and stage 2. **Still not applied to production** (`docs/RLS-STAGING-PLAN.md` §7) |
 | Secrets protected | PASS | `architecture:check`, `env:drift`, secret scan clean; no credential in any new file |
 | Audit logging | PASS | existing audit-log suite unchanged |
 | Cron endpoints | PASS | all three require `CRON_SECRET` and answer 401 (asserted in `failure-simulation`) |
@@ -80,7 +80,7 @@ number; the production figure must be measured on production-sized data.
 | Database RTO | 1 hour | PARTIAL — 5 s measured on the test database; procedure proven, production-sized figure not measured |
 | Daily / weekly / monthly retention | 7 d / 4 w / 6 m | PASS — enforced in code with a floor of 3 verified copies |
 | Backup verification | weekly automated | PARTIAL — CI and the scheduled workflow both do it; the workflow is unconfigured until secrets exist |
-| Full recovery rehearsal | quarterly | PARTIAL — one rehearsal performed 2026-11-17, evidence in `backups/rehearsals/` |
+| Full recovery rehearsal | quarterly | PARTIAL — one rehearsal performed 2026-11-17 (5 s, 68 tables, 58 migrations); procedure is one command (`npm run db:backup:rehearse`) |
 | Critical alert delivery | tested end to end | BLOCKED — `npm run alert:test` needs a real webhook |
 | Booking integrity | no duplicate confirmed bookings | PASS — database idempotency plus overlap exclusion |
 

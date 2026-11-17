@@ -143,3 +143,57 @@ Until all three are done, isolation rests on `src/lib/tenant.ts` plus the
 per-query `businessId` filters that `tests/tenant-isolation.test.ts` and
 `tests/cross-tenant-matrix.test.ts` pin. That protection is real; it is simply
 one layer instead of two.
+
+---
+
+## 7. Stage 2 has now been executed and proven (2026-11-17)
+
+Until this round the policy file had never run against a database. `npm run
+test:rls-enforcement` (`tests/rls-enforcement.test.ts`) now closes that gap:
+
+1. copies the development schema and data into a throwaway database with
+   `pg_dump` (it never writes to the development database);
+2. applies `prisma/rls/stage-1-roles.sql` and then `prisma/rls/production-rls.sql`
+   exactly as a deployment would;
+3. connects as `barber_app` and tries to break out.
+
+Result on a copy of the real schema: **18 checks passed, 0 failed.** Specifically,
+as the runtime role:
+
+- a session given tenant A sees exactly A's appointments and exactly one Business
+  row, and the same holds for tenant B;
+- a session with no tenant set sees **nothing** (fail closed, not fail open);
+- a write into another tenant is refused by the database, and leaves no row;
+- a cross-tenant UPDATE and DELETE change **zero** rows;
+- `app.business_id` is gone after `COMMIT`, so a pooled connection cannot leak one
+  tenant's setting into the next request;
+- `barber_app` cannot create a table (no DDL), and is neither superuser nor
+  `BYPASSRLS`;
+- a session that explicitly asks for support access sees every tenant.
+
+### Two real defects the proof found
+
+1. **`SmsConsentLog` had a `businessId` column and no policy.** It is the TCPA
+   consent ledger. Under the old file it would have been the single tenant table
+   still readable across shops. It is now in the policy list, and the test fails if
+   any table with a `businessId` column lacks forced RLS or a `tenant_isolation`
+   policy, so a future model cannot quietly reopen the hole.
+2. **Stage 1 and stage 2 used different role names.** Stage 1 created
+   `barber_migrator` / `barber_app` / `barber_platform`; the policy file referenced
+   `barbershop_app` / `barbershop_owner`. A deployment that followed the plan in
+   order would have failed at `ALTER ROLE`. Both files now use the stage-1 names,
+   and `scripts/apply-rls.ts` substitutes `RLS_APP_ROLE` for any override.
+
+### What this does and does not license
+
+It proves the SQL is correct and the isolation holds on a real copy. It does
+**not** mean production is protected: production still connects as the table
+owner, so the policies are not installed there. The three conditions in §6 stand.
+The honest summary is now "the second layer is built and proven offline", not "the
+second layer is unverified".
+
+One weakness is recorded rather than hidden: the `app.platform_staff = '1'` escape
+hatch is a session setting, so any code able to run SQL on the runtime connection
+can use it. It contains application bugs; it does not contain a compromised
+application. §3 of `prisma/rls/production-rls.sql` explains how to move that escape
+to role membership if you ever need the stronger guarantee.

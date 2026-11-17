@@ -16,8 +16,8 @@
  *    query. First switch the app to the dedicated runtime role and the
  *    per-transaction `set_config('app.business_id', ...)` pattern —
  *    see docs/TENANT-ISOLATION.md §"Database-level RLS".
- *  - Role names default to barbershop_owner / barbershop_app per the
- *    template; override with RLS_APP_ROLE / RLS_OWNER_ROLE env vars.
+ *  - Role names default to barber_migrator / barber_app, the pair stage 1
+ *    creates; override with RLS_APP_ROLE / RLS_OWNER_ROLE env vars.
  */
 import { PrismaClient } from '@prisma/client'
 
@@ -38,12 +38,12 @@ if (adminUrl === process.env.DATABASE_URL) {
   process.exit(1)
 }
 
-const appRole = process.env.RLS_APP_ROLE ?? 'barbershop_app'
+const appRole = process.env.RLS_APP_ROLE ?? 'barber_app'
 
 async function main() {
   const { readFileSync } = await import('fs')
   let sql = readFileSync('prisma/rls/production-rls.sql', 'utf8')
-  sql = sql.replace(/barbershop_app/g, appRole)
+  sql = sql.replace(/barber_app\b/g, appRole)
 
   const prisma = new PrismaClient({ datasources: { db: { url: adminUrl } } })
   try {

@@ -1,151 +1,272 @@
 /**
- * Database-level RLS enforcement tests (Master Task Part 2).
+ * Proves that the RLS stage-2 policies actually enforce tenant isolation.
  *
- * Proves, against the real PostgreSQL engine, that the policy template in
- * prisma/rls/production-rls.sql actually enforces tenant isolation once
- * enabled — including for "background/server operations" (anything that
- * is not an authenticated API request), which must set the tenant
- * context per transaction via set_config('app.business_id', ..., true).
+ * Everything else in the RLS work is paperwork until this runs: a policy file
+ * that has never been executed against a database is a wish. This test builds a
+ * throwaway database from a copy of the development database, creates the stage-1
+ * roles, applies prisma/rls/production-rls.sql exactly as a deployment would, then
+ * connects as the runtime role and tries to see and write another tenant's data.
  *
- * DEV ENVIRONMENT CAVEAT: these assertions require the test connection
- * to be a NON-superuser role. PostgreSQL superusers bypass row-level
- * security entirely (even with FORCE ROW LEVEL SECURITY), so on a sandbox
- * whose DATABASE_URL uses a superuser account the cross-tenant /
- * context-less sections report FAIL even though the policies are
- * correct. Run against a deployment using the non-owner runtime role
- * from prisma/rls/production-rls.sql for a true enforcement check.
+ * It never touches the development database's data (it only reads a dump of it),
+ * and it drops its scratch database at the end whether or not the run passed.
  *
- * How it runs safely on the dev database:
- *   The policies are applied and all assertions execute inside ONE
- *   interactive transaction that is deliberately rolled back at the end,
- *   so FORCE ROW LEVEL SECURITY never persists on a database whose
- *   template app still connects as the table owner.
+ * Usage:
+ *   npx tsx tests/rls-enforcement.test.ts
  *
- * Covered:
- *   1. Tenant-scoped session sees only its own rows (reads)
- *   2. Cross-tenant reads return nothing
- *   3. Cross-tenant updates affect nothing
- *   4. Cross-tenant deletes affect nothing
- *   5. No-context connections see nothing (context-less leak guard)
- *   6. Platform-staff context sees all tenants (support access)
- *   7. Trigger-maintained child writes pass WITH CHECK (BarberService)
- *   8. Transaction-local context reverts (pool-leak guard)
- *
- * Run: npx tsx tests/rls-enforcement.test.ts
+ * Exit codes: 0 pass, 1 failures, 3 the local database is not available.
  */
-import { prisma } from '../src/lib/prisma'
+import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 
-let passed = 0, failed = 0
-function assert(cond: boolean, msg: string) {
-  if (cond) { console.log(`  PASS ${msg}`); passed++ }
-  else { console.error(`  FAIL ${msg}`); failed++ }
+const HOST = process.env.RLS_TEST_HOST ?? '127.0.0.1'
+const PORT = process.env.RLS_TEST_PORT ?? '5432'
+const ADMIN_USER = process.env.RLS_TEST_ADMIN_USER ?? 'postgres'
+const SOURCE_DB = process.env.RLS_TEST_SOURCE_DB ?? 'barber'
+const PROBE_DB = process.env.RLS_TEST_PROBE_DB ?? 'barber_rls_probe'
+
+const adminUrl = (db: string) => `postgresql://${ADMIN_USER}@${HOST}:${PORT}/${db}`
+const appUrl = (db: string) => `postgresql://barber_app@${HOST}:${PORT}/${db}`
+
+let passed = 0
+let failed = 0
+const failures: string[] = []
+
+function assert(condition: boolean, message: string) {
+  if (condition) {
+    passed++
+    return true
+  }
+  failed++
+  failures.push(message)
+  console.log(`  FAIL ${message}`)
+  return false
 }
 
-class RollbackSentinel extends Error {
-  constructor() { super('RLS-TEST-DONE') }
+function psql(url: string, sql: string): string {
+  return execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-F', '\t', '-c', sql], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
 }
 
-async function main() {
-  const stamp = Date.now()
-  console.log('\n── Applying RLS template inside a test transaction ──')
+function psqlFile(url: string, file: string): string {
+  return execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-q', '-f', file], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
+}
 
+/** Runs a multi-statement transaction probe and returns only the data lines.
+ *  psql prints BEGIN/SET/COMMIT command tags on stdout, which are noise here. */
+function psqlTx(url: string, sql: string): string {
+  return psql(url, sql)
+    .split('\n')
+    .filter((line) => !/^(BEGIN|SET|COMMIT|ROLLBACK|SAVEPOINT|RESET)$/i.test(line.trim()))
+    .join('\n')
+    .trim()
+}
 
+function psqlExpectFailure(url: string, sql: string): string {
   try {
-    await prisma.$transaction(async (tx) => {
-      // (a) Apply the policy template (sections 2a+2b of production-rls.sql).
-      //     Role grants are skipped: the dev connection is the table owner.
-      const full = (await import('fs')).readFileSync('prisma/rls/production-rls.sql', 'utf8')
-      const doBlock = full.slice(full.indexOf('DO $$'), full.indexOf('END $$;') + 'END $$;'.length)
-      await tx.$executeRawUnsafe(doBlock)
+    execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-c', sql], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    return ''
+  } catch (error) {
+    const stderr = (error as { stderr?: Buffer | string }).stderr
+    return String(stderr ?? '')
+  }
+}
 
-      // (b) Seed two tenants INSIDE the transaction (rolled back afterwards).
-      //     Seeding runs under the platform-staff context: creating a new
-      //     tenant root row is itself a platform operation, not a
-      //     tenant-scoped one. Assertions below then drop that context.
-      await tx.$executeRawUnsafe(`SELECT set_config('app.platform_staff', '1', true)`)
-      const bizA = (await tx.business.create({ data: {
-        name: `RLS A ${stamp}`, slug: `rls-a-${stamp}`, email: `rlsa-${stamp}@test.com`,
-        phone: '555-0201', address: '1 RLS Way', city: 'RLSCity', state: 'CA',
-        zipCode: '90001', timezone: 'America/Los_Angeles' } })).id
-      const bizB = (await tx.business.create({ data: {
-        name: `RLS B ${stamp}`, slug: `rls-b-${stamp}`, email: `rlsb-${stamp}@test.com`,
-        phone: '555-0202', address: '2 RLS Way', city: 'RLSCity', state: 'CA',
-        zipCode: '90002', timezone: 'America/Los_Angeles' } })).id
+function canReachDatabase(): boolean {
+  try {
+    psql(adminUrl('postgres'), 'SELECT 1')
+    return true
+  } catch {
+    return false
+  }
+}
 
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '${bizA}', true)`)
-      await tx.$executeRawUnsafe(`SELECT set_config('app.platform_staff', '0', true)`)
-      const custA = (await tx.customer.create({ data: {
-        firstName: 'Rls', lastName: 'A', email: `rlsca-${stamp}@test.com`,
-        phone: '555-0301', businessId: bizA } })).id
-      const barberA = (await tx.barber.create({ data: { name: 'RLS Barber A', businessId: bizA, bio: 'b' } })).id
-      const svcA = (await tx.service.create({ data: { name: `RLS Cut ${stamp}`, businessId: bizA, duration: 30, price: 15 } })).id
+function dumpSource(target: string) {
+  // A logical copy, not a template copy: CREATE DATABASE ... TEMPLATE fails while
+  // any other session is connected, which makes it unreliable in a test run.
+  const dump = execFileSync('pg_dump', ['--no-owner', '--no-privileges', adminUrl(SOURCE_DB)], {
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  execFileSync('psql', [adminUrl(target), '-v', 'ON_ERROR_STOP=1', '-q'], {
+    input: dump,
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+}
 
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '${bizB}', true)`)
-      const custB = (await tx.customer.create({ data: {
-        firstName: 'Rls', lastName: 'B', email: `rlscb-${stamp}@test.com`,
-        phone: '555-0302', businessId: bizB } })).id
+function ids(url: string, table: string, column: string, tenant: string): string[] {
+  const raw = psql(url, `SELECT ${column} FROM "${table}" WHERE "businessId" = '${tenant}' ORDER BY ${column}`)
+  return raw ? raw.split('\n') : []
+}
 
-
-      console.log('\n── 1. Tenant-scoped session sees only its own rows ──')
-      const ownCount = await tx.customer.count({ where: { businessId: bizB } })
-      assert(ownCount === 1, 'business B context: sees its own customer')
-
-      console.log('\n── 2. Cross-tenant reads return nothing ──')
-      const crossRead = await tx.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM "Customer" WHERE id = '${custA}'`)
-      assert(crossRead.length === 0, 'business B context: cannot read business A customer row')
-
-      console.log('\n── 3. Cross-tenant updates affect nothing ──')
-      const up = await tx.$executeRawUnsafe(
-        `UPDATE "Customer" SET "firstName"='HACKED' WHERE id='${custA}'`)
-      assert(up === 0, 'business B context: cannot update business A customer')
-
-      console.log('\n── 4. Cross-tenant deletes affect nothing ──')
-      const del = await tx.$executeRawUnsafe(
-        `DELETE FROM "Customer" WHERE id='${custA}'`)
-      assert(del === 0, 'business B context: cannot delete business A customer')
-
-      console.log('\n── 5. Context-less connections see nothing ──')
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '', true)`)
-      const noCtx = await tx.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM "Customer"`)
-      assert(noCtx[0].n === 0, 'no tenant context set: database returns no tenant rows')
-
-      console.log('\n── 6. Platform-staff context sees all tenants ──')
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '', true)`)
-      await tx.$executeRawUnsafe(`SELECT set_config('app.platform_staff', '1', true)`)
-      const staffCount = await tx.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM "Customer" WHERE id IN ('${custA}','${custB}')`)
-      assert(staffCount[0].n === 2, 'platform-staff context: support access to both tenants')
-      await tx.$executeRawUnsafe(`SELECT set_config('app.platform_staff', '0', true)`)
-
-      console.log('\n── 7. Trigger-maintained child write passes WITH CHECK ──')
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '${bizA}', true)`)
-      const link = await tx.barberService.create({ data: { barberId: barberA, serviceId: svcA } })
-      assert(link.businessId === bizA, 'BarberService insert under tenant context: allowed, key = own tenant')
-      const crossLink = await tx.$queryRawUnsafe<Array<{ n: number }>>(
-        `SELECT COUNT(*)::int AS n FROM "BarberService" bs, "Barber" b WHERE bs."businessId" = b."businessId" AND b.id = bs."barberId" AND b."businessId" <> '${bizA}'`)
-      assert(crossLink[0].n === 0, 'child rows outside tenant context: not visible')
-
-      console.log('\n── 8. Transaction-local context reverts (pool-leak guard) ──')
-      await tx.$executeRawUnsafe(`SELECT set_config('app.business_id', '${bizB}', true)`)
-      const leaked = await tx.$queryRawUnsafe(`SELECT current_setting('app.business_id', true) AS v`)
-      assert(leaked[0].v === bizB, 'set_config(..., true) is visible within the transaction')
-      // Committing is intentionally skipped: the sentinel rollback below
-      // also demonstrates the setting does not outlive the transaction.
-
-      throw new RollbackSentinel()
-    }, { timeout: 30000 })
-  } catch (e) {
-    if (!(e instanceof RollbackSentinel)) throw e
-    console.log('\n(rollback sentinel: RLS + seed data rolled back, dev DB untouched)')
+function main() {
+  if (!canReachDatabase()) {
+    console.log('RLS enforcement tests: SKIPPED (no local PostgreSQL reachable)')
+    process.exit(3)
+  }
+  for (const tool of ['pg_dump', 'psql']) {
+    if (!execFileSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).trim()) {
+      console.log(`RLS enforcement tests: SKIPPED (${tool} not installed)`)
+      process.exit(3)
+    }
+  }
+  if (!existsSync('prisma/rls/production-rls.sql') || !existsSync('prisma/rls/stage-1-roles.sql')) {
+    console.log('RLS enforcement tests: FAIL (RLS SQL files are missing)')
+    process.exit(1)
   }
 
-  console.log('\nVerifying rollback left no residue...')
-  const residue = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int AS n FROM pg_class c JOIN pg_policy p ON p.polrelid = c.oid WHERE c.relname = 'Customer'`)
-  assert(residue[0].n === 0, 'no policies persisted after rollback')
+  psql(adminUrl('postgres'), `DROP DATABASE IF EXISTS "${PROBE_DB}"`)
+  psql(adminUrl('postgres'), `CREATE DATABASE "${PROBE_DB}"`)
 
+  try {
+    console.log('\n1. Building a throwaway database from a copy of the development data')
+    dumpSource(PROBE_DB)
+    const tables = Number(psql(adminUrl(PROBE_DB), `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`))
+    assert(tables > 50, `copied the schema (${tables} tables)`)
+
+    console.log('\n2. Applying stage 1 (roles) and stage 2 (policies) exactly as a deployment would')
+    psqlFile(adminUrl(PROBE_DB), 'prisma/rls/stage-1-roles.sql')
+    const roleRow = psql(adminUrl(PROBE_DB), `SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname='barber_app'`)
+    assert(roleRow === 'false,false', `barber_app is not a superuser and cannot bypass RLS (got "${roleRow}")`)
+    psqlFile(adminUrl(PROBE_DB), 'prisma/rls/production-rls.sql')
+
+    console.log('\n3. Every tenant table is protected, and protected against its owner too')
+    const unprotected = psql(
+      adminUrl(PROBE_DB),
+      `SELECT c.relname
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+          AND EXISTS (SELECT 1 FROM information_schema.columns col
+                       WHERE col.table_schema='public' AND col.table_name=c.relname
+                         AND col.column_name='businessId')
+          AND (c.relrowsecurity = false OR c.relforcerowsecurity = false)
+        ORDER BY c.relname`,
+    )
+    assert(unprotected === '', `no table with a businessId column is left without forced RLS${unprotected ? `: ${unprotected.split('\n').join(', ')}` : ''}`)
+
+    const tenantTables = Number(psql(
+      adminUrl(PROBE_DB),
+      `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND column_name='businessId'`,
+    ))
+    assert(tenantTables >= 50, `checked every tenant table (${tenantTables} carry businessId)`)
+
+    const policyless = psql(
+      adminUrl(PROBE_DB),
+      `SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+        WHERE n.nspname='public' AND c.relkind='r'
+          AND EXISTS (SELECT 1 FROM information_schema.columns col
+                       WHERE col.table_schema='public' AND col.table_name=c.relname AND col.column_name='businessId')
+          AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname AND p.policyname='tenant_isolation')
+        ORDER BY c.relname`,
+    )
+    assert(policyless === '', `every tenant table has a tenant_isolation policy${policyless ? `: ${policyless.split('\n').join(', ')}` : ''}`)
+
+    console.log('\n4. Choosing two real tenants from the copied data')
+    const tenants = psql(adminUrl(PROBE_DB), `SELECT id FROM "Business" ORDER BY "createdAt" NULLS LAST, id LIMIT 2`).split('\n').filter(Boolean)
+    if (tenants.length < 2) {
+      // Nothing to isolate. Say so plainly rather than reporting a green run that
+      // never proved anything: this is a skip, not a pass.
+      console.log('RLS enforcement tests: SKIPPED (the source database holds fewer than two businesses)')
+      process.exitCode = 3
+      return
+    }
+    const [tenantA, tenantB] = tenants
+
+    console.log('\n5. The runtime role only ever sees the tenant it was given')
+    for (const [label, tenant] of [['A', tenantA], ['B', tenantB]] as const) {
+      const expectedAppointments = ids(adminUrl(PROBE_DB), 'Appointment', 'id', tenant)
+      const seen = psqlTx(
+        appUrl(PROBE_DB),
+        `BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT coalesce(string_agg(id, E'\\n' ORDER BY id), '') FROM "Appointment"; COMMIT;`,
+      ).split('\n').filter(Boolean)
+      assert(
+        seen.length === expectedAppointments.length && seen.every((id, i) => id === expectedAppointments[i]),
+        `tenant ${label} sees exactly its own ${expectedAppointments.length} appointment(s)`,
+      )
+
+      const businessRows = psqlTx(appUrl(PROBE_DB), `BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT count(*) FROM "Business"; COMMIT;`)
+      assert(businessRows === '1', `tenant ${label} sees exactly one Business row (got ${businessRows})`)
+    }
+
+    console.log('\n6. A session with no tenant set sees nothing at all (fail closed)')
+    const unset = psql(appUrl(PROBE_DB), `SELECT count(*) FROM "Appointment"`)
+    assert(unset === '0', `no tenant set returns no appointments (got ${unset})`)
+
+    console.log('\n7. A forged tenant cannot be written, updated or deleted')
+    const foreignBarber = psql(adminUrl(PROBE_DB), `SELECT id FROM "Barber" WHERE "businessId" = '${tenantB}' LIMIT 1`)
+    const foreignService = psql(adminUrl(PROBE_DB), `SELECT id FROM "Service" WHERE "businessId" = '${tenantB}' LIMIT 1`)
+    if (foreignBarber && foreignService) {
+      const insertError = psqlExpectFailure(
+        appUrl(PROBE_DB),
+        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+         INSERT INTO "Service" (id, "businessId", name, duration, price, "isActive", "order", "createdAt", "updatedAt")
+         VALUES ('rls_probe_service', '${tenantB}', 'Probe', 30, 10, true, 0, now(), now()); COMMIT;`,
+      )
+      assert(insertError !== '', 'a write into another tenant is refused by the database')
+      const landed = psql(adminUrl(PROBE_DB), `SELECT count(*) FROM "Service" WHERE id = 'rls_probe_service'`)
+      assert(landed === '0', 'the refused write left no row behind')
+
+      const updated = psqlTx(
+        appUrl(PROBE_DB),
+        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+         WITH changed AS (UPDATE "Service" SET name = 'Hijacked' WHERE "businessId" = '${tenantB}' RETURNING 1)
+         SELECT count(*) FROM changed; COMMIT;`,
+      )
+      assert(updated === '0', `a cross-tenant update changes no rows (got ${updated})`)
+
+      const deleted = psqlTx(
+        appUrl(PROBE_DB),
+        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+         WITH gone AS (DELETE FROM "Service" WHERE "businessId" = '${tenantB}' RETURNING 1)
+         SELECT count(*) FROM gone; COMMIT;`,
+      )
+      assert(deleted === '0', `a cross-tenant delete removes no rows (got ${deleted})`)
+      const survived = psql(adminUrl(PROBE_DB), `SELECT count(*) FROM "Service" WHERE "businessId" = '${tenantB}'`)
+      assert(Number(survived) > 0, 'the other tenant still has its services')
+    }
+
+    console.log('\n8. The tenant setting never survives its transaction (pooled connections stay safe)')
+    const leaked = psqlTx(
+      appUrl(PROBE_DB),
+      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; COMMIT; SELECT coalesce(current_setting('app.business_id', true), '')`,
+    )
+    assert(leaked === '', `app.business_id is cleared after commit (saw "${leaked}")`)
+
+    console.log('\n9. The runtime role cannot change the schema')
+    const ddlError = psqlExpectFailure(appUrl(PROBE_DB), 'CREATE TABLE rls_probe_ddl (id int)')
+    assert(ddlError !== '', 'barber_app cannot create tables')
+
+    console.log('\n10. Support access still works when it is asked for explicitly')
+    const staff = psqlTx(
+      appUrl(PROBE_DB),
+      `BEGIN; SET LOCAL app.platform_staff = '1'; SELECT count(DISTINCT "businessId") FROM "Appointment"; COMMIT;`,
+    )
+    assert(Number(staff) >= 2, `platform staff sees every tenant when it sets app.platform_staff (${staff} tenants)`)
+  } finally {
+    try {
+      psql(adminUrl('postgres'), `DROP DATABASE IF EXISTS "${PROBE_DB}"`)
+    } catch {
+      console.log(`  note: could not drop ${PROBE_DB}; drop it by hand`)
+    }
+  }
+
+  if (process.exitCode === 3) return
   console.log(`\nRLS enforcement tests: ${passed} passed, ${failed} failed`)
-  if (failed > 0) process.exit(1)
-  await prisma.$disconnect()
+  if (failed > 0) {
+    for (const failure of failures) console.log(`  - ${failure}`)
+  }
+  process.exit(failed === 0 ? 0 : 1)
 }
 
-main().catch(async (e) => { console.error('Test crashed:', e); await prisma.$disconnect(); process.exit(1) })
+main()
