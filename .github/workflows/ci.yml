@@ -87,6 +87,26 @@ jobs:
       # service. Suites needing a running app + session auth are documented
       # in docs/TESTING.md and run in dev via npm run test:all (test:matrix
       # and friends, 11 suites).
+      # psql and pg_dump must exist, and must match the server major version, for
+      # the RLS enforcement test (it dumps a schema and restores it). The runner's
+      # preinstalled client is a different major version from the 15 server, so
+      # this pins 15 from the PostgreSQL apt repository, and falls back to the
+      # preinstalled client rather than failing the job if PGDG is unreachable.
+      - name: Install PostgreSQL 15 client tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates lsb-release
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          if ! sudo apt-get install -y -qq postgresql-client-15; then
+            echo "::warning::PGDG was unreachable; using the client the runner ships."
+          fi
+          psql --version && pg_dump --version
       - run: npx prisma migrate deploy
       - run: npm run test:ci
       # Backup reliability gates (reliability hardening, Part 3):
@@ -95,8 +115,6 @@ jobs:
       #   • encrypted off-site round trip with read-back verification, plus
       #     retention that refuses to delete the last verified copy
       #   • owner-facing status wording stays free of infrastructure language
-      - name: Install PostgreSQL client tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
       - run: npm run test:backup
       - run: npm run test:operations
       # End-to-end off-site backup against the seeded database: dump -> gzip ->
@@ -228,6 +246,26 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # psql and pg_dump must exist, and must match the server major version, for
+      # the RLS enforcement test (it dumps a schema and restores it). The runner's
+      # preinstalled client is a different major version from the 15 server, so
+      # this pins 15 from the PostgreSQL apt repository, and falls back to the
+      # preinstalled client rather than failing the job if PGDG is unreachable.
+      - name: Install PostgreSQL 15 client tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates lsb-release
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          if ! sudo apt-get install -y -qq postgresql-client-15; then
+            echo "::warning::PGDG was unreachable; using the client the runner ships."
+          fi
+          psql --version && pg_dump --version
       - run: npx prisma migrate deploy
       - run: npx prisma generate
       - run: npm run db:seed
@@ -235,9 +273,7 @@ jobs:
       # runners provide and the sandbox's bundled postgres does not. Runs right
       # after the seed so there is real data to dump and restore.
       - name: Backup and restore verification
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-          npm run db:backup-verify
+        run: npm run db:backup-verify
       - run: npx tsx scripts/e2e-prepare-user.mts
       - run: npm run build
       # playwright.config.ts webServer boots `npm run start` itself.

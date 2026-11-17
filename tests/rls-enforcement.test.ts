@@ -116,6 +116,18 @@ function appEnv(): NodeJS.ProcessEnv {
   return APP_PASSWORD ? { ...process.env, PGPASSWORD: APP_PASSWORD } : process.env
 }
 
+/** Safe to print: strips anything that looks like a connection string or password. */
+function redact(text: string): string {
+  return text
+    .replace(/postgres(?:ql)?:\/\/[^\s'"]+/gi, '[connection string hidden]')
+    .replace(/\b(password|pgpassword)\s*=\s*\S+/gi, '$1=[hidden]')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(' | ')
+}
+
 function stderrOf(error: unknown): string {
   return String((error as { stderr?: Buffer | string })?.stderr ?? '')
 }
@@ -237,19 +249,33 @@ function assertSafeIdentifier(name: string) {
 
 /** Schema only: no shop records, no customer records, no production data. */
 function copySchema(target: string) {
-  const dump = execFileSync('pg_dump', ['--schema-only', '--no-owner', '--no-privileges', adminUrl(SOURCE_DB)], {
-    encoding: 'utf8',
-    maxBuffer: 256 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: adminEnv(),
-  })
-  execFileSync('psql', [adminUrl(target), '-v', 'ON_ERROR_STOP=1', '-q'], {
-    input: dump,
-    encoding: 'utf8',
-    maxBuffer: 256 * 1024 * 1024,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: adminEnv(),
-  })
+  // --no-comments and --no-tablespaces keep the dump to statements that restore
+  // anywhere: a COMMENT ON EXTENSION is owned by the extension, and a tablespace
+  // only exists on the server that made it. Both are the classic reasons a
+  // schema that dumps perfectly will not restore into a fresh database.
+  const flags = ['--schema-only', '--no-owner', '--no-privileges', '--no-comments', '--no-tablespaces']
+  let dump: string
+  try {
+    dump = execFileSync('pg_dump', [...flags, adminUrl(SOURCE_DB)], {
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: adminEnv(),
+    })
+  } catch (error) {
+    throw new Error(`dumping the schema of "${SOURCE_DB}" failed: ${redact(stderrOf(error)) || 'no diagnostic output'}`)
+  }
+  try {
+    execFileSync('psql', [adminUrl(target), '-v', 'ON_ERROR_STOP=1', '-q'], {
+      input: dump,
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: adminEnv(),
+    })
+  } catch (error) {
+    throw new Error(`restoring the schema into "${target}" failed: ${redact(stderrOf(error)) || 'no diagnostic output'}`)
+  }
 }
 
 /**
@@ -320,15 +346,16 @@ function main() {
   try {
     console.log(`\n1. Creating the scratch database ${scratch} and copying the schema only`)
     try {
-      psql(adminUrl('postgres'), `CREATE DATABASE "${scratch}"`)
+      psql(adminUrl('postgres'), `CREATE DATABASE "${scratch}" TEMPLATE template0`)
       created = true
     } catch {
       unavailable('the scratch database could not be created (does this role have CREATEDB?)')
     }
     try {
       copySchema(scratch)
-    } catch {
-      console.error('RLS enforcement tests: FAIL (the schema could not be restored into the scratch database)')
+    } catch (error) {
+      console.error('RLS enforcement tests: FAIL (the schema could not be copied into the scratch database)')
+      console.error(`  ${error instanceof Error ? error.message : 'unknown error'}`)
       process.exitCode = 1
       return
     }
