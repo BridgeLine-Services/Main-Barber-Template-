@@ -135,3 +135,34 @@ The template supports soft deactivation per shop (owner settings →
 danger zone): staff sign-ins and public bookings are blocked, all data
 preserved, one-click reactivation. Deactivation events are audited
 (`BUSINESS_DEACTIVATED` / `BUSINESS_REACTIVATED`).
+
+## 5. Reliability hardening (2026-11-17)
+
+Operations for the reliability work landed in this round. Read these in order.
+
+1. **`docs/DISASTER-RECOVERY.md`** — the three backup layers, the numbered
+   provider setup steps (primary backups, off-site bucket, encryption key),
+   retention rules, the quarterly restoration rehearsal, and what customers and
+   owners see during each failure.
+2. **`docs/RLS-STAGING-PLAN.md`** — the staged database-level tenant isolation
+   plan. RLS is still **not enabled**; this document explains the role split that
+   must exist first and why enabling policies before it would be a false guarantee.
+3. **`docs/RELEASE-ROBUSTNESS-2026-11-17.md`** — the audit, every file changed,
+   the test evidence table, and the per-part status of the 23-part brief.
+
+New commands (existing commands are unchanged):
+
+| Command | Purpose |
+| --- | --- |
+| `npm run db:backup` | dump (unchanged behaviour) |
+| `npm run db:backup-verify` | dump + restore + integrity checks (`--keep`, `--file`, `--url`, `--out`, `--json`) |
+| `npm run db:backup:offsite` | encrypted, checksummed, read-back-verified off-site copy + retention |
+| `npm run db:backup:freshness` | alert when the newest verified backup is too old |
+| `npm run media:backup` | encrypted copy of every uploaded photo (originals untouched) |
+| `npm run alert:test` | prove a critical alert is actually delivered |
+| `npm run test:backup` / `npm run test:operations` | the reliability suites, also wired into `test:ci` and `test:all` |
+
+Runtime endpoints: `/api/health` is unchanged (liveness + database, `healthy` /
+`degraded`). `/api/health/ready` is new and returns readiness with `200` when the
+shop is bookable and `503` only when the database is unavailable; optional
+integrations never make it fail.

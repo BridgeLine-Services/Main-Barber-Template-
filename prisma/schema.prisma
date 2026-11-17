@@ -2263,3 +2263,34 @@ model UserSession {
   @@index([userId])
   @@index([revokedAt])
 }
+
+/// One row per backup attempt (database or media). Global, not tenant-scoped:
+/// backups protect the whole deployment, and the owner-facing status screen only
+/// ever reads the newest verified row. Kept deliberately small so writing it can
+/// never be the reason a backup fails.
+model BackupRun {
+  id             String    @id @default(cuid())
+  /// 'database' | 'media'
+  kind           String
+  /// Storage driver recorded for the audit trail ('s3', 'localfs').
+  driver         String
+  /// 'succeeded' | 'failed'
+  status         String
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  durationMs     Int?
+  /// Stored object size in bytes. BigInt because a large shop's dump can exceed
+  /// the 2 GB signed-int ceiling; readers must convert before serialising.
+  sizeBytes      BigInt?
+  /// SHA-256 of the stored object, so the store can be re-checked later.
+  checksumSha256 String?
+  objectKey      String?
+  encrypted      Boolean   @default(false)
+  /// Set only after the stored object was read back and authenticated.
+  verifiedAt     DateTime?
+  /// Free-form, non-sensitive summary (counts checked, retention pruned).
+  detail         String?
+
+  @@index([kind, startedAt])
+  @@index([verifiedAt])
+}

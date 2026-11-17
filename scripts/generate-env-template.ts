@@ -11,7 +11,7 @@ import { ENV_REGISTRY } from '../src/lib/env-registry'
 
 const PUBLIC_CATEGORIES = [
   'CORE', 'SECURITY', 'DATABASE', 'STORAGE', 'PAYMENTS', 'EMAIL', 'SMS', 'GOOGLE',
-  'SCHEDULED_TASKS', 'OBSERVABILITY', 'TENANT_CONFIGURATION',
+  'SCHEDULED_TASKS', 'OBSERVABILITY', 'TENANT_CONFIGURATION', 'BACKUP', 'ALERTS',
 ]
 
 const header = `# ============================================================================

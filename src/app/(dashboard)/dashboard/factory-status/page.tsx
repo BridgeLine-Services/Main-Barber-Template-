@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireOwner } from '@/lib/auth-helpers'
 import { verifyFactoryReadiness } from '@/lib/production-readiness'
+import { buildReadinessReport, ownerStatusFromReadiness } from '@/lib/health'
 
 export default async function FactoryStatusPage() {
   const auth = await requireOwner()
@@ -14,6 +15,11 @@ export default async function FactoryStatusPage() {
     select: { businessId: true },
   })
   if (!user?.businessId) redirect('/dashboard/onboarding')
+
+  // Two different questions, deliberately answered separately:
+  //   "right now" (this panel) and "are we ready to launch" (the checklist below).
+  const runtime = await buildReadinessReport()
+  const rightNow = ownerStatusFromReadiness(runtime)
 
   const report = await verifyFactoryReadiness(user.businessId)
   const grouped = report.checks.reduce<Record<string, typeof report.checks>>((result, check) => {
@@ -28,6 +34,31 @@ export default async function FactoryStatusPage() {
         <h1 className="mt-2 text-3xl font-bold text-foreground">System health</h1>
         <p className="mt-2 text-muted-foreground">A launch checklist for this shop. Secrets are checked on the server and are never displayed.</p>
       </div>
+      <section aria-labelledby="right-now" className="rounded-xl border border-border bg-[var(--dash-surface)]/60 p-5">
+        <h2 id="right-now" className="text-lg font-semibold text-foreground">Right now</h2>
+        <p className="mt-1 text-2xl font-bold text-foreground">{rightNow.headline}</p>
+        <ul className="mt-4 space-y-3">
+          {rightNow.rows.map((row) => (
+            <li key={row.label} className="flex gap-3">
+              <span
+                aria-hidden="true"
+                className={
+                  row.tone === 'good' ? 'text-emerald-400'
+                    : row.tone === 'watch' ? 'text-amber-400'
+                      : row.tone === 'action' ? 'text-red-400'
+                        : 'text-muted-foreground'
+                }
+              >
+                {row.tone === 'good' ? '✓' : row.tone === 'watch' ? '○' : row.tone === 'action' ? '!' : '–'}
+              </span>
+              <div>
+                <p className="font-medium text-foreground">{row.label}</p>
+                <p className="text-sm text-muted-foreground">{row.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
       <div className={`rounded-xl border p-5 ${report.overall === 'READY' ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-red-500/40 bg-red-500/10'}`}>
         <p className="text-sm text-foreground/85">Overall status</p>
         <p className={`mt-1 text-2xl font-bold ${report.overall === 'READY' ? 'text-emerald-300' : 'text-red-300'}`}>{report.overall === 'READY' ? 'Ready to launch' : 'Needs attention'}</p>
