@@ -1,0 +1,89 @@
+# Long-term archive (Part 3, layer 3), scheduled monthly.
+#
+# The routine copies are kept for weeks, which is the window in which a mistake is
+# usually noticed. This job keeps one copy per month for a year, in a key that
+# routine retention never touches, because the failure it defends against is the
+# one nobody sees: data corrupted in March and discovered in November.
+#
+# It archives the newest copy that is already verified, reads the archived bytes
+# back, compares them, and decrypts them. "Archived" therefore means "openable",
+# not merely "uploaded".
+#
+# Configure these repository secrets (Settings -> Secrets and variables -> Actions):
+#   BACKUP_ENCRYPTION_KEY            same key as the routine copies, required
+#   BACKUP_STORAGE_DRIVER            where the routine copies live (s3 or localfs)
+#   BACKUP_S3_ENDPOINT, BACKUP_S3_BUCKET, BACKUP_S3_ACCESS_KEY_ID,
+#   BACKUP_S3_SECRET_ACCESS_KEY      the routine off-site destination
+#   BACKUP_ARCHIVE_DRIVER            the archive destination, if different
+#   BACKUP_ARCHIVE_ENDPOINT, BACKUP_ARCHIVE_BUCKET, BACKUP_ARCHIVE_ACCESS_KEY_ID,
+#   BACKUP_ARCHIVE_SECRET_ACCESS_KEY, BACKUP_ARCHIVE_PREFIX (optional, default archive/)
+#   BACKUP_ARCHIVE_KEEP_MONTHS       optional, default 13
+# Until they exist the job exits 0 with a notice: an unconfigured layer is a gap to
+# report, not a red build that teaches people to ignore alerts.
+name: Backup archive
+
+on:
+  schedule:
+    - cron: '17 4 1 * *' # 04:17 UTC on the first of each month
+  workflow_dispatch:
+
+concurrency:
+  group: backup-archive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Not configured?
+        id: config
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.BACKUP_STORAGE_DRIVER }}
+        run: |
+          if [ -z "$BACKUP_ENCRYPTION_KEY" ] || [ -z "$BACKUP_STORAGE_DRIVER" ]; then
+            echo "::notice::Long-term archive is not configured yet (no BACKUP_ENCRYPTION_KEY or BACKUP_STORAGE_DRIVER). See docs/DISASTER-RECOVERY.md section 3."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Archive this month's copy and prove it can be opened
+        if: steps.config.outputs.configured == 'true'
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.BACKUP_STORAGE_DRIVER }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_ARCHIVE_DRIVER: ${{ secrets.BACKUP_ARCHIVE_DRIVER }}
+          BACKUP_ARCHIVE_ENDPOINT: ${{ secrets.BACKUP_ARCHIVE_ENDPOINT }}
+          BACKUP_ARCHIVE_BUCKET: ${{ secrets.BACKUP_ARCHIVE_BUCKET }}
+          BACKUP_ARCHIVE_ACCESS_KEY_ID: ${{ secrets.BACKUP_ARCHIVE_ACCESS_KEY_ID }}
+          BACKUP_ARCHIVE_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_ARCHIVE_SECRET_ACCESS_KEY }}
+          BACKUP_ARCHIVE_PREFIX: ${{ secrets.BACKUP_ARCHIVE_PREFIX }}
+          BACKUP_ARCHIVE_KEEP_MONTHS: ${{ secrets.BACKUP_ARCHIVE_KEEP_MONTHS }}
+        run: npm run db:backup:archive
+      - name: Notify on failure
+        if: failure()
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ]; then
+            echo "::error::The archive step failed and no independent alert channel is configured (ALERT_WEBHOOK_URL)."
+            exit 1
+          fi
+          curl -sS -m 10 -X POST "$ALERT_WEBHOOK_URL" \
+            -H 'content-type: application/json' \
+            --data '{"severity":"watch","event":"backup_archive.failed","source":"github-actions","message":"The monthly long-term backup copy was not made. The shop is unaffected and the routine copies are untouched."}'

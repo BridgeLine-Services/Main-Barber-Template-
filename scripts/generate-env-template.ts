@@ -7,12 +7,12 @@
  * documentation cannot fall behind the code again.
  */
 import { writeFileSync } from 'node:fs'
-import { ENV_REGISTRY } from '../src/lib/env-registry'
+import { ENV_CATEGORIES, ENV_REGISTRY, type EnvCategory } from '../src/lib/env-registry'
 
-const PUBLIC_CATEGORIES = [
-  'CORE', 'SECURITY', 'DATABASE', 'STORAGE', 'PAYMENTS', 'EMAIL', 'SMS', 'GOOGLE',
-  'SCHEDULED_TASKS', 'OBSERVABILITY', 'TENANT_CONFIGURATION', 'BACKUP', 'ALERTS',
-]
+// Derived from the registry's own category list, so a new category appears in the
+// template automatically instead of being forgotten here.
+const NON_OPERATOR_CATEGORIES = new Set<EnvCategory>(['INTERNAL', 'DEVELOPMENT_ONLY', 'PLATFORM_MANAGED', 'RETIRED'])
+const PUBLIC_CATEGORIES = ENV_CATEGORIES.filter((category) => !NON_OPERATOR_CATEGORIES.has(category))
 
 const header = `# ============================================================================
 # Environment template — generated from src/lib/env-registry.ts

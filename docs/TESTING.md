@@ -207,3 +207,22 @@ E2E_NO_WEBSERVER=1 npx playwright test
 
 `RATE_LIMIT_TRUST_PROXY=true` matters: without it every request shares one limiter key and
 the registration and reschedule specs fail with 429 part way through.
+
+## RLS enforcement is mandatory in CI
+
+`npm run test:rls-enforcement` needs a reachable PostgreSQL, the `psql` and `pg_dump`
+clients, and a source database whose schema can be copied. Both CI jobs configure it
+against the disposable `postgres:15` service (`ci`/`ci`, database `barber`) with
+`RLS_TEST_REQUIRED=true`, so a run that cannot execute its assertions fails the job
+instead of reporting a skip.
+
+Locally, without a database, the same command prints `SKIPPED` and exits 3. That exit
+code is honest, not a pass: it means tenant isolation was **not** verified by that
+run. To run it on your own machine:
+
+```bash
+RLS_TEST_ADMIN_USER=postgres npm run test:rls-enforcement
+```
+
+The test creates and drops its own uniquely named scratch database, copies only the
+schema, and inserts two synthetic tenants. It never reads or modifies shop data.

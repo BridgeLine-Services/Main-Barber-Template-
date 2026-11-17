@@ -197,3 +197,31 @@ hatch is a session setting, so any code able to run SQL on the runtime connectio
 can use it. It contains application bugs; it does not contain a compromised
 application. §3 of `prisma/rls/production-rls.sql` explains how to move that escape
 to role membership if you ever need the stronger guarantee.
+
+## How the enforcement test runs (and why it cannot lie)
+
+`npm run test:rls-enforcement` proves the stage-2 policies in a real PostgreSQL, and
+it is deliberately boring about where its data comes from:
+
+1. It connects with explicit test-only settings (`RLS_TEST_HOST`, `RLS_TEST_PORT`,
+   `RLS_TEST_ADMIN_USER`, `RLS_TEST_ADMIN_PASSWORD`, `RLS_TEST_APP_USER`,
+   `RLS_TEST_SOURCE_DB`, `RLS_TEST_PROBE_DB`). `DATABASE_URL` is never used as a
+   fallback, because a test that creates and drops databases must not be pointed at
+   whatever a shell happens to export.
+2. It copies the **schema only** into a uniquely named scratch database. No shop or
+   customer record is read, copied or printed.
+3. It creates two synthetic tenants of its own (business, customer, barber, service
+   and appointment each, with `.invalid` contact details), so the result does not
+   depend on seed data or on what a developer happens to have locally.
+4. It applies `stage-1-roles.sql`, then generates a password for the runtime role for
+   that disposable run only (`ALTER ROLE`), leaving the placeholder in the file.
+5. It applies `production-rls.sql` and then connects as the runtime role, asserting
+   that the runtime and administrative sessions really are different roles.
+6. It drops the scratch database in a `finally` block.
+
+Skip versus failure is explicit. Locally, a missing PostgreSQL prints `SKIPPED` with
+the reason and exits 3, and says plainly that enforcement was not verified. In CI
+(`RLS_TEST_REQUIRED=true`, or any GitHub Actions run) the same conditions are
+failures, because a security test that did not run must never appear green. This
+changes nothing about production: RLS is still **not enabled** there, and a passing
+run proves the policies work, not that they are live.

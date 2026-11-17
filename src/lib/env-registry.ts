@@ -15,11 +15,33 @@
 //   • Secrets are described, never printed.
 // ============================================================================
 
-export type EnvCategory =
-  | 'CORE' | 'SECURITY' | 'DATABASE' | 'STORAGE' | 'PAYMENTS' | 'EMAIL' | 'SMS'
-  | 'GOOGLE' | 'SCHEDULED_TASKS' | 'OBSERVABILITY' | 'TENANT_CONFIGURATION'
-  | 'BACKUP' | 'ALERTS'
-  | 'INTERNAL' | 'DEVELOPMENT_ONLY' | 'PLATFORM_MANAGED' | 'RETIRED'
+/**
+ * The one list of categories. Everything else derives from it: the type below,
+ * the environment template generator, and the consistency test. A category has
+ * exactly one place to be added, so a new category can never again exist in the
+ * type while a hand-maintained copy elsewhere quietly rejects it.
+ */
+export const ENV_CATEGORIES = [
+  'CORE',
+  'SECURITY',
+  'DATABASE',
+  'STORAGE',
+  'PAYMENTS',
+  'EMAIL',
+  'SMS',
+  'GOOGLE',
+  'SCHEDULED_TASKS',
+  'OBSERVABILITY',
+  'TENANT_CONFIGURATION',
+  'BACKUP',
+  'ALERTS',
+  'INTERNAL',
+  'DEVELOPMENT_ONLY',
+  'PLATFORM_MANAGED',
+  'RETIRED',
+] as const
+
+export type EnvCategory = (typeof ENV_CATEGORIES)[number]
 
 export type EnvName = 'development' | 'preview' | 'production' | 'test'
 

@@ -20,6 +20,23 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/barber
+      # RLS enforcement (Part 8) runs against this same disposable PostgreSQL
+      # service, as the role the service actually created. Without these the test
+      # tried to connect as "postgres", failed, and reported itself skipped while
+      # the job stayed green.
+      #   • a schema is copied into a uniquely named scratch database, and two
+      #     synthetic tenants are created there, so the run never depends on seed
+      #     data or on any shop that happens to exist;
+      #   • RLS_TEST_REQUIRED makes an unexecuted security test a failure, because
+      #     "did not run" must never look like "passed";
+      #   • the runtime role's password is generated per run, so no credential is
+      #     stored in the workflow.
+      RLS_TEST_HOST: 127.0.0.1
+      RLS_TEST_PORT: '5432'
+      RLS_TEST_ADMIN_USER: ci
+      RLS_TEST_ADMIN_PASSWORD: ci
+      RLS_TEST_SOURCE_DB: barber
+      RLS_TEST_REQUIRED: 'true'
       NEXTAUTH_SECRET: ci-only-secret-for-build-validation
       NEXTAUTH_URL: http://localhost:3000
       # Explicit build-only URL for static page-data collection. Deployment
@@ -149,6 +166,23 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/barber
+      # RLS enforcement (Part 8) runs against this same disposable PostgreSQL
+      # service, as the role the service actually created. Without these the test
+      # tried to connect as "postgres", failed, and reported itself skipped while
+      # the job stayed green.
+      #   • a schema is copied into a uniquely named scratch database, and two
+      #     synthetic tenants are created there, so the run never depends on seed
+      #     data or on any shop that happens to exist;
+      #   • RLS_TEST_REQUIRED makes an unexecuted security test a failure, because
+      #     "did not run" must never look like "passed";
+      #   • the runtime role's password is generated per run, so no credential is
+      #     stored in the workflow.
+      RLS_TEST_HOST: 127.0.0.1
+      RLS_TEST_PORT: '5432'
+      RLS_TEST_ADMIN_USER: ci
+      RLS_TEST_ADMIN_PASSWORD: ci
+      RLS_TEST_SOURCE_DB: barber
+      RLS_TEST_REQUIRED: 'true'
       NEXTAUTH_SECRET: ci-only-secret-for-build-validation
       NEXTAUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000

@@ -16,7 +16,7 @@ audit and evidence behind this document.
 | --- | --- | --- | --- | --- |
 | 1. Primary | The live database | The managed PostgreSQL provider | Provider dashboard (owner) | `npm run db:backup-verify` |
 | 2. Independent off-site | The same database, encrypted, on a **different** provider account | Object storage (S3-compatible) or a mounted volume | Operator, once per deployment | `npm run db:backup:offsite` (reads the object back) |
-| 3. Archive / retention | Older recovery points: 7 daily, 4 weekly, 6 monthly minimum | Same destination as layer 2 | Automatic | `selectExpiredBackups` refuses to delete the last verified copy |
+| 3. Archive / retention | Older recovery points: 7 daily, 4 weekly, 6 monthly minimum, plus **one copy per month for 13 months** in a key routine retention never touches | The archive destination (`BACKUP_ARCHIVE_*`, or the layer-2 store with an `archive/` prefix) | Monthly (`backup-archive.yml`) | `npm run db:backup:archive`: copies only a copy that already carries a matching checksum, reads the archived bytes back, compares them and decrypts them, refuses to overwrite a differing archive, and never deletes the current month |
 | Media | Shop logos, barber photos, gallery, before/after images | Independent bucket copy, encrypted | Operator, once per deployment | `npm run media:backup` |
 
 A database backup does **not** contain uploaded photos. They are separate layers

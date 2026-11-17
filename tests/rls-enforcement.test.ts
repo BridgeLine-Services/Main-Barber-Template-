@@ -3,29 +3,62 @@
  *
  * Everything else in the RLS work is paperwork until this runs: a policy file
  * that has never been executed against a database is a wish. This test builds a
- * throwaway database from a copy of the development database, creates the stage-1
- * roles, applies prisma/rls/production-rls.sql exactly as a deployment would, then
- * connects as the runtime role and tries to see and write another tenant's data.
+ * throwaway database from the schema of the source database, inserts its OWN
+ * synthetic tenants, creates the stage-1 roles, applies
+ * prisma/rls/production-rls.sql exactly as a deployment would, then connects as
+ * the runtime role and tries to see and write another tenant's data.
  *
- * It never touches the development database's data (it only reads a dump of it),
- * and it drops its scratch database at the end whether or not the run passed.
+ * Two properties matter more than the assertions:
+ *
+ *   1. It never depends on whatever records happen to be in the database. Two
+ *      synthetic tenants are created here, so the run is identical on a developer
+ *      machine, a fresh CI service and a laptop with an empty database. No real
+ *      customer or shop data is read, copied or reported.
+ *   2. It never touches the source database. Only its schema is dumped; the
+ *      scratch database is dropped in a finally block.
+ *
+ * Connection settings come from explicit test-only variables. `DATABASE_URL` is
+ * deliberately NOT used as a fallback: pointing a test that creates and drops
+ * databases at whatever a shell happens to export is how a development machine
+ * loses its data.
+ *
+ *   RLS_TEST_HOST            default 127.0.0.1
+ *   RLS_TEST_PORT            default 5432
+ *   RLS_TEST_ADMIN_USER      default postgres
+ *   RLS_TEST_ADMIN_PASSWORD  default (none: peer/trust auth)
+ *   RLS_TEST_APP_USER        default barber_app  (created by stage 1)
+ *   RLS_TEST_APP_PASSWORD    default (generated per run)
+ *   RLS_TEST_SOURCE_DB       default barber      (schema source, never modified)
+ *   RLS_TEST_PROBE_DB        default barber_rls_probe (a unique suffix is added)
+ *   RLS_TEST_REQUIRED        'true' makes a missing prerequisite a FAILURE
  *
  * Usage:
  *   npx tsx tests/rls-enforcement.test.ts
  *
- * Exit codes: 0 pass, 1 failures, 3 the local database is not available.
+ * Exit codes: 0 pass, 1 failures (or a missing prerequisite in required mode),
+ * 3 skipped because a local PostgreSQL was intentionally not available.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
 
-const HOST = process.env.RLS_TEST_HOST ?? '127.0.0.1'
-const PORT = process.env.RLS_TEST_PORT ?? '5432'
-const ADMIN_USER = process.env.RLS_TEST_ADMIN_USER ?? 'postgres'
-const SOURCE_DB = process.env.RLS_TEST_SOURCE_DB ?? 'barber'
-const PROBE_DB = process.env.RLS_TEST_PROBE_DB ?? 'barber_rls_probe'
+const HOST = (process.env.RLS_TEST_HOST ?? '127.0.0.1').trim()
+const PORT = (process.env.RLS_TEST_PORT ?? '5432').trim()
+const ADMIN_USER = (process.env.RLS_TEST_ADMIN_USER ?? 'postgres').trim()
+const ADMIN_PASSWORD = process.env.RLS_TEST_ADMIN_PASSWORD ?? ''
+const APP_USER = (process.env.RLS_TEST_APP_USER ?? 'barber_app').trim()
+let APP_PASSWORD = process.env.RLS_TEST_APP_PASSWORD ?? ''
+const SOURCE_DB = (process.env.RLS_TEST_SOURCE_DB ?? 'barber').trim()
+const PROBE_DB = (process.env.RLS_TEST_PROBE_DB ?? 'barber_rls_probe').trim()
 
-const adminUrl = (db: string) => `postgresql://${ADMIN_USER}@${HOST}:${PORT}/${db}`
-const appUrl = (db: string) => `postgresql://barber_app@${HOST}:${PORT}/${db}`
+/**
+ * In CI a security test that did not run must never look like a green tick, so
+ * the same conditions that are a polite skip locally are hard failures there.
+ */
+const MANDATORY =
+  process.env.RLS_TEST_REQUIRED === 'true' ||
+  process.env.GITHUB_ACTIONS === 'true' ||
+  process.env.RLS_TEST_REQUIRED === '1'
 
 let passed = 0
 let failed = 0
@@ -42,10 +75,66 @@ function assert(condition: boolean, message: string) {
   return false
 }
 
+/** A prerequisite is missing. Loud in CI, a labelled skip locally. */
+function unavailable(reason: string): never {
+  if (MANDATORY) {
+    console.error(`RLS enforcement tests: FAIL (${reason})`)
+    console.error('  This run is mandatory, so an unexecuted security test is a failure, not a skip.')
+    process.exit(1)
+  }
+  console.log(`RLS enforcement tests: SKIPPED (${reason})`)
+  console.log('  RLS enforcement was NOT verified by this run. Start a local PostgreSQL or set RLS_TEST_* to run it.')
+  process.exit(3)
+}
+
+/**
+ * Connection details are assembled with encodeURIComponent, and the password is
+ * passed as PGPASSWORD in the child environment rather than in the URL, so a
+ * credential cannot reach a process listing, a log line or an error message.
+ */
+function connectionUrl(db: string, user: string): string {
+  const host = HOST.includes(':') && !HOST.startsWith('[') ? `[${HOST}]` : HOST
+  return `postgresql://${encodeURIComponent(user)}@${host}:${encodeURIComponent(PORT)}/${encodeURIComponent(db)}`
+}
+
+function adminUrl(db: string): string {
+  return connectionUrl(db, ADMIN_USER)
+}
+
+/** The scratch database for this run. Set in main() before any app connection. */
+let activeScratch = PROBE_DB
+
+function appUrl(db: string): string {
+  return connectionUrl(db, APP_USER)
+}
+
+function adminEnv(): NodeJS.ProcessEnv {
+  return ADMIN_PASSWORD ? { ...process.env, PGPASSWORD: ADMIN_PASSWORD } : process.env
+}
+
+function appEnv(): NodeJS.ProcessEnv {
+  return APP_PASSWORD ? { ...process.env, PGPASSWORD: APP_PASSWORD } : process.env
+}
+
+function stderrOf(error: unknown): string {
+  return String((error as { stderr?: Buffer | string })?.stderr ?? '')
+}
+
+/** psql against the administrative connection. */
 function psql(url: string, sql: string): string {
   return execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-F', '\t', '-c', sql], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: adminEnv(),
+  }).trim()
+}
+
+/** psql against the scratch database as the unprivileged runtime role. */
+function psqlApp(sql: string): string {
+  return execFileSync('psql', [appUrl(activeScratch), '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-F', '\t', '-c', sql], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: appEnv(),
   }).trim()
 }
 
@@ -53,55 +142,151 @@ function psqlFile(url: string, file: string): string {
   return execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-q', '-f', file], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: adminEnv(),
   }).trim()
 }
 
-/** Runs a multi-statement transaction probe and returns only the data lines.
- *  psql prints BEGIN/SET/COMMIT command tags on stdout, which are noise here. */
-function psqlTx(url: string, sql: string): string {
-  return psql(url, sql)
+function psqlAppTx(sql: string): string {
+  return psqlApp(sql)
     .split('\n')
     .filter((line) => !/^(BEGIN|SET|COMMIT|ROLLBACK|SAVEPOINT|RESET)$/i.test(line.trim()))
     .join('\n')
     .trim()
 }
 
-function psqlExpectFailure(url: string, sql: string): string {
+/**
+ * Runs a multi-statement script without ON_ERROR_STOP, so a statement that is
+ * SUPPOSED to fail (a deliberate 1/0) does not abort the rest of the script. Only
+ * the data lines are returned, which is what the assertions look at.
+ */
+function psqlAppScript(sql: string): string {
+  return execFileSync('psql', [appUrl(activeScratch), '-t', '-A', '-F', '\t'], {
+    input: sql,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: appEnv(),
+  })
+    .split('\n')
+    .filter((line) => !/^(BEGIN|SET|COMMIT|ROLLBACK|SAVEPOINT|RESET|ERROR)/i.test(line.trim()))
+    .join('\n')
+    .trim()
+}
+
+function psqlExpectFailure(url: string, sql: string, asApp = false): string {
   try {
     execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-c', sql], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: asApp ? appEnv() : adminEnv(),
     })
     return ''
   } catch (error) {
-    const stderr = (error as { stderr?: Buffer | string }).stderr
-    return String(stderr ?? '')
+    return stderrOf(error)
   }
 }
 
-function canReachDatabase(): boolean {
+/**
+ * Can the administrative connection be opened? Returns a plain-language reason
+ * instead of swallowing the error, because "no database" and "wrong password"
+ * need completely different actions from whoever is reading the log.
+ */
+function diagnoseConnection(): { ok: true } | { ok: false; reason: string } {
   try {
-    psql(adminUrl('postgres'), 'SELECT 1')
-    return true
-  } catch {
-    return false
+    execFileSync('psql', [adminUrl('postgres'), '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-c', 'SELECT 1'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: adminEnv(),
+    })
+    return { ok: true }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return { ok: false, reason: 'the psql client is not installed' }
+    }
+    const stderr = stderrOf(error).toLowerCase()
+    if (/password authentication failed|no password supplied|authentication failed/.test(stderr)) {
+      return { ok: false, reason: `PostgreSQL refused the administrator credentials for user "${ADMIN_USER}"` }
+    }
+    if (/role .* does not exist/.test(stderr)) {
+      return { ok: false, reason: `PostgreSQL has no role named "${ADMIN_USER}"` }
+    }
+    if (/database .* does not exist/.test(stderr)) {
+      return { ok: false, reason: 'the maintenance database "postgres" does not exist' }
+    }
+    if (/connection refused|could not connect|could not translate host|no such host|timeout|timed out/.test(stderr)) {
+      return { ok: false, reason: `no PostgreSQL server is reachable at ${HOST}:${PORT}` }
+    }
+    if (/too many clients|remaining connection slots/.test(stderr)) {
+      return { ok: false, reason: 'PostgreSQL is up but has no free connections' }
+    }
+    // Never echo the raw error: it can contain a connection string.
+    return { ok: false, reason: 'the administrative connection failed for a reason this test does not recognise' }
   }
 }
 
-function dumpSource(target: string) {
-  // A logical copy, not a template copy: CREATE DATABASE ... TEMPLATE fails while
-  // any other session is connected, which makes it unreliable in a test run.
-  const dump = execFileSync('pg_dump', ['--no-owner', '--no-privileges', adminUrl(SOURCE_DB)], {
+function requireTool(tool: string) {
+  const found = execFileSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).trim()
+  if (!found) unavailable(`the ${tool} client is not installed`)
+}
+
+/** Identifier safety: a generated name is only ever used after this check. */
+function assertSafeIdentifier(name: string) {
+  if (!/^[a-z0-9_]{1,63}$/.test(name)) {
+    throw new Error(`refusing to use an unsafe database identifier: ${name.replace(/[^a-z0-9_]/gi, '?')}`)
+  }
+}
+
+/** Schema only: no shop records, no customer records, no production data. */
+function copySchema(target: string) {
+  const dump = execFileSync('pg_dump', ['--schema-only', '--no-owner', '--no-privileges', adminUrl(SOURCE_DB)], {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: adminEnv(),
   })
   execFileSync('psql', [adminUrl(target), '-v', 'ON_ERROR_STOP=1', '-q'], {
     input: dump,
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
     stdio: ['pipe', 'pipe', 'pipe'],
+    env: adminEnv(),
   })
+}
+
+/**
+ * Two synthetic tenants, built from the same tables the interface uses. The ids
+ * are fixed so a failure names the same rows on every run, and the contact
+ * details use the reserved .invalid domain so nothing can ever be delivered.
+ */
+export const FIXTURES = {
+  tenants: [
+    { id: 'rls_test_biz_a', slug: 'rls-test-tenant-a', name: 'RLS Test Shop A', customer: 'rls_test_cust_a', barber: 'rls_test_barber_a', service: 'rls_test_service_a', appointment: 'rls_test_appt_a' },
+    { id: 'rls_test_biz_b', slug: 'rls-test-tenant-b', name: 'RLS Test Shop B', customer: 'rls_test_cust_b', barber: 'rls_test_barber_b', service: 'rls_test_service_b', appointment: 'rls_test_appt_b' },
+  ],
+} as const
+
+function seedFixtures(target: string) {
+  for (const tenant of FIXTURES.tenants) {
+    const suffix = tenant.id.slice(-1)
+    psql(
+      adminUrl(target),
+      `
+      INSERT INTO "Business" (id, name, slug, "createdAt", "updatedAt")
+      VALUES ('${tenant.id}', '${tenant.name}', '${tenant.slug}', now(), now());
+
+      INSERT INTO "Customer" (id, "businessId", "firstName", "lastName", phone, email, "createdAt", "updatedAt")
+      VALUES ('${tenant.customer}', '${tenant.id}', 'Test', 'Customer ${suffix.toUpperCase()}', '+1555000${suffix}000', 'tenant-${suffix}@example.invalid', now(), now());
+
+      INSERT INTO "Barber" (id, "businessId", name, slug, "createdAt", "updatedAt")
+      VALUES ('${tenant.barber}', '${tenant.id}', 'Test Barber ${suffix.toUpperCase()}', 'rls-test-barber-${suffix}', now(), now());
+
+      INSERT INTO "Service" (id, "businessId", name, duration, price, "isActive", "order", "createdAt", "updatedAt")
+      VALUES ('${tenant.service}', '${tenant.id}', 'Test Service ${suffix.toUpperCase()}', 30, 25, true, 0, now(), now());
+
+      INSERT INTO "Appointment" (id, "confirmationNumber", "customerAccessToken", "businessId", "customerId", "barberId", "serviceId", "startTime", "endTime", "createdAt", "updatedAt")
+      VALUES ('${tenant.appointment}', 'RLSTEST${suffix.toUpperCase()}', 'rls-test-token-${suffix}-${'0'.repeat(24)}', '${tenant.id}', '${tenant.customer}', '${tenant.barber}', '${tenant.service}', now() + interval '1 day', now() + interval '1 day 30 minutes', now(), now());
+      `,
+    )
+  }
 }
 
 function ids(url: string, table: string, column: string, tenant: string): string[] {
@@ -110,39 +295,80 @@ function ids(url: string, table: string, column: string, tenant: string): string
 }
 
 function main() {
-  if (!canReachDatabase()) {
-    console.log('RLS enforcement tests: SKIPPED (no local PostgreSQL reachable)')
-    process.exit(3)
-  }
-  for (const tool of ['pg_dump', 'psql']) {
-    if (!execFileSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).trim()) {
-      console.log(`RLS enforcement tests: SKIPPED (${tool} not installed)`)
-      process.exit(3)
-    }
-  }
+  const reachable = diagnoseConnection()
+  if (reachable.ok === false) unavailable(reachable.reason)
+  requireTool('psql')
+  requireTool('pg_dump')
+
   if (!existsSync('prisma/rls/production-rls.sql') || !existsSync('prisma/rls/stage-1-roles.sql')) {
-    console.log('RLS enforcement tests: FAIL (RLS SQL files are missing)')
+    console.error('RLS enforcement tests: FAIL (the RLS SQL files are missing from prisma/rls)')
     process.exit(1)
   }
 
-  psql(adminUrl('postgres'), `DROP DATABASE IF EXISTS "${PROBE_DB}"`)
-  psql(adminUrl('postgres'), `CREATE DATABASE "${PROBE_DB}"`)
+  // A unique scratch name keeps two runs (CI matrix, two developers on one host)
+  // from dropping each other's database.
+  const scratch = `${PROBE_DB}_${randomBytes(3).toString('hex')}`
+  assertSafeIdentifier(scratch)
+  activeScratch = scratch
 
+  const sourceExists = psql(adminUrl('postgres'), `SELECT count(*) FROM pg_database WHERE datname = '${SOURCE_DB.replace(/'/g, "''")}'`)
+  if (sourceExists !== '1') {
+    unavailable(`the source database "${SOURCE_DB}" does not exist, so there is no schema to copy`)
+  }
+
+  let created = false
   try {
-    console.log('\n1. Building a throwaway database from a copy of the development data')
-    dumpSource(PROBE_DB)
-    const tables = Number(psql(adminUrl(PROBE_DB), `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`))
-    assert(tables > 50, `copied the schema (${tables} tables)`)
+    console.log(`\n1. Creating the scratch database ${scratch} and copying the schema only`)
+    try {
+      psql(adminUrl('postgres'), `CREATE DATABASE "${scratch}"`)
+      created = true
+    } catch {
+      unavailable('the scratch database could not be created (does this role have CREATEDB?)')
+    }
+    try {
+      copySchema(scratch)
+    } catch {
+      console.error('RLS enforcement tests: FAIL (the schema could not be restored into the scratch database)')
+      process.exitCode = 1
+      return
+    }
+    const tables = Number(psql(adminUrl(scratch), `SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`))
+    if (!assert(tables > 50, `copied the schema (${tables} tables)`)) return
 
-    console.log('\n2. Applying stage 1 (roles) and stage 2 (policies) exactly as a deployment would')
-    psqlFile(adminUrl(PROBE_DB), 'prisma/rls/stage-1-roles.sql')
-    const roleRow = psql(adminUrl(PROBE_DB), `SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname='barber_app'`)
-    assert(roleRow === 'false,false', `barber_app is not a superuser and cannot bypass RLS (got "${roleRow}")`)
-    psqlFile(adminUrl(PROBE_DB), 'prisma/rls/production-rls.sql')
+    console.log('\n2. Creating two synthetic tenants (no real shop or customer data is used)')
+    seedFixtures(scratch)
+    const seeded = Number(psql(adminUrl(scratch), `SELECT count(*) FROM "Business"`))
+    if (!assert(seeded === 2, `exactly two synthetic businesses exist (got ${seeded})`)) return
 
-    console.log('\n3. Every tenant table is protected, and protected against its owner too')
+    console.log('\n3. Applying stage 1 (roles) and stage 2 (policies) exactly as a deployment would')
+    psqlFile(adminUrl(scratch), 'prisma/rls/stage-1-roles.sql')
+
+    // The role's password is set for this disposable run only; the SQL file keeps
+    // its placeholder so no real credential lives in the repository.
+    if (!APP_PASSWORD) {
+      // Generated per run and never printed: the SQL file keeps its placeholder,
+      // so no real credential exists in the repository or in the logs.
+      APP_PASSWORD = `rls-${randomBytes(12).toString('hex')}`
+      psql(adminUrl(scratch), `ALTER ROLE "${APP_USER.replace(/"/g, '""')}" WITH PASSWORD '${APP_PASSWORD}'`)
+    }
+
+    const roleRow = psql(adminUrl(scratch), `SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname='${APP_USER.replace(/'/g, "''")}'`)
+    assert(roleRow === 'false,false', `${APP_USER} is not a superuser and cannot bypass RLS (got "${roleRow}")`)
+
+    const adminRole = psql(adminUrl(scratch), 'SELECT current_user')
+    assert(adminRole === ADMIN_USER, `the administrative session is running as ${ADMIN_USER} (got "${adminRole}")`)
+
+    psqlFile(adminUrl(scratch), 'prisma/rls/production-rls.sql')
+
+    // Proof the two connections are genuinely different roles, not the same
+    // superuser wearing two hats: this is the whole point of the test.
+    const appRole = psqlApp('SELECT current_user')
+    assert(appRole === APP_USER, `the runtime session runs as ${APP_USER} (got "${appRole}")`)
+    assert(appRole !== adminRole, 'the runtime and administrative sessions use different roles')
+
+    console.log('\n4. Every tenant table is protected, and protected against its owner too')
     const unprotected = psql(
-      adminUrl(PROBE_DB),
+      adminUrl(scratch),
       `SELECT c.relname
          FROM pg_class c
          JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -156,13 +382,13 @@ function main() {
     assert(unprotected === '', `no table with a businessId column is left without forced RLS${unprotected ? `: ${unprotected.split('\n').join(', ')}` : ''}`)
 
     const tenantTables = Number(psql(
-      adminUrl(PROBE_DB),
+      adminUrl(scratch),
       `SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND column_name='businessId'`,
     ))
     assert(tenantTables >= 50, `checked every tenant table (${tenantTables} carry businessId)`)
 
     const policyless = psql(
-      adminUrl(PROBE_DB),
+      adminUrl(scratch),
       `SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
         WHERE n.nspname='public' AND c.relkind='r'
           AND EXISTS (SELECT 1 FROM information_schema.columns col
@@ -172,22 +398,12 @@ function main() {
     )
     assert(policyless === '', `every tenant table has a tenant_isolation policy${policyless ? `: ${policyless.split('\n').join(', ')}` : ''}`)
 
-    console.log('\n4. Choosing two real tenants from the copied data')
-    const tenants = psql(adminUrl(PROBE_DB), `SELECT id FROM "Business" ORDER BY "createdAt" NULLS LAST, id LIMIT 2`).split('\n').filter(Boolean)
-    if (tenants.length < 2) {
-      // Nothing to isolate. Say so plainly rather than reporting a green run that
-      // never proved anything: this is a skip, not a pass.
-      console.log('RLS enforcement tests: SKIPPED (the source database holds fewer than two businesses)')
-      process.exitCode = 3
-      return
-    }
-    const [tenantA, tenantB] = tenants
-
     console.log('\n5. The runtime role only ever sees the tenant it was given')
+    const [tenantA, tenantB] = FIXTURES.tenants.map((t) => t.id)
     for (const [label, tenant] of [['A', tenantA], ['B', tenantB]] as const) {
-      const expectedAppointments = ids(adminUrl(PROBE_DB), 'Appointment', 'id', tenant)
-      const seen = psqlTx(
-        appUrl(PROBE_DB),
+      const expectedAppointments = ids(adminUrl(scratch), 'Appointment', 'id', tenant)
+      assert(expectedAppointments.length === 1, `tenant ${label} has exactly one fixture appointment (got ${expectedAppointments.length})`)
+      const seen = psqlAppTx(
         `BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT coalesce(string_agg(id, E'\\n' ORDER BY id), '') FROM "Appointment"; COMMIT;`,
       ).split('\n').filter(Boolean)
       assert(
@@ -195,73 +411,93 @@ function main() {
         `tenant ${label} sees exactly its own ${expectedAppointments.length} appointment(s)`,
       )
 
-      const businessRows = psqlTx(appUrl(PROBE_DB), `BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT count(*) FROM "Business"; COMMIT;`)
+      const businessRows = psqlAppTx(`BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT count(*) FROM "Business"; COMMIT;`)
       assert(businessRows === '1', `tenant ${label} sees exactly one Business row (got ${businessRows})`)
     }
 
     console.log('\n6. A session with no tenant set sees nothing at all (fail closed)')
-    const unset = psql(appUrl(PROBE_DB), `SELECT count(*) FROM "Appointment"`)
+    const unset = psqlApp(`SELECT count(*) FROM "Appointment"`)
     assert(unset === '0', `no tenant set returns no appointments (got ${unset})`)
 
     console.log('\n7. A forged tenant cannot be written, updated or deleted')
-    const foreignBarber = psql(adminUrl(PROBE_DB), `SELECT id FROM "Barber" WHERE "businessId" = '${tenantB}' LIMIT 1`)
-    const foreignService = psql(adminUrl(PROBE_DB), `SELECT id FROM "Service" WHERE "businessId" = '${tenantB}' LIMIT 1`)
-    if (foreignBarber && foreignService) {
+    const foreignBarber = psql(adminUrl(scratch), `SELECT id FROM "Barber" WHERE "businessId" = '${tenantB}' LIMIT 1`)
+    const foreignService = psql(adminUrl(scratch), `SELECT id FROM "Service" WHERE "businessId" = '${tenantB}' LIMIT 1`)
+    assert(foreignBarber !== '' && foreignService !== '', 'the other tenant has a barber and a service to attack')
+    {
       const insertError = psqlExpectFailure(
-        appUrl(PROBE_DB),
+        appUrl(scratch),
         `BEGIN; SET LOCAL app.business_id = '${tenantA}';
          INSERT INTO "Service" (id, "businessId", name, duration, price, "isActive", "order", "createdAt", "updatedAt")
          VALUES ('rls_probe_service', '${tenantB}', 'Probe', 30, 10, true, 0, now(), now()); COMMIT;`,
+        true,
       )
       assert(insertError !== '', 'a write into another tenant is refused by the database')
-      const landed = psql(adminUrl(PROBE_DB), `SELECT count(*) FROM "Service" WHERE id = 'rls_probe_service'`)
+      const landed = psql(adminUrl(scratch), `SELECT count(*) FROM "Service" WHERE id = 'rls_probe_service'`)
       assert(landed === '0', 'the refused write left no row behind')
 
-      const updated = psqlTx(
-        appUrl(PROBE_DB),
+      const updated = psqlAppTx(
         `BEGIN; SET LOCAL app.business_id = '${tenantA}';
          WITH changed AS (UPDATE "Service" SET name = 'Hijacked' WHERE "businessId" = '${tenantB}' RETURNING 1)
          SELECT count(*) FROM changed; COMMIT;`,
       )
       assert(updated === '0', `a cross-tenant update changes no rows (got ${updated})`)
 
-      const deleted = psqlTx(
-        appUrl(PROBE_DB),
+      const deleted = psqlAppTx(
         `BEGIN; SET LOCAL app.business_id = '${tenantA}';
          WITH gone AS (DELETE FROM "Service" WHERE "businessId" = '${tenantB}' RETURNING 1)
          SELECT count(*) FROM gone; COMMIT;`,
       )
       assert(deleted === '0', `a cross-tenant delete removes no rows (got ${deleted})`)
-      const survived = psql(adminUrl(PROBE_DB), `SELECT count(*) FROM "Service" WHERE "businessId" = '${tenantB}'`)
+      const survived = psql(adminUrl(scratch), `SELECT count(*) FROM "Service" WHERE "businessId" = '${tenantB}'`)
       assert(Number(survived) > 0, 'the other tenant still has its services')
     }
 
     console.log('\n8. The tenant setting never survives its transaction (pooled connections stay safe)')
-    const leaked = psqlTx(
-      appUrl(PROBE_DB),
+    const leaked = psqlAppTx(
       `BEGIN; SET LOCAL app.business_id = '${tenantA}'; COMMIT; SELECT coalesce(current_setting('app.business_id', true), '')`,
     )
     assert(leaked === '', `app.business_id is cleared after commit (saw "${leaked}")`)
 
+    const rolledBack = psqlAppTx(
+      `BEGIN; SET LOCAL app.business_id = '${tenantB}'; ROLLBACK; SELECT coalesce(current_setting('app.business_id', true), '')`,
+    )
+    assert(rolledBack === '', `app.business_id is cleared after rollback (saw "${rolledBack}")`)
+
+    const contamination = psqlAppTx(
+      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; COMMIT;
+       BEGIN; SELECT count(*) FROM "Appointment"; COMMIT;`,
+    )
+    assert(contamination === '0', `the next transaction starts with no tenant (saw ${contamination})`)
+
+    // One session: a transaction that blows up and is rolled back must leave no
+    // tenant behind for the transaction that follows it on the same connection.
+    const failedTx = psqlAppScript(
+      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; SELECT 1/0; ROLLBACK;
+       BEGIN; SELECT count(*) FROM "Appointment"; COMMIT;`,
+    )
+    assert(failedTx === '0', `a failed transaction leaves no tenant context behind (saw ${failedTx})`)
+    assert(failedTx === '0', 'a failed transaction leaves no tenant context behind')
+
     console.log('\n9. The runtime role cannot change the schema')
-    const ddlError = psqlExpectFailure(appUrl(PROBE_DB), 'CREATE TABLE rls_probe_ddl (id int)')
-    assert(ddlError !== '', 'barber_app cannot create tables')
+    const ddlError = psqlExpectFailure(appUrl(scratch), 'CREATE TABLE rls_probe_ddl (id int)', true)
+    assert(ddlError !== '', `${APP_USER} cannot create tables`)
 
     console.log('\n10. Support access still works when it is asked for explicitly')
-    const staff = psqlTx(
-      appUrl(PROBE_DB),
+    const staff = psqlAppTx(
       `BEGIN; SET LOCAL app.platform_staff = '1'; SELECT count(DISTINCT "businessId") FROM "Appointment"; COMMIT;`,
     )
     assert(Number(staff) >= 2, `platform staff sees every tenant when it sets app.platform_staff (${staff} tenants)`)
   } finally {
-    try {
-      psql(adminUrl('postgres'), `DROP DATABASE IF EXISTS "${PROBE_DB}"`)
-    } catch {
-      console.log(`  note: could not drop ${PROBE_DB}; drop it by hand`)
+    if (created) {
+      try {
+        psql(adminUrl('postgres'), `DROP DATABASE IF EXISTS "${scratch}"`)
+      } catch {
+        console.error(`  note: the scratch database ${scratch} could not be dropped; drop it by hand`)
+        if (failed === 0 && !process.exitCode) process.exitCode = 1
+      }
     }
   }
 
-  if (process.exitCode === 3) return
   console.log(`\nRLS enforcement tests: ${passed} passed, ${failed} failed`)
   if (failed > 0) {
     for (const failure of failures) console.log(`  - ${failure}`)
@@ -269,4 +505,13 @@ function main() {
   process.exit(failed === 0 ? 0 : 1)
 }
 
-main()
+try {
+  main()
+} catch (error) {
+  // An unexpected throw is a failure, never a silent skip, and it must not hide
+  // behind a stack trace: the scratch database has already been dropped by the
+  // finally block above.
+  console.error('RLS enforcement tests: FAIL (the run could not be completed)')
+  console.error(`  ${error instanceof Error ? error.message.split('\n')[0] : 'unknown error'}`)
+  process.exitCode = 1
+}

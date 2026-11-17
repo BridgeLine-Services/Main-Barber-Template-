@@ -9,7 +9,7 @@
  */
 
 import {
-  ENV_REGISTRY, blockingEvaluations, describeValue, evaluateAll, evaluateVar,
+  ENV_CATEGORIES, ENV_REGISTRY, blockingEvaluations, describeValue, evaluateAll, evaluateVar,
   getEnvSpec, isPresent, normalizeEnvironment, resolveEffective,
 } from '../src/lib/env-registry'
 
@@ -35,8 +35,15 @@ console.log('\n📦 The registry is internally consistent')
 {
   const names = ENV_REGISTRY.map((s) => s.name)
   assert(new Set(names).size === names.length, 'no variable is declared twice')
-  const allowed = new Set(['CORE','SECURITY','DATABASE','STORAGE','PAYMENTS','EMAIL','SMS','GOOGLE','SCHEDULED_TASKS','OBSERVABILITY','TENANT_CONFIGURATION','INTERNAL','DEVELOPMENT_ONLY','PLATFORM_MANAGED','RETIRED'])
-  assert(ENV_REGISTRY.every((s) => allowed.has(s.category)), 'every category is one of the fifteen declared')
+  // The allowed set is the registry's own exported list, never a copy: a hand
+  // maintained duplicate silently rejected BACKUP and ALERTS, which is exactly
+  // the drift this test exists to catch.
+  const allowed = new Set<string>(ENV_CATEGORIES)
+  assert(allowed.size === ENV_CATEGORIES.length, 'the category list has no duplicate entry')
+  assert(allowed.size === 17, `all seventeen categories are declared (found ${allowed.size})`)
+  assert(ENV_REGISTRY.every((s) => allowed.has(s.category)), 'every category is one of the declared ones')
+  const unused = [...allowed].filter((c) => !ENV_REGISTRY.some((s) => s.category === c))
+  assert(unused.length === 0, `every declared category is used by at least one variable${unused.length ? `: unused ${unused.join(', ')}` : ''}`)
   assert(ENV_REGISTRY.every((s) => !(s.secret && s.public)), 'no variable is both secret and public')
   assert(ENV_REGISTRY.filter((s) => s.name.startsWith('NEXT_PUBLIC_')).every((s) => !s.secret), 'nothing in NEXT_PUBLIC_* is a secret')
   assert(ENV_REGISTRY.every((s) => s.howToFix.trim().length > 0 && s.howToObtain.trim().length > 0), 'every variable says how to get it and how to fix it')
