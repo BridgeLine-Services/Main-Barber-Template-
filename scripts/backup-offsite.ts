@@ -128,7 +128,6 @@ export async function listManifests(storage: BackupStorage): Promise<{ manifests
 export async function runOffsiteBackup(options: OffsiteBackupOptions): Promise<OffsiteBackupResult> {
   const log = safeLog(options)
   const now = options.now ?? new Date()
-  const outDir = options.outDir ?? 'backups'
   const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
   const id = `db-${stamp}`
   const objectKey = `${DB_PREFIX}${id}.sql.gz.enc`
@@ -152,7 +151,6 @@ export async function runOffsiteBackup(options: OffsiteBackupOptions): Promise<O
   try {
     log(`[offsite] step 1/9: dump database into memory`)
     const dump = (options.dump ?? dumpToBuffer)(options.dbUrl)
-    const dumpText = dump.toString('utf8')
 
     log('[offsite] step 2/9: compress and encrypt')
     const plaintext = gzipSync(dump)

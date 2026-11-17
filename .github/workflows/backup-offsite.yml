@@ -1,0 +1,85 @@
+# Independent off-site backup (Part 3 layer 2, Part 10 scheduling).
+#
+# Why here and not Vercel cron: a dump + encrypt + upload + read-back + restore of
+# a real database outlives a serverless invocation, and a cron entry that times out
+# is worse than no cron at all. This job runs on a runner, so it can take as long
+# as the database needs.
+#
+# Configure these repository secrets (Settings -> Secrets and variables -> Actions):
+#   DATABASE_URL                  read-only connection string for the dump
+#   BACKUP_ENCRYPTION_KEY         `openssl rand -base64 32`, stored in a password manager too
+#   BACKUP_STORAGE_DRIVER         s3 (or localfs with a mounted volume)
+#   BACKUP_S3_ENDPOINT, BACKUP_S3_REGION, BACKUP_S3_BUCKET
+#   BACKUP_S3_ACCESS_KEY_ID, BACKUP_S3_SECRET_ACCESS_KEY
+# Until DATABASE_URL exists the job exits 0 with a notice: an unconfigured backup
+# is a gap to report, not a red build that trains people to ignore alerts.
+name: Off-site backup
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # 03:17 UTC daily, off the hour to avoid provider peaks
+  workflow_dispatch:
+
+concurrency:
+  group: offsite-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Not configured?
+        id: config
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::Off-site backups are not configured yet. See docs/DISASTER-RECOVERY.md section 2."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install PostgreSQL client tools
+        if: steps.config.outputs.configured == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Dump, encrypt, upload, read back, restore-verify
+        if: steps.config.outputs.configured == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.BACKUP_STORAGE_DRIVER }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_VERIFY_RESTORE: 'true'
+        run: npm run db:backup:offsite
+      - name: Freshness watchdog
+        if: steps.config.outputs.configured == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_MAX_AGE_HOURS: '30'
+        run: npm run db:backup:freshness
+      - name: Notify on failure
+        if: failure()
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ]; then
+            echo "::error::The backup failed and no independent alert channel is configured (ALERT_WEBHOOK_URL)."
+            exit 1
+          fi
+          curl -sS -m 10 -X POST "$ALERT_WEBHOOK_URL" \
+            -H 'content-type: application/json' \
+            --data '{"severity":"critical","event":"backup.failed","source":"github-actions","message":"Off-site backup failed. See the workflow run for detail. Shop operations are unaffected."}'

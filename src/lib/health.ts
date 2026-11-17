@@ -186,6 +186,23 @@ export function checkBackupEncryption(): HealthCheckResult {
 }
 
 /** Optional integrations: reported, never allowed to fail readiness. */
+/**
+ * Alert delivery (Part 7). Optional on purpose: a shop with no monitoring webhook
+ * still runs. Reported as `not_configured` so an operator can see the gap without
+ * the owner being told their shop is broken.
+ */
+export function checkAlerting(env: Record<string, string | undefined> = process.env): HealthCheckResult {
+  const primary = Boolean(env.OBSERVABILITY_WEBHOOK_URL?.trim())
+  const independent = Boolean(env.ALERT_WEBHOOK_URL?.trim())
+  if (primary && independent) {
+    return { name: 'alerting', role: 'optional', status: 'ok', detail: 'Critical alerts go to two independent channels.' }
+  }
+  if (primary || independent) {
+    return { name: 'alerting', role: 'optional', status: 'not_configured', detail: 'Only one alert channel is configured, so an outage of that provider would silence alerts.' }
+  }
+  return { name: 'alerting', role: 'optional', status: 'not_configured', detail: 'No alert channel is configured, so nobody would be told if a backup failed.' }
+}
+
 export function checkOptionalIntegrations(): HealthCheckResult[] {
   const results: HealthCheckResult[] = []
   const smtp = Boolean(process.env.SMTP_HOST?.trim() && process.env.SMTP_USER?.trim())
@@ -231,6 +248,7 @@ export async function buildReadinessReport(now: Date = new Date()): Promise<Read
     backup,
     checkMediaStorage(),
     checkBackupEncryption(),
+    checkAlerting(),
     ...checkOptionalIntegrations(),
   ]
 

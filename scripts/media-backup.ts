@@ -13,7 +13,7 @@
 // See docs/DISASTER-RECOVERY.md § 3.
 // ============================================================================
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+
 import { join } from 'node:path'
 import { list } from '@vercel/blob'
 import { createStorageFromEnv, type BackupStorage } from './lib/backup-storage'
@@ -38,6 +38,11 @@ export interface MediaBackupResult {
   unchanged: number
   missing: string[]
   bytesCopied: number
+}
+
+/** A missing photo-provider credential is a gap to report, not a failure to alert on. */
+function isConfigurationGap(message: string): boolean {
+  return /not configured|is unset|is not set/i.test(message)
 }
 
 async function defaultListBlobs() {
@@ -152,6 +157,14 @@ async function main(): Promise<number> {
     return 0
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
+    if (isConfigurationGap(message)) {
+      // Same rule as the database backup: an unconfigured destination means there
+      // is no independent copy yet. Say so plainly, do not page anyone, and never
+      // pretend the run succeeded.
+      console.error(`[media] NOT CONFIGURED: ${message}`)
+      console.error('[media] See docs/DISASTER-RECOVERY.md § 3 for the exact variables.')
+      return 3
+    }
     console.error(`[media] FAILED: ${message}`)
     await sendAlert({
       event: 'media_backup_failed',

@@ -55,6 +55,11 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run license:inventory
       - run: npm run architecture:check
+      # Deployment protection: the newest migration must be backward compatible, so
+      # a rollback or a slow rollout still works against the new schema.
+      - run: npm run deploy:migration-check
+      # Every Prisma model must be classified before RLS could ever be planned.
+      - run: npm run rls:plan
       - run: npm run test:architecture
       - run: npm run lint
       - run: npm run typecheck
