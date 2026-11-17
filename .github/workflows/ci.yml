@@ -55,6 +55,11 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run license:inventory
       - run: npm run architecture:check
+      # Deployment protection: the newest migration must be backward compatible, so
+      # a rollback or a slow rollout still works against the new schema.
+      - run: npm run deploy:migration-check
+      # Every Prisma model must be classified before RLS could ever be planned.
+      - run: npm run rls:plan
       - run: npm run test:architecture
       - run: npm run lint
       - run: npm run typecheck
@@ -67,6 +72,36 @@ jobs:
       # and friends, 11 suites).
       - run: npx prisma migrate deploy
       - run: npm run test:ci
+      # Backup reliability gates (reliability hardening, Part 3):
+      #   • cleanup runs on every failure path (scratch databases and temp dumps
+      #     cannot leak when a restore fails) — tests/backup-failure-modes
+      #   • encrypted off-site round trip with read-back verification, plus
+      #     retention that refuses to delete the last verified copy
+      #   • owner-facing status wording stays free of infrastructure language
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - run: npm run test:backup
+      - run: npm run test:operations
+      # End-to-end off-site backup against the seeded database: dump -> gzip ->
+      # AES-256-GCM -> upload -> read back -> restore into a scratch database ->
+      # retention -> recorded history. BACKUP_VERIFY_RESTORE makes the restore
+      # part of the run, so a backup is never merely "uploaded" in CI.
+      - name: Off-site backup round trip (local storage)
+        env:
+          BACKUP_STORAGE_DRIVER: localfs
+          BACKUP_LOCAL_DIR: ${{ github.workspace }}/offsite-backups
+          BACKUP_ENCRYPTION_KEY: ${{ github.workspace != '' && 'Y2ktb25seS1iYWNrdXAtZW5jcnlwdGlvbi1rZXktMzJieXRlcyE=' || '' }}
+          BACKUP_VERIFY_RESTORE: 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p offsite-backups
+          npm run db:backup:offsite
+          ls -la offsite-backups/database | head -20
+          test -n "$(ls -A offsite-backups/database)" || { echo "::error::no backup object was written"; exit 1; }
+      - name: Backup freshness watchdog
+        env:
+          BACKUP_MAX_AGE_HOURS: '30'
+        run: npm run db:backup:freshness
       - run: npm run build
       # Owner-registration journey (live-server suite, docs/TESTING.md):
       # boots the REAL production build on :3000 in onboarding mode with a

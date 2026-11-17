@@ -2,6 +2,7 @@ import { isIP } from 'node:net'
 import { NextResponse } from 'next/server'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
+import { sendAlert, sendRecoveryAlert } from './alerts'
 
 export interface RateLimitConfig {
   windowMs: number
@@ -54,6 +55,86 @@ export function setRateLimitStoreForTest(client: unknown) {
 const localWindows = new Map<string, { count: number; resetAt: number }>()
 const MAX_LOCAL_KEYS = 10_000
 
+// ── Outage tracking ─────────────────────────────────────────────────────────
+// A fail-closed limiter protects the app, but it also hides the outage from the
+// people running the shop: customers see "try again shortly" and nothing is
+// recorded. This state answers "is the shared store healthy right now, since
+// when, and did it come back?" without ever holding a credential.
+// Alerts are raised once per outage (not per request) and a recovery notice is
+// sent when the store answers again, so a flapping provider cannot flood the
+// channel.
+const OUTAGE_ALERT_THRESHOLD = 3
+interface StoreRuntimeState {
+  consecutiveFailures: number
+  totalFailures: number
+  totalSuccesses: number
+  lastFailureAt: string | null
+  lastSuccessAt: string | null
+  lastFailureMessage: string | null
+  outageAlertedAt: string | null
+}
+const storeState: StoreRuntimeState = {
+  consecutiveFailures: 0,
+  totalFailures: 0,
+  totalSuccesses: 0,
+  lastFailureAt: null,
+  lastSuccessAt: null,
+  lastFailureMessage: null,
+  outageAlertedAt: null,
+}
+
+/** Redacted snapshot for readiness/status screens. Never includes credentials. */
+export function getRateLimitStoreRuntimeState(): StoreRuntimeState & { degraded: boolean } {
+  return { ...storeState, degraded: storeState.consecutiveFailures > 0 }
+}
+
+export function resetRateLimitStoreRuntimeStateForTest() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('resetRateLimitStoreRuntimeStateForTest is not available in production')
+  }
+  Object.assign(storeState, {
+    consecutiveFailures: 0, totalFailures: 0, totalSuccesses: 0,
+    lastFailureAt: null, lastSuccessAt: null, lastFailureMessage: null, outageAlertedAt: null,
+  })
+}
+
+function recordStoreSuccess() {
+  const recovering = storeState.consecutiveFailures > 0
+  storeState.consecutiveFailures = 0
+  storeState.totalSuccesses += 1
+  storeState.lastSuccessAt = new Date().toISOString()
+  if (recovering) {
+    storeState.outageAlertedAt = null
+    void sendRecoveryAlert(
+      'rate_limit_store_unavailable',
+      'The shared rate-limit store is answering again. Sign-in, registration and booking are back to normal.',
+      { dependency: 'redis' },
+    ).catch(() => {})
+  }
+}
+
+function recordStoreFailure(message: string) {
+  storeState.consecutiveFailures += 1
+  storeState.totalFailures += 1
+  storeState.lastFailureAt = new Date().toISOString()
+  // Keep the operator detail short and credential-free; provider messages can
+  // embed the REST URL, so only the shape is retained.
+  storeState.lastFailureMessage = /timeout|timed out/i.test(message) ? 'timeout' : 'connection failed'
+  if (storeState.consecutiveFailures === OUTAGE_ALERT_THRESHOLD) {
+    storeState.outageAlertedAt = new Date().toISOString()
+    void sendAlert({
+      event: 'rate_limit_store_unavailable',
+      severity: 'critical',
+      summary: 'The shared rate-limit store is not answering. Booking, sign-in and registration are temporarily refusing requests so no limit can be bypassed.',
+      context: {
+        dependency: 'redis',
+        consecutiveFailures: storeState.consecutiveFailures,
+        failureKind: storeState.lastFailureMessage,
+      },
+    }).catch(() => {})
+  }
+}
+
 export function isAuthorizedCILocalMode(env: Record<string, string | undefined> = process.env): boolean {
   return env.CI === 'true' && env.GITHUB_ACTIONS === 'true' && env.VERCEL !== '1' && env.RATE_LIMIT_CI_IN_MEMORY === 'true'
 }
@@ -92,6 +173,7 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
 
   try {
     const result = await new Ratelimit({ redis, limiter: algorithm(config), prefix: 'barber:rate-limit' }).limit(key)
+    recordStoreSuccess()
     return {
       allowed: result.success,
       remaining: Math.max(0, result.remaining),
@@ -99,7 +181,11 @@ export async function rateLimit(key: string, config: RateLimitConfig): Promise<R
       reason: result.success ? 'ok' : 'exceeded',
     }
   } catch (error) {
+    recordStoreFailure(error instanceof Error ? error.message : 'unknown error')
     console.error('[rate-limit] shared store unavailable', error instanceof Error ? error.message : 'unknown error')
+    // Fail CLOSED and unchanged: an outage must never widen a limit. Only the
+    // reason code tells the difference between "you tried too often" and "we
+    // could not ask", and 429 vs 503 follows from it.
     return { allowed: false, remaining: 0, resetAt: Date.now() + config.windowMs, reason: 'store_unavailable' }
   }
 }
@@ -229,9 +315,13 @@ export async function checkRateLimitStoreHealth(): Promise<RateLimitStoreHealth>
   try {
     // PING is the cheapest round trip Upstash supports.
     const reply = await redis.ping()
-    if (String(reply).toUpperCase() === 'PONG') return { state: 'ok', configured: true }
+    if (String(reply).toUpperCase() === 'PONG') {
+      recordStoreSuccess()
+      return { state: 'ok', configured: true }
+    }
     return { state: 'unreachable', configured: true, message: 'Store answered but not with PONG' }
   } catch (error) {
+    recordStoreFailure(error instanceof Error ? error.message : 'unknown error')
     // Deliberately generic: this string can reach an owner-facing screen.
     console.error('[rate-limit] health probe failed', error instanceof Error ? error.message : 'unknown error')
     return { state: 'unreachable', configured: true, message: 'Store did not answer' }
