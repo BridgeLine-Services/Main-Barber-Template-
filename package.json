@@ -98,7 +98,8 @@
     "rls:plan": "npx tsx scripts/rls-plan.ts --check",
     "test:brand": "npx tsx tests/brand-assistant.test.ts",
     "test:guidance": "npx tsx tests/seo-health.test.ts",
-    "program:status": "node scripts/program-status.mjs"
+    "program:status": "node scripts/program-status.mjs",
+    "test:evidence": "node scripts/regression-evidence.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
