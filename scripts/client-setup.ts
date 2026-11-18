@@ -193,6 +193,12 @@ async function main() {
 
   // ── Step 3: database ───────────────────────────────────────────────────────
   console.log('Step 3 — Database')
+  // Neon supplies this value through the Vercel integration, so the common case is that
+  // it is already here and the owner never sees a prompt. The hint exists for the case
+  // where it is missing: an owner should not have to know what a connection string is.
+  console.log('  This is the address of your shop\'s database. If you connected Neon to')
+  console.log('  Vercel, the value is already in place and you can press Enter to keep it.')
+  console.log('  Otherwise see docs/NEON-VERCEL-SETUP.md, step 1.')
   const existing = readLocalEnvFile()
   let databaseUrl = resolveEffective('DATABASE_URL').value ?? existing.DATABASE_URL
   if (!isPresent(databaseUrl)) {
