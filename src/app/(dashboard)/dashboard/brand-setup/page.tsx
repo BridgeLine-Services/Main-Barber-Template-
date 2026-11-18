@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireOwner } from '@/lib/auth-helpers'
 import { BrandSetupWizard } from '@/components/dashboard/BrandSetupWizard'
+import { StyleCompare } from '@/components/dashboard/StyleCompare'
 
 /**
  * Brand setup: a guided start for owners who do not want to guess.
@@ -38,6 +39,7 @@ export default async function BrandSetupPage() {
         </p>
       </div>
       <BrandSetupWizard currentStyle={content?.visualPreset ?? null} />
+      <StyleCompare currentStyle={content?.visualPreset ?? null} />
     </div>
   )
 }
