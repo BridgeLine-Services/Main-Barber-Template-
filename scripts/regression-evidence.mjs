@@ -12,6 +12,7 @@
  *   node scripts/regression-evidence.mjs            # unit/integration suites in tests/
  *   node scripts/regression-evidence.mjs --with-e2e # also runs the API-level e2e scripts
  *   node scripts/regression-evidence.mjs --list     # only list what would run
+ *   node scripts/regression-evidence.mjs --concurrency=6 --timeout-ms=600000
  *
  * Exit code: 0 when every suite passed, 1 when anything failed, 2 when nothing ran.
  */
@@ -21,8 +22,15 @@ import { readdirSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.cwd()
-const CONCURRENCY = Number(process.env.EVIDENCE_CONCURRENCY || 3)
-const TIMEOUT_MS = Number(process.env.EVIDENCE_TIMEOUT_MS || 300_000)
+// Tuning is CLI-only on purpose: env vars read by the source must be declared in
+// src/lib/env-registry.ts, and these are operator knobs for one run, not settings
+// a deployment ever needs to carry.
+function flag(name, fallback) {
+  const hit = process.argv.find((arg) => arg.startsWith(`--${name}=`))
+  return hit ? Number(hit.split('=')[1]) : fallback
+}
+const CONCURRENCY = flag('concurrency', 3)
+const TIMEOUT_MS = flag('timeout-ms', 300_000)
 const withE2E = process.argv.includes('--with-e2e')
 const listOnly = process.argv.includes('--list')
 
