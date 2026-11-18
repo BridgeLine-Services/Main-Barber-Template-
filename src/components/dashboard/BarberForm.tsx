@@ -24,6 +24,18 @@ interface BarberFormProps {
   onSave: () => void
 }
 
+// The preview shows a value that arrives from a file picker or from the saved record,
+// so its scheme is checked before it is used as an image source. A blob from this page,
+// an inline data: image and an ordinary http(s) URL are all fine; anything else is not
+// rendered at all rather than handed to the browser.
+function safePhotoPreview(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (trimmed.startsWith('blob:')) return true
+  if (/^data:image\//i.test(trimmed)) return true
+  return /^https?:\/\//i.test(trimmed)
+}
+
 export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps) {
   const isEdit = Boolean(barber?.id)
 
@@ -220,8 +232,7 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               </Button>
             </div>
             {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
-            {photo && (
-               
+            {photo && safePhotoPreview(photo) && (
               <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-input" />
             )}
           </div>

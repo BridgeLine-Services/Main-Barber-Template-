@@ -316,7 +316,7 @@ export default function MediaPage({ initialType = 'GALLERY', title = 'Media Gall
                 <CardTitle className="text-lg">Edit Image</CardTitle>
                 {TYPE_ROLE[editing.type] && (
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--dash-brand)]/90">
-                    Renders {IMAGE_ROLES[TYPE_ROLE[editing.type]!].aspect.replace('aspect-[', '').replace(']', '').replace('/', ':')} · {IMAGE_ROLES[TYPE_ROLE[editing.type]!].priority ? 'above the fold' : 'standard'}
+                    Renders {IMAGE_ROLES[TYPE_ROLE[editing.type]!].aspect.replace(/^aspect-\[/, '').replace(/\]/g, '').replace('/', ':')} · {IMAGE_ROLES[TYPE_ROLE[editing.type]!].priority ? 'above the fold' : 'standard'}
                   </span>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>

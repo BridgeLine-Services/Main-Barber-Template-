@@ -34,6 +34,17 @@ const TIMEOUT_MS = flag('timeout-ms', 300_000)
 const withE2E = process.argv.includes('--with-e2e')
 const listOnly = process.argv.includes('--list')
 
+// A Markdown table cell has to survive whatever a suite printed. Escaping only the
+// pipe (which is what this did first, and CodeQL js/incomplete-sanitization rightly
+// flagged) leaves a trailing backslash able to swallow the column separator, so the
+// backslash is escaped first, then the pipe, then newlines are flattened to spaces.
+function cell(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ')
+}
+
 function filesIn(dir, filter) {
   if (!existsSync(dir)) return []
   return readdirSync(dir, { withFileTypes: true })
@@ -134,7 +145,7 @@ const lines = [
   '| --- | --- | --- | --- |',
   ...results.map(
     (r) =>
-      `| \`${r.file}\` | ${r.code === 0 ? 'pass' : r.signal ? `killed (${r.signal})` : `fail (exit ${r.code})`} | ${r.summary.replace(/\|/g, '\\|')} | ${(r.ms / 1000).toFixed(1)}s |`,
+      `| \`${cell(r.file)}\` | ${r.code === 0 ? 'pass' : r.signal ? `killed (${r.signal})` : `fail (exit ${r.code})`} | ${cell(r.summary)} | ${(r.ms / 1000).toFixed(1)}s |`,
   ),
   '',
   failed.length === 0
