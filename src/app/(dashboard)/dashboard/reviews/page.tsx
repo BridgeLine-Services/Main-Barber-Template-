@@ -4,6 +4,13 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { canManageBusiness } from '@/lib/permissions'
 import { ReviewsClient, type Barber, type Review } from './ReviewsClient'
+import { ReviewInvites } from './ReviewInvites'
+import {
+  getReviewRequestSummary,
+  listReviewRequests,
+  type ReviewRequestListRow,
+  type ReviewRequestSummary,
+} from '@/lib/review-requests'
 
 export default async function ReviewsPage() {
   const session = await getServerSession(authOptions)
@@ -21,6 +28,10 @@ export default async function ReviewsPage() {
   let barbers: Barber[] = []
   let avgRating = '0.0'
   let total = 0
+  // Invites load separately from reviews so a problem with one never blanks the other.
+  let inviteSummary: ReviewRequestSummary | null = null
+  let inviteRows: ReviewRequestListRow[] = []
+  let inviteLoadFailed = false
 
   try {
     const [rawReviews, rawBarbers] = await Promise.all([
@@ -60,5 +71,24 @@ export default async function ReviewsPage() {
     console.error('Failed to load reviews:', error)
   }
 
-  return <ReviewsClient initialReviews={reviews} barbers={barbers} avgRating={avgRating} total={total} businessId={user.businessId} />
+  try {
+    const [summary, list] = await Promise.all([
+      getReviewRequestSummary(user.businessId),
+      listReviewRequests(user.businessId, { take: 10 }),
+    ])
+    inviteSummary = summary
+    inviteRows = list.rows
+  } catch (error) {
+    // Never a stack trace for the owner: the panel says it could not load, and the
+    // reviews list below still works.
+    console.error('Failed to load review invites:', error)
+    inviteLoadFailed = true
+  }
+
+  return (
+    <div className="space-y-6">
+      <ReviewInvites summary={inviteSummary} rows={inviteRows} loadFailed={inviteLoadFailed} />
+      <ReviewsClient initialReviews={reviews} barbers={barbers} avgRating={avgRating} total={total} businessId={user.businessId} />
+    </div>
+  )
 }
