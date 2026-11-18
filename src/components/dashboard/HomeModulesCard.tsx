@@ -16,6 +16,12 @@ import {
   type ModuleSettings,
   type StoredHomeModules,
 } from '@/lib/home-modules'
+import {
+  recommendationDiff,
+  recommendForStage,
+  stageRecommendations,
+  type BusinessStage,
+} from '@/lib/home-recommendations'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Homepage sections manager — owner-facing module system UI.
@@ -131,6 +137,32 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
     commit(next)
   }
 
+  // Suggested layouts (Part 5.3). Advisory: nothing is applied until the owner
+  // presses the button, and what it produces is still only a draft.
+  const [suggestStage, setSuggestStage] = useState<BusinessStage>('growing')
+  const suggestion = useMemo(() => recommendForStage(suggestStage), [suggestStage])
+  const suggestionDiff = useMemo(
+    () => recommendationDiff(modules.filter((m) => m.enabled).map((m) => m.id), suggestion.modules),
+    [modules, suggestion]
+  )
+
+  const applySuggestion = () => {
+    const order = suggestion.modules
+    const byId = new Map(modules.map((m) => [m.id, m]))
+    const next: HomeModule[] = []
+    // Recommended sections first, in the recommended order, switched on.
+    for (const id of order) {
+      const existing = byId.get(id)
+      if (existing) next.push({ ...existing, enabled: true })
+    }
+    // Everything else keeps its settings but is switched off, so nothing is lost
+    // and the owner can switch a section straight back on.
+    for (const m of modules) {
+      if (!order.includes(m.id)) next.push({ ...m, enabled: ALWAYS_ON_MODULES.includes(m.id) })
+    }
+    commit(next)
+  }
+
   const setSettings = (id: HomeModuleId, patch: Partial<ModuleSettings>) => {
     commit(
       modules.map((m) =>
@@ -171,6 +203,54 @@ export function HomeModulesCard({ websiteContent, setWebsiteContent }: HomeModul
             </span>
           )}
         </p>
+
+        <div className="mb-4 rounded-lg border border-border bg-[var(--dash-surface)]/40 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-sm font-medium text-foreground" htmlFor="suggest-stage">
+              Suggested layout for
+            </label>
+            <select
+              id="suggest-stage"
+              value={suggestStage}
+              onChange={(event) => setSuggestStage(event.target.value as BusinessStage)}
+              className="rounded-md border border-input bg-transparent px-2 py-1 text-sm text-foreground"
+            >
+              {stageRecommendations().map((rec) => (
+                <option key={rec.stage} value={rec.stage}>
+                  {rec.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{suggestion.suits}</p>
+          <ul className="mt-2 space-y-0.5">
+            {suggestion.reasons.map((reason, index) => (
+              <li key={`${suggestion.modules[index]}-${reason}`} className="text-xs text-muted-foreground">
+                {index + 1}. {reason}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {suggestionDiff.add.length > 0
+              ? `This would turn on: ${suggestionDiff.add
+                  .map((id) => MODULE_META[id].label)
+                  .join(', ')}. `
+              : 'Every suggested section is already on. '}
+            {suggestionDiff.remove.length > 0
+              ? `It would turn off: ${suggestionDiff.remove
+                  .map((id) => MODULE_META[id].label)
+                  .join(', ')}. Those keep their settings, so you can switch them back on. `
+              : ''}
+            It also sets the order shown below. Nothing goes live until you publish.
+          </p>
+          <button
+            type="button"
+            onClick={applySuggestion}
+            className="mt-2 rounded-lg border border-input px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-[var(--dash-hover)]"
+          >
+            Use the {suggestion.label.toLowerCase()} layout
+          </button>
+        </div>
 
         <ol className="space-y-2" aria-label="Homepage section order">
           {modules.map((m, index) => {
