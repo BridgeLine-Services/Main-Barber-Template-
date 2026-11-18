@@ -24,16 +24,26 @@ interface BarberFormProps {
   onSave: () => void
 }
 
-// The preview shows a value that arrives from a file picker or from the saved record,
-// so its scheme is checked before it is used as an image source. A blob from this page,
-// an inline data: image and an ordinary http(s) URL are all fine; anything else is not
-// rendered at all rather than handed to the browser.
-function safePhotoPreview(value: unknown): boolean {
-  if (typeof value !== 'string') return false
+// The preview shows a value that arrives from a file picker or from the saved record.
+// It is parsed, not merely pattern-matched, and only the normalised href is rendered, so
+// the browser is never handed a string this code has not understood. A blob created by
+// this page for a freshly picked file, a raster data: image and an ordinary http(s) URL
+// are allowed; anything else (including a malformed value) renders nothing at all.
+function photoPreviewSrc(value: unknown): string | null {
+  if (typeof value !== 'string') return null
   const trimmed = value.trim()
-  if (trimmed.startsWith('blob:')) return true
-  if (/^data:image\//i.test(trimmed)) return true
-  return /^https?:\/\//i.test(trimmed)
+  if (!trimmed) return null
+  if (trimmed.startsWith('blob:')) return trimmed
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href
+    if (parsed.protocol === 'data:' && /^data:image\/(png|jpe?g|webp|gif);/i.test(trimmed)) {
+      return parsed.href
+    }
+  } catch {
+    return null
+  }
+  return null
 }
 
 export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps) {
@@ -46,6 +56,8 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
   )
   const [bio, setBio] = useState(barber?.bio || '')
   const [photo, setPhoto] = useState(barber?.photo || '')
+  // Normalised once per render; null means there is nothing safe to show.
+  const photoPreview = photoPreviewSrc(photo)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -232,8 +244,8 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               </Button>
             </div>
             {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
-            {photo && safePhotoPreview(photo) && (
-              <img src={photo} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-input" />
+            {photoPreview && (
+              <img src={photoPreview} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-input" />
             )}
           </div>
 
