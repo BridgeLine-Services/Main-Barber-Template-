@@ -1,0 +1,67 @@
+name: Client CI
+
+# Build validation for a client copy of the template.
+#
+# A client copy does not carry the internal test suites (they contain QA owner
+# credentials and fixtures for the master shop), so the master's Template CI would
+# fail there on missing files. This workflow is the client-side equivalent: it proves
+# the copy still typechecks, lints, satisfies the architecture constitution, has no
+# environment drift and produces a production build. Nothing here needs a database
+# service or a real secret.
+#
+# Keep this file free of references to the internal suites so it survives the strip step.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate client build
+    runs-on: ubuntu-latest
+    env:
+      # Build-time placeholders only. A client's real values live in their Vercel
+      # project, never in this repository.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/barber
+      NEXTAUTH_SECRET: ci-only-secret-for-build-validation
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      APP_MODE: demo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Architecture constitution
+        run: npm run architecture:check
+
+      - name: Environment drift
+        run: npm run env:drift
+
+      - name: Production build
+        run: npm run build

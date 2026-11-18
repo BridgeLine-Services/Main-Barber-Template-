@@ -44,11 +44,17 @@ REMOVALS=(
   src/app/api/test
 )
 # The client distribution is a running shop, not a development checkout. Its copy
-# should not carry the internal test suites, the QA owner credentials that live in
-# the E2E specs and the CI workflow, or the browser harness. The master repository
-# keeps all of it.
+# should not carry the internal test suites, the QA owner credentials that live in the
+# E2E specs, or the browser harness. The master repository keeps all of it.
+#
+# The workflows are NOT removed wholesale. Deleting .github used to take the client's
+# security scanning, dependency monitoring, build validation, backup and deployment
+# diagnostics with it, which left a client copy with no automated protection at all.
+# Only the workflow that runs the internal suites is dropped, because the suites it
+# calls are the files being stripped; .github/workflows/client-ci.yml is the client
+# equivalent and stays.
 if [[ "$STRIP_TESTS" == true ]]; then
-  REMOVALS+=(tests e2e playwright.config.ts test-results playwright-report .github)
+  REMOVALS+=(tests e2e playwright.config.ts test-results playwright-report .github/workflows/ci.yml)
 fi
 
 MANIFEST="$TARGET/client-copy-removals.txt"
