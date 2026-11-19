@@ -1,8 +1,21 @@
 # Compensation models and custom navigation: proposals awaiting owner approval
 
-Nothing in this document has been applied. No migration exists, no schema change has been
-run, and no production database has been touched. It is here so the owner can review the
-exact change before it happens, which is the gate that has held since the RLS plan.
+## Status: APPROVED AND APPLIED TO THE SCHEMA (2026-11-18)
+
+The owner approved both proposals on 2026-11-18. The change now exists as migration
+`20261118220000_compensation_models_and_navigation`, applied and verified on a disposable
+database (`prisma migrate deploy` from empty, then `prisma migrate diff` reported no
+difference between schema and database). **It has not been applied to production.** That
+stays an owner action, and it is additive, so it can run on a live database without
+touching a single existing row.
+
+Three questions in this document remain unanswered, and the code refuses to guess at them
+rather than inventing payroll policy:
+
+- A monthly rent inside a weekly pay period returns UNKNOWN, not a prorated figure.
+- Hours worked must be supplied by the caller. Nothing infers them from appointments,
+  because a barber standing in an empty shop is still working, and no clock-in model exists.
+- A hybrid threshold is optional; null means commission on all service revenue.
 
 Two items from the commercial priorities cannot be built as code alone, because both need
 somewhere to store an owner's decision. Each is written here with the smallest change that
