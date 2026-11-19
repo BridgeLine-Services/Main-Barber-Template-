@@ -107,6 +107,71 @@ export default async function ReliabilityPage() {
         </section>
       )}
 
+      {maintenance && maintenance.findings.length > 0 && (
+        <section aria-labelledby="versions" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
+          <h2 id="versions" className="text-lg font-semibold text-foreground">Software versions and support</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Every line below was checked against the source named next to it, on the date shown. Where a source
+            could not be read, we say so instead of assuming the version is fine.
+          </p>
+          <ul className="mt-3 space-y-4">
+            {maintenance.findings.map((finding) => (
+              <li key={finding.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">{finding.headline}</span>
+                  <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {STATE_LABEL[finding.state]}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">{finding.impact}</p>
+                <p className="mt-1 text-sm text-foreground/90">{finding.action}</p>
+                {finding.support && (
+                  <dl className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                    <div>
+                      <dt className="inline font-medium text-foreground">Installed: </dt>
+                      <dd className="inline">{finding.support.installed}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline font-medium text-foreground">Recommended: </dt>
+                      <dd className="inline">{finding.support.recommended ?? 'Could not check this information.'}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline font-medium text-foreground">Support: </dt>
+                      <dd className="inline">{SUPPORT_LABEL[finding.support.status]}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline font-medium text-foreground">Checked: </dt>
+                      <dd className="inline">{finding.support.checkedAt.slice(0, 10)}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="inline font-medium text-foreground">Source: </dt>
+                      <dd className="inline">
+                        <a
+                          href={finding.support.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="underline underline-offset-2"
+                        >
+                          {finding.support.source}
+                        </a>
+                      </dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="inline font-medium text-foreground">Security: </dt>
+                      <dd className="inline">{finding.support.security}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="inline font-medium text-foreground">What a change would touch: </dt>
+                      <dd className="inline">{finding.support.compatibility}</dd>
+                    </div>
+                  </dl>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="help" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
         <h2 id="help" className="text-lg font-semibold text-foreground">If something needs a person</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -116,6 +181,19 @@ export default async function ReliabilityPage() {
       </section>
     </div>
   )
+}
+
+const STATE_LABEL: Record<string, string> = {
+  'action-required': 'Needs a decision',
+  'needs-attention': 'Worth a look',
+  healthy: 'Fine',
+  'not-configured': 'Could not check',
+}
+
+const SUPPORT_LABEL: Record<string, string> = {
+  supported: 'Still supported',
+  unsupported: 'No longer supported',
+  unknown: 'Could not check this information.',
 }
 
 function SectionCard({ section }: { section: ReliabilitySection }) {

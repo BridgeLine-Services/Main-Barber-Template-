@@ -11,6 +11,8 @@
  * work is allowed to be automatic.
  */
 
+import { advisorySupportRecord, buildSupportRecord, type SupportRecord } from './support-sources'
+
 export type MaintenanceState = 'action-required' | 'needs-attention' | 'healthy' | 'not-configured'
 
 /** How the repair may proceed, mirroring Part 7.4's three categories. */
@@ -55,6 +57,12 @@ export interface MaintenanceFinding {
   impact: string
   /** What should happen next. */
   action: string
+  /**
+   * The evidence behind the finding: source, date checked, support status, security and
+   * compatibility implications. Present for component and advisory findings so the page
+   * never has to guess where an answer came from.
+   */
+  support?: SupportRecord
 }
 
 export interface MaintenanceReport {
@@ -98,7 +106,7 @@ function componentFinding(component: MonitoredComponent, checkedAt: string): Mai
   const label = isRuntime ? 'This app runs on Node.js' : component.name
   const installedMajor = majorOf(component.installed)
   const latestMajor = majorOf(component.latest ?? '')
-  const base = { component: component.name }
+  const base = { component: component.name, support: buildSupportRecord(component, checkedAt) }
 
   // Unknown support status is reported as unknown, never as healthy.
   if (component.supported === null || component.supported === undefined) {
@@ -158,9 +166,11 @@ function componentFinding(component: MonitoredComponent, checkedAt: string): Mai
   }
 }
 
-function auditFinding(audit: AuditSummary | null): MaintenanceFinding {
+function auditFinding(audit: AuditSummary | null, checkedAt: string): MaintenanceFinding {
+  const support = advisorySupportRecord(checkedAt, audit !== null)
   if (!audit) {
     return {
+      support,
       id: 'audit:unavailable',
       component: 'dependencies',
       state: 'not-configured',
@@ -175,6 +185,7 @@ function auditFinding(audit: AuditSummary | null): MaintenanceFinding {
   const serious = audit.critical + audit.high
   if (serious > 0) {
     return {
+      support,
       id: 'audit:vulnerable',
       component: 'dependencies',
       state: 'action-required',
@@ -189,6 +200,7 @@ function auditFinding(audit: AuditSummary | null): MaintenanceFinding {
 
   if (audit.moderate > 0) {
     return {
+      support,
       id: 'audit:moderate',
       component: 'dependencies',
       state: 'needs-attention',
@@ -200,6 +212,7 @@ function auditFinding(audit: AuditSummary | null): MaintenanceFinding {
   }
 
   return {
+    support,
     id: 'audit:clean',
     component: 'dependencies',
     state: 'healthy',
@@ -215,7 +228,7 @@ const ORDER: MaintenanceState[] = ['action-required', 'needs-attention', 'not-co
 export function buildMaintenanceReport(input: MonitorInput): MaintenanceReport {
   const findings: MaintenanceFinding[] = [
     ...input.components.map((component) => componentFinding(component, input.checkedAt)),
-    auditFinding(input.audit),
+    auditFinding(input.audit, input.checkedAt),
   ]
 
   const counts: Record<MaintenanceState, number> = {
