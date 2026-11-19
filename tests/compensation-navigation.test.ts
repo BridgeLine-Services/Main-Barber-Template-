@@ -1,4 +1,4 @@
-import { calculatePay, resolvePayout } from '../src/lib/pay/compensation'
+import { calculatePay, resolvePayout, explainStoredLine } from '../src/lib/pay/compensation'
 import { deriveNav, validateNav, resolveNav, isSafeHref, MAX_NAV_ITEMS } from '../src/lib/website/navigation'
 
 let p = 0
@@ -83,6 +83,20 @@ ok('a rent period mismatch falls back rather than prorating', mismatchPay.known 
 
 // A barber with no model set at all behaves exactly like before.
 ok('no model means commission', resolvePayout({ ...base, model: null, serviceRevenue: 100, commissionRate: 50, commissionAmount: 50 }).amount === 50)
+
+// ─── The note beside a stored figure, derived on read ──────────────────────
+const lineBase = { serviceRevenue: 1000, commission: 400, regularHours: 0, overtimeHours: 0, hourlyRate: null, boothRentAmount: null, boothRentPeriod: null, payPeriod: 'WEEKLY' as string | null }
+const commissionLine = explainStoredLine({ ...lineBase, model: 'COMMISSION' })
+ok('a commission line explains itself', commissionLine.payoutKnown && /ledger/.test(commissionLine.payoutNote))
+const hourlyLine = explainStoredLine({ ...lineBase, model: 'HOURLY', regularHours: 20, overtimeHours: 5, hourlyRate: 18 })
+ok('an hourly line says it was paid for hours', hourlyLine.payoutKnown && /hours/.test(hourlyLine.payoutNote))
+const gapLine = explainStoredLine({ ...lineBase, model: 'HOURLY', hourlyRate: 18 })
+ok('a stored line with no hours is flagged for checking', gapLine.payoutKnown === false)
+ok('and it says the figure is the commission recorded', /commission recorded/.test(gapLine.payoutNote))
+ok('the note never claims a calculation it did not do', !/hours at the hourly rate/.test(gapLine.payoutNote))
+const rentLine = explainStoredLine({ ...lineBase, model: 'BOOTH_RENTAL', boothRentAmount: 250, boothRentPeriod: 'WEEKLY' })
+ok('a booth line explains the rent', rentLine.payoutKnown && /rent/i.test(rentLine.payoutNote))
+ok('an unknown model is flagged, not silently explained', explainStoredLine({ ...lineBase, model: 'MYSTERY' }).payoutKnown === false)
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 const sections = [

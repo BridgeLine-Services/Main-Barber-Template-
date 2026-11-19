@@ -37,7 +37,7 @@ import {
   type BarberHoursSummary,
 } from '@/lib/time-clock'
 import { getCommissionSettings } from '@/lib/commissions'
-import { resolvePayout } from '@/lib/pay/compensation'
+import { resolvePayout, explainStoredLine } from '@/lib/pay/compensation'
 import type { Business, PayrollSettings } from '@prisma/client'
 
 // ─── Errors ─────────────────────────────────────────────────────────────────
@@ -489,13 +489,40 @@ async function getReport(businessId: string, reportId: string) {
 /** Full owner view: frozen lines with manual adjustments applied. */
 export async function getPayrollReport(businessId: string, reportId: string) {
   const report = await getReport(businessId, reportId)
+  // The explanation is derived here rather than stored, so an existing report gains a
+  // clearer note without a migration and without any stored figure changing.
+  const barbers = await prisma.barber.findMany({
+    where: { businessId, id: { in: report.lines.map((l) => l.barberId) } },
+    select: {
+      id: true,
+      compensationModel: true,
+      hourlyRate: true,
+      boothRentAmount: true,
+      boothRentPeriod: true,
+    },
+  })
+  const comp = new Map(barbers.map((b) => [b.id, b]))
   return {
     report,
     lines: report.lines
-      .map((l) => ({
-        ...l,
-        ...applyAdjustments(l, report.adjustments),
-      }))
+      .map((l) => {
+        const c = comp.get(l.barberId)
+        return {
+          ...l,
+          ...applyAdjustments(l, report.adjustments),
+          ...explainStoredLine({
+            model: c?.compensationModel ?? 'COMMISSION',
+            serviceRevenue: l.serviceRevenue,
+            commission: l.commission,
+            regularHours: l.regularHours,
+            overtimeHours: l.overtimeHours,
+            hourlyRate: c?.hourlyRate ?? null,
+            boothRentAmount: c?.boothRentAmount ?? null,
+            boothRentPeriod: c?.boothRentPeriod ?? null,
+            payPeriod: report.periodType,
+          }),
+        }
+      })
       .sort((a, b) => a.barberName.localeCompare(b.barberName)),
   }
 }

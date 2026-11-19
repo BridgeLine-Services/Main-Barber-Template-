@@ -167,3 +167,46 @@ export function resolvePayout(input: PayoutInput): PayoutResult {
     owed: null,
   }
 }
+
+export interface StoredLineExplanation {
+  payoutKnown: boolean
+  payoutNote: string
+}
+
+/**
+ * The sentence that belongs beside a figure already frozen into a report.
+ *
+ * Nothing is stored: a report keeps its money, and the explanation is re-derived from the
+ * barber's model and the numbers the report already holds. That is why this needed no
+ * migration, and why an old report can suddenly gain a clearer note without its figures
+ * moving by a cent.
+ */
+export function explainStoredLine(input: {
+  model: string | null | undefined
+  serviceRevenue: number
+  commission: number
+  regularHours: number
+  overtimeHours: number
+  hourlyRate: number | null
+  boothRentAmount: number | null
+  boothRentPeriod: string | null
+  payPeriod: string | null
+}): StoredLineExplanation {
+  const hours = input.regularHours + input.overtimeHours
+  const pay = calculatePay({
+    model: input.model,
+    serviceRevenue: input.serviceRevenue,
+    commissionRate: null,
+    commissionAmount: input.commission,
+    hoursWorked: hours > 0 ? hours : null,
+    hourlyRate: input.hourlyRate,
+    boothRentAmount: input.boothRentAmount,
+    boothRentPeriod: input.boothRentPeriod,
+    payPeriod: input.payPeriod,
+  })
+  if (pay.known) return { payoutKnown: true, payoutNote: pay.explanation }
+  return {
+    payoutKnown: false,
+    payoutNote: `${pay.explanation} The figure shown is the commission recorded for this period, plus tips and adjustments.`,
+  }
+}

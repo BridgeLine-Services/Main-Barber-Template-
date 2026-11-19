@@ -52,6 +52,9 @@ interface ReportLine {
   estimatedPayout: number
   manualAdjustments: number
   effectivePayout: number
+  /** derived on read, never stored: why the figure is what it is */
+  payoutKnown?: boolean
+  payoutNote?: string
 }
 
 interface ReportDto {
@@ -487,7 +490,15 @@ export function PayrollClient({ enabled }: { enabled: boolean }) {
                         <tbody>
                           {detail.lines.map((l) => (
                             <tr key={l.id} className="border-b last:border-0">
-                              <td className="py-2 pr-3 font-medium">{l.barberName}</td>
+                              <td className="py-2 pr-3 font-medium">
+                                {l.barberName}
+                                {l.payoutNote && (
+                                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                                    {l.payoutKnown === false ? 'Needs checking: ' : ''}
+                                    {l.payoutNote}
+                                  </span>
+                                )}
+                              </td>
                               <td className="py-2 pr-3">{money(l.serviceRevenue)}</td>
                               <td className="py-2 pr-3">{money(l.tips)}</td>
                               <td className="py-2 pr-3">{money(l.commission)}</td>
