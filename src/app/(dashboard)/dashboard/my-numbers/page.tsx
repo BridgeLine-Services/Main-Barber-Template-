@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
+import { buildShareLink } from '@/lib/barber/share-link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -35,6 +36,16 @@ async function loadNumbers(barberId: string, businessId: string) {
     }),
   )
 
+  const barber = await safe(() =>
+    prisma.barber.findFirst({ where: { id: barberId, businessId }, select: { slug: true } }),
+  )
+  const share = buildShareLink({
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    barberSlug: barber?.slug ?? null,
+    businessId,
+    barberId,
+  })
+
   const serviceRows = await safe(() =>
     prisma.appointment.groupBy({
       by: ['serviceId'],
@@ -59,13 +70,16 @@ async function loadNumbers(barberId: string, businessId: string) {
       })
     : null
 
-  return buildMyNumbers({
-    finished: by('COMPLETED'),
-    upcoming,
-    cancelled: by('CANCELLED'),
-    noShows: by('NO_SHOW'),
-    topServices: services,
-  })
+  return {
+    ...buildMyNumbers({
+      finished: by('COMPLETED'),
+      upcoming,
+      cancelled: by('CANCELLED'),
+      noShows: by('NO_SHOW'),
+      topServices: services,
+    }),
+    share,
+  }
 }
 
 export default async function MyNumbersPage() {
@@ -78,6 +92,7 @@ export default async function MyNumbersPage() {
   if (user.role !== 'BARBER' || !user.barberId || !user.businessId) redirect('/dashboard')
 
   const view = await loadNumbers(user.barberId, user.businessId)
+  const share = view.share
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
@@ -113,6 +128,19 @@ export default async function MyNumbersPage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="share" className="rounded-xl border border-border p-4">
+        <h2 id="share" className="text-base font-semibold">Your own booking link</h2>
+        {share ? (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">{share.note}</p>
+            <p className="mt-2 break-all rounded-lg bg-muted p-2 text-xs">{share.url}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Copy it into a message, or print it on a card. If you would rather not share a link, this page still works without one.</p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">Your link is not available yet. Nothing is wrong with your appointments; the shop needs its website address set first.</p>
         )}
       </section>
 
