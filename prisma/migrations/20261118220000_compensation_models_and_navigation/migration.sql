@@ -15,8 +15,6 @@ ADD COLUMN "boothRentPeriod" TEXT;
 -- AlterTable
 ALTER TABLE "WebsiteContent" ADD COLUMN "navigation" JSONB;
 
--- Rollback (run by hand if this must be undone; nothing here is destructive):
---   ALTER TABLE "WebsiteContent" DROP COLUMN "navigation";
---   ALTER TABLE "Barber" DROP COLUMN "compensationModel", DROP COLUMN "hourlyRate",
---     DROP COLUMN "boothRentAmount", DROP COLUMN "boothRentPeriod";
---   DROP TYPE "CompensationModel";
+-- Rollback: see docs/MIGRATION-PROPOSALS-COMPENSATION-NAV.md, "Rollback" section.
+-- It is written there rather than here because the deploy check reads this file for
+-- destructive keywords and a rollback note must not look like a destructive change.

@@ -139,3 +139,25 @@ compromise, and refusing it removes a class of phishing risk.
 Reply with which of the two proposals to apply. On approval, each lands as its own commit
 with its own migration, its own test suite, and a rollback note. Nothing is applied to a
 production database without that reply.
+
+---
+
+## Rollback
+
+If this migration must be undone, run this by hand against the database it was applied to.
+It is destructive to the new columns only, and nothing existing is touched:
+
+```sql
+ALTER TABLE "WebsiteContent" DROP COLUMN "navigation";
+ALTER TABLE "Barber"
+  DROP COLUMN "compensationModel",
+  DROP COLUMN "hourlyRate",
+  DROP COLUMN "boothRentAmount",
+  DROP COLUMN "boothRentPeriod";
+DROP TYPE "CompensationModel";
+```
+
+Dropping the columns discards any saved menu and any compensation settings, so export the
+`Barber` compensation columns and `WebsiteContent.navigation` first if they hold real values.
+The application keeps working either way: a missing column reads as null, and null means
+"derive from the sections" for navigation and COMMISSION for pay.
