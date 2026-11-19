@@ -573,14 +573,14 @@ function main() {
       const expectedAppointments = ids(adminUrl(scratch), 'Appointment', 'id', tenant)
       assert(expectedAppointments.length === 1, `tenant ${label} has exactly one fixture appointment (got ${expectedAppointments.length})`)
       const seen = psqlAppTx(
-        `BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT coalesce(string_agg(id, E'\\n' ORDER BY id), '') FROM "Appointment"; COMMIT;`,
+        `BEGIN; SET LOCAL app.current_business_id = '${tenant}'; SELECT coalesce(string_agg(id, E'\\n' ORDER BY id), '') FROM "Appointment"; COMMIT;`,
       ).split('\n').filter(Boolean)
       assert(
         seen.length === expectedAppointments.length && seen.every((id, i) => id === expectedAppointments[i]),
         `tenant ${label} sees exactly its own ${expectedAppointments.length} appointment(s)`,
       )
 
-      const businessRows = psqlAppTx(`BEGIN; SET LOCAL app.business_id = '${tenant}'; SELECT count(*) FROM "Business"; COMMIT;`)
+      const businessRows = psqlAppTx(`BEGIN; SET LOCAL app.current_business_id = '${tenant}'; SELECT count(*) FROM "Business"; COMMIT;`)
       assert(businessRows === '1', `tenant ${label} sees exactly one Business row (got ${businessRows})`)
     }
 
@@ -595,7 +595,7 @@ function main() {
     {
       const insertError = psqlExpectFailure(
         appUrl(scratch),
-        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+        `BEGIN; SET LOCAL app.current_business_id = '${tenantA}';
          INSERT INTO "Service" (id, "businessId", name, duration, price, "isActive", "order", "createdAt", "updatedAt")
          VALUES ('rls_probe_service', '${tenantB}', 'Probe', 30, 10, true, 0, now(), now()); COMMIT;`,
         true,
@@ -605,14 +605,14 @@ function main() {
       assert(landed === '0', 'the refused write left no row behind')
 
       const updated = psqlAppTx(
-        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+        `BEGIN; SET LOCAL app.current_business_id = '${tenantA}';
          WITH changed AS (UPDATE "Service" SET name = 'Hijacked' WHERE "businessId" = '${tenantB}' RETURNING 1)
          SELECT count(*) FROM changed; COMMIT;`,
       )
       assert(updated === '0', `a cross-tenant update changes no rows (got ${updated})`)
 
       const deleted = psqlAppTx(
-        `BEGIN; SET LOCAL app.business_id = '${tenantA}';
+        `BEGIN; SET LOCAL app.current_business_id = '${tenantA}';
          WITH gone AS (DELETE FROM "Service" WHERE "businessId" = '${tenantB}' RETURNING 1)
          SELECT count(*) FROM gone; COMMIT;`,
       )
@@ -623,17 +623,17 @@ function main() {
 
     console.log('\n8. The tenant setting never survives its transaction (pooled connections stay safe)')
     const leaked = psqlAppTx(
-      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; COMMIT; SELECT coalesce(current_setting('app.business_id', true), '')`,
+      `BEGIN; SET LOCAL app.current_business_id = '${tenantA}'; COMMIT; SELECT coalesce(current_setting('app.current_business_id', true), '')`,
     )
-    assert(leaked === '', `app.business_id is cleared after commit (saw "${leaked}")`)
+    assert(leaked === '', `app.current_business_id is cleared after commit (saw "${leaked}")`)
 
     const rolledBack = psqlAppTx(
-      `BEGIN; SET LOCAL app.business_id = '${tenantB}'; ROLLBACK; SELECT coalesce(current_setting('app.business_id', true), '')`,
+      `BEGIN; SET LOCAL app.current_business_id = '${tenantB}'; ROLLBACK; SELECT coalesce(current_setting('app.current_business_id', true), '')`,
     )
-    assert(rolledBack === '', `app.business_id is cleared after rollback (saw "${rolledBack}")`)
+    assert(rolledBack === '', `app.current_business_id is cleared after rollback (saw "${rolledBack}")`)
 
     const contamination = psqlAppTx(
-      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; COMMIT;
+      `BEGIN; SET LOCAL app.current_business_id = '${tenantA}'; COMMIT;
        BEGIN; SELECT count(*) FROM "Appointment"; COMMIT;`,
     )
     assert(contamination === '0', `the next transaction starts with no tenant (saw ${contamination})`)
@@ -641,7 +641,7 @@ function main() {
     // One session: a transaction that blows up and is rolled back must leave no
     // tenant behind for the transaction that follows it on the same connection.
     const failedTx = psqlAppScript(
-      `BEGIN; SET LOCAL app.business_id = '${tenantA}'; SELECT 1/0; ROLLBACK;
+      `BEGIN; SET LOCAL app.current_business_id = '${tenantA}'; SELECT 1/0; ROLLBACK;
        BEGIN; SELECT count(*) FROM "Appointment"; COMMIT;`,
     )
     assert(failedTx === '0', `a failed transaction leaves no tenant context behind (saw ${failedTx})`)

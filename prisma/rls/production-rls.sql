@@ -13,7 +13,7 @@
 --
 -- It is a ready-to-run script for the DBA of a production deployment
 -- where the runtime uses a SEPARATE, NON-OWNER database role and sets
--- `app.business_id` per request/transaction (e.g. via a transactional
+-- `app.current_business_id` per request/transaction (e.g. via a transactional
 -- proxy such as PgBouncer in session mode, Prisma $transaction with
 -- SET LOCAL, or a per-request connection in the service layer).
 --
@@ -30,7 +30,7 @@
 --      app runtime (NON-superuser, NON-table-owner, NO BYPASSRLS):
 --        DO NOT connect the template app to the owner role anymore.
 --   2. The runtime sets, inside EVERY transaction:
---        SET LOCAL app.business_id = '<business id>';
+--        SET LOCAL app.current_business_id = '<business id>';
 --      and for platform-staff requests:
 --        SET LOCAL app.platform_staff = '1';
 --   3. Take a backup first. Test on a staging copy of the database.
@@ -135,11 +135,11 @@ BEGIN
           -- platform staff (deployment-operated support access)
           COALESCE(current_setting('app.platform_staff', true), '0') = '1'
           -- or: row belongs to the caller's tenant
-          OR "businessId" = NULLIF(current_setting('app.business_id', true), '')
+          OR "businessId" = NULLIF(current_setting('app.current_business_id', true), '')
         )
         WITH CHECK (
           COALESCE(current_setting('app.platform_staff', true), '0') = '1'
-          OR "businessId" = NULLIF(current_setting('app.business_id', true), '')
+          OR "businessId" = NULLIF(current_setting('app.current_business_id', true), '')
         )
     $f$, tbl);
   END LOOP;
@@ -153,11 +153,11 @@ BEGIN
       CREATE POLICY tenant_isolation ON %I
         USING (
           COALESCE(current_setting('app.platform_staff', true), '0') = '1'
-          OR "id" = NULLIF(current_setting('app.business_id', true), '')
+          OR "id" = NULLIF(current_setting('app.current_business_id', true), '')
         )
         WITH CHECK (
           COALESCE(current_setting('app.platform_staff', true), '0') = '1'
-          OR "id" = NULLIF(current_setting('app.business_id', true), '')
+          OR "id" = NULLIF(current_setting('app.current_business_id', true), '')
         )
     $f$, tbl);
   END LOOP;
@@ -191,7 +191,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 -- ─── 4. How the runtime sets the tenant per transaction ────────────────
 -- Example (Prisma, per request):
 --   await prisma.$transaction(async (tx) => {
---     await tx.$executeRaw`SELECT set_config('app.business_id', ${businessId}, true)`
+--     await tx.$executeRaw`SELECT set_config('app.current_business_id', ${businessId}, true)`
 --     // ... tenant queries via tx only ...
 --   })
 -- `true` = transaction-local: reverts automatically at COMMIT/ROLLBACK,
