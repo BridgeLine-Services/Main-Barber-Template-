@@ -45,9 +45,9 @@ export const SUPPORT_SOURCES: Record<string, SupportSource> = {
   },
   prisma: {
     id: 'prisma',
-    label: 'Prisma supported versions and upgrade guide',
+    label: 'Database toolkit support and upgrade guide',
     url: 'https://www.prisma.io/docs/orm/more/upgrade-guides',
-    answers: 'Which Prisma versions are supported and what a version change requires.',
+    answers: 'Which database toolkit versions are supported and what a version change requires.',
   },
   typescript: {
     id: 'typescript',
