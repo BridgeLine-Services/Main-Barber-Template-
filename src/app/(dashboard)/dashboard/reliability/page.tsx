@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { requireOwner } from '@/lib/auth-helpers'
 import { buildReadinessReport } from '@/lib/health'
 import { buildMaintenanceReport } from '@/lib/platform-reliability/dependency-monitor'
+import { TEMPLATE_VERSION, describeTemplateVersion, nodeIsSufficient } from '@/lib/template-version'
 import {
   buildReliabilitySections,
   summariseSections,
@@ -171,6 +172,32 @@ export default async function ReliabilityPage() {
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="version" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
+        <h2 id="version" className="text-lg font-semibold text-foreground">Which version is this?</h2>
+        <p className="mt-1 text-sm text-foreground">{describeTemplateVersion()}</p>
+        <dl className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+          <div>
+            <dt className="inline font-medium text-foreground">Runtime: </dt>
+            <dd className="inline">
+              Node.js {process.version} —{' '}
+              {nodeIsSufficient(process.version) === true
+                ? 'newer than this version needs.'
+                : nodeIsSufficient(process.version) === false
+                  ? `this version needs Node.js ${TEMPLATE_VERSION.requiredNodeMajor} or newer.`
+                  : 'we could not read the version, so we cannot say.'}
+            </dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-foreground">Database migrations in this version: </dt>
+            <dd className="inline">{TEMPLATE_VERSION.schemaMigrationCount}</dd>
+          </div>
+        </dl>
+        <p className="mt-2 text-xs text-muted-foreground">
+          To see whether a newer template release exists, run the update check in your own copy. It only reports what
+          changed; it never applies anything, and it never touches your bookings, records or settings.
+        </p>
+      </section>
 
       <section aria-labelledby="help" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
         <h2 id="help" className="text-lg font-semibold text-foreground">If something needs a person</h2>

@@ -1,0 +1,10 @@
+{
+  "template": "Main Barber Template",
+  "version": "1.1.0",
+  "releasedAt": "2026-11-19",
+  "sourceCommit": null,
+  "compatibleAppVersion": "1.0.0",
+  "requiredNodeMajor": 24,
+  "schemaMigrationCount": 61,
+  "notes": "Business Growth Center (five stages), vendor support sources with checked dates, security sweep, template version identity and controlled update pathway."
+}
