@@ -37,6 +37,7 @@ import {
   type BarberHoursSummary,
 } from '@/lib/time-clock'
 import { getCommissionSettings } from '@/lib/commissions'
+import { resolvePayout } from '@/lib/pay/compensation'
 import type { Business, PayrollSettings } from '@prisma/client'
 
 // ─── Errors ─────────────────────────────────────────────────────────────────
@@ -171,6 +172,10 @@ export interface PayrollLineDraft {
   overtimeHours: number
   totalHours: number
   estimatedPayout: number
+  /** false when the barber's compensation model could not be worked out from real inputs */
+  payoutKnown?: boolean
+  /** plain-language reason shown beside the figure */
+  payoutNote?: string | null
 }
 
 export interface PayrollLine extends PayrollLineDraft {
@@ -213,7 +218,7 @@ export function applyAdjustments(
  */
 export async function buildPayrollLines(
   businessId: string,
-  opts: { from: Date; to: Date; tz: string }
+  opts: { from: Date; to: Date; tz: string; periodType?: string }
 ): Promise<PayrollLineDraft[]> {
   const [business, commissionSettings, timeClockSettings] = await Promise.all([
     prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } }),
@@ -243,7 +248,14 @@ export async function buildPayrollLines(
     }),
     prisma.barber.findMany({
       where: { businessId, isActive: true },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        compensationModel: true,
+        hourlyRate: true,
+        boothRentAmount: true,
+        boothRentPeriod: true,
+      },
       orderBy: { name: 'asc' },
     }),
   ])
@@ -291,6 +303,18 @@ export async function buildPayrollLines(
     return row
   }
   for (const b of barbers) ensure(b.id, b.name)
+  const compensation = new Map(barbers.map((b) => [b.id, b]))
+  // The pay period being calculated. Callers that know it pass it; otherwise it is read
+  // from the range length rather than assumed to be weekly.
+  const periodType =
+    opts.periodType ??
+    (() => {
+      const days = (opts.to.getTime() - opts.from.getTime()) / 86_400_000
+      if (days >= 6.5 && days <= 7.5) return 'WEEKLY'
+      if (days >= 13.5 && days <= 14.5) return 'BIWEEKLY'
+      if (days >= 27 && days <= 32) return 'MONTHLY'
+      return 'CUSTOM'
+    })()
 
   // ── Payments: service revenue + tips (net of refunds) ──
   for (const p of payments) {
@@ -344,7 +368,25 @@ export async function buildPayrollLines(
     // ledger already carries the tip money as commission.
     const tipsOwned =
       tipsMode === 'EXCLUDED' ? d.tips : tipsMode === 'PASS_THROUGH' ? Math.max(0, d.tips - tipLedgerGross) : 0
-    d.estimatedPayout = round2(d.commission + d.adjustments + tipsOwned)
+    // One path for all four models. With COMMISSION and the ledger's own figure, this
+    // reproduces the previous arithmetic exactly: commission + adjustments + tips.
+    const comp = compensation.get(d.barberId)
+    const payout = resolvePayout({
+      model: comp?.compensationModel ?? 'COMMISSION',
+      serviceRevenue: d.serviceRevenue,
+      commissionRate: null,
+      commissionAmount: d.commission,
+      hoursWorked: d.totalHours > 0 ? d.totalHours : null,
+      hourlyRate: comp?.hourlyRate ?? null,
+      boothRentAmount: comp?.boothRentAmount ?? null,
+      boothRentPeriod: comp?.boothRentPeriod ?? null,
+      payPeriod: periodType,
+      adjustments: d.adjustments,
+      tipsOwned,
+    })
+    d.estimatedPayout = payout.amount
+    d.payoutKnown = payout.known
+    d.payoutNote = payout.note
     // only include barbers with any activity in the period
     if (
       d.serviceRevenue || d.tips || d.commission || d.adjustments ||
@@ -403,7 +445,7 @@ export async function createPayrollReport(
     periodType = settings.payPeriodType
   }
 
-  const lines = await buildPayrollLines(businessId, { from, to, tz })
+  const lines = await buildPayrollLines(businessId, { from, to, tz, periodType })
   const label = payrollPeriodLabel(from, to, tz)
 
   const report = await prisma.payrollReport.create({

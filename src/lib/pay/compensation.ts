@@ -23,6 +23,12 @@ export interface PayInput {
   payPeriod: string | null
   /** HYBRID only: commission applies above this revenue. Null = all revenue. */
   commissionThreshold?: number | null
+  /**
+   * Commission already computed by the ledger (with the shop's overrides and tip
+   * rules applied). When supplied, it is used instead of rate x revenue, so payroll
+   * never recalculates money the ledger has already decided.
+   */
+  commissionAmount?: number | null
 }
 
 export interface PayResult {
@@ -55,6 +61,9 @@ export function calculatePay(input: PayInput): PayResult {
   const model = (input.model ?? 'COMMISSION').toUpperCase() as CompensationModelName
 
   if (model === 'COMMISSION') {
+    if (typeof input.commissionAmount === 'number') {
+      return { amount: money(input.commissionAmount), known: true, explanation: 'Commission from the commission ledger.', owed: null }
+    }
     if (input.serviceRevenue === null) return unknown('Service revenue for this period could not be read.')
     if (input.commissionRate === null) return unknown('No commission rate is set for this barber or the shop.')
     return {
@@ -101,9 +110,15 @@ export function calculatePay(input: PayInput): PayResult {
           ? rentForPeriod(input.boothRentAmount, input.boothRentPeriod, input.payPeriod)
           : null
     if (base === null) return unknown('The base for this hybrid barber could not be worked out.')
-    if (input.serviceRevenue === null) return unknown('Service revenue for this period could not be read.')
-    if (input.commissionRate === null) return unknown('No commission rate is set for the commission part of hybrid pay.')
-    const extra = commissionOn(input.serviceRevenue, input.commissionRate, input.commissionThreshold)
+    if (input.serviceRevenue === null && typeof input.commissionAmount !== 'number')
+      return unknown('Service revenue for this period could not be read.')
+    let extra: number
+    if (typeof input.commissionAmount === 'number') {
+      extra = money(input.commissionAmount)
+    } else {
+      if (input.commissionRate === null) return unknown('No commission rate is set for the commission part of hybrid pay.')
+      extra = commissionOn(input.serviceRevenue as number, input.commissionRate, input.commissionThreshold)
+    }
     return {
       amount: money(base + extra),
       known: true,
@@ -113,4 +128,42 @@ export function calculatePay(input: PayInput): PayResult {
   }
 
   return unknown('This barber has a compensation model the payroll screen does not recognise.')
+}
+
+export interface PayoutInput extends PayInput {
+  /** Manual and refund adjustments already on the ledger for this period. */
+  adjustments?: number
+  /** Tips that belong to the barber under the shop's tips mode. */
+  tipsOwned?: number
+}
+
+export interface PayoutResult {
+  amount: number
+  known: boolean
+  note: string | null
+  owed: number | null
+}
+
+/**
+ * The figure payroll freezes into a report: model pay, plus adjustments, plus tips.
+ *
+ * When the model's own inputs are missing, the payout falls back to the commission the
+ * ledger already recorded, and says so. It never invents a zero, and it never presents a
+ * fallback as if the model had been calculated.
+ */
+export function resolvePayout(input: PayoutInput): PayoutResult {
+  const adjustments = input.adjustments ?? 0
+  const tipsOwned = input.tipsOwned ?? 0
+  const pay = calculatePay(input)
+  const tail = money(adjustments + tipsOwned)
+  if (pay.known) {
+    return { amount: money((pay.amount ?? 0) + tail), known: true, note: pay.explanation, owed: pay.owed }
+  }
+  const fallback = money((input.commissionAmount ?? 0) + tail)
+  return {
+    amount: fallback,
+    known: false,
+    note: `${pay.explanation} Showing the commission figure instead, so nothing is understated or invented.`,
+    owed: null,
+  }
 }

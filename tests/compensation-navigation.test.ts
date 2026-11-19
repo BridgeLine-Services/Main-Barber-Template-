@@ -1,4 +1,4 @@
-import { calculatePay } from '../src/lib/pay/compensation'
+import { calculatePay, resolvePayout } from '../src/lib/pay/compensation'
 import { deriveNav, validateNav, resolveNav, isSafeHref, MAX_NAV_ITEMS } from '../src/lib/website/navigation'
 
 let p = 0
@@ -48,6 +48,41 @@ ok('hybrid with nothing to base on is unknown', calculatePay({ model: 'HYBRID', 
 // ─── Unknown model ─────────────────────────────────────────────────────────
 const weird = calculatePay({ model: 'PROFIT_SHARE', serviceRevenue: 1000, commissionRate: 10, hoursWorked: 1, hourlyRate: 1, boothRentAmount: null, boothRentPeriod: null, payPeriod: 'WEEKLY' })
 ok('an unrecognised model is unknown, never commission by accident', weird.known === false)
+
+// ─── Payroll wiring: the ledger's commission is never recalculated ─────────
+const base = { hoursWorked: null, hourlyRate: null, boothRentAmount: null, boothRentPeriod: null, payPeriod: 'WEEKLY' as string | null }
+
+// The default model must reproduce the old arithmetic to the cent.
+const legacy = resolvePayout({ ...base, model: 'COMMISSION', serviceRevenue: 1000, commissionRate: 40, commissionAmount: 400, adjustments: 12.5, tipsOwned: 30 })
+ok('commission payout equals ledger + adjustments + tips', legacy.amount === 442.5)
+ok('commission payout is known', legacy.known)
+ok('the ledger figure wins over rate x revenue', resolvePayout({ ...base, model: 'COMMISSION', serviceRevenue: 1000, commissionRate: 40, commissionAmount: 250 }).amount === 250)
+
+// Hourly: hours x rate, then the same tail.
+const hourlyPay = resolvePayout({ ...base, model: 'HOURLY', serviceRevenue: 900, commissionRate: null, commissionAmount: 360, hoursWorked: 30, hourlyRate: 20, adjustments: 0, tipsOwned: 15 })
+ok('hourly payout is hours x rate plus tips', hourlyPay.amount === 615)
+ok('hourly payout is known', hourlyPay.known)
+
+// Booth rental: revenue minus rent, plus the tail, with a shortfall reported.
+const boothPay = resolvePayout({ ...base, model: 'BOOTH_RENTAL', serviceRevenue: 1000, commissionRate: null, commissionAmount: 400, boothRentAmount: 250, boothRentPeriod: 'WEEKLY', tipsOwned: 10 })
+ok('booth payout is revenue minus rent plus tips', boothPay.amount === 760)
+ok('booth payout owes nothing here', boothPay.owed === null)
+
+// Hybrid: base plus the ledger's commission, not a second commission.
+const hybridPay = resolvePayout({ ...base, model: 'HYBRID', serviceRevenue: 1000, commissionRate: 20, commissionAmount: 200, hoursWorked: 20, hourlyRate: 15 })
+ok('hybrid payout uses the ledger commission once', hybridPay.amount === 500)
+
+// Unknown inputs fall back to real money and say so, never to zero.
+const missingHours = resolvePayout({ ...base, model: 'HOURLY', serviceRevenue: 900, commissionRate: null, commissionAmount: 360, hoursWorked: null, hourlyRate: 20, adjustments: 5, tipsOwned: 10 })
+ok('unrecorded hours fall back to the commission figure', missingHours.amount === 375)
+ok('the fallback is not claimed as a calculation', missingHours.known === false)
+ok('the fallback explains itself in plain words', /Showing the commission figure/.test(missingHours.note ?? ''))
+ok('the fallback is never zero when money was earned', missingHours.amount !== 0)
+const mismatchPay = resolvePayout({ ...base, model: 'BOOTH_RENTAL', serviceRevenue: 1000, commissionRate: null, commissionAmount: 400, boothRentAmount: 1000, boothRentPeriod: 'MONTHLY' })
+ok('a rent period mismatch falls back rather than prorating', mismatchPay.known === false && mismatchPay.amount === 400)
+
+// A barber with no model set at all behaves exactly like before.
+ok('no model means commission', resolvePayout({ ...base, model: null, serviceRevenue: 100, commissionRate: 50, commissionAmount: 50 }).amount === 50)
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 const sections = [
