@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getAnalytics } from '@/lib/analytics'
 import { canManageBusiness } from '@/lib/permissions'
 import { AnalyticsClient } from './AnalyticsClient'
+import { UtilisationSummary } from '@/components/analytics/UtilisationSummary'
 
 export default async function AnalyticsPage() {
   const session = await getServerSession(authOptions)
@@ -24,5 +25,10 @@ export default async function AnalyticsPage() {
     console.error('Failed to load analytics:', error)
   }
 
-  return <AnalyticsClient initialData={initialData} />
+  return (
+    <div className="space-y-4">
+      <UtilisationSummary businessId={user.businessId} />
+      <AnalyticsClient initialData={initialData} />
+    </div>
+  )
 }
