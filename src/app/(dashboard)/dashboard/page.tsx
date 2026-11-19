@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { TodayAppointmentsView } from '@/components/dashboard/TodayAppointmentsView'
 import { resolveBusinessTimezone, formatInTimezone, dayBoundsFromYMD } from '@/lib/timezone'
 import type { Prisma } from '@prisma/client'
+import { RoleWelcomeCard } from '@/components/dashboard/RoleWelcomeCard'
 
 export default async function DashboardHomePage() {
   const session = await getServerSession(authOptions)
@@ -99,12 +100,15 @@ export default async function DashboardHomePage() {
   }))
 
   return (
-    <TodayAppointmentsView
-      initialAppointments={formattedAppointments}
-      todayDateStr={todayDateStr}
-      userName={user.name || 'User'}
-      userRole={userRole}
-      barberId={barberId || undefined}
-    />
+    <>
+      <RoleWelcomeCard role={userRole} />
+      <TodayAppointmentsView
+        initialAppointments={formattedAppointments}
+        todayDateStr={todayDateStr}
+        userName={user.name || 'User'}
+        userRole={userRole}
+        barberId={barberId || undefined}
+      />
+    </>
   )
 }

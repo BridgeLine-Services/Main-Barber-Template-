@@ -50,6 +50,7 @@ import {
   HelpCircle,
   AlertTriangle,
   MonitorSmartphone,
+  Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -158,6 +159,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Setup Checklist', href: '/dashboard/setup', icon: Rocket },
+        { name: 'Next Steps', href: '/dashboard/getting-started', icon: ListOrdered },
         { name: 'Barber Mode', href: '/barber-mode', icon: Smartphone },
       ],
       groups: [
@@ -206,6 +208,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           // Selling more, keeping customers, and understanding the numbers.
           label: 'Business Growth',
           items: [
+            { name: 'Growth Plan', href: '/dashboard/growth', icon: Rocket },
             { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
             { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
             { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
@@ -272,6 +275,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Deactivate', href: '/dashboard/settings?tab=danger-zone', icon: AlertTriangle },
         { name: 'Launch Checklist', href: '/dashboard/factory-launch', icon: Shield },
         { name: 'System Health', href: '/dashboard/factory-status', icon: Shield },
+        { name: 'Maintenance', href: '/dashboard/reliability', icon: Wrench },
       ],
     },
   ]

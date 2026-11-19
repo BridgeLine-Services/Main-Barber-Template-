@@ -1,0 +1,113 @@
+/**
+ * Part 7.1: each role is told what its page is for, and what it cannot do.
+ *
+ * Two failure modes matter here, and the suite tests both. The first is a link to a page
+ * that does not exist, which is the dead button the directive forbids. The second is
+ * telling a barber they can do something only an owner can do, which turns a permission
+ * boundary into a support call.
+ */
+
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { describeRoleExperience, roleGreeting } from '../src/lib/role-experience'
+
+let passed = 0
+let failed = 0
+function ok(name: string, condition: boolean, detail = '') {
+  if (condition) {
+    passed++
+    return
+  }
+  failed++
+  console.log(`  FAIL ${name}${detail ? ` — ${detail}` : ''}`)
+}
+
+const ROOT = join(__dirname, '..')
+const ROLES = ['OWNER', 'BUSINESS_ADMIN', 'BARBER', 'CUSTOMER', 'PLATFORM_OWNER', 'PUBLIC_VISITOR'] as const
+
+/** Does a page file exist for this href? Route groups like (dashboard) are transparent. */
+function pageExists(href: string): boolean {
+  const segments = href.split('/').filter(Boolean)
+  const appDir = join(ROOT, 'src', 'app')
+  const candidates: string[] = []
+
+  function walk(dir: string, remaining: string[], depth: number) {
+    if (remaining.length === 0) {
+      if (existsSync(join(dir, 'page.tsx'))) candidates.push(dir)
+      return
+    }
+    if (depth > 6) return
+    const [head, ...rest] = remaining
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry)
+      if (!statSync(full).isDirectory()) continue
+      if (entry === head) walk(full, rest, depth + 1)
+      else if (entry.startsWith('(')) walk(full, remaining, depth + 1)
+    }
+  }
+
+  walk(appDir, segments, 0)
+  return candidates.length > 0
+}
+
+// ─── Every role is described ───────────────────────────────────────────────
+
+for (const role of ROLES) {
+  const experience = describeRoleExperience(role)
+  ok(`${role}: has a human label, not a database value`, experience.label !== role && experience.label.length > 3, experience.label)
+  ok(`${role}: explains itself in one sentence`, experience.intro.length > 30)
+  ok(`${role}: says something to look at first`, experience.focus.length > 0)
+  ok(`${role}: every focus item explains why`, experience.focus.every((f) => f.why.length > 10))
+  ok(`${role}: every focus link is a real page`, experience.focus.every((f) => pageExists(f.href)), experience.focus.filter((f) => !pageExists(f.href)).map((f) => f.href).join(','))
+  ok(`${role}: no link is a placeholder`, experience.focus.every((f) => !/#|example|todo/i.test(f.href)))
+}
+
+// ─── Boundaries match the permission model ─────────────────────────────────
+
+const barber = describeRoleExperience('BARBER')
+ok('a barber is told they see their own clients only', barber.boundaries.some((b) => /own appointments|other barbers/i.test(b)), barber.boundaries.join(' | '))
+ok('a barber is not offered payroll', !barber.focus.some((f) => f.href.includes('/payroll')))
+ok('a barber is not offered shop settings', !barber.focus.some((f) => f.href.includes('/settings')))
+ok('a barber is offered their own commission page', barber.focus.some((f) => f.href === '/dashboard/my-commissions'))
+ok('a barber is offered their own time clock', barber.focus.some((f) => f.href === '/dashboard/my-time-clock'))
+ok('a barber is told some decisions are the owner’s', barber.needsOwnerApproval === true)
+
+const coOwner = describeRoleExperience('BUSINESS_ADMIN')
+ok('a co-owner is told payments belong to the owner', coOwner.boundaries.some((b) => /payment/i.test(b)), coOwner.boundaries.join(' | '))
+ok('a co-owner is told owner-level access is not theirs to change', coOwner.boundaries.some((b) => /owner-level access|owner-level/i.test(b)))
+ok('a co-owner is not offered the payroll page', !coOwner.focus.some((f) => f.href.includes('/payroll')))
+
+const customer = describeRoleExperience('CUSTOMER')
+ok('a customer is offered booking', customer.focus.some((f) => f.href === '/book'))
+ok('a customer is not offered any dashboard page', !customer.focus.some((f) => f.href.startsWith('/dashboard')))
+ok('a customer is told they see only their own appointments', customer.boundaries.some((b) => /only see your own/i.test(b)))
+
+const owner = describeRoleExperience('OWNER')
+ok('an owner has no boundary list to apologise for', owner.boundaries.length === 0)
+ok('an owner is pointed at today first', owner.focus[0].href === '/dashboard')
+
+// ─── Unknown input fails closed ────────────────────────────────────────────
+
+for (const bad of [null, undefined, '', 'SUPERUSER', 'owner', 'ADMIN']) {
+  const experience = describeRoleExperience(bad as string | null | undefined)
+  ok(`an unknown role (${String(bad)}) gets the visitor view`, experience.role === 'PUBLIC_VISITOR', experience.role)
+  ok(`an unknown role (${String(bad)}) is offered nothing private`, !experience.focus.some((f) => f.href.startsWith('/dashboard')))
+}
+ok('the greeting names the role in words', roleGreeting('BARBER').startsWith('Barber:'))
+ok('the greeting is never a bare database value', !roleGreeting('BUSINESS_ADMIN').startsWith('BUSINESS_ADMIN'))
+
+// ─── The card renders only what it is given ────────────────────────────────
+
+const card = readFileSync(join(ROOT, 'src/components/dashboard/RoleWelcomeCard.tsx'), 'utf8')
+ok('the card takes the role as a prop rather than reading a session itself', /role: string \| null \| undefined/.test(card))
+ok('the card links through next/link', /from 'next\/link'/.test(card))
+ok('the card does not fetch or mutate anything', !/fetch\(|useEffect|prisma/i.test(card))
+ok('the card hides an empty boundary list instead of showing a blank heading', /boundaries\.length > 0/.test(card))
+
+const page = readFileSync(join(ROOT, 'src/app/(dashboard)/dashboard/page.tsx'), 'utf8')
+ok('the dashboard renders the card with the session role', /RoleWelcomeCard role=\{userRole\}/.test(page))
+ok('the existing today view is still rendered', /TodayAppointmentsView/.test(page))
+ok('the barber filter on the today view is untouched', /userRole === 'BARBER' && barberId/.test(page))
+
+console.log(`\nRole experience: ${passed} passed, ${failed} failed`)
+if (failed > 0) process.exit(1)
