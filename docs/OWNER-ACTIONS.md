@@ -164,3 +164,17 @@ The last gate cannot be automated. Pick one barber and one day:
 
 Those notes become the next round of work, and they are the only evidence that
 matters for "ready for a real shop".
+
+## Two decisions that are yours, not the code's
+
+**1. Production RLS.** Read `docs/RLS-REVIEW-PACKAGE.md`. It lists what is proven (42
+checks in CI, one setting name shared by the app and the policies) and what is not (no
+staging run as `barber_app`, role attributes unread, rollback unrehearsed). RLS stays off
+until you say otherwise.
+
+**2. Maintenance history.** Read `docs/PROPOSED-MAINTENANCE-HISTORY-MIGRATION.md`. No
+migration file exists and no model is in the schema; I verified both. Approving it means
+one new table, one nullable back-relation, and nothing else touched.
+
+Both documents are written so that refusing them is a complete answer. Neither blocks a
+shop from trading today.
