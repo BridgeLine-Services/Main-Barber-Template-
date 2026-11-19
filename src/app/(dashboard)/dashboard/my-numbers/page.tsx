@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { buildShareLink } from '@/lib/barber/share-link'
+import { buildQrDataUrl, describeQr } from '@/lib/barber/qr'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -46,6 +47,9 @@ async function loadNumbers(barberId: string, businessId: string) {
     barberId,
   })
 
+  // The QR is generated here, in the data function, so the render stays pure.
+  const shareQr = share ? await buildQrDataUrl(share.url) : null
+
   const serviceRows = await safe(() =>
     prisma.appointment.groupBy({
       by: ['serviceId'],
@@ -79,6 +83,7 @@ async function loadNumbers(barberId: string, businessId: string) {
       topServices: services,
     }),
     share,
+    shareQr,
   }
 }
 
@@ -93,6 +98,7 @@ export default async function MyNumbersPage() {
 
   const view = await loadNumbers(user.barberId, user.businessId)
   const share = view.share
+  const shareQr = view.shareQr
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
@@ -138,6 +144,15 @@ export default async function MyNumbersPage() {
             <p className="mt-1 text-sm text-muted-foreground">{share.note}</p>
             <p className="mt-2 break-all rounded-lg bg-muted p-2 text-xs">{share.url}</p>
             <p className="mt-2 text-xs text-muted-foreground">Copy it into a message, or print it on a card. If you would rather not share a link, this page still works without one.</p>
+            {shareQr && (
+              <img
+                src={shareQr}
+                alt={describeQr(share.url)}
+                width={160}
+                height={160}
+                className="mt-3 rounded-lg border border-border bg-white p-2"
+              />
+            )}
           </>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">Your link is not available yet. Nothing is wrong with your appointments; the shop needs its website address set first.</p>

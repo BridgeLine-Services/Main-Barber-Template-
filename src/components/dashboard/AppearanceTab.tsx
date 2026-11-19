@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, Monitor, Info, Smartphone, ExternalLink } from 'lucide-react'
+import { Check, Monitor, Info, Smartphone, Tablet, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   VISUAL_STYLES,
@@ -179,7 +179,7 @@ interface AppearanceTabProps {
 export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt, unsaved = false }: AppearanceTabProps) {
   // Viewport selection is TRANSIENT client state — it never persists as a
   // branding setting and never affects what publish renders.
-  const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop')
+  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [frameHeight, setFrameHeight] = useState(640)
   // iframe health: 'loading' until the real homepage renderer reports load;
   // if it never does, we show an honest error with a Retry action instead of
@@ -217,6 +217,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt, unsa
   }
 
   const isMobile = viewport === 'mobile'
+  const isTablet = viewport === 'tablet'
 
   return (
     <Card className="bg-card border-border">
@@ -289,14 +290,26 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt, unsa
               <button
                 type="button"
                 onClick={() => setViewport('desktop')}
-                aria-pressed={!isMobile}
+                aria-pressed={viewport === 'desktop'}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  !isMobile ? 'bg-[var(--dash-brand-soft)] text-foreground border border-[var(--dash-brand-border)]' : 'text-muted-foreground hover:text-foreground'
+                  viewport === 'desktop' ? 'bg-[var(--dash-brand-soft)] text-foreground border border-[var(--dash-brand-border)]' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
                 Desktop
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewport('tablet')}
+                aria-pressed={isTablet}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isTablet ? 'bg-[var(--dash-brand-soft)] text-foreground border border-[var(--dash-brand-border)]' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Tablet className="h-3.5 w-3.5" aria-hidden="true" />
+                Tablet
               </button>
               <button
                 type="button"
@@ -332,7 +345,7 @@ export function AppearanceTab({ websiteContent, setWebsiteContent, savedAt, unsa
             data-viewport-frame={viewport}
             className={cn(
               'mx-auto overflow-hidden rounded-xl border border-border bg-[var(--dash-surface-2)] shadow-sm transition-all',
-              isMobile ? 'w-[390px] max-w-full' : 'w-full'
+              isMobile ? 'w-[390px] max-w-full' : isTablet ? 'w-[768px] max-w-full' : 'w-full'
             )}
           >
             {/* iframe: same-origin authenticated draft preview, session cookies apply */}
