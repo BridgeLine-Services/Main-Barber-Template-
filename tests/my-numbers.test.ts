@@ -1,0 +1,26 @@
+import { buildMyNumbers } from '../src/lib/barber/my-numbers'
+let p = 0, f = 0
+const ok = (name: string, cond: boolean, extra = '') => { if (cond) p++; else { f++; console.log('  FAIL', name, extra) } }
+const full = { finished: 12, upcoming: 3, cancelled: 2, noShows: 1, topServices: [{ name: 'Skin fade', count: 7 }] }
+const r = buildMyNumbers(full)
+ok('four numbers', r.numbers.length === 4)
+ok('values kept', r.numbers[0].value === 12 && r.numbers[1].value === 3)
+ok('all read', r.allRead)
+ok('calm headline', r.headline === 'Here is your last 30 days.')
+ok('top service kept', r.topServices[0].name === 'Skin fade')
+const unread = buildMyNumbers({ ...full, finished: null })
+ok('null stays null', unread.numbers[0].value === null)
+ok('null is not zero', unread.numbers[0].value !== 0)
+ok('says could not check', unread.numbers[0].hint === 'Could not be checked.')
+ok('not all read', !unread.allRead)
+ok('headline admits it', /could not be read/.test(unread.headline))
+ok('others survive', unread.numbers[1].value === 3)
+const noServices = buildMyNumbers({ ...full, topServices: null })
+ok('missing services blocks all clear', !noServices.allRead)
+ok('services become empty list', noServices.topServices.length === 0)
+ok('never invents a service', noServices.topServices.length === 0)
+const none = buildMyNumbers({ finished: 0, upcoming: 0, cancelled: 0, noShows: 0, topServices: [] })
+ok('zero is a real answer', none.numbers[0].value === 0 && none.allRead)
+ok('no shaming word', !/fail|poor|bad|miss/i.test(none.headline))
+console.log(`My numbers: ${p} passed, ${f} failed`)
+process.exit(f ? 1 : 0)
