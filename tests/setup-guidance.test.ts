@@ -25,8 +25,8 @@ for (const stage of STAGE_COPY) {
   ok(`${stage.id}: step ids unique`, new Set(stage.steps.map((s) => s.id)).size === stage.steps.length)
 }
 
-ok('four stages exist', STAGE_COPY.length === 4)
-ok('stage ids are the agreed four', STAGE_COPY.map((s) => s.id).join(',') === 'starting,growing,established,multi-location')
+ok('five stages exist', STAGE_COPY.length === 5)
+ok('stage ids are the agreed five', STAGE_COPY.map((s) => s.id).join(',') === 'starting,growing,established,multi-location,franchise')
 ok('unknown stage falls back to the first', copyForStage('nonsense' as never).id === 'starting')
 
 // Progress honesty
@@ -67,6 +67,68 @@ for (const id of ['per-location', 'shared-brand', 'consolidated']) {
   ok(`${id} exists only as a deferred explanation`, ids.has(id))
 }
 ok('optional steps are marked optional', STAGE_COPY.flatMap((s) => s.steps).some((s) => s.optional === true))
+
+// ─── Part 4.5: a step's button must go somewhere real ───────────────────────
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const ROOT = join(__dirname, '..')
+const APP = join(ROOT, 'src', 'app')
+const settingsPage = readFileSync(join(APP, '(dashboard)', 'dashboard', 'settings', 'page.tsx'), 'utf8')
+const tabMatch = /const VALID_TABS = \[([\s\S]*?)\] as const/.exec(settingsPage)
+const validTabs = tabMatch ? [...tabMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : []
+
+function actionExists(href: string): boolean {
+  const [path, query] = href.split('?')
+  const segments = path.replace(/^\//, '').split('/')
+  const found =
+    existsSync(join(APP, '(dashboard)', ...segments, 'page.tsx')) ||
+    existsSync(join(APP, ...segments, 'page.tsx')) ||
+    existsSync(join(APP, '(customer)', ...segments, 'page.tsx'))
+  if (!found) return false
+  if (query) {
+    const tab = new URLSearchParams(query).get('tab')
+    if (tab && !validTabs.includes(tab)) return false
+  }
+  return true
+}
+
+const actions = STAGE_COPY.flatMap((s) => s.steps.map((step) => step.action)).filter((a): a is string => Boolean(a))
+ok('most steps offer a way to do them', actions.length >= 12, String(actions.length))
+for (const href of [...new Set(actions)]) {
+  ok(`step action resolves: ${href}`, actionExists(href))
+}
+ok(
+  'a deferred step never offers a dead button',
+  STAGE_COPY.filter((s) => s.id === 'franchise').flatMap((s) => s.steps).every((s) => s.action === null || Boolean(s.action)),
+)
+
+// ─── Part 4.3: progress separates required, optional and unknown ────────────
+const growing = buildGuidanceProgress('growing', {
+  barberCount: 2, serviceCount: 4, bookingEnabled: true,
+})
+ok('required work is listed', growing.remaining.length === 0 || growing.remaining.every((id) => typeof id === 'string'))
+ok('optional work is listed separately', Array.isArray(growing.optionalRemaining))
+ok('unknown work is listed separately', Array.isArray(growing.unknownSteps))
+ok('a percentage counts required steps only', growing.percent === 100, String(growing.percent))
+
+const optionalOnly = buildGuidanceProgress('growing', { barberCount: 2, serviceCount: 4, bookingEnabled: false })
+ok('an open optional step does not reduce the score', optionalOnly.percent === 100, String(optionalOnly.percent))
+ok('an open optional step is still named', optionalOnly.optionalRemaining.length > 0)
+
+const requiredOpen = buildGuidanceProgress('starting', {
+  hasName: true, hasPhone: true, hasAddress: true, hasHours: true, serviceCount: 0, barberCount: 1, websiteLive: true,
+})
+ok('an open required step is named as the next one', requiredOpen.nextStepId === 'services', String(requiredOpen.nextStepId))
+ok('an open required step lowers the score', requiredOpen.percent !== null && requiredOpen.percent < 100, String(requiredOpen.percent))
+
+const unreadable = buildGuidanceProgress('starting', { hasName: true })
+ok('unreadable required work refuses a score', unreadable.percent === null)
+ok('unreadable work is counted, not guessed', unreadable.unknownSteps.length > 0)
+ok('no next step is invented from nothing', unreadable.nextStepId === null || unreadable.remaining.includes(unreadable.nextStepId))
+
+const franchise = buildGuidanceProgress('franchise', { barberCount: 9, serviceCount: 9 })
+ok('the franchise stage is never scored against the owner', franchise.steps.length === 0 && franchise.percent === null)
 
 console.log(`\nSetup guidance: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

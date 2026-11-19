@@ -67,6 +67,15 @@ model Business {
   onboardingStep        String    @default("business") // current/last wizard step: business | branding | services | schedule | done
   onboardingCompletedAt DateTime?
 
+  // ─── Growth intention (Part 4.2) ─────────────────────────────────────────
+  // What the owner says they are heading for: one of starting | growing |
+  // established | multi-location | franchise, or null when they have not said.
+  // Additive and nullable on purpose: it records an intention and never grants
+  // a permission, enables a feature or changes a setting. Readers treat a
+  // missing column (a copy that has not migrated yet) as null rather than
+  // failing the page.
+  intendedStage String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
