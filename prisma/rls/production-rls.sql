@@ -176,7 +176,10 @@ END $$;
 --      an organization rather than a shop, so the tenant key is the organization. A
 --      request that acts for an organization sets app.current_organization_id; a request
 --      that acts for one shop never sets it, and therefore sees none of these rows.
---      Staged with the same approval as the rest of this file.
+--
+--      The organization root is matched on its own "id"; every child is matched on
+--      "organizationId". The column is checked rather than assumed, because one policy
+--      text cannot name both on a table that has only one of them.
 DO $$
 DECLARE
   t_org TEXT[] := ARRAY[
@@ -185,24 +188,29 @@ DECLARE
     'OrganizationAnnouncement','OrganizationConfigAudit'
   ];
   tbl TEXT;
+  tenant_col TEXT;
 BEGIN
   FOREACH tbl IN ARRAY t_org LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = tbl AND column_name = 'organizationId'
+    ) THEN
+      tenant_col := 'organizationId';
+    ELSE
+      tenant_col := 'id';
+    END IF;
+
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',  tbl);
     EXECUTE format('DROP POLICY IF EXISTS organization_isolation ON %I', tbl);
-    EXECUTE format($f$
-      CREATE POLICY organization_isolation ON %I
-        USING (
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
-          OR "id" = NULLIF(current_setting('app.current_organization_id', true), '')
-          OR "organizationId" = NULLIF(current_setting('app.current_organization_id', true), '')
-        )
-        WITH CHECK (
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
-          OR "id" = NULLIF(current_setting('app.current_organization_id', true), '')
-          OR "organizationId" = NULLIF(current_setting('app.current_organization_id', true), '')
-        )
-    $f$, tbl);
+    EXECUTE format(
+      'CREATE POLICY organization_isolation ON %I '
+      'USING (COALESCE(current_setting(''app.platform_staff'', true), ''0'') = ''1'' '
+      '  OR %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')) '
+      'WITH CHECK (COALESCE(current_setting(''app.platform_staff'', true), ''0'') = ''1'' '
+      '  OR %I = NULLIF(current_setting(''app.current_organization_id'', true), ''''))',
+      tbl, tenant_col, tenant_col
+    );
   END LOOP;
 END $$;
 

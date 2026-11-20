@@ -52,6 +52,8 @@ const GLOBAL = new Set([
   'User', 'BackupRun', 'PlatformSetting', 'UserSession', 'VerificationToken',
   'PasswordResetToken', 'SystemJob', 'JobLock', 'CronRun', 'RateLimitCounter',
   'StripeEvent', 'WebhookEvent', 'JobExecution', 'NotificationDispatch',
+  // Platform recovery evidence: belongs to no shop and to no organization.
+  'RestoreDrill',
 ])
 
 /** Known indirect paths when the child has neither businessId nor a direct parent. */
@@ -64,7 +66,14 @@ const INDIRECT_PARENT: Record<string, string> = {
   ServiceAddOn: 'Service',
 }
 
-export type RlsClass = 'tenant_root' | 'direct' | 'indirect' | 'global' | 'unclassified'
+/**
+ * The organization layer (migration 20261120150000) sits above the shop. Its rows are keyed
+ * on the organization, so a shop-scoped policy would either hide them or expose them. They
+ * are classified separately and policed with `app.current_organization_id`.
+ */
+const ORGANIZATION_ROOT = 'Organization'
+
+export type RlsClass = 'tenant_root' | 'direct' | 'indirect' | 'organization_root' | 'organization' | 'global' | 'unclassified'
 
 export interface RlsPlanRow {
   model: string
@@ -78,6 +87,9 @@ export function classify(models: ModelInfo[]): RlsPlanRow[] {
   for (const model of models) {
     if (GLOBAL.has(model.name)) { rows.push({ model: model.name, classification: 'global' }); continue }
     if (model.name === 'Business') { rows.push({ model: model.name, classification: 'tenant_root' }); continue }
+    if (model.name === ORGANIZATION_ROOT) { rows.push({ model: model.name, classification: 'organization_root' }); continue }
+    const hasOrganizationId = model.fields.some((field) => field.name === 'organizationId')
+    if (hasOrganizationId) { rows.push({ model: model.name, classification: 'organization', via: 'organizationId' }); continue }
     const hasBusinessId = model.fields.some((field) => field.name === 'businessId')
     if (hasBusinessId) { rows.push({ model: model.name, classification: 'direct' }); continue }
     const parentName = INDIRECT_PARENT[model.name]
@@ -119,12 +131,14 @@ function main() {
     console.log(`tenant root: ${counts.tenant_root ?? 0}`)
     console.log(`directly scoped: ${counts.direct ?? 0}`)
     console.log(`indirectly scoped: ${counts.indirect ?? 0}`)
+    console.log(`organization root: ${counts.organization_root ?? 0}`)
+    console.log(`organization scoped: ${counts.organization ?? 0}`)
     console.log(`global: ${counts.global ?? 0}`)
     console.log(`unclassified: ${counts.unclassified ?? 0}`)
   }
 
   if (process.argv.includes('--check') && (counts.unclassified ?? 0) > 0) {
-    console.error('\nEvery model must be classified before RLS can be planned. Add it to GLOBAL or INDIRECT_PARENT with a reason.')
+    console.error('\nEvery model must be classified before RLS can be planned. Add it to GLOBAL, INDIRECT_PARENT or the organization key with a reason.')
     process.exit(1)
   }
 }
