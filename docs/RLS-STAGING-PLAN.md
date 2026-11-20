@@ -231,3 +231,59 @@ the reason and exits 3, and says plainly that enforcement was not verified. In C
 failures, because a security test that did not run must never appear green. This
 changes nothing about production: RLS is still **not enabled** there, and a passing
 run proves the policies work, not that they are live.
+
+---
+
+## 8. Reconciliation: the gift-card tables, and the organization layer
+
+Two additions since this plan was written, both handled without enabling anything.
+
+### 8.1 The gift-card gap
+
+`20261005014500_add_gift_cards` turns RLS **on** for `GiftCardSettings`, `GiftCard` and
+`GiftCardTransaction` and creates no policy. On the owner role this is invisible, because a
+table owner bypasses RLS. On `barber_app` it is a fail-closed outage: a table with RLS enabled
+and no policy returns zero rows, so gift cards would appear to have vanished.
+
+This plan already includes all three tables in the `businessId` policy array, so applying it
+closes the gap. Until then:
+
+```bash
+npm run db:rls-reconcile          # reports the gap and prints the exact policy
+npm run db:rls-reconcile -- --enforce   # exits 1 when a table has RLS but no policy
+```
+
+The report is read-only on purpose. Applying a policy is a production change and belongs in a
+reviewed migration, not in a script run to diagnose a problem. `tests/rls-reconciliation.test.ts`
+pins the gap, pins that the staged plan covers it, and fails if any migration starts creating
+policies on its own.
+
+**Consequence for the rollout order:** the runtime role switch (section 2) must not happen
+before the policies are applied, or gift cards break. Section 4 of `docs/STAGING-ENVIRONMENT.md`
+records this.
+
+### 8.2 The organization layer
+
+Migration `20261120150000_organization_and_referrals` adds fourteen tables. Seven are scoped by
+`businessId` and join the existing direct-policy array:
+
+`OrganizationLocation`, `StaffLocationAssignment`, `OrganizationServicePriceException`,
+`CustomerLocationLink`, `ReferralProgram`, `ReferralCode`, `ReferralAttribution`
+
+Seven are scoped by the organization itself and get their own policy, keyed on
+`app.current_organization_id`:
+
+`Organization`, `OrganizationMember`, `OrganizationBrandSettings`,
+`OrganizationReportingConfiguration`, `OrganizationServiceTemplate`,
+`OrganizationAnnouncement`, `OrganizationConfigAudit`
+
+The organization policy accepts either the row's own `id` or its `organizationId`, so one
+policy covers both the organization row and its children. A request that acts for a single
+shop never sets `app.current_organization_id`, so it sees none of these rows. A request that
+acts for an organization sets it and sees only that organization's rows.
+
+`RestoreDrill` (migration `20261120140000_restore_drill`) is deliberately **not** tenant-scoped.
+It is platform recovery evidence and belongs to no shop, like `StripeEvent`.
+
+`tests/rls-reconciliation.test.ts` asserts every one of these names appears in the staged plan,
+so a table added later cannot quietly escape it.

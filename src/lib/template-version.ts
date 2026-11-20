@@ -30,14 +30,14 @@ export interface TemplateVersion {
 
 export const TEMPLATE_VERSION: TemplateVersion = {
   template: 'Main Barber Template',
-  version: '1.1.0',
-  releasedAt: '2026-11-19',
+  version: '1.2.0',
+  releasedAt: '2026-11-20',
   sourceCommit: null,
   compatibleAppVersion: '1.0.0',
   requiredNodeMajor: 24,
-  schemaMigrationCount: 61,
+  schemaMigrationCount: 63,
   notes:
-    'Business Growth Center (five stages), vendor support sources with checked dates, security sweep, template version identity and controlled update pathway.',
+    'Reliability program (scheduled reports, advisories, compatibility, update planning, gated repairs, restore verification), additive organization layer with aggregate-only corporate reporting, referral attribution and barber growth analytics, CodeQL remediation and staged RLS reconciliation.',
 }
 
 /** Plain sentence for an owner who wants to know what they are running. */

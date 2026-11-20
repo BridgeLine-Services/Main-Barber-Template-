@@ -28,7 +28,19 @@ const baseIndex = args.indexOf('--base')
 const BASE = (baseIndex >= 0 ? args[baseIndex + 1] : 'http://localhost:3210').replace(/\/$/, '')
 const PAGES = (args.includes('--pages') ? args[args.indexOf('--pages') + 1] : '/,/book,/login,/register,/services,/shop,/terms,/privacy').split(',')
 
-function stripComments(html) { return html.replace(/<!--[\s\S]*?-->/g, '') }
+// Removing one pass can leave a new comment marker behind ("<!--<!---->-->" becomes
+// "<!-->"), so the pass repeats until the string stops changing. A fixed number of
+// passes would still leave a residue; the loop has a hard bound so a pathological input
+// cannot hang the audit.
+function stripComments(html) {
+  let current = html
+  for (let pass = 0; pass < 10; pass++) {
+    const next = current.replace(/<!--[\s\S]*?-->/g, '')
+    if (next === current) return next
+    current = next
+  }
+  return current.replace(/<!--/g, '')
+}
 
 // Two severities. "hard" is provable from server-rendered HTML and is a blocker.
 // "advisory" covers structure a browser pass must confirm first: a landmark or a

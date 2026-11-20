@@ -66,6 +66,7 @@ const PUBLIC_BY_DESIGN: Record<string, { why: string; proof: RegExp }> = {
   'src/app/api/appointments/route.ts': { why: 'removed endpoint, returns 410', proof: /410/ },
   'src/app/api/appointments/[id]/route.ts': { why: 'removed endpoint, returns 410', proof: /410/ },
   'src/app/api/auth/[...nextauth]/route.ts': { why: 'NextAuth handler itself', proof: /NextAuth/ },
+  'src/app/api/cron/maintenance-report/route.ts': { why: 'scheduled job, secret header, read-only', proof: /CRON_SECRET/ },
   'src/app/api/cron/memberships/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/cron/reminders/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/cron/review-requests/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },

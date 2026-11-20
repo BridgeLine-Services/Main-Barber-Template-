@@ -88,8 +88,12 @@ async function main() {
     '--font-roboto', '--font-oswald', '--font-lato']) {
     assert(css.includes(`${v}:`), `CSS declares the ${v} custom property`)
   }
-  assert(!css.includes('fonts.googleapis.com') && !css.includes('fonts.gstatic.com'),
-    'built CSS contains no Google Fonts URL')
+  // Compare hostnames rather than substrings: a substring check is both a weak test and a
+  // false-positive magnet, because "fonts.googleapis.com.evil.test" contains the same text.
+  const googleFontHosts = [...css.matchAll(/url\(\s*['"]?(https?:\/\/[^)'"\s]+)/g)]
+    .map((m) => { try { return new URL(m[1]).hostname } catch { return '' } })
+    .filter((host) => host === 'fonts.googleapis.com' || host === 'fonts.gstatic.com')
+  assert(googleFontHosts.length === 0, 'built CSS contains no Google Fonts URL')
 
   // 4. Font files actually served from local /_next/static/media
   const woff2Refs = [...css.matchAll(/url\(([^)]+\.woff2)\)/g)].map((m) => m[1])

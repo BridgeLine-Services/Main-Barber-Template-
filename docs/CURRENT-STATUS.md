@@ -1,5 +1,10 @@
 # Current status
 
+> 2026-11-20: priorities 1 to 5 of the master prompt were implemented to the extent recorded in
+> `docs/PRIORITIES-1-5-STATUS.md`. That document is authoritative for what is done and what is not;
+> this file describes the state before that pass.
+
+
 Last updated: 2026-11-19, after the expansion branch `expansion/phase-0-8` was merged into
 `main` at `5169c79`. This is the authoritative document for where the repository stands.
 

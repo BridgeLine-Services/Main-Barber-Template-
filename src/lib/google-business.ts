@@ -426,6 +426,9 @@ export function isGBPConnected(): boolean {
 
   export function createGBPOAuthState(userId: string, businessId: string): string {
     const payload = `${userId}:${businessId}:${Date.now()}`
+    // codeql[js/insufficient-password-hash] — this is not a password hash. It is an
+    // HMAC-SHA256 signature over a short-lived state token, compared with a constant-time
+    // equality check, and the key is a server-side secret, not a user password.
     const signature = createHmac('sha256', oauthStateSecret()).update(payload).digest('base64url')
     return Buffer.from(`${payload}:${signature}`).toString('base64url')
   }

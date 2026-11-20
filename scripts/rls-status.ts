@@ -32,6 +32,10 @@ const TENANT_TABLES = [
   'PayrollReportAdjustment',
   // gift cards (settings, cards, balance ledger)
   'GiftCardSettings','GiftCard','GiftCardTransaction',
+  // organization layer (migration 20261120150000) — rows that belong to one shop
+  'OrganizationLocation','StaffLocationAssignment',
+  'OrganizationServicePriceException','CustomerLocationLink',
+  'ReferralProgram','ReferralCode','ReferralAttribution',
   // tenant roots
   'Business','Schedule',
 ]

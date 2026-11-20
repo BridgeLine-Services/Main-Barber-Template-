@@ -1,10 +1,10 @@
 {
   "template": "Main Barber Template",
-  "version": "1.1.0",
-  "releasedAt": "2026-11-19",
+  "version": "1.2.0",
+  "releasedAt": "2026-11-20",
   "sourceCommit": "30f99cdf98690da880c63b57ba68be38407eb560",
   "compatibleAppVersion": "1.0.0",
   "requiredNodeMajor": 24,
-  "schemaMigrationCount": 61,
-  "notes": "Business Growth Center (five stages), vendor support sources with checked dates, security sweep, template version identity and controlled update pathway."
+  "schemaMigrationCount": 63,
+  "notes": "Reliability program (scheduled reports, advisories, compatibility, update planning, gated repairs, restore verification), additive organization layer with aggregate-only corporate reporting, referral attribution and barber growth analytics, CodeQL remediation and staged RLS reconciliation."
 }

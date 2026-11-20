@@ -123,7 +123,13 @@ DECLARE
     'SmsConsentLog',
     -- Maintenance history (migration 20261120090000): a shop's repair record.
     -- Added with the table, so it is never the one table left unprotected.
-    'MaintenanceAction'
+    'MaintenanceAction',
+    -- Organization layer (migration 20261120150000): the rows that still belong to
+    -- one shop. A location link, a staff assignment, a price exception, a customer
+    -- consent and the referral tables are all scoped by businessId.
+    'OrganizationLocation','StaffLocationAssignment',
+    'OrganizationServicePriceException','CustomerLocationLink',
+    'ReferralProgram','ReferralCode','ReferralAttribution'
   ];
   tbl TEXT;
 BEGIN
@@ -166,8 +172,43 @@ BEGIN
   END LOOP;
 END $$;
 
--- (c) Tables deliberately NOT RLS-scoped: StripeEvent is a global
---     webhook idempotency ledger (no tenant data — eventId dedupe only).
+-- (b2) Organization-scoped tables (migration 20261120150000). These rows belong to
+--      an organization rather than a shop, so the tenant key is the organization. A
+--      request that acts for an organization sets app.current_organization_id; a request
+--      that acts for one shop never sets it, and therefore sees none of these rows.
+--      Staged with the same approval as the rest of this file.
+DO $$
+DECLARE
+  t_org TEXT[] := ARRAY[
+    'Organization','OrganizationMember','OrganizationBrandSettings',
+    'OrganizationReportingConfiguration','OrganizationServiceTemplate',
+    'OrganizationAnnouncement','OrganizationConfigAudit'
+  ];
+  tbl TEXT;
+BEGIN
+  FOREACH tbl IN ARRAY t_org LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',  tbl);
+    EXECUTE format('DROP POLICY IF EXISTS organization_isolation ON %I', tbl);
+    EXECUTE format($f$
+      CREATE POLICY organization_isolation ON %I
+        USING (
+          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          OR "id" = NULLIF(current_setting('app.current_organization_id', true), '')
+          OR "organizationId" = NULLIF(current_setting('app.current_organization_id', true), '')
+        )
+        WITH CHECK (
+          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          OR "id" = NULLIF(current_setting('app.current_organization_id', true), '')
+          OR "organizationId" = NULLIF(current_setting('app.current_organization_id', true), '')
+        )
+    $f$, tbl);
+  END LOOP;
+END $$;
+
+-- (c) Tables deliberately NOT RLS-scoped: StripeEvent is a global webhook idempotency
+--     ledger (no tenant data — eventId dedupe only), and RestoreDrill is platform
+--     recovery evidence (migration 20261120140000) that belongs to no shop.
 
 -- (d) The formerly indirectly-scoped tables (BarberService,
 --     BarberRewardProgram, AppointmentIntakeResponse) now carry a

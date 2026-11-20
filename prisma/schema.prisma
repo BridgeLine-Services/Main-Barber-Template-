@@ -17,6 +17,9 @@ datasource db {
 
 model Business {
   payments                   Payment[]
+  /// Priority 2: the organization this shop belongs to, when it belongs to one.
+  /// Nullable by design: a shop keeps working whether or not it joins an organization.
+  organizationLocation       OrganizationLocation?
   id                         String            @id @default(cuid())
   name                       String
   slug                       String            @unique // URL slug for the shop
@@ -2351,4 +2354,280 @@ model MaintenanceAction {
 
   @@index([businessId, createdAt])
   @@index([approvalState, createdAt])
+}
+
+// ─── Restore drills (Priority 1, part G) ───────────────────────────────────
+// Proof that a backup was restored, not merely created. Global, not tenant data:
+// it records the health of the platform's own recovery process.
+
+model RestoreDrill {
+  id               String    @id @default(cuid())
+  /// The BackupRun this drill restored, when it is known.
+  backupId         String?
+  objectKey        String?
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  /// 'succeeded' | 'failed'
+  status           String
+  tablesRestored   String[]
+  rowsCompared     Int?
+  rowCountsMatched Boolean?
+  durationMs       Int?
+  /// Sanitised, non-sensitive summary. Never a connection string or a key.
+  detail           String?
+  /// Set only after the drill actually passed.
+  verifiedAt       DateTime?
+
+  @@index([startedAt])
+  @@index([verifiedAt])
+}
+
+// ─── Organization layer (Priority 2) ───────────────────────────────────────
+// An organization sits ABOVE Business. Business remains the operational tenant and
+// keeps owning appointments, customers, payments and staff. Nothing here replaces it.
+
+enum OrganizationMemberRole {
+  ORGANIZATION_OWNER
+  CORPORATE_ADMIN
+  REGIONAL_MANAGER
+  FRANCHISE_OWNER
+}
+
+enum OrganizationMemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  deactivatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  members       OrganizationMember[]
+  locations     OrganizationLocation[]
+  brandSettings OrganizationBrandSettings?
+  reporting     OrganizationReportingConfiguration[]
+  announcements OrganizationAnnouncement[]
+  templates     OrganizationServiceTemplate[]
+  assignments   StaffLocationAssignment[]
+  customerLinks CustomerLocationLink[]
+  configAudit   OrganizationConfigAudit[]
+
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id             String                   @id @default(cuid())
+  organizationId String
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// The person. Scalar on purpose: membership is separate from shop-level membership.
+  userId         String
+  role           OrganizationMemberRole
+  status         OrganizationMemberStatus @default(INVITED)
+  /// Regions this member may act on. Empty means every region in the organization.
+  regions        String[]
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+}
+
+model OrganizationLocation {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// One Business per location. Restrict: deleting an organization must never delete a shop.
+  businessId     String        @unique
+  business       Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  region         String?
+  /// 'onboarding' | 'active' | 'closing' | 'closed'
+  status         String        @default("active")
+  openedAt       DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, status])
+  @@index([region])
+}
+
+model StaffLocationAssignment {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  businessId     String
+  /// Location role: 'LOCATION_MANAGER' | 'BARBER' | 'ADMIN'
+  role           String
+  effectiveFrom  DateTime  @default(now())
+  effectiveTo    DateTime?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, businessId, effectiveFrom])
+  @@index([businessId, effectiveFrom, effectiveTo])
+  @@index([organizationId, userId])
+}
+
+model OrganizationBrandSettings {
+  id                 String       @id @default(cuid())
+  organizationId     String       @unique
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logoUrl            String?
+  primaryColor       String?
+  accentColor        String?
+  brandGuidelinesUrl String?
+  /// Fields a location is allowed to override, e.g. ['logoUrl'].
+  allowedOverrides   String[]
+  updatedById        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model OrganizationReportingConfiguration {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  metric         String
+  enabled        Boolean      @default(true)
+  /// 'daily' | 'weekly' | 'monthly'
+  schedule       String       @default("weekly")
+  recipients     String[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, metric])
+}
+
+model OrganizationServiceTemplate {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  durationMinutes  Int
+  defaultPriceCents Int
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  exceptions       OrganizationServicePriceException[]
+
+  @@index([organizationId, active])
+}
+
+model OrganizationServicePriceException {
+  id         String                      @id @default(cuid())
+  templateId String
+  template   OrganizationServiceTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  businessId String
+  priceCents Int
+  reason     String?
+  approvedById String?
+  createdAt  DateTime                    @default(now())
+  updatedAt  DateTime                    @updatedAt
+
+  @@unique([templateId, businessId])
+  @@index([businessId])
+}
+
+model OrganizationAnnouncement {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  body           String
+  /// 'all' | 'region' | 'location' | 'group'
+  audienceType   String
+  /// Region names, business ids or group names, depending on audienceType.
+  audienceValues String[]
+  authorId       String
+  publishedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, publishedAt])
+}
+
+model OrganizationConfigAudit {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  action         String
+  entity         String
+  entityId       String?
+  summary        String
+  previousValue  String?
+  newValue       String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+// A customer's explicit, revocable consent for one location to see that they also
+// visit another location in the same organization. No consent row, no shared history.
+model CustomerLocationLink {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerId     String
+  businessId     String
+  consentText    String
+  consentedAt    DateTime     @default(now())
+  revokedAt      DateTime?
+
+  @@unique([customerId, businessId])
+  @@index([organizationId, customerId])
+}
+
+// ─── Referral attribution (Priority 5, part A) ─────────────────────────────
+// One attribution per customer, enforced by the unique key, so a customer is never
+// counted twice and a booking is never double-attributed.
+
+model ReferralProgram {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  enabled    Boolean  @default(false)
+  codePrefix String   @default("REF")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ReferralCode {
+  id         String   @id @default(cuid())
+  businessId String
+  customerId String
+  code       String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([businessId, code])
+  @@unique([businessId, customerId])
+  @@index([code])
+}
+
+model ReferralAttribution {
+  id                 String   @id @default(cuid())
+  businessId         String
+  /// One attribution per customer. This is what prevents double counting.
+  customerId         String   @unique
+  referrerCustomerId String?
+  code               String?
+  /// Canonical booking source, e.g. 'REFERRAL', 'INSTAGRAM', 'WALK_IN'.
+  source             String?
+  campaign           String?
+  appointmentId      String?
+  firstBookingAt     DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([referrerCustomerId])
+  @@index([source])
 }

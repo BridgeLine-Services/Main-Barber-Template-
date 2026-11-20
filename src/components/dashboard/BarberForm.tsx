@@ -46,6 +46,22 @@ function photoPreviewSrc(value: unknown): string | null {
   return null
 }
 
+/**
+ * Final check before a preview reaches an <img> src. It repeats the scheme rules rather
+ * than trusting the earlier parse, so a future refactor of photoPreviewSrc cannot turn
+ * this attribute into a way to hand the browser an unparsed string.
+ */
+function isRenderableImageSrc(value: string): boolean {
+  if (value.startsWith('blob:')) return value.length > 'blob:'.length
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return true
+    return parsed.protocol === 'data:' && /^data:image\/(png|jpe?g|webp|gif);/i.test(value)
+  } catch {
+    return false
+  }
+}
+
 export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps) {
   const isEdit = Boolean(barber?.id)
 
@@ -244,7 +260,11 @@ export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps)
               </Button>
             </div>
             {photoUploadError && <p className="text-xs text-red-400">{photoUploadError}</p>}
-            {photoPreview && (
+            {photoPreview && isRenderableImageSrc(photoPreview) && (
+              // codeql[js/xss-through-dom] — photoPreview has already been parsed by
+              // photoPreviewSrc and is re-checked here; only http(s), a blob this page
+              // created, and raster data: images reach this attribute. An <img> src
+              // cannot execute script, and no raw HTML is produced.
               <img src={photoPreview} alt="Barber photo preview" className="h-16 w-16 rounded-lg object-cover border border-input" />
             )}
           </div>
