@@ -5,7 +5,8 @@ import { requireOwner } from '@/lib/auth-helpers'
 import { buildReadinessReport } from '@/lib/health'
 import { buildMaintenanceReport } from '@/lib/platform-reliability/dependency-monitor'
 import { TEMPLATE_VERSION, describeTemplateVersion, nodeIsSufficient } from '@/lib/template-version'
-import { historyAvailability, summariseHistory } from '@/lib/platform-reliability/maintenance-history'
+import { historyAvailability, summariseHistory, describeRecord } from '@/lib/platform-reliability/maintenance-history'
+import { listMaintenanceHistory } from '@/lib/platform-reliability/maintenance-history-store'
 import {
   buildReliabilitySections,
   summariseSections,
@@ -58,6 +59,11 @@ function installedComponents() {
 export default async function ReliabilityPage() {
   const auth = await requireOwner()
   if (!auth.success) redirect('/login')
+
+  // The repair record table is part of the schema, but a copy that has not run the
+  // migration yet must still render. A failed read means "could not read", not "empty".
+  const history = await listMaintenanceHistory(auth.user.businessId, 20).catch(() => null)
+  const historyState = historyAvailability({ tableReady: history !== null })
 
   const readiness = await buildReadinessReport().catch(() => null)
   const maintenance =
@@ -177,9 +183,19 @@ export default async function ReliabilityPage() {
       <section aria-labelledby="repair-history" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
         <h2 id="repair-history" className="text-lg font-semibold text-foreground">Repairs and their history</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {summariseHistory([]).sentence}
+          {history === null ? 'We could not read the repair record just now.' : summariseHistory(history).sentence}
         </p>
-        <p className="mt-2 text-sm text-foreground">{historyAvailability().reason}</p>
+        {history !== null && history.length > 0 && (
+          <ul className="mt-3 space-y-1 text-sm text-foreground">
+            {history.map((entry) => (
+              <li key={entry.id} className="flex gap-2">
+                <span aria-hidden="true" className="text-muted-foreground">•</span>
+                <span>{describeRecord(entry)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-sm text-muted-foreground">{historyState.reason}</p>
         <details className="mt-3">
           <summary className="cursor-pointer text-xs font-medium text-foreground">
             What a repair record will show

@@ -11,7 +11,7 @@ migration was applied to a production system, and no security control was disabl
 | Check | Result |
 | --- | --- |
 | `npm run test:ci` (77 suites) | PASS, exit 0 |
-| `npm run architecture:check` | PASS, 669 source files |
+| `npm run architecture:check` | PASS, 671 source files |
 | `npm run typecheck` | PASS, no errors |
 | `npm run lint` | PASS, 0 errors, 98 warnings (same warning count as baseline) |
 | `npm run build` | PASS, 75/75 static pages, requires `DATABASE_URL` and `NEXTAUTH_SECRET` |
@@ -25,7 +25,7 @@ migration was applied to a production system, and no security control was disabl
 | New: `test:security-sweep` | PASS, 52 |
 | New: `test:template-updates` | PASS, 56 |
 | New: `test:role-experience` | PASS, 71 |
-| New: `test:maintenance-history` | PASS, 75 |
+| New: `test:maintenance-history` | PASS, 96 |
 | New: `test:maintenance-window` | PASS, 30 |
 
 Not executed, and not claimed: GitHub Actions CI on the pushed branch, CodeQL, and any run
@@ -51,7 +51,10 @@ Every file below is additive or an extension. Line numbers are intentionally not
 | `src/lib/platform-reliability/dependency-monitor.ts` | Findings without provenance | Every finding carries source, checked date, support status, security and compatibility notes | Part 5.1 | None | None | `dependency-monitor` (36) + `support-sources` | Revert file |
 | `dashboard/reliability/page.tsx` | Sections and readiness checks | Adds "Software versions and support" and "Which version is this?" | Parts 5.1, 8.1 | Owner-only page | None | `reliability-sections`, `support-sources` | Revert file |
 | `src/lib/platform-reliability/maintenance-history.ts` (new) | — | Repair record rules: creation with redaction, two-party approval, A/B/C state machine, outcome that requires passing checks, plain-English description and summary; reports itself as not enabled | Part 5.3 | Cannot store a secret; imports no database client | None; no migration created | `maintenance-history` (75) | Delete file |
-| `tests/maintenance-history.test.ts` (new) | — | Pins the rules above, and asserts no maintenance migration exists yet | Part 5.3 | Strengthens | None | itself | Delete file |
+| `tests/maintenance-history.test.ts` (new) | — | Pins the rules, and asserts the migration is additive only and that the store cannot leak across businesses | Part 5.3 | Strengthens | None | itself | Delete file |
+| `prisma/migrations/20261120090000_maintenance_action/migration.sql` (new) | — | Creates the table, two indexes and one cascading foreign key. No DROP, no ALTER of an existing table, no data statement | Part 5.3, approved by owner | None; no permission change | Additive table only | `maintenance-history`, RLS 42/42 | Drop the table |
+| `src/lib/platform-reliability/maintenance-history-store.ts` (new) | — | Business-scoped write, read and update, redacting again on write | Part 5.3 | Cannot cross a tenant boundary | Writes the new table | `maintenance-history` | Delete file |
+| `prisma/rls/production-rls.sql` | Staged tenant list | Adds `MaintenanceAction` to the staged policy list so a new tenant table is never the unprotected one | Part 5.3, Part 6.1 | Keeps the plan complete; still not applied to production | Staged SQL only | RLS 42/42 | Revert line |
 | `src/lib/platform-reliability/maintenance-window.ts` (new) | — | Decides whether a repair may run now, should wait for a quiet period, or is never automatic; unknown opening hours mean wait | Part 5.5 | Runs nothing, imports no database client | None | `maintenance-window` (30) | Delete file |
 | `dashboard/reliability/page.tsx` | Version card | Adds "Repairs and their history" stating the honest not-enabled state and what a record will show | Parts 5.1-5.4 | Owner-only page | None | `maintenance-history`, `reliability-sections` | Revert file |
 | `tests/security-sweep.test.ts` (new) | — | Fails when a route loses its guard, a tenant comes from the request, or FORCE RLS enters a migration | Part 6 | Strengthens | None | itself | Delete file |
@@ -111,12 +114,12 @@ the build succeeds, but CI has not run on this branch and no staging deployment 
 
 ## 4. WHAT STILL NEEDS WORK
 
-1. **Maintenance history: the table only.** The rules are now implemented and tested
-   (`src/lib/platform-reliability/maintenance-history.ts`, 75 assertions): two-party approval,
-   the Category A/B/C state machine, "done means the checks passed", and redaction that makes
-   storing a secret impossible. What is missing is the one additive table that keeps the
-   records, because creating a migration needs your approval. The page says so plainly
-   instead of showing an empty list.
+1. ~~Maintenance history table.~~ **Done, on your approval (2026-11-20).** The additive
+   `MaintenanceAction` table is created and applied to the test database, the schema model and
+   the `Business` back-relation exist, and the store writes and reads with redaction applied a
+   second time on the way in. Proven: a record written with a key-shaped value stores
+   `[removed]`, one business cannot read or change another's records, and the RLS enforcement
+   test confirms the new table is in the staged policy file rather than left unprotected.
 2. **RLS activation.** The staged plan exists and its 42 offline checks pass. Enabling it in
    production is a tenant-isolation change and stays blocked on approval.
 3. **Gift-card RLS inconsistency.** Three tables have RLS enabled with no policies by an

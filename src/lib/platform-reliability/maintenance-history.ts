@@ -56,7 +56,15 @@ export interface HistoryAvailability {
  * History is not enabled. It needs one additive table, and the directive requires the owner
  * to approve that before it is created. Saying so is the honest state, not a placeholder.
  */
-export function historyAvailability(): HistoryAvailability {
+export function historyAvailability(options?: { tableReady?: boolean }): HistoryAvailability {
+  if (options?.tableReady) {
+    return {
+      enabled: true,
+      reason:
+        'Every repair is recorded here: what was found, what was recommended, who approved it, what changed, ' +
+        'whether the checks passed, and whether it was undone. Secrets and customer details are never recorded.',
+    }
+  }
   return {
     enabled: false,
     reason:

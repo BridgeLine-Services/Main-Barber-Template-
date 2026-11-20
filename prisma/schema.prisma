@@ -159,6 +159,7 @@ model Business {
   shopOrders                ShopOrder[]
 
   @@index([slug])
+  maintenanceActions         MaintenanceAction[]
 }
 
 // ─── Users (Auth) ───────────────────────────────────────────────────────────
@@ -2316,4 +2317,38 @@ model BackupRun {
 
   @@index([kind, startedAt])
   @@index([verifiedAt])
+}
+
+// ─── Maintenance History (Reliability Program) ─────────────────────────────
+// A record of what was detected, what was recommended, who approved it, what changed,
+// whether the checks passed, and whether it was undone. Additive only: nothing existing
+// is altered. Never stores a password, key or secret value.
+
+model MaintenanceAction {
+  id             String    @id @default(cuid())
+  actionKey      String
+  /// 'automatic' | 'approval' | 'manual'
+  repairClass    String
+  component      String
+  /// Null means platform-wide.
+  businessId     String?
+  business       Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  previousValue  String?
+  proposedValue  String?
+  requestedById  String?
+  approvedById   String?
+  approvalState  String    @default("proposed")
+  executionState String    @default("not-started")
+  /// Sanitised outcome sentence. Never a secret.
+  result         String?
+  rollbackRef    String?
+  testsPassed    Boolean?
+  deploymentSucceeded Boolean?
+  createdAt      DateTime  @default(now())
+  approvedAt     DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  @@index([businessId, createdAt])
+  @@index([approvalState, createdAt])
 }

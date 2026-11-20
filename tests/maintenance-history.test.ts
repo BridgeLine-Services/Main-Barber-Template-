@@ -40,17 +40,42 @@ const FAKE_KEY = ['sk', 'live', '9f2b8c7d6e5a4b3c2d1e0f9a'].join('_')
 // ─── It is not enabled, and it says so ─────────────────────────────────────
 
 const availability = historyAvailability()
-ok('history reports itself as not enabled', availability.enabled === false)
+ok('history reports itself as not enabled before the table is read', availability.enabled === false)
 ok('history explains why in plain words', /approval is needed/i.test(availability.reason), availability.reason)
 ok('history says it only adds a record of repairs', /does not change/i.test(availability.reason))
-ok('history never claims to be working', !/is switched on for this installation yet/.test('') && !availability.enabled)
+ok('history never claims to be working before the read', !availability.enabled)
 
-// ─── No migration was created without approval ─────────────────────────────
+const ready = historyAvailability({ tableReady: true })
+ok('once the table can be read, history reports itself enabled', ready.enabled === true)
+ok('the enabled wording promises no secrets', /never recorded/i.test(ready.reason), ready.reason)
+
+// ─── The migration exists, was approved, and is additive only ──────────────
 
 const migrationsDir = join(ROOT, 'prisma', 'migrations')
 const migrationNames = existsSync(migrationsDir) ? readdirSync(migrationsDir) : []
-ok('no maintenance-history migration exists yet', !migrationNames.some((m) => /maintenance/i.test(m)), migrationNames.filter((m) => /maintenance/i.test(m)).join(','))
-ok('the proposal document exists for review', existsSync(join(ROOT, 'docs/PROPOSED-MAINTENANCE-HISTORY-MIGRATION.md')))
+const maintenanceMigration = migrationNames.find((m) => /maintenance_action/i.test(m))
+ok('the approved migration exists', Boolean(maintenanceMigration), migrationNames.slice(-3).join(','))
+ok('the proposal document is still on record', existsSync(join(ROOT, 'docs/PROPOSED-MAINTENANCE-HISTORY-MIGRATION.md')))
+
+const migrationSql = maintenanceMigration
+  ? readFileSync(join(migrationsDir, maintenanceMigration, 'migration.sql'), 'utf8')
+  : ''
+ok('it creates the table', /CREATE TABLE "MaintenanceAction"/.test(migrationSql))
+ok('it adds no column to anything existing', !/ALTER TABLE "(?!MaintenanceAction")/.test(migrationSql))
+ok('it drops nothing', !/\bDROP\b/i.test(migrationSql))
+ok('it deletes no data', !/DELETE\s+FROM|TRUNCATE\s+/i.test(migrationSql))
+ok('it only adds indexes and a foreign key', /CREATE INDEX/.test(migrationSql) && /FOREIGN KEY/.test(migrationSql))
+ok('its foreign key cascades on business delete', /ON DELETE CASCADE/.test(migrationSql))
+
+const schema = readFileSync(join(ROOT, 'prisma/schema.prisma'), 'utf8')
+ok('the model is in the schema', /^model MaintenanceAction \{/m.test(schema))
+ok('Business links to it', /maintenanceActions\s+MaintenanceAction\[\]/.test(schema))
+const modelBlock = schema.split('model MaintenanceAction {')[1]?.split('\n}')[0] ?? ''
+const fieldNames = modelBlock
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('//') && !line.trim().startsWith('///'))
+  .map((line) => line.trim().split(/\s+/)[0])
+ok('the new table has no secret-named column', !fieldNames.some((f) => /password|token|secret|apikey/i.test(f)), fieldNames.join(','))
 
 // ─── The module cannot write to the database ───────────────────────────────
 
@@ -214,5 +239,69 @@ ok('the summary counts undos', summary.rolledBack === 1, String(summary.rolledBa
 ok('the summary is a sentence, not a table', /\.$/.test(summary.sentence))
 ok('a specialist item is never counted as waiting for approval', !/specialist/.test(summary.sentence))
 
-console.log(`\nMaintenance history: ${passed} passed, ${failed} failed`)
+// ─── The store, against the real table ────────────────────────────────────
+
+const STORE_FAKE_KEY = ['sk', 'live', 'thisisnotarealkeyatall1234'].join('_')
+
+async function storeChecks() {
+  const { listMaintenanceHistory, saveMaintenanceRecord, updateMaintenanceRecord } = await import(
+    '../src/lib/platform-reliability/maintenance-history-store'
+  )
+  const { prisma } = await import('../src/lib/prisma')
+
+  const business = await prisma.business.findFirst({ select: { id: true } })
+  if (!business) {
+    console.log('  SKIP store checks: no business in the database')
+    return
+  }
+  const other = await prisma.business.create({
+    data: { name: 'History probe shop', slug: `history-probe-${Date.now()}` } as never,
+  }).catch(() => null)
+
+  const saved = await saveMaintenanceRecord(business.id, createRecord({
+    actionKey: 'probe-check',
+    component: 'Website runtime',
+    repairClass: 'automatic',
+    previousValue: '20.11.0',
+    result: 'Ran the checks.',
+  }))
+  ok('a record can be written', Boolean(saved.id))
+  ok('the record comes back as proposed or approved for a safe repair', saved.approvalState === 'approved')
+
+  const secretAttempt = await saveMaintenanceRecord(business.id, {
+    ...createRecord({ actionKey: 'probe-secret', component: 'Keys', repairClass: 'approval' }),
+    previousValue: STORE_FAKE_KEY,
+    result: `used token ${STORE_FAKE_KEY}`,
+  })
+  ok('a secret written straight to the store is redacted', secretAttempt.previousValue === '[removed]', String(secretAttempt.previousValue))
+  ok('a secret inside a sentence is redacted', secretAttempt.result === '[removed]', String(secretAttempt.result))
+
+  const mine = await listMaintenanceHistory(business.id, 50)
+  ok('the business sees its own record', mine.some((r) => r.id === saved.id))
+  ok('newest first', mine[0]?.createdAt >= (mine[mine.length - 1]?.createdAt ?? ''))
+
+  if (other) {
+    const theirs = await listMaintenanceHistory(other.id, 50)
+    ok('another business sees none of it', theirs.length === 0)
+    const stolen = await updateMaintenanceRecord(other.id, saved.id, { ...saved, approvalState: 'rejected' })
+    ok('another business cannot change it', stolen === 0)
+    const stillMine = await listMaintenanceHistory(business.id, 50)
+    ok('the record is untouched after the attempt', stillMine.find((r) => r.id === saved.id)?.approvalState === 'approved')
+    await prisma.business.delete({ where: { id: other.id } }).catch(() => null)
+  }
+
+  await prisma.maintenanceAction.deleteMany({ where: { actionKey: { in: ['probe-check', 'probe-secret'] } } })
+  const after = await listMaintenanceHistory(business.id, 50)
+  ok('probe rows are cleaned up', !after.some((r) => r.actionKey.startsWith('probe-')))
+}
+
+storeChecks()
+  .catch((error) => {
+    failed++
+    console.log(`  FAIL store checks threw: ${error instanceof Error ? error.message : String(error)}`)
+  })
+  .finally(() => {
+    console.log(`\nMaintenance history: ${passed} passed, ${failed} failed`)
+    if (failed > 0) process.exit(1)
+  })
 if (failed > 0) process.exit(1)

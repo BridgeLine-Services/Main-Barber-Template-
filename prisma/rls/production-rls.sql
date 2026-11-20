@@ -120,7 +120,10 @@ DECLARE
     'ReviewRequestSettings','ReviewRequest',
     -- SMS consent (TCPA): who agreed to texts, per tenant. Added after the
     -- enforcement test caught it as the one tenant table still unprotected.
-    'SmsConsentLog'
+    'SmsConsentLog',
+    -- Maintenance history (migration 20261120090000): a shop's repair record.
+    -- Added with the table, so it is never the one table left unprotected.
+    'MaintenanceAction'
   ];
   tbl TEXT;
 BEGIN

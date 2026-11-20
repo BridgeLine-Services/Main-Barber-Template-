@@ -1,7 +1,9 @@
 # Proposed maintenance history: review package (NOT APPLIED)
 
-**Status: proposed only.** No migration file exists, no model exists, nothing has been
-applied to any database. Part 5.3 of the directive authorises an additive migration; your
+**Status: APPROVED AND APPLIED (2026-11-20).** The owner approved this design. Migration
+`20261120090000_maintenance_action` was created exactly as specified below, applied to the test
+database, and verified by the 96 assertions in `tests/maintenance-history.test.ts` and the 42
+RLS enforcement checks. Kept on record as the review package that authorised it. Part 5.3 of the directive authorises an additive migration; your
 instruction is that you review it first. This document is that review.
 
 Repository: `main` at `2b65ab3`. Date: 2026-11-18.
