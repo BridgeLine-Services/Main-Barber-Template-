@@ -10,8 +10,8 @@ migration was applied to a production system, and no security control was disabl
 
 | Check | Result |
 | --- | --- |
-| `npm run test:ci` (76 suites) | PASS, exit 0 |
-| `npm run architecture:check` | PASS, 667 source files |
+| `npm run test:ci` (77 suites) | PASS, exit 0 |
+| `npm run architecture:check` | PASS, 669 source files |
 | `npm run typecheck` | PASS, no errors |
 | `npm run lint` | PASS, 0 errors, 98 warnings (same warning count as baseline) |
 | `npm run build` | PASS, 75/75 static pages, requires `DATABASE_URL` and `NEXTAUTH_SECRET` |
@@ -26,6 +26,7 @@ migration was applied to a production system, and no security control was disabl
 | New: `test:template-updates` | PASS, 56 |
 | New: `test:role-experience` | PASS, 71 |
 | New: `test:maintenance-history` | PASS, 75 |
+| New: `test:maintenance-window` | PASS, 30 |
 
 Not executed, and not claimed: GitHub Actions CI on the pushed branch, CodeQL, and any run
 against a real staging deployment with Upstash, Stripe, Twilio and SMTP credentials.
@@ -51,6 +52,7 @@ Every file below is additive or an extension. Line numbers are intentionally not
 | `dashboard/reliability/page.tsx` | Sections and readiness checks | Adds "Software versions and support" and "Which version is this?" | Parts 5.1, 8.1 | Owner-only page | None | `reliability-sections`, `support-sources` | Revert file |
 | `src/lib/platform-reliability/maintenance-history.ts` (new) | — | Repair record rules: creation with redaction, two-party approval, A/B/C state machine, outcome that requires passing checks, plain-English description and summary; reports itself as not enabled | Part 5.3 | Cannot store a secret; imports no database client | None; no migration created | `maintenance-history` (75) | Delete file |
 | `tests/maintenance-history.test.ts` (new) | — | Pins the rules above, and asserts no maintenance migration exists yet | Part 5.3 | Strengthens | None | itself | Delete file |
+| `src/lib/platform-reliability/maintenance-window.ts` (new) | — | Decides whether a repair may run now, should wait for a quiet period, or is never automatic; unknown opening hours mean wait | Part 5.5 | Runs nothing, imports no database client | None | `maintenance-window` (30) | Delete file |
 | `dashboard/reliability/page.tsx` | Version card | Adds "Repairs and their history" stating the honest not-enabled state and what a record will show | Parts 5.1-5.4 | Owner-only page | None | `maintenance-history`, `reliability-sections` | Revert file |
 | `tests/security-sweep.test.ts` (new) | — | Fails when a route loses its guard, a tenant comes from the request, or FORCE RLS enters a migration | Part 6 | Strengthens | None | itself | Delete file |
 | `docs/SECURITY-EXPANSION-REVIEW.md` (new) | — | Records what was verified and three findings | Part 6 | Documentation | None | — | Delete file |
@@ -80,12 +82,12 @@ requirement counts only where a test or a file proves it; "a file exists" earns 
 | 4 | Multi-location readiness | 8% | 10 | 1 | 0 | 0 | 9 | 10% |
 | 5 | Franchise readiness | 5% | 9 | 1 | 0 | 0 | 8 | 11% |
 | 6 | Security and data protection | 18% | 25 | 20 | 2 | 1 | 2 | 80% |
-| 7 | Reliability Program | 12% | 16 | 13 | 2 | 0 | 1 | 88% |
+| 7 | Reliability Program | 12% | 16 | 14 | 1 | 0 | 1 | 94% |
 | 8 | Nontechnical user experience | 10% | 12 | 9 | 2 | 0 | 1 | 75% |
 | 9 | Client-copy and delivery process | 10% | 13 | 11 | 1 | 0 | 1 | 85% |
 | 10 | Testing and release confidence | 8% | 10 | 7 | 1 | 2 | 0 | 75% |
 
-Weighted overall: **84%** (Reliability rose from 75% to 88% when the maintenance-history rules landed).
+Weighted overall: **85%** (Reliability rose from 75% to 94% as the record rules and the maintenance-window policy landed).
 
 ```
 Core foundation        ███████████████████░  95%
@@ -94,12 +96,12 @@ Growing shop           █████████████████░░
 Multi-location         ██░░░░░░░░░░░░░░░░░░  10%
 Franchise              ██░░░░░░░░░░░░░░░░░░  11%
 Security               ████████████████░░░░  80%
-Reliability            █████████████████░░░  88%
+Reliability            ███████████████████░  94%
 Nontechnical UX        ███████████████░░░░░  75%
 Client delivery        █████████████████░░░  85%
 Testing confidence     ███████████████░░░░░  75%
                        ─────────────────────
-Weighted overall       84%
+Weighted overall       85%
 ```
 
 Why the security category is not higher: RLS is implemented and proven offline but

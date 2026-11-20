@@ -15,16 +15,16 @@ Last updated: 2026-11-19, after the expansion branch `expansion/phase-0-8` was m
 
 | Gate | Result |
 | --- | --- |
-| `npm run test:ci` | PASS, exit 0, 76 suites green |
+| `npm run test:ci` | PASS, exit 0, 77 suites green |
 | `npm run typecheck` | PASS |
 | `npm run lint` | PASS, 0 errors, 98 warnings (unchanged from baseline) |
 | `npm run build` | PASS, 75/75 static pages (needs `DATABASE_URL` and `NEXTAUTH_SECRET`) |
-| `npm run architecture:check` | PASS, 668 files |
+| `npm run architecture:check` | PASS, 669 files |
 | `npm run test:tenant` | PASS, 22 |
 | `npm run test:permissions` | PASS, 37 |
 | `npm run test:backup` | PASS, 142 checks |
 | RLS enforcement | PASS, 42/42 with local admin credential supplied |
-| New this cycle | `test:growth-stages` 71, `test:support-sources` 48, `test:security-sweep` 52, `test:template-updates` 56, `test:role-experience` 71, `test:maintenance-history` 75 |
+| New this cycle | `test:growth-stages` 71, `test:support-sources` 48, `test:security-sweep` 52, `test:template-updates` 56, `test:role-experience` 71, `test:maintenance-history` 75, `test:maintenance-window` 30 |
 
 Not executed: GitHub Actions on this branch, CodeQL, and any run against staging with real
 Stripe, Twilio, Upstash and SMTP credentials.
