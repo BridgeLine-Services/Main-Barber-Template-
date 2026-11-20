@@ -62,8 +62,15 @@ async function main() {
   assert(html.includes('font-sans'), 'default font-sans class applied')
 
   // 2. Build output has no Google Fonts reference
-  assert(!html.includes('fonts.googleapis.com') && !html.includes('fonts.gstatic.com'),
-    'homepage HTML contains no Google Fonts reference')
+  // Parsed, not substring-matched: a query string containing the name is not a request
+  // to that host, and a lookalike host must not pass as the real one.
+  const referencedHosts = [...html.matchAll(/https?:\/\/[^"'\s)>]+/g)]
+    .map((m) => { try { return new URL(m[0]).hostname.toLowerCase() } catch { return '' } })
+    .filter(Boolean)
+  assert(
+    !referencedHosts.some((h) => h === 'fonts.googleapis.com' || h.endsWith('.fonts.googleapis.com')
+      || h === 'fonts.gstatic.com' || h.endsWith('.fonts.gstatic.com')),
+    'homepage HTML loads nothing from Google Fonts')
 
   // 3. Every supported family resolves to a locally served @font-face
   const cssLinks = [...html.matchAll(/href="([^"]+\.css[^"]*)"/g)].map((m) => m[1])

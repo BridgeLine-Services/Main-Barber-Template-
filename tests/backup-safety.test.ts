@@ -20,6 +20,7 @@ import {
   listManifests,
 } from '../scripts/backup-offsite'
 import { createLocalStorage } from '../scripts/lib/backup-storage'
+import { hostOfAnyUrl } from '../src/lib/safe-url'
 import {
   assertRetentionSafe,
   isVerified,
@@ -77,7 +78,7 @@ async function main() {
   console.log('--- connection strings and identifiers never leak or escape ---')
   const url = 'postgresql://barber:s3cretPassw0rd@db.example.com:5432/barbershop?sslmode=require'
   assert(!redactSecrets(url).includes('s3cretPassw0rd'), 'a password in a connection string is redacted')
-  assert(redactSecrets(url).includes('db.example.com'), 'the redacted form still identifies the host for an operator')
+  assert(hostOfAnyUrl(redactSecrets(url)) === 'db.example.com', 'the redacted form still identifies the host for an operator')
   assert(!redactSecrets('PASSWORD=abc123').includes('abc123'), 'a password= token is redacted')
   assert(!redactSecrets('token 0123456789abcdef0123456789abcdef').includes('0123456789abcdef'), 'long hex tokens are redacted')
   assert(redactSecrets('pg_dump exited 1') === 'pg_dump exited 1', 'harmless text passes through untouched')
@@ -93,7 +94,7 @@ async function main() {
 
   const derived = databaseUrlFor(url, 'barber_backup_verify_x')
   assert(derived.endsWith('/barber_backup_verify_x?sslmode=require'), 'the scratch URL keeps the connection options and swaps only the database')
-  assert(derived.includes('db.example.com'), 'the host is preserved for the scratch database')
+  assert(hostOfAnyUrl(derived) === 'db.example.com', 'the host is preserved for the scratch database')
 
   console.log('--- client/server version skew handling ---')
   const dump = [

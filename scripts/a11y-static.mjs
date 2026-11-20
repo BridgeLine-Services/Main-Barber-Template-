@@ -64,7 +64,15 @@ function check(html) {
   }
   for (const button of html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)) {
     const [tag, inner] = button
-    const text = inner.replace(/<[^>]+>/g, '').trim()
+    // Repeated until stable: one pass turns '<<b>script>' into '<script>', which is
+    // how a naive tag strip lets a tag survive. Bounded so input cannot spin.
+    let text = inner
+    for (let pass = 0; pass < 10; pass++) {
+      const next = text.replace(/<[^<>]*>/g, '')
+      if (next === text) break
+      text = next
+    }
+    text = text.trim()
     if (!text && !/aria-label|aria-labelledby|title\s*=/i.test(tag)) hard.push(`a button has no accessible name: ${tag.slice(0, 70)}`)
   }
   for (const match of html.matchAll(/tabindex\s*=\s*["']?(\d+)/gi)) {

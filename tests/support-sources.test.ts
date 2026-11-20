@@ -8,6 +8,7 @@
  */
 
 import { buildMaintenanceReport, type MonitoredComponent } from '../src/lib/platform-reliability/dependency-monitor'
+import { isSafeExternalUrl, isHostOfDomain } from '../src/lib/safe-url'
 import {
   SUPPORT_SOURCES,
   UNCHECKED_SENTENCE,
@@ -45,11 +46,11 @@ const sources = Object.values(SUPPORT_SOURCES)
 ok('there are sources for every component family', sources.length >= 8, String(sources.length))
 ok(
   'every source is https',
-  sources.every((s) => s.url.startsWith('https://')),
+  sources.every((s) => isSafeExternalUrl(s.url)),
 )
 ok(
   'every source is a recognised vendor domain',
-  sources.every((s) => AUTHORITATIVE.some((domain) => s.url.includes(domain))),
+  sources.every((s) => AUTHORITATIVE.some((domain) => isHostOfDomain(s.url, domain))),
   sources.filter((s) => !AUTHORITATIVE.some((d) => s.url.includes(d))).map((s) => s.url).join(','),
 )
 ok('every source says what it can answer', sources.every((s) => s.answers.length > 20))
@@ -111,7 +112,7 @@ ok('no recommendation is invented', unknown.recommended === null)
 ok('the security line admits it cannot say', /cannot say/i.test(unknown.security), unknown.security)
 ok('the action uses the exact required sentence', unknown.action.includes(UNCHECKED_SENTENCE), unknown.action)
 ok('unknown never reads as fine', !/no action needed|everything is fine/i.test(unknown.action))
-ok('the unknown record still names its source', unknown.source.length > 5 && unknown.sourceUrl.startsWith('https://'))
+ok('the unknown record still names its source', unknown.source.length > 5 && isSafeExternalUrl(unknown.sourceUrl))
 
 const auditMissing = advisorySupportRecord(CHECKED, false)
 ok('an audit that did not run is unknown', auditMissing.status === 'unknown')

@@ -9,6 +9,7 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { stripHtmlTags } from '../src/lib/safe-url'
 
 let passed = 0
 let failed = 0
@@ -103,7 +104,7 @@ for (const [file, source] of sources) {
 const selector = sources.get('src/components/dashboard/StageSelector.tsx') ?? ''
 const buttons: string[] = selector.match(/<button\b[^>]*>([\s\S]*?)<\/button>/g) ?? []
 ok('the stage selector has buttons', buttons.length > 0)
-const emptyButtons = buttons.filter((b) => b.replace(/<[^>]+>/g, '').trim() === '')
+const emptyButtons = buttons.filter((b) => stripHtmlTags(b).trim() === '')
 ok('every stage button has readable text', emptyButtons.length === 0)
 ok('the selector explains itself to a screen reader', /aria-label|aria-labelledby|role="radiogroup"|aria-pressed|aria-checked/.test(selector))
 ok('the selector announces which choice is current', /aria-pressed=|aria-checked=/.test(selector))

@@ -434,6 +434,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
 
       {/* Sidebar Container */}
       <aside
+        aria-label="Main navigation"
         className={cn(
           'fixed top-0 bottom-0 left-0 z-50 w-64 bg-[var(--dash-surface)] border-r border-border flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

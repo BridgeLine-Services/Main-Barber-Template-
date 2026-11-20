@@ -40,3 +40,26 @@ No security control was disabled to make a check pass.
   and SMTP credentials. Those remain outstanding in `docs/CURRENT-STATUS.md`.
 - RLS enforcement in production. The 42 offline enforcement checks pass against a local
   PostgreSQL 15; the staged plan and its approval are still required.
+
+## CodeQL alerts: alert by alert
+
+Reconciled against the current branch, not against an earlier report. Each row is one
+finding, what it actually was, what was done, and the evidence that the decision is sound.
+
+| Alert | Severity | File and line | Root cause | Decision | Regression test | Evidence |
+|---|---|---|---|---|---|---|
+| Incomplete multi-character sanitization | High | `tests/accessibility-guard.test.ts:107` | `button.innerHTML.replace(/<[^>]+>/g, '')` — one pass, and `[^>]` lets a `<` survive inside a tag, so `<<b>script>` becomes `<script>` | **Fixed.** Replaced with `stripHtmlTags` from `src/lib/safe-url.ts`, which repeats until stable, bounded at ten passes, and matches `[^<>]*` so a nested bracket cannot be smuggled | `tests/safe-url.test.ts` (nested bracket, script tag, empty element, hostile input) | The test asserts `stripHtmlTags('<<b>script>') === ''`, which the old code returned as `<script>` |
+| Incomplete multi-character sanitization | High | `scripts/a11y-static.mjs:67` | Same single-pass strip in the static accessibility scanner, so a tag could survive and hide an unnamed button | **Fixed.** Same bounded loop, written out in the script so it stays dependency-free | `npm run a11y:static` over the built HTML, plus the guard suite | A button whose label is only markup now reports as unnamed, which is the correct verdict |
+| Incomplete URL substring sanitization | High | `tests/support-sources.test.ts:48` | `url.startsWith('https://')` treats `https://` as proof of a safe destination and ignores the host | **Fixed.** `isSafeExternalUrl` parses and requires protocol `https:`, a hostname, and no embedded credentials | `tests/safe-url.test.ts` | `javascript:`, `data:`, `http:`, `//host`, relative paths and credential-bearing URLs are all refused |
+| Incomplete URL substring sanitization | High | `tests/support-sources.test.ts:114` | Same substring check on the "unknown source" record | **Fixed.** Parsed check, same helper | `tests/safe-url.test.ts` | — |
+| Incomplete URL substring sanitization | High | `tests/backup-safety.test.ts:80,96` | `redactSecrets(url).includes('db.example.com')` — the trusted name can appear in a query string or a lookalike host | **Fixed.** Compares the parsed hostname exactly | `tests/safe-url.test.ts` (lookalike, query-string, suffix-without-dot cases) | `example.com.evil.test`, `notexample.com` and `evil-example.com` all fail the domain check |
+| Incomplete URL substring sanitization | High | `tests/fonts.test.ts:65` | `html.includes('fonts.googleapis.com')` — matches the name anywhere, including a query string | **Fixed.** Every URL in the HTML is parsed and its hostname compared, including subdomains | `tests/fonts.test.ts` itself now parses | A lookalike host no longer passes, and a genuine reference still fails the build |
+| DOM text reinterpreted as HTML | High | `src/components/dashboard/BarberForm.tsx` | Reported as an `innerHTML`/`dangerouslySetInnerHTML` sink for barber biography text | **False positive, verified.** The file has no HTML sink: `bio` is a controlled `<textarea value={bio}>` and the strings around it are JSX text. `grep -n "dangerouslySetInnerHTML\|innerHTML" src/components/dashboard/BarberForm.tsx` returns nothing | The guard suite forbids a click handler on a non-interactive element and an unlabelled control in this file | The alert's premise (user text reaching HTML) does not exist in the code that is on the branch |
+| Insufficient computational effort in password hashing | High | `src/lib/google-business.ts` | Reported as a weak password hash | **False positive, verified.** There is no password hashing in the file. The only cryptography is `createHmac('sha256', …)` over the OAuth `state` payload, compared with `timingSafeEqual`, with a ten-minute expiry and fail-closed behaviour in production | `tests/google-business*.test.ts` cover state creation and rejection | A state signature is not a password: it is a short-lived MAC over `userId:businessId:issuedAt`, and raising the cost of the hash would change nothing an attacker can use |
+
+### What this means for the alert count
+
+Four distinct source locations were genuinely wrong and are now fixed at the root, not
+silenced. Two reported alerts point at code that does not contain the construct they
+describe; those are documented above with the check that proves it. Nothing was added to
+an ignore list, and no query was disabled.

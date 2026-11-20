@@ -65,3 +65,6 @@ backups/
 docs/qa-screens/
 public/qa-media/
 .qa-gallery-states/
+
+# Playwright authentication state (contains a live session cookie)
+e2e/.auth/
