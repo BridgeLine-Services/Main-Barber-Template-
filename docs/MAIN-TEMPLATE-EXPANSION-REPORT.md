@@ -10,7 +10,7 @@ migration was applied to a production system, and no security control was disabl
 
 | Check | Result |
 | --- | --- |
-| `npm run test:ci` (77 suites) | PASS, exit 0 |
+| `npm run test:ci` (78 suites) | PASS, exit 0 |
 | `npm run architecture:check` | PASS, 671 source files |
 | `npm run typecheck` | PASS, no errors |
 | `npm run lint` | PASS, 0 errors, 98 warnings (same warning count as baseline) |
@@ -27,6 +27,7 @@ migration was applied to a production system, and no security control was disabl
 | New: `test:role-experience` | PASS, 71 |
 | New: `test:maintenance-history` | PASS, 96 |
 | New: `test:maintenance-window` | PASS, 30 |
+| New: `test:accessibility` | PASS, 44 |
 
 Not executed, and not claimed: GitHub Actions CI on the pushed branch, CodeQL, and any run
 against a real staging deployment with Upstash, Stripe, Twilio and SMTP credentials.
@@ -57,6 +58,8 @@ Every file below is additive or an extension. Line numbers are intentionally not
 | `prisma/rls/production-rls.sql` | Staged tenant list | Adds `MaintenanceAction` to the staged policy list so a new tenant table is never the unprotected one | Part 5.3, Part 6.1 | Keeps the plan complete; still not applied to production | Staged SQL only | RLS 42/42 | Revert line |
 | `src/lib/platform-reliability/maintenance-window.ts` (new) | — | Decides whether a repair may run now, should wait for a quiet period, or is never automatic; unknown opening hours mean wait | Part 5.5 | Runs nothing, imports no database client | None | `maintenance-window` (30) | Delete file |
 | `dashboard/reliability/page.tsx` | Version card | Adds "Repairs and their history" stating the honest not-enabled state and what a record will show | Parts 5.1-5.4 | Owner-only page | None | `maintenance-history`, `reliability-sections` | Revert file |
+| `tests/accessibility-guard.test.ts` (new) | — | Static accessibility guard over the dashboard surfaces this expansion touched | Part 7.2 | Strengthens | None | itself | Delete file |
+| `src/components/dashboard/Sidebar.tsx` | Clickable mobile backdrop with no aria state | Backdrop is `aria-hidden`; Close button is an explicit `type="button"` | Part 7.2 | None | None | `accessibility` | Revert file |
 | `tests/security-sweep.test.ts` (new) | — | Fails when a route loses its guard, a tenant comes from the request, or FORCE RLS enters a migration | Part 6 | Strengthens | None | itself | Delete file |
 | `docs/SECURITY-EXPANSION-REVIEW.md` (new) | — | Records what was verified and three findings | Part 6 | Documentation | None | — | Delete file |
 | `src/lib/role-experience.ts` (new) | — | Per-role focus and boundary copy; unknown role fails closed | Part 7.1 | Grants nothing | None | `role-experience` | Delete file |
@@ -86,11 +89,11 @@ requirement counts only where a test or a file proves it; "a file exists" earns 
 | 5 | Franchise readiness | 5% | 9 | 1 | 0 | 0 | 8 | 11% |
 | 6 | Security and data protection | 18% | 25 | 20 | 2 | 1 | 2 | 80% |
 | 7 | Reliability Program | 12% | 16 | 14 | 1 | 0 | 1 | 94% |
-| 8 | Nontechnical user experience | 10% | 12 | 9 | 2 | 0 | 1 | 75% |
+| 8 | Nontechnical user experience | 10% | 12 | 11 | 1 | 0 | 0 | 96% |
 | 9 | Client-copy and delivery process | 10% | 13 | 11 | 1 | 0 | 1 | 85% |
 | 10 | Testing and release confidence | 8% | 10 | 7 | 1 | 2 | 0 | 75% |
 
-Weighted overall: **85%** (Reliability rose from 75% to 94% as the record rules and the maintenance-window policy landed).
+Weighted overall: **87%** (Reliability 94% after the repair record landed; nontechnical UX 96% after the accessibility guard and the backdrop fix).
 
 ```
 Core foundation        ███████████████████░  95%
@@ -100,11 +103,11 @@ Multi-location         ██░░░░░░░░░░░░░░░░░
 Franchise              ██░░░░░░░░░░░░░░░░░░  11%
 Security               ████████████████░░░░  80%
 Reliability            ███████████████████░  94%
-Nontechnical UX        ███████████████░░░░░  75%
+Nontechnical UX        ███████████████████░  96%
 Client delivery        █████████████████░░░  85%
 Testing confidence     ███████████████░░░░░  75%
                        ─────────────────────
-Weighted overall       85%
+Weighted overall       87%
 ```
 
 Why the security category is not higher: RLS is implemented and proven offline but
@@ -125,9 +128,13 @@ the build succeeds, but CI has not run on this branch and no staging deployment 
 3. **Gift-card RLS inconsistency.** Three tables have RLS enabled with no policies by an
    earlier migration. Inert for the owner connection, inconsistent with the plan. Fixing it
    is a tenant-isolation change, so it is recorded, not changed.
-4. **Accessibility audit.** Keyboard navigation and screen-reader behaviour of the new cards
-   were built with semantic markup and no custom widgets, but no assistive-technology audit
-   was run.
+4. **Accessibility: static guard in place, human audit still needed.** `tests/accessibility-guard.test.ts`
+   (44 assertions) now fails on a click handler on a non-interactive element, an image without
+   alt text, an unlabelled input, a section with no heading, a skipped heading level, or a hard
+   pixel width. It found a real defect: the mobile menu backdrop was a clickable div with no
+   accessible close path of its own. It is now `aria-hidden`, and the real Close button carries
+   `type="button"`. A keyboard and screen-reader walkthrough by a person is still not something
+   this repo can claim.
 5. **Remaining reliability automation.** Patch-update pull requests and the scheduled
    maintenance report are specified but not automated; the classification, the honest
    reporting and the repair record rules are implemented.

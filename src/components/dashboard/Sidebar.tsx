@@ -422,11 +422,13 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         </Button>
       </div>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay. The backdrop is decorative: keyboard users close the menu with the
+          button below, so it does not need to be focusable and must not be announced. */}
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
           onClick={closeMobile}
+          aria-hidden="true"
         />
       )}
 
@@ -451,6 +453,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             </div>
           </div>
           <button
+            type="button"
             onClick={closeMobile}
             aria-label="Close navigation menu"
             className="lg:hidden text-muted-foreground hover:text-foreground"
