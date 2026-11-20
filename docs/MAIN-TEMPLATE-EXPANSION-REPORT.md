@@ -10,7 +10,7 @@ migration was applied to a production system, and no security control was disabl
 
 | Check | Result |
 | --- | --- |
-| `npm run test:ci` (75 suites) | PASS, exit 0 |
+| `npm run test:ci` (76 suites) | PASS, exit 0 |
 | `npm run architecture:check` | PASS, 667 source files |
 | `npm run typecheck` | PASS, no errors |
 | `npm run lint` | PASS, 0 errors, 98 warnings (same warning count as baseline) |
@@ -25,6 +25,7 @@ migration was applied to a production system, and no security control was disabl
 | New: `test:security-sweep` | PASS, 52 |
 | New: `test:template-updates` | PASS, 56 |
 | New: `test:role-experience` | PASS, 71 |
+| New: `test:maintenance-history` | PASS, 75 |
 
 Not executed, and not claimed: GitHub Actions CI on the pushed branch, CodeQL, and any run
 against a real staging deployment with Upstash, Stripe, Twilio and SMTP credentials.
@@ -48,6 +49,9 @@ Every file below is additive or an extension. Line numbers are intentionally not
 | `src/lib/platform-reliability/support-sources.ts` (new) | — | Authoritative source catalogue and `buildSupportRecord()` | Part 5.1 | None; no network, no secrets | None | `support-sources` | Delete file |
 | `src/lib/platform-reliability/dependency-monitor.ts` | Findings without provenance | Every finding carries source, checked date, support status, security and compatibility notes | Part 5.1 | None | None | `dependency-monitor` (36) + `support-sources` | Revert file |
 | `dashboard/reliability/page.tsx` | Sections and readiness checks | Adds "Software versions and support" and "Which version is this?" | Parts 5.1, 8.1 | Owner-only page | None | `reliability-sections`, `support-sources` | Revert file |
+| `src/lib/platform-reliability/maintenance-history.ts` (new) | — | Repair record rules: creation with redaction, two-party approval, A/B/C state machine, outcome that requires passing checks, plain-English description and summary; reports itself as not enabled | Part 5.3 | Cannot store a secret; imports no database client | None; no migration created | `maintenance-history` (75) | Delete file |
+| `tests/maintenance-history.test.ts` (new) | — | Pins the rules above, and asserts no maintenance migration exists yet | Part 5.3 | Strengthens | None | itself | Delete file |
+| `dashboard/reliability/page.tsx` | Version card | Adds "Repairs and their history" stating the honest not-enabled state and what a record will show | Parts 5.1-5.4 | Owner-only page | None | `maintenance-history`, `reliability-sections` | Revert file |
 | `tests/security-sweep.test.ts` (new) | — | Fails when a route loses its guard, a tenant comes from the request, or FORCE RLS enters a migration | Part 6 | Strengthens | None | itself | Delete file |
 | `docs/SECURITY-EXPANSION-REVIEW.md` (new) | — | Records what was verified and three findings | Part 6 | Documentation | None | — | Delete file |
 | `src/lib/role-experience.ts` (new) | — | Per-role focus and boundary copy; unknown role fails closed | Part 7.1 | Grants nothing | None | `role-experience` | Delete file |
@@ -76,12 +80,12 @@ requirement counts only where a test or a file proves it; "a file exists" earns 
 | 4 | Multi-location readiness | 8% | 10 | 1 | 0 | 0 | 9 | 10% |
 | 5 | Franchise readiness | 5% | 9 | 1 | 0 | 0 | 8 | 11% |
 | 6 | Security and data protection | 18% | 25 | 20 | 2 | 1 | 2 | 80% |
-| 7 | Reliability Program | 12% | 16 | 12 | 2 | 0 | 2 | 75% |
+| 7 | Reliability Program | 12% | 16 | 13 | 2 | 0 | 1 | 88% |
 | 8 | Nontechnical user experience | 10% | 12 | 9 | 2 | 0 | 1 | 75% |
 | 9 | Client-copy and delivery process | 10% | 13 | 11 | 1 | 0 | 1 | 85% |
 | 10 | Testing and release confidence | 8% | 10 | 7 | 1 | 2 | 0 | 75% |
 
-Weighted overall: **83%**.
+Weighted overall: **84%** (Reliability rose from 75% to 88% when the maintenance-history rules landed).
 
 ```
 Core foundation        ███████████████████░  95%
@@ -90,12 +94,12 @@ Growing shop           █████████████████░░
 Multi-location         ██░░░░░░░░░░░░░░░░░░  10%
 Franchise              ██░░░░░░░░░░░░░░░░░░  11%
 Security               ████████████████░░░░  80%
-Reliability            ███████████████░░░░░  75%
+Reliability            █████████████████░░░  88%
 Nontechnical UX        ███████████████░░░░░  75%
 Client delivery        █████████████████░░░  85%
 Testing confidence     ███████████████░░░░░  75%
                        ─────────────────────
-Weighted overall       83%
+Weighted overall       84%
 ```
 
 Why the security category is not higher: RLS is implemented and proven offline but
@@ -105,9 +109,12 @@ the build succeeds, but CI has not run on this branch and no staging deployment 
 
 ## 4. WHAT STILL NEEDS WORK
 
-1. **Maintenance history table.** Designed as an additive proposal only. Needs approval
-   because it is a migration, and it should record tests, deployment and rollback, not just
-   detection.
+1. **Maintenance history: the table only.** The rules are now implemented and tested
+   (`src/lib/platform-reliability/maintenance-history.ts`, 75 assertions): two-party approval,
+   the Category A/B/C state machine, "done means the checks passed", and redaction that makes
+   storing a secret impossible. What is missing is the one additive table that keeps the
+   records, because creating a migration needs your approval. The page says so plainly
+   instead of showing an empty list.
 2. **RLS activation.** The staged plan exists and its 42 offline checks pass. Enabling it in
    production is a tenant-isolation change and stays blocked on approval.
 3. **Gift-card RLS inconsistency.** Three tables have RLS enabled with no policies by an
@@ -116,8 +123,9 @@ the build succeeds, but CI has not run on this branch and no staging deployment 
 4. **Accessibility audit.** Keyboard navigation and screen-reader behaviour of the new cards
    were built with semantic markup and no custom widgets, but no assistive-technology audit
    was run.
-5. **Remaining reliability automation.** Patch-update pull requests and the maintenance
-   report are specified but not automated; the classification and the honest reporting are.
+5. **Remaining reliability automation.** Patch-update pull requests and the scheduled
+   maintenance report are specified but not automated; the classification, the honest
+   reporting and the repair record rules are implemented.
 6. **Co-owner invitations** in the growing-shop stage: staff invitations exist, a distinct
    co-owner invitation flow does not.
 7. **Multi-location and franchise implementation.** Proposal only, by design.

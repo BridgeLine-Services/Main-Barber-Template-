@@ -5,6 +5,7 @@ import { requireOwner } from '@/lib/auth-helpers'
 import { buildReadinessReport } from '@/lib/health'
 import { buildMaintenanceReport } from '@/lib/platform-reliability/dependency-monitor'
 import { TEMPLATE_VERSION, describeTemplateVersion, nodeIsSufficient } from '@/lib/template-version'
+import { historyAvailability, summariseHistory } from '@/lib/platform-reliability/maintenance-history'
 import {
   buildReliabilitySections,
   summariseSections,
@@ -172,6 +173,29 @@ export default async function ReliabilityPage() {
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="repair-history" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
+        <h2 id="repair-history" className="text-lg font-semibold text-foreground">Repairs and their history</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {summariseHistory([]).sentence}
+        </p>
+        <p className="mt-2 text-sm text-foreground">{historyAvailability().reason}</p>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-foreground">
+            What a repair record will show
+          </summary>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+            <li>What was found, and when.</li>
+            <li>What was recommended, and whether it could be done safely on its own.</li>
+            <li>Who approved it, when approval was needed.</li>
+            <li>What changed, whether the checks passed, and whether it was undone.</li>
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            It will never record a password, a key or any secret value, and it will never record a customer&apos;s
+            personal details.
+          </p>
+        </details>
+      </section>
 
       <section aria-labelledby="version" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
         <h2 id="version" className="text-lg font-semibold text-foreground">Which version is this?</h2>
