@@ -29,8 +29,11 @@ migration was applied to a production system, and no security control was disabl
 | New: `test:maintenance-window` | PASS, 30 |
 | New: `test:accessibility` | PASS, 44 |
 
-Not executed, and not claimed: GitHub Actions CI on the pushed branch, CodeQL, and any run
-against a real staging deployment with Upstash, Stripe, Twilio and SMTP credentials.
+Not executed, and not claimed: the GitHub Actions run itself, CodeQL, and any run against a
+real staging deployment with Upstash, Stripe, Twilio and SMTP credentials. The workflow at
+`.github/workflows/ci.yml` invokes `npm run test:ci`, so the three new suites are inside the CI
+run that will happen on this branch; this environment has no way to read the Actions result,
+so it is not reported as passing.
 
 ## 2. What changed, and why
 
