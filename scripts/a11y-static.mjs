@@ -28,18 +28,20 @@ const baseIndex = args.indexOf('--base')
 const BASE = (baseIndex >= 0 ? args[baseIndex + 1] : 'http://localhost:3210').replace(/\/$/, '')
 const PAGES = (args.includes('--pages') ? args[args.indexOf('--pages') + 1] : '/,/book,/login,/register,/services,/shop,/terms,/privacy').split(',')
 
-// Removing one pass can leave a new comment marker behind ("<!--<!---->-->" becomes
-// "<!-->"), so the pass repeats until the string stops changing. A fixed number of
-// passes would still leave a residue; the loop has a hard bound so a pathological input
-// cannot hang the audit.
+// Removing one comment can expose a new marker ("<!--<!---->-->" becomes "<!-->"), so the
+// pass repeats until the string stops changing. If a marker survives every pass it means a
+// comment was never closed; the rest of the document is then inside that comment, so the
+// string is truncated at the marker rather than having the marker deleted. Deleting a
+// multi-character marker is what creates a new one, so this never deletes one.
 function stripComments(html) {
   let current = html
   for (let pass = 0; pass < 10; pass++) {
     const next = current.replace(/<!--[\s\S]*?-->/g, '')
-    if (next === current) return next
+    if (next === current) break
     current = next
   }
-  return current.replace(/<!--/g, '')
+  const unterminated = current.indexOf('<!--')
+  return unterminated === -1 ? current : current.slice(0, unterminated)
 }
 
 // Two severities. "hard" is provable from server-rendered HTML and is a blocker.
