@@ -98,7 +98,12 @@ async function main() {
     const reviewsResult = await importGoogleReviewsFromAPI('test-business')
     assert(syncResult.errors[0]?.includes('disabled') === true, 'Google sync exits explicitly when disabled')
     assert(reviewsResult.errors[0]?.includes('disabled') === true, 'Google review import exits explicitly when disabled')
-    nodeAssert.throws(() => getGBPOAuthUrl('test-user', 'test-business', 'https://example.test/callback'), /disabled/)
+    // getGBPOAuthUrl is async, so the refusal arrives as a rejected promise, not a
+    // synchronous throw. nodeAssert.throws() cannot see a rejection; rejects() can.
+    await nodeAssert.rejects(
+      getGBPOAuthUrl('test-user', 'test-business', 'https://example.test/callback'),
+      /disabled/
+    )
     assert(outboundRequests === 0, 'disabled optional providers make no outbound requests')
 
     console.log('\n── Enabled integrations with incomplete credentials ──')
@@ -116,7 +121,10 @@ async function main() {
     process.env.GOOGLE_ENABLED = 'true'
     delete process.env.GOOGLE_CLIENT_SECRET
     assert(getFeatureConfig('google').missing.includes('GOOGLE_CLIENT_SECRET'), 'enabled Google integration lists missing OAuth credentials')
-    nodeAssert.throws(() => getGBPOAuthUrl('test-user', 'test-business', 'https://example.test/callback'), /GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/)
+    await nodeAssert.rejects(
+      getGBPOAuthUrl('test-user', 'test-business', 'https://example.test/callback'),
+      /GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/
+    )
 
     console.log('\n── Payments and cron limits ──')
     delete process.env.STRIPE_SECRET_KEY
