@@ -29,7 +29,7 @@ export const COMPATIBILITY_RULES: ComponentRule[] = [
   { component: 'node', label: 'Node.js runtime', minMajor: 24, maxMajor: 24, testedLine: '24', source: 'Node.js release schedule' },
   { component: 'next', label: 'Next.js', minMajor: 16, maxMajor: 16, testedLine: '16', source: 'Next.js release notes' },
   { component: 'react', label: 'React', minMajor: 19, maxMajor: 19, testedLine: '19', source: 'React release notes' },
-  { component: 'prisma', label: 'Prisma', minMajor: 6, maxMajor: 6, testedLine: '6', source: 'Prisma release notes' },
+  { component: 'prisma', label: 'Database toolkit', minMajor: 6, maxMajor: 6, testedLine: '6', source: 'Prisma release notes' },
   { component: 'postgres', label: 'PostgreSQL', minMajor: 15, maxMajor: 17, testedLine: '15-17', source: 'PostgreSQL versioning policy' },
   { component: 'pg', label: 'PostgreSQL driver', minMajor: 8, maxMajor: 8, testedLine: '8', source: 'node-postgres releases' },
 ]
@@ -119,11 +119,11 @@ export const COMBINATION_RULES: CombinationRule[] = [
   },
   {
     id: 'prisma-needs-modern-node',
-    requires: 'Prisma 6',
+    requires: 'the database toolkit 6',
     requiresMajorAtLeast: 6,
     whenComponent: 'node',
     whenMajorBelow: 18,
-    message: 'Prisma 6 needs Node.js 18.18 or newer. An older runtime fails when the client loads.',
+    message: 'The database toolkit needs Node.js 18.18 or newer. An older runtime fails when it loads.',
   },
 ]
 
