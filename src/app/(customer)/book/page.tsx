@@ -50,7 +50,7 @@ function BookingFlow() {
   const searchParams = useSearchParams()
   const router = useRouter()
   // Prompt 8: booking-source attribution read once from the URL, kept for the submit payload
-  const attributionRef = useRef<{ source?: string; campaign?: string }>({})
+  const attributionRef = useRef<{ source?: string; campaign?: string; referralCode?: string }>({})
   const [step, setStep] = useState(1)
   const [services, setServices] = useState<Service[]>([])
   const [barbers, setBarbers] = useState<Barber[]>([])
@@ -127,6 +127,9 @@ function BookingFlow() {
     attributionRef.current = {
       source: searchParams.get('source') || undefined,
       campaign: searchParams.get('campaign') || undefined,
+      // A referral link (?ref=CODE) rides along with the booking. The server decides
+      // whether it is real; the browser only carries it.
+      referralCode: searchParams.get('ref') || searchParams.get('code') || undefined,
     }
     const dateParam = searchParams.get('date')
     const timeParam = searchParams.get('time')
@@ -358,6 +361,7 @@ function BookingFlow() {
           policyVersion: policyAccepted ? policyVersion : undefined,
           source: attributionRef.current.source,
           campaign: attributionRef.current.campaign,
+          referralCode: attributionRef.current.referralCode,
         }),
       })
 

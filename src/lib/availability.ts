@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { BookingSource } from '@prisma/client'
+import { decideAttribution } from '@/lib/growth/referrals'
 import { generateConfirmationNumber, generateCustomerAccessToken } from '@/lib/utils'
 import { addMinutes, format } from 'date-fns'
 import {
@@ -612,8 +613,12 @@ export async function createAppointmentSafely(params: {
   staffManual?: boolean
   /** Optional validated campaign token ([A-Za-z0-9_-]{1,64}). */
   bookingCampaign?: string | null
+  /** Referral attribution already resolved server-side against this business.
+   *  Recorded inside this same transaction, so an appointment and its attribution
+   *  cannot disagree. Absent = ordinary booking, unchanged. */
+  referral?: { code: string | null; referrerCustomerId: string | null; source: string | null; campaign: string | null } | null
 }): Promise<{ success: boolean; appointment?: Prisma.AppointmentGetPayload<{ include: { service: true; barber: true } }>; error?: string; customerAccessToken?: string }> {
-  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign, staffManual } = params
+  const { businessId, barberId, serviceId, startTime, idempotencyKey, customerData, customerUserId, bookingSource, bookingCampaign, staffManual, referral } = params
 
   try {
     const runBooking = () => prisma.$transaction(async (tx) => {
@@ -806,6 +811,40 @@ export async function createAppointmentSafely(params: {
           barber: true,
         },
       })
+
+      // 9. Referral attribution, inside the same transaction as the appointment.
+      //    A referral can never block a booking: every failure here is swallowed and
+      //    the appointment stands. Duplicates are impossible because customerId is
+      //    unique on ReferralAttribution and createMany skips a duplicate instead of
+      //    raising, so two simultaneous bookings cannot both be attributed.
+      if (referral && (referral.code || referral.referrerCustomerId)) {
+        try {
+          const existingAttribution = await tx.referralAttribution.findUnique({
+            where: { customerId: customer.id },
+            select: { customerId: true, referrerCustomerId: true },
+          })
+          // "First visit" means this appointment is the customer's only one here.
+          const priorVisits = await tx.appointment.count({
+            where: { businessId, customerId: customer.id, id: { not: appointment.id } },
+          })
+          const decision = decideAttribution({
+            businessId,
+            customerId: customer.id,
+            existing: existingAttribution,
+            referrerCustomerId: referral.referrerCustomerId,
+            code: referral.code,
+            source: referral.source,
+            campaign: referral.campaign,
+            appointmentId: appointment.id,
+            isFirstVisit: priorVisits === 0,
+          })
+          if (decision.attribute && decision.record) {
+            await tx.referralAttribution.createMany({ data: [decision.record], skipDuplicates: true })
+          }
+        } catch {
+          // Attribution is bookkeeping; the customer's appointment is not.
+        }
+      }
 
       if (customerData.answers && Object.keys(customerData.answers).length > 0) {
         const questions = await tx.bookingQuestion.findMany({

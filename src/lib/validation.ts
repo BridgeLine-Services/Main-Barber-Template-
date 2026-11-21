@@ -31,6 +31,10 @@ export const createBookingSchema = z.object({
   // against the allowlist in the route + lib (never stored raw).
   source: z.string().trim().max(32).optional(),
   campaign: z.string().trim().max(64).optional(),
+  // Referral attribution. Additive and optional: a booking that does not send it behaves
+  // exactly as it did before. Never trusted — the route resolves it against the database.
+  referralCode: z.string().trim().max(24).optional(),
+  referralCampaign: z.string().trim().max(64).optional(),
 })
 
 export const cancelByTokenSchema = z.object({

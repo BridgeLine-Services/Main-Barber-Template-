@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolveBusinessId } from '@/lib/tenant'
+import { resolveReferralForBooking } from '@/lib/growth/referral-booking'
 import { createAppointmentSafely, getAvailableSlots } from '@/lib/availability'
 import { sendBookingConfirmation, scheduleAppointmentReminders } from '@/lib/notifications'
 import { createBookingSchema } from '@/lib/validation'
@@ -160,6 +161,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+    // Referral attribution: resolved against THIS business before the transaction and
+    // recorded inside it. An unknown, expired or foreign code resolves to "no referral"
+    // and the booking continues exactly as before.
+    const referral = await resolveReferralForBooking({
+      businessId,
+      rawCode: parseResult.data.referralCode,
+      campaign: parseResult.data.referralCampaign,
+    })
+
     const startTime = await parseStartTime(date, time, businessId)
 
     // Cannot book in the past
@@ -239,6 +249,7 @@ export async function POST(req: NextRequest) {
       customerUserId,
       bookingSource,
       bookingCampaign,
+      referral,
     })
 
     if (!result.success || !result.appointment) {
