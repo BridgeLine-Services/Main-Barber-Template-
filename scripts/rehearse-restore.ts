@@ -29,6 +29,7 @@ import { createCleanupRegistry, sanitizeDumpForRestore, verifyRestore } from './
 import { createStorageFromEnv, BackupStorageError } from './lib/backup-storage'
 import { decryptBackup, parseEncryptionKey, sha256Hex } from '../src/lib/backup/crypto'
 import { isVerified, type BackupManifest } from '../src/lib/backup/manifest'
+import { recordRestoreDrill, type RestoreDrillOutcome } from '../src/lib/platform-reliability/restore-drill-evidence'
 
 interface ManifestPointer { objectKey: string; payloadKey: string; manifest: BackupManifest }
 
@@ -118,17 +119,53 @@ async function main() {
     mkdirSync(evidenceDir, { recursive: true })
     const evidencePath = join(evidenceDir, `rehearsal-${result.rehearsedAt.replace(/[:.]/g, '-')}.json`)
     writeFileSync(evidencePath, JSON.stringify(result, null, 2))
-    if (json) console.log(JSON.stringify(result))
+
+    // Reliability evidence. Opt-in: without RESTORE_DRILL_EVIDENCE_URL this writes
+    // nothing anywhere, which is what keeps the default run read-only.
+    const outcome: RestoreDrillOutcome = {
+      passed: true,
+      backupId: pointer.manifest.id ?? null,
+      objectKey: pointer.payloadKey,
+      startedAt,
+      completedAt: finishedAt,
+      tablesRestored: Object.keys(evidence.rowCounts),
+      rowsCompared: Object.values(evidence.rowCounts).reduce((sum, rows) => sum + rows, 0),
+      rowCountsMatched: true,
+      detail: `Restored ${evidence.restoredTables} tables; ${evidence.foreignKeyViolations.length} foreign-key violations; ${evidence.migrationsApplied} migrations applied.`,
+    }
+    const saved = await recordRestoreDrill(outcome)
+
+    if (json) console.log(JSON.stringify({ ...result, evidenceSaved: saved.saved, evidenceNote: saved.reason }))
     else {
       console.log(`PASS  restored backup ${result.backupId} (${(result.bytes / 1_048_576).toFixed(1)} MB) in ${result.recoverySeconds}s`)
       console.log(`      ${result.schemaTables} tables, ${result.foreignKeyViolations.length} foreign-key violations, ${result.migrationsApplied} migrations`)
       console.log('      Scratch database dropped. Nothing was written to any existing database.')
       console.log(`      Evidence: ${evidencePath}`)
+      console.log(saved.saved ? '      Evidence was saved to the reliability record.' : `      Evidence could not be saved. ${saved.reason}`)
+      if (!saved.saved) console.log('      Manual attention is required: the restore test passed, but the reliability report will not see it.')
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    if (json) console.log(JSON.stringify({ passed: false, reason: message, rehearsedAt: new Date().toISOString() }))
-    else console.error(`FAIL  ${message}`)
+    const finishedAt = new Date()
+    // A failed rehearsal is recorded as failed, with the real reason. It is never turned
+    // into a success, and a failure here never changes the outcome of the run itself.
+    const saved = await recordRestoreDrill({
+      passed: false,
+      backupId: pointer.manifest.id ?? null,
+      objectKey: pointer.payloadKey,
+      startedAt,
+      completedAt: finishedAt,
+      tablesRestored: [],
+      rowsCompared: null,
+      rowCountsMatched: false,
+      detail: message,
+    })
+    if (json) console.log(JSON.stringify({ passed: false, reason: message, rehearsedAt: finishedAt.toISOString(), evidenceSaved: saved.saved, evidenceNote: saved.reason }))
+    else {
+      console.error(`FAIL  ${message}`)
+      console.error(saved.saved ? '      The failure was saved to the reliability record.' : `      Evidence could not be saved. ${saved.reason}`)
+      console.error('      Manual attention is required: the restore test failed.')
+    }
     process.exitCode = 1
   } finally {
     const failures = cleanup.runAll()

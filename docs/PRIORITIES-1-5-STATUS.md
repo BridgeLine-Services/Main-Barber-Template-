@@ -28,6 +28,14 @@ the bottom. Anything listed as not done says what is missing and what it would t
 
 ### Done
 
+- **Restore rehearsal evidence.** A completed rehearsal now records its outcome in the
+  `RestoreDrill` table the maintenance report already reads: backup identifier, start and
+  completion times, tables restored, rows compared, whether the counts matched, the real
+  error when there is one, and the duration. Writing is opt-in through
+  `RESTORE_DRILL_EVIDENCE_URL`, so the default command still writes nothing but its JSON
+  evidence file; the scratch database is never used for this. A record says `succeeded`
+  only when the rehearsal passed and the counts actually matched, and a failed write can
+  never turn a failed restore into a reported success (`tests/restore-drill-evidence.test.ts`).
 - **Security advisory monitoring.** `advisory-monitor.ts` turns a raw advisory into a
   business-impact sentence, states whether a fix exists (and never invents a patched version
   when none is published), and separates "needs action today" from "next maintenance window".
