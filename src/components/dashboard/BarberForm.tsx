@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { photoPreviewSrc, isRenderableImageSrc } from '@/lib/safe-image-src'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -22,44 +23,6 @@ interface BarberFormProps {
   isOpen: boolean
   onClose: () => void
   onSave: () => void
-}
-
-// The preview shows a value that arrives from a file picker or from the saved record.
-// It is parsed, not merely pattern-matched, and only the normalised href is rendered, so
-// the browser is never handed a string this code has not understood. A blob created by
-// this page for a freshly picked file, a raster data: image and an ordinary http(s) URL
-// are allowed; anything else (including a malformed value) renders nothing at all.
-function photoPreviewSrc(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  if (trimmed.startsWith('blob:')) return trimmed
-  try {
-    const parsed = new URL(trimmed)
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href
-    if (parsed.protocol === 'data:' && /^data:image\/(png|jpe?g|webp|gif);/i.test(trimmed)) {
-      return parsed.href
-    }
-  } catch {
-    return null
-  }
-  return null
-}
-
-/**
- * Final check before a preview reaches an <img> src. It repeats the scheme rules rather
- * than trusting the earlier parse, so a future refactor of photoPreviewSrc cannot turn
- * this attribute into a way to hand the browser an unparsed string.
- */
-function isRenderableImageSrc(value: string): boolean {
-  if (value.startsWith('blob:')) return value.length > 'blob:'.length
-  try {
-    const parsed = new URL(value)
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return true
-    return parsed.protocol === 'data:' && /^data:image\/(png|jpe?g|webp|gif);/i.test(value)
-  } catch {
-    return false
-  }
 }
 
 export function BarberForm({ barber, isOpen, onClose, onSave }: BarberFormProps) {

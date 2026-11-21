@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     let oauthUrl: string | null = null
     if (configured) {
       try {
-        oauthUrl = getGBPOAuthUrl(user.id, user.businessId, redirectUri)
+        oauthUrl = await getGBPOAuthUrl(user.id, user.businessId, redirectUri)
       } catch {
         oauthUrl = null
       }

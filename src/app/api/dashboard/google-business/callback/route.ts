@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     // callback for one shop from being used to configure another shop.
     const sessionUserId = session.user.id
     const sessionBusinessId = session.user.businessId
-    if (!state || !sessionUserId || !sessionBusinessId || !verifyGBPOAuthState(state, sessionUserId, sessionBusinessId)) {
+    if (!state || !sessionUserId || !sessionBusinessId || !(await verifyGBPOAuthState(state, sessionUserId, sessionBusinessId))) {
       return NextResponse.redirect(
         new URL('/dashboard/settings?gbp_error=invalid_state', req.url)
       )
