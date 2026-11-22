@@ -860,6 +860,12 @@ enum LegalPolicyStatus {
 }
 
 enum AuditAction {
+  ORGANIZATION_INVITATION_CREATED
+  ORGANIZATION_INVITATION_RESENT
+  ORGANIZATION_INVITATION_CANCELLED
+  ORGANIZATION_INVITATION_ACCEPTED
+  ORGANIZATION_MEMBER_ROLE_CHANGED
+  ORGANIZATION_MEMBER_STATUS_CHANGED
   PLATFORM_BUSINESS_CREATED
   PLATFORM_ACCESS_DENIED
   APPOINTMENT_CREATED
@@ -2409,6 +2415,7 @@ model Organization {
   updatedAt     DateTime  @updatedAt
 
   members       OrganizationMember[]
+  invitations   OrganizationInvitation[]
   locations     OrganizationLocation[]
   brandSettings OrganizationBrandSettings?
   reporting     OrganizationReportingConfiguration[]
@@ -2474,6 +2481,28 @@ model StaffLocationAssignment {
   @@unique([userId, businessId, effectiveFrom])
   @@index([businessId, effectiveFrom, effectiveTo])
   @@index([organizationId, userId])
+}
+
+model OrganizationInvitation {
+  id             String                 @id @default(cuid())
+  organizationId String
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Lower-cased once, so an invitation cannot be claimed by a differently-cased address.
+  email          String
+  role           OrganizationMemberRole
+  /// Empty means every region, matching OrganizationMember.
+  regions        String[]
+  /// sha256 of the token. The plaintext is shown once and never stored.
+  tokenHash      String                 @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  invitedById    String
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([organizationId, email])
+  @@index([organizationId, createdAt])
 }
 
 model OrganizationBrandSettings {
