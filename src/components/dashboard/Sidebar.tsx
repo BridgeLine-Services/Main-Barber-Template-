@@ -276,6 +276,10 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Launch Checklist', href: '/dashboard/factory-launch', icon: Shield },
         { name: 'System Health', href: '/dashboard/factory-status', icon: Shield },
         { name: 'Maintenance', href: '/dashboard/reliability', icon: Wrench },
+        // Multi-shop owners only. A single-shop owner who opens it is told, in plain
+        // words, that the page is for organizations and sent back to their own dashboard;
+        // the page itself resolves access from the session and shows nothing else.
+        { name: 'Locations', href: '/dashboard/organization', icon: Building2 },
       ],
     },
   ]
