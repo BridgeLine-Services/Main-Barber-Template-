@@ -14,6 +14,9 @@ import {
   type SectionState,
 } from '@/lib/platform-reliability/reliability-sections'
 import { readFileSync } from 'node:fs'
+import { prisma } from '@/lib/prisma'
+import { evaluateRecovery, type BackupEvidence, type RestoreEvidence } from '@/lib/platform-reliability/recovery-verification'
+import { approvalsAnswer, backupAnswer, overallAnswer, recoveryAnswer, toneBadge, type OwnerAnswer } from '@/lib/platform-reliability/owner-recovery'
 
 /**
  * The Reliability Center: six plain answers for an owner.
@@ -75,14 +78,71 @@ export default async function ReliabilityPage() {
         })
       : null
 
+  // Backups and restore drills are platform records, not shop records: they are read here
+  // and shown to the owner, never written. A failed read stays a failed read.
+  const recovery = await (async () => {
+    try {
+      const [backupRows, drillRows] = await Promise.all([
+        prisma.backupRun.findMany({
+          where: { kind: 'database', status: 'succeeded' },
+          orderBy: { startedAt: 'desc' },
+          take: 20,
+          select: { id: true, startedAt: true, sizeBytes: true, verifiedAt: true },
+        }),
+        prisma.restoreDrill.findMany({
+          orderBy: { startedAt: 'desc' },
+          take: 10,
+          select: {
+            id: true, backupId: true, startedAt: true, completedAt: true,
+            tablesRestored: true, rowsCompared: true, rowCountsMatched: true, status: true, detail: true,
+          },
+        }),
+      ])
+      const backups: BackupEvidence[] = backupRows.map((row) => ({
+        id: row.id,
+        createdAt: row.startedAt.toISOString(),
+        sizeBytes: row.sizeBytes === null ? null : Number(row.sizeBytes),
+        checksumVerifiedAt: row.verifiedAt?.toISOString() ?? null,
+      }))
+      const restores: RestoreEvidence[] = drillRows.map((row) => ({
+        id: row.id,
+        backupId: row.backupId ?? '',
+        startedAt: row.startedAt.toISOString(),
+        completedAt: row.completedAt?.toISOString() ?? null,
+        tablesRestored: row.tablesRestored,
+        rowsCompared: row.rowsCompared,
+        rowCountsMatched: row.rowCountsMatched,
+        errors: row.status === 'succeeded' ? [] : [row.detail ?? 'The drill did not succeed.'],
+      }))
+      return evaluateRecovery(backups, restores, new Date())
+    } catch {
+      return null
+    }
+  })()
+
+  // Anything proposed for this shop, or platform-wide, that is waiting for a person.
+  const pendingApprovals = await prisma.maintenanceAction
+    .count({
+      where: {
+        approvalState: 'proposed',
+        OR: [{ businessId: auth.user.businessId }, { businessId: null }],
+      },
+    })
+    .catch(() => null)
+
   const sections = buildReliabilitySections({
     readiness,
     maintenance,
     backupAgeHours: readiness?.backupAgeHours ?? null,
     securityFindings: null,
-    pendingApprovals: null,
+    pendingApprovals,
     now: new Date(),
   })
+
+  const backupView = backupAnswer(readiness?.backupAgeHours ?? null)
+  const recoveryView = recoveryAnswer(recovery)
+  const approvalsView = approvalsAnswer(pendingApprovals)
+  const overall = overallAnswer([backupView, recoveryView, approvalsView])
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -90,6 +150,12 @@ export default async function ReliabilityPage() {
         <p className="text-sm font-medium uppercase tracking-wider text-[var(--dash-brand)]">Reliability</p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">Is my shop okay?</h1>
         <p className="mt-2 text-muted-foreground">{summariseSections(sections)}</p>
+        <p className="mt-2 text-sm font-medium text-foreground">
+          <span className="mr-2 rounded-full border border-border px-2 py-0.5 text-[11px] font-normal text-muted-foreground">
+            {toneBadge(overall.tone)}
+          </span>
+          {overall.headline}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">
           This page only looks. Nothing here changes your website, your bookings or your records.
         </p>
@@ -99,6 +165,12 @@ export default async function ReliabilityPage() {
         {sections.map((section) => (
           <SectionCard key={section.id} section={section} />
         ))}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <AnswerCard id="backups" title="Your data is backed up" answer={backupView} />
+        <AnswerCard id="restore" title="A backup has been restored in a test" answer={recoveryView} />
+        <AnswerCard id="decisions" title="Waiting for your decision" answer={approvalsView} />
       </div>
 
       {readiness && readiness.checks.length > 0 && (
@@ -274,6 +346,34 @@ function SectionCard({ section }: { section: ReliabilitySection }) {
       <p className="mt-2 text-sm font-medium text-foreground">{section.headline}</p>
       <p className="mt-1 text-sm text-muted-foreground">{section.detail}</p>
       {section.action && <p className="mt-2 text-xs text-muted-foreground">{section.action}</p>}
+    </section>
+  )
+}
+
+/** One plain answer, with its badge, its explanation and the next step. */
+function AnswerCard({ id, title, answer }: { id: string; title: string; answer: OwnerAnswer }) {
+  const toneClass =
+    answer.tone === 'fine'
+      ? 'text-emerald-400'
+      : answer.tone === 'attention'
+        ? 'text-amber-400'
+        : answer.tone === 'action'
+          ? 'text-red-400'
+          : 'text-muted-foreground'
+  return (
+    <section aria-labelledby={`answer-${id}`} className="rounded-xl border border-border bg-[var(--dash-surface)] p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id={`answer-${id}`} className="text-sm font-semibold text-foreground">{title}</h2>
+        <span className={`text-[11px] font-medium ${toneClass}`}>{answer.badge}</span>
+      </div>
+      <p className="mt-2 text-sm font-medium text-foreground">{answer.headline}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{answer.detail}</p>
+      {answer.next && (
+        <p className="mt-2 text-sm text-foreground/90">
+          <span className="font-medium">What to do: </span>
+          {answer.next}
+        </p>
+      )}
     </section>
   )
 }
