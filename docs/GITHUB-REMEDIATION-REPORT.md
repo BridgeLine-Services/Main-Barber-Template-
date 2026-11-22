@@ -168,3 +168,40 @@ tests, and two alerts that pointed at code which does not do what the alert desc
 Still outstanding, and needing you rather than me: the Upstash credentials for this
 environment, the RLS activation rehearsal, and the three gift-card tables that have row-level
 security switched on with no policy attached.
+
+---
+
+## Final status of the eight parts
+
+Verified against the repository and the GitHub API on `b2faa93`, not against earlier notes.
+
+| Part | What it asked for | State |
+|---|---|---|
+| 1 | Investigate before changing anything | **Done.** Starting commit recorded, every claim checked on the branch. The dashboard failure was traced to a leak detector matching the word "Maintenance", confirmed later from the real Actions log. |
+| 2 | Fix the environment drift | **Done.** `TEMPLATE_UPSTREAM_REPO` and `GITHUB_TOKEN` declared in the registry, `.env.example` regenerated, `env:drift` passes (101 declared, 78 referenced), nothing added to `ALLOWED`. |
+| 3 | Fix the three failing dashboard tests | **Done and proven in CI.** 17/17 in 19.4s, down from 9m18s with one impossible locator. Template CI green on every commit since. |
+| 4 | CodeQL alerts | **Done to the limit of what code can fix.** Four real problems fixed at the root with regression tests; one alert closed outright; one left open as a documented false positive awaiting the owner's dismissal decision. |
+| 5 | Preserve the security architecture | **Done.** No control disabled, no policy altered, no RLS change, no migration, no FORCE RLS. The only authentication-adjacent change is a test that now proves the session instead of assuming it. |
+| 6 | Run the real workflows and inspect them | **Done.** Every commit inspected through the Actions API, including the failing job's log, which is what turned an inference into evidence. |
+| 7 | Change management | **Done.** Branch work, no force-push, `main` advanced only by fast-forward, each commit verified after the fact. |
+| 8 | Plain-language summary | **This document**, plus the per-alert table in SECURITY-EXPANSION-REVIEW.md. |
+
+### Commits that carry the remediation
+
+| Commit | What it did |
+|---|---|
+| `ca74618` | Dashboard smoke suite, env registry, URL and sanitisation helpers |
+| `ba2d902` | Plain-language copy in the compatibility rules (this was the Validate template failure) |
+| `3eb39cf` | Referral attribution inside the booking transaction |
+| `2dba3f3` | Both open CodeQL alerts addressed at their real locations |
+| `762cf7c` | Restore rehearsal evidence, opt-in |
+| `857d9d5` | Async rejection assertions for the Google OAuth tests |
+| `9cd8579` | Reliability page answers the backup, restore and decision questions |
+| `b2faa93` | This reconciliation |
+
+### What is still open, and who has to act
+
+1. **Alert 29** is left open on purpose: dismissing a high-severity finding is your decision, and the command to do it is in SECURITY-EXPANSION-REVIEW.md.
+2. **Upstash credentials** are absent in this environment, so `env:check` reports two blocking gaps. That is a configuration task, not a code defect.
+3. **RLS activation** and the three gift-card tables with row-level security and no policy are still awaiting your approval, per RLS-STAGING-PLAN.md.
+4. **`RESTORE_DRILL_EVIDENCE_URL`** must be set on the machine that runs the quarterly rehearsal before the reliability report can see a rehearsal result.
