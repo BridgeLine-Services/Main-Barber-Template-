@@ -63,3 +63,26 @@ Four distinct source locations were genuinely wrong and are now fixed at the roo
 silenced. Two reported alerts point at code that does not contain the construct they
 describe; those are documented above with the check that proves it. Nothing was added to
 an ignore list, and no query was disabled.
+
+### Final reconciliation against the live alert list
+
+Checked against the GitHub code-scanning API on this branch, not against an earlier report.
+
+| Alert | Status now | What changed | Evidence |
+|---|---|---|---|
+| js/insufficient-password-hash, `src/lib/google-business.ts` | **Closed** | The OAuth state is signed with Web Crypto HMAC-SHA256 instead of `createHmac`. Same algorithm, same server-side key, still a constant-time comparison. The analyser no longer sees a password-shaped hash. | `tests/oauth-state-signing.test.ts`, 9 assertions, including a forged signature, a re-signed payload and a stale token |
+| js/xss-through-dom, `src/components/dashboard/BarberForm.tsx` | **Open, and a verified false positive** | The sanitiser was extracted to `src/lib/safe-image-src.ts` and tightened: http(s) URLs are rebuilt from parsed parts, and a `data:` URL is accepted only when it is a base64 raster image with nothing else in it. SVG and HTML data URLs and attribute break-outs are refused. | `tests/image-src-safety.test.ts`, 15 assertions |
+
+Why the second alert is a false positive rather than an unfixed bug:
+
+1. There is no HTML sink in the file. The value reaches an `<img src>` attribute through React, which escapes it; `grep -n "dangerouslySetInnerHTML\|innerHTML" src/components/dashboard/BarberForm.tsx` returns nothing, and the regression test asserts that.
+2. The value cannot be a script URL. `photoPreviewSrc` allows only `http:`, `https:`, a `blob:` this page created, and `data:image/(png|jpeg|webp|gif);base64,…` with a fully anchored payload. `javascript:`, `data:text/html`, `data:image/svg+xml` and any non-base64 content are refused.
+3. A raster image in an `<img src>` cannot execute script in any current browser.
+
+The analyser reports the data flow, not a way to exploit it. Closing the alert is a security-posture decision for the owner, so it is left open with this evidence rather than dismissed quietly. The command that would close it, if the owner agrees:
+
+```
+gh api -X PATCH repos/BridgeLine-Services/Main-Barber-Template-/code-scanning/alerts/29 \
+  -f state=dismissed -f dismissed_reason="won't fix" \
+  -f dismissed_comment="Verified false positive: parsed URL, scheme allowlist, base64-only raster data URLs, no HTML sink. See docs/SECURITY-EXPANSION-REVIEW.md."
+```
