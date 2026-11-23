@@ -280,6 +280,10 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         // words, that the page is for organizations and sent back to their own dashboard;
         // the page itself resolves access from the session and shows nothing else.
         { name: 'Locations', href: '/dashboard/organization', icon: Building2 },
+        // The organization announcement inbox. Same graceful degradation as Locations:
+        // a single-shop owner who opens it is told, in plain words, that announcements are
+        // for organizations, and the page resolves every audience from the session.
+        { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
       ],
     },
   ]
@@ -297,6 +301,10 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
         { name: 'My Appointments', href: '/dashboard/appointments', icon: CalendarDays },
+        // A barber who belongs to an organization has announcements.read, so the inbox is
+        // reachable from their own nav. A shop barber with no organization sees the page's
+        // explanation instead of an error; the page itself is the gate.
+        { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
       ],
     },
     {

@@ -2424,6 +2424,7 @@ model Organization {
   assignments   StaffLocationAssignment[]
   customerLinks CustomerLocationLink[]
   configAudit   OrganizationConfigAudit[]
+  announcementReads OrganizationAnnouncementRead[]
 
   @@index([slug])
 }
@@ -2577,11 +2578,32 @@ model OrganizationAnnouncement {
   audienceType   String
   /// Region names, business ids or group names, depending on audienceType.
   audienceValues String[]
+  /// The open locations this announcement was delivered to, fixed at send time.
+  /// Closed locations are never included, and a later region change cannot re-address it.
+  resolvedBusinessIds String[] @default([])
   authorId       String
   publishedAt    DateTime?
   createdAt      DateTime     @default(now())
 
+  reads          OrganizationAnnouncementRead[]
+
   @@index([organizationId, publishedAt])
+}
+
+/// One person's read receipt for one announcement. The unique key is what stops a
+/// double-click from writing two receipts, and the userId is always the session user.
+model OrganizationAnnouncementRead {
+  id             String                  @id @default(cuid())
+  announcementId String
+  announcement   OrganizationAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  readAt         DateTime                @default(now())
+
+  @@unique([announcementId, userId])
+  @@index([userId, readAt])
+  @@index([organizationId])
 }
 
 model OrganizationConfigAudit {

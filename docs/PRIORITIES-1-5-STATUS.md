@@ -125,6 +125,15 @@ the bottom. Anything listed as not done says what is missing and what it would t
   and for ending.
 - **Announcements.** Audience resolution for all, region, location and named group; closed
   locations excluded; unknown ids dropped; a sender can never reach outside their own scope.
+- **Announcement inbox (in-app).** `announcement-inbox.ts` decides who may see a stored
+  announcement, what it says about its audience, and what a send would actually reach;
+  `announcement-delivery.ts` reads the inbox for the session user, publishes inside the
+  sender's own scope, and writes one read receipt per person. Screens at
+  `/dashboard/organization/announcements` (owner and barber nav), with
+  `GET`/`POST /api/dashboard/organization/announcements` and
+  `POST /api/dashboard/organization/announcements/[id]/read`. Read state is per person and
+  cannot be written for another person or another organization. Delivery is in-app only:
+  no email and no SMS.
 - **Configuration auditing.** Every change records actor, before, after and a readable summary,
   with secrets redacted through the existing maintenance-history redactor.
 - **Customer privacy boundary.** A corporate role is refused an individual customer record even
@@ -135,9 +144,39 @@ the bottom. Anything listed as not done says what is missing and what it would t
 
 - **No franchise UI or endpoints.** These are rules and tests, not screens or routes. Building
   them needs the organization UI above to exist first.
-- **No announcement delivery.** Audience resolution is implemented; sending is not.
+- **No email or SMS announcement delivery.** The in-app inbox is complete. Sending an
+  announcement outside the app is still not built, and `POST` answers with
+  `delivery: 'in-app-only'` rather than implying a message went out.
+- **The announcement migration is written but not applied.**
+  `prisma/migrations/20261123140000_organization_announcement_delivery` adds one column
+  (`resolvedBusinessIds`, fixed at send time) and one table (`OrganizationAnnouncementRead`).
+  It is additive only. Until it is applied, the inbox routes will fail closed rather than
+  show or mark anything.
+- **No unread badge and no group picker.** The sidebar link is plain, and the send form
+  offers everyone, regions and locations. A named group can be sent through the API because
+  the resolver already understands one, but nothing in this repository defines groups, so
+  the form does not invent them.
 - **No scheduled corporate reporting.** The configuration table exists; nothing reads it on a
   schedule.
+
+### Verification recorded for the announcement inbox pass
+
+Recorded 2026-11-23, on the working tree that adds the inbox.
+
+| Gate | Result |
+| --- | --- |
+| `npx tsc --noEmit` | Clean |
+| `eslint` on the changed files | Clean |
+| `npm run architecture:check` | Passed, 727 source files scanned |
+| `tests/organization-announcement-inbox` (new) | 96 passed |
+| `tests/organization-architecture` | 155 passed |
+| `tests/organization-people-screen` | 58 passed |
+| `tests/organization-franchise-overview` | 57 passed |
+| `tests/accessibility-guard` | 44 passed |
+
+Not run in that pass: `npm run build`, and any suite that needs a live database
+(`tests/organization-invitations`, `tests/organization-isolation`), because no
+`DATABASE_URL` was available. The new suite is deliberately free of database access.
 
 ## Priority 4: security and tenant isolation
 

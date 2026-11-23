@@ -41,6 +41,7 @@
     "test:permissions": "npx tsx tests/role-permissions.test.ts",
     "test:platform": "npx tsx tests/platform-owner.test.ts",
     "test:reliability": "npx tsx tests/reliability.test.ts",
+    "test:announcements": "npx tsx tests/organization-announcement-inbox.test.ts",
     "test:factory-readiness": "npx tsx tests/factory-readiness.test.ts",
     "test:factory-launch": "npx tsx tests/factory-launch.test.ts",
     "test:barber-mode": "npx tsx tests/barber-mode.test.ts",
