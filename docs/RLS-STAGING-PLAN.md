@@ -275,7 +275,12 @@ Seven are scoped by the organization itself and get their own policy, keyed on
 
 `Organization`, `OrganizationMember`, `OrganizationBrandSettings`,
 `OrganizationReportingConfiguration`, `OrganizationServiceTemplate`,
-`OrganizationAnnouncement`, `OrganizationConfigAudit`
+`OrganizationAnnouncement`, `OrganizationAnnouncementRead`, `OrganizationConfigAudit`
+
+`OrganizationAnnouncementRead` arrived later, in migration
+`20261123140000_organization_announcement_delivery`. It carries `organizationId`, so the
+same policy shape covers it without a second policy: a receipt is visible only while the
+request acts for the organization that owns the announcement.
 
 The organization policy accepts either the row's own `id` or its `organizationId`, so one
 policy covers both the organization row and its children. A request that acts for a single

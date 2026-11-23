@@ -168,13 +168,20 @@ Recorded 2026-11-23, on the working tree that adds the inbox.
 | `npx tsc --noEmit` | Clean |
 | `eslint` on the changed files | Clean |
 | `npm run architecture:check` | Passed, 727 source files scanned |
+| `npm run build` | Succeeded, 76 pages; the three new routes are dynamic |
 | `tests/organization-announcement-inbox` (new) | 96 passed |
 | `tests/organization-architecture` | 155 passed |
 | `tests/organization-people-screen` | 58 passed |
 | `tests/organization-franchise-overview` | 57 passed |
 | `tests/accessibility-guard` | 44 passed |
+| `tests/rls-reconciliation` | 39 passed, 1 skipped (live gap check needs a database) |
+| `tests/security-sweep` | 54 passed |
 
-Not run in that pass: `npm run build`, and any suite that needs a live database
+The migration's DDL was compared against `prisma migrate diff --from-empty --to-schema-datamodel`
+and matches it statement for statement, including the nullable list column, the three index
+names and both cascading foreign keys.
+
+Not run in that pass: any suite that needs a live database
 (`tests/organization-invitations`, `tests/organization-isolation`), because no
 `DATABASE_URL` was available. The new suite is deliberately free of database access.
 

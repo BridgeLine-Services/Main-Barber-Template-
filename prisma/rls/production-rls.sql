@@ -185,7 +185,7 @@ DECLARE
   t_org TEXT[] := ARRAY[
     'Organization','OrganizationMember','OrganizationBrandSettings',
     'OrganizationReportingConfiguration','OrganizationServiceTemplate',
-    'OrganizationAnnouncement','OrganizationConfigAudit'
+    'OrganizationAnnouncement','OrganizationAnnouncementRead','OrganizationConfigAudit'
   ];
   tbl TEXT;
   tenant_col TEXT;

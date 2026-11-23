@@ -11,8 +11,11 @@
 -- rather than accidentally sent to everyone. Nothing in the application wrote an
 -- announcement before this migration, so no legitimate row is hidden by that default.
 
+-- Nullable, exactly as Prisma generates a required scalar list (see "regions" on
+-- OrganizationInvitation). The application treats a null or empty value as "delivered to
+-- nobody", which fails closed.
 ALTER TABLE "OrganizationAnnouncement"
-  ADD COLUMN "resolvedBusinessIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+  ADD COLUMN "resolvedBusinessIds" TEXT[] DEFAULT ARRAY[]::TEXT[];
 
 CREATE TABLE "OrganizationAnnouncementRead" (
     "id" TEXT NOT NULL,
