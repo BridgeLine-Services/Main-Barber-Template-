@@ -169,7 +169,7 @@ Recorded 2026-11-23, on the working tree that adds the inbox.
 | `eslint` on the changed files | Clean |
 | `npm run architecture:check` | Passed, 727 source files scanned |
 | `npm run build` | Succeeded, 76 pages; the three new routes are dynamic |
-| `tests/organization-announcement-inbox` (new) | 96 passed |
+| `tests/organization-announcement-inbox` (new) | 101 passed |
 | `tests/organization-architecture` | 155 passed |
 | `tests/organization-people-screen` | 58 passed |
 | `tests/organization-franchise-overview` | 57 passed |

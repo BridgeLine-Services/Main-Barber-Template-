@@ -237,6 +237,39 @@ const noTarget = planDelivery({
 })
 ok('an audience that matches nothing is refused', noTarget.ok === false)
 
+const unknownType = planDelivery({
+  draft: { title: 'x', body: 'y', audience: { type: 'everyone-somewhere' as unknown as 'all', values: ['b-downtown'] } },
+  senderRole: 'ORGANIZATION_OWNER',
+  senderBusinessIds: OWNER.businessIds,
+  locations: LOCATIONS,
+})
+ok('an audience type the resolver does not know is refused', unknownType.ok === false)
+ok('the refusal lists the real choices', /everyone, a region, a location or a named group/i.test(unknownType.errors.join(' ')))
+
+const longTitle = planDelivery({
+  draft: { title: 'x'.repeat(201), body: 'y', audience: { type: 'all', values: [] } },
+  senderRole: 'ORGANIZATION_OWNER',
+  senderBusinessIds: OWNER.businessIds,
+  locations: LOCATIONS,
+})
+ok('an over-long title is refused on the server', longTitle.ok === false && /limited to 200/i.test(longTitle.errors.join(' ')))
+
+const longBody = planDelivery({
+  draft: { title: 'x', body: 'y'.repeat(5001), audience: { type: 'all', values: [] } },
+  senderRole: 'ORGANIZATION_OWNER',
+  senderBusinessIds: OWNER.businessIds,
+  locations: LOCATIONS,
+})
+ok('an over-long message is refused on the server', longBody.ok === false && /limited to 5000/i.test(longBody.errors.join(' ')))
+
+const atLimit = planDelivery({
+  draft: { title: 'x'.repeat(200), body: 'y'.repeat(5000), audience: { type: 'all', values: [] } },
+  senderRole: 'ORGANIZATION_OWNER',
+  senderBusinessIds: OWNER.businessIds,
+  locations: LOCATIONS,
+})
+ok('a title and message at the limit are allowed', atLimit.ok === true)
+
 const groupPlan = planDelivery({
   draft: { title: 'x', body: 'y', audience: { type: 'group', values: ['b-airport'] } },
   senderRole: 'ORGANIZATION_OWNER',

@@ -307,7 +307,7 @@ export function AnnouncementInbox({ items, canSend, locations, regions, emptyCop
                   name="title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  maxLength={120}
+                  maxLength={200}
                   autoComplete="off"
                   className="min-h-11 text-base"
                   aria-describedby="announcement-title-help"
@@ -325,7 +325,7 @@ export function AnnouncementInbox({ items, canSend, locations, regions, emptyCop
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   rows={5}
-                  maxLength={4000}
+                  maxLength={5000}
                   className="min-h-28 text-base"
                   aria-describedby="announcement-body-help"
                 />

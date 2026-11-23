@@ -222,6 +222,12 @@ export function emptyStateMessage(viewer: ViewerScope, deliveredToOrganization: 
   return 'Nothing is addressed to you right now. Announcements sent to other locations stay out of your inbox.'
 }
 
+/** The audiences the existing resolver understands. */
+const SENDABLE_AUDIENCES: AudienceType[] = ['all', 'region', 'location', 'group']
+
+export const MAX_TITLE_LENGTH = 200
+export const MAX_BODY_LENGTH = 5000
+
 export interface SendPlanInput {
   draft: Partial<AnnouncementDraft>
   senderRole: OrgRole
@@ -263,9 +269,27 @@ export function planDelivery(input: SendPlanInput): SendPlan {
   if (!permission.allowed) return { ...empty, errors: [permission.reason] }
 
   const validation = validateAnnouncement(input.draft)
-  if (!validation.valid) return { ...empty, errors: validation.errors }
+  const errors = [...validation.errors]
 
-  const audience = input.draft.audience as Audience
+  // The four audiences the resolver understands. Anything else is refused here rather than
+  // falling through to the group branch, so an unknown type cannot be used to guess at a
+  // wider audience than the sender chose.
+  const declaredAudience = input.draft.audience as Audience
+  if (declaredAudience && !SENDABLE_AUDIENCES.includes(declaredAudience.type)) {
+    errors.push('Choose everyone, a region, a location or a named group.')
+  }
+
+  // Length limits live on the server too: the form's maxLength is a convenience, not a rule.
+  if ((input.draft.title ?? '').trim().length > MAX_TITLE_LENGTH) {
+    errors.push(`An announcement title is limited to ${MAX_TITLE_LENGTH} characters.`)
+  }
+  if ((input.draft.body ?? '').trim().length > MAX_BODY_LENGTH) {
+    errors.push(`An announcement message is limited to ${MAX_BODY_LENGTH} characters.`)
+  }
+
+  if (errors.length > 0) return { ...empty, errors }
+
+  const audience = declaredAudience
   const allowed = new Set(input.senderBusinessIds)
   const inScope = input.locations.filter((location) => allowed.has(location.businessId))
   const resolved = resolveAudience(audience, inScope)

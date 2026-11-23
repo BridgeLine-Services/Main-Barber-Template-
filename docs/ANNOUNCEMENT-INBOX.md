@@ -59,10 +59,11 @@ before this change, so no legitimate row is hidden by that default.
 
 ## Tests
 
-`tests/organization-announcement-inbox.test.ts` (96 assertions) covers audience
+`tests/organization-announcement-inbox.test.ts` (101 assertions) covers audience
 restrictions, closed locations, wrong-organization access, read-status isolation,
-unauthorized senders, sender scope, empty states, the server boundary checked in source,
-and a static mobile and accessibility guard. It needs no database.
+unauthorized senders, sender scope, unknown audience types, the server-side length limits,
+empty states, the server boundary checked in source, and a static mobile and accessibility
+guard. It needs no database.
 
 ## What remains
 
