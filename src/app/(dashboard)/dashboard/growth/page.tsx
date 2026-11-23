@@ -9,6 +9,13 @@ import { buildGrowthCards, summariseGrowth } from '@/lib/growth/overview'
 import { BUSINESS_STAGES, resolveStage, stageDefinition, availableCapabilities, plannedCapabilities } from '@/lib/growth/stages'
 import { inferStage, type ShopFacts } from '@/lib/setup-guidance'
 import { readIntendedStage } from '@/lib/growth/stage-store'
+import { summariseReferrals, type ReferralRow } from '@/lib/growth/referrals'
+import {
+  describeProgramState,
+  referralEmptyState,
+  referralMetricRows,
+  whatTheProgramDoes,
+} from '@/lib/growth/dashboard-view'
 
 const TONE: Record<string, string> = {
   healthy: 'border-emerald-500/30 bg-emerald-500/5',
@@ -64,6 +71,43 @@ export default async function GrowthPage() {
   const definition = stageDefinition(resolution.effective)
   const ready = availableCapabilities(resolution.effective)
   const planned = plannedCapabilities(resolution.effective)
+
+  // Referrals, read the same way the referrals endpoint reads them, so the screen and the
+  // API cannot disagree. Every read is wrapped: a failure arrives as null, which the panel
+  // reports as "could not verify" rather than as an absence of referrals.
+  const program = await safe(() => prisma.referralProgram.findUnique({ where: { businessId } }))
+  const referralMetrics = await safe(async () => {
+    const attributions = await prisma.referralAttribution.findMany({
+      where: { businessId },
+      select: { customerId: true, referrerCustomerId: true, source: true },
+    })
+    if (attributions.length === 0) return summariseReferrals([], 0)
+    const bookings = await prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: { businessId, status: 'COMPLETED', customerId: { in: attributions.map((a) => a.customerId) } },
+      _count: { _all: true },
+    })
+    const bookingCounts = new Map(bookings.map((row) => [row.customerId, row._count._all]))
+    const paymentRows = await prisma.payment.findMany({
+      where: { businessId, status: { in: ['SUCCEEDED', 'PARTIALLY_REFUNDED', 'REFUNDED'] } },
+      select: { customerId: true, amount: true, refundedAmount: true },
+    })
+    const revenueByCustomer = new Map<string, number>()
+    for (const row of paymentRows) {
+      if (!row.customerId) continue
+      const cents = Math.round((row.amount - (row.refundedAmount ?? 0)) * 100)
+      revenueByCustomer.set(row.customerId, (revenueByCustomer.get(row.customerId) ?? 0) + cents)
+    }
+    const rows: ReferralRow[] = attributions.map((a) => ({
+      customerId: a.customerId,
+      referrerCustomerId: a.referrerCustomerId,
+      source: a.source,
+      revenueCents: revenueByCustomer.get(a.customerId) ?? 0,
+      bookings: bookingCounts.get(a.customerId) ?? 0,
+    }))
+    const total = Array.from(revenueByCustomer.values()).reduce((sum, value) => sum + value, 0)
+    return summariseReferrals(rows, total)
+  })
 
   const cards = buildGrowthCards({
     audienceCount: audience,
@@ -175,6 +219,66 @@ export default async function GrowthPage() {
         anything. Sending happens on the campaigns and rebooking screens, where you can see
         exactly who will receive it first.
       </p>
+
+      <section aria-labelledby="referrals" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="referrals" className="text-lg font-semibold text-foreground">Referrals</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Customers bringing other customers in, and what that has been worth.
+            </p>
+          </div>
+          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-foreground">
+            Referral program: {describeProgramState(program ? program.enabled : null).label}
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm text-muted-foreground">{describeProgramState(program ? program.enabled : null).meaning}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{whatTheProgramDoes()}</p>
+
+        {referralMetrics && referralEmptyState(program ? program.enabled : null, referralMetrics) ? (
+          <p className="mt-4 rounded-lg border border-border p-3 text-sm text-muted-foreground">
+            {referralEmptyState(program ? program.enabled : null, referralMetrics)}
+          </p>
+        ) : null}
+
+        {referralMetrics ? (
+          <>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {referralMetricRows(referralMetrics).map((row) => (
+                <div key={row.id} className="rounded-lg border border-border p-3">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{row.label}</dt>
+                  <dd className="mt-1 text-xl font-semibold text-foreground">{row.value}</dd>
+                  <p className="mt-1 text-xs text-muted-foreground">{row.meaning}</p>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-3 text-xs text-muted-foreground">{referralMetrics.note}</p>
+            {referralMetrics.byChannel.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-semibold text-foreground">Where referrals came from</h3>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {referralMetrics.byChannel.map((channel) => (
+                    <li key={channel.channel} className="flex justify-between gap-3 border-b border-border/60 pb-1">
+                      <span className="text-muted-foreground">{channel.channel}</span>
+                      <span className="font-medium text-foreground">{channel.customers}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="mt-4 rounded-lg border border-border p-3 text-sm text-muted-foreground">
+            We could not read your referral results just now. Nothing has been changed. Reload the page in a moment.
+          </p>
+        )}
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Turning the program on or off, and creating a customer&apos;s shareable link, is done on the referrals screen so
+          you can see what each change will do before you confirm it.
+        </p>
+      </section>
     </div>
   )
 }
