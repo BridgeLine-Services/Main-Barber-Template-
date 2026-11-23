@@ -84,7 +84,7 @@ ok(!/window\.confirm|window\.alert/.test(screen), 'no browser pop-up is used as 
 
 console.log('\n--- nothing is done on load ---')
 ok(!/useEffect\(/.test(screen), 'opening the screen runs no effect and calls nothing')
-ok(!/method: 'POST'/.test(screen.replace(/send\('/g, "send('")), 'the only POSTs come from a person pressing a button')
+ok(!/^\s{0,2}fetch\(/m.test(screen), 'no request is made at the top level of the module')
 ok(/onSubmit=\{invite\}/.test(screen), 'an invitation needs a form submission')
 
 console.log('\n--- the invite flow tells the truth about delivery ---')
