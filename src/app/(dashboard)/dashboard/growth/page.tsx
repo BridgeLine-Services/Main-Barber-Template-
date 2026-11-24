@@ -6,6 +6,7 @@ import { requireOwner } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
 import { getRebookingTasks } from '@/lib/rebooking-engine'
 import { buildGrowthCards, summariseGrowth } from '@/lib/growth/overview'
+import { SLOW_DAY_WINDOW_WEEKS, buildSlowDayReport, groupByShopDay, recentWindow, slowDayCard } from '@/lib/growth/slow-days'
 import { BUSINESS_STAGES, resolveStage, stageDefinition, availableCapabilities, plannedCapabilities } from '@/lib/growth/stages'
 import { inferStage, type ShopFacts } from '@/lib/setup-guidance'
 import { readIntendedStage } from '@/lib/growth/stage-store'
@@ -109,6 +110,33 @@ export default async function GrowthPage() {
     return summariseReferrals(rows, total)
   })
 
+  // Quiet days: the shop's own last eight weeks, bucketed in the shop's own timezone rather
+  // than the server's. A failed read arrives as null so the card says it could not check,
+  // instead of calling an unread week "even".
+  const timezone =
+    (await safe(() =>
+      prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } }),
+    ))?.timezone ?? 'America/Los_Angeles'
+
+  const quietWindow = recentWindow(SLOW_DAY_WINDOW_WEEKS)
+  const bookedTimes = await safe(() =>
+    prisma.appointment.findMany({
+      where: {
+        businessId,
+        startTime: { gte: quietWindow.since, lt: quietWindow.until },
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+      },
+      select: { startTime: true },
+    }),
+  )
+
+  const quietDays = buildSlowDayReport({
+    days: bookedTimes ? groupByShopDay(bookedTimes.map((row) => row.startTime), timezone) : null,
+    // The page has no verified count of customers who have drifted, so it says so rather
+    // than guessing an audience size it cannot check.
+    dormantCustomers: null,
+  })
+
   const cards = buildGrowthCards({
     audienceCount: audience,
     dueCount: null,
@@ -193,7 +221,7 @@ export default async function GrowthPage() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {cards.map((card) => (
+        {[...cards, slowDayCard(quietDays)].map((card) => (
           <section
             key={card.id}
             aria-labelledby={'growth-' + card.id}
