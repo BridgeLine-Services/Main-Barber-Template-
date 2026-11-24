@@ -280,6 +280,12 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         // words, that the page is for organizations and sent back to their own dashboard;
         // the page itself resolves access from the session and shows nothing else.
         { name: 'Locations', href: '/dashboard/organization', icon: Building2 },
+        // Management screens. Each one resolves the organization from the session and
+        // refuses anything the person's role may not do; the sidebar only decides what is
+        // worth showing.
+        { name: 'Shop locations', href: '/dashboard/organization/locations', icon: LayoutGrid },
+        { name: 'Assignments', href: '/dashboard/organization/assignments', icon: UserCog },
+        { name: 'Regions', href: '/dashboard/organization/regions', icon: LayoutDashboard },
         // The organization announcement inbox. Same graceful degradation as Locations:
         // a single-shop owner who opens it is told, in plain words, that announcements are
         // for organizations, and the page resolves every audience from the session.
