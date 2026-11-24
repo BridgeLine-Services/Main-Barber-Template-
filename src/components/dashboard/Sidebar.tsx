@@ -210,6 +210,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           items: [
             { name: 'Growth Plan', href: '/dashboard/growth', icon: Rocket },
             { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
+            { name: 'Referrals', href: '/dashboard/referrals', icon: Users },
             { name: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
             { name: 'Gift Cards', href: '/dashboard/gift-cards', icon: Wallet },
             { name: 'Online Shop', href: '/dashboard/ecommerce', icon: ShoppingCart },
@@ -308,6 +309,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
         { name: 'My Appointments', href: '/dashboard/appointments', icon: CalendarDays },
+        { name: 'Referrals', href: '/dashboard/referrals', icon: Users },
         // A barber who belongs to an organization has announcements.read, so the inbox is
         // reachable from their own nav. A shop barber with no organization sees the page's
         // explanation instead of an error; the page itself is the gate.

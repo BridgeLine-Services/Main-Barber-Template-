@@ -59,7 +59,8 @@ export function parseReferralParams(params: { get(name: string): string | null }
   const sourceRaw = (params.get('source') ?? '').trim().toLowerCase()
   const source = sourceRaw ? sourceRaw.replace(/[^a-z0-9_-]/g, '').slice(0, 32) || null : null
   const campaignRaw = (params.get('campaign') ?? '').trim()
-  return { code, source, campaign: campaignRaw ? campaignRaw.slice(0, 64) : null }
+  const campaign = campaignRaw.replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 64)
+  return { code, source, campaign: campaign || null }
 }
 
 export interface AttributionInput {
@@ -125,6 +126,7 @@ export interface ReferralRow {
   customerId: string
   referrerCustomerId: string | null
   source: string | null
+  campaign?: string | null
   revenueCents: number | null
   bookings: number
 }
@@ -132,11 +134,13 @@ export interface ReferralRow {
 export interface ReferralMetrics {
   referredCustomers: number
   converted: number
+  completedBookings: number
   conversionRate: number | null
   repeatBookings: number
   referralRevenueCents: number | null
   shareOfRevenuePercent: number | null
   byChannel: Array<{ channel: string; customers: number }>
+  byCampaign: Array<{ campaign: string; customers: number }>
   note: string
 }
 
@@ -147,14 +151,15 @@ export interface ReferralMetrics {
 export function summariseReferrals(rows: ReferralRow[] | null, totalRevenueCents: number | null): ReferralMetrics {
   if (rows === null) {
     return {
-      referredCustomers: 0, converted: 0, conversionRate: null, repeatBookings: 0,
-      referralRevenueCents: null, shareOfRevenuePercent: null, byChannel: [],
+      referredCustomers: 0, converted: 0, completedBookings: 0, conversionRate: null, repeatBookings: 0,
+      referralRevenueCents: null, shareOfRevenuePercent: null, byChannel: [], byCampaign: [],
       note: 'Referrals could not be read just now.',
     }
   }
   const referredCustomers = rows.length
   const converted = rows.filter((r) => r.bookings > 0).length
-  const repeatBookings = rows.filter((r) => r.bookings > 1).length
+  const completedBookings = rows.reduce((sum, row) => sum + row.bookings, 0)
+  const repeatBookings = rows.reduce((sum, row) => sum + Math.max(0, row.bookings - 1), 0)
   const allKnown = rows.every((r) => r.revenueCents !== null)
   const referralRevenueCents = allKnown ? rows.reduce((sum, r) => sum + (r.revenueCents ?? 0), 0) : null
   const shareOfRevenuePercent = referralRevenueCents !== null && totalRevenueCents !== null && totalRevenueCents > 0
@@ -162,19 +167,23 @@ export function summariseReferrals(rows: ReferralRow[] | null, totalRevenueCents
     : null
 
   const channels = new Map<string, number>()
+  const campaigns = new Map<string, number>()
   for (const row of rows) {
     const channel = row.referrerCustomerId ? 'Customer referral' : (row.source ?? 'Unknown source')
     channels.set(channel, (channels.get(channel) ?? 0) + 1)
+    if (row.campaign) campaigns.set(row.campaign, (campaigns.get(row.campaign) ?? 0) + 1)
   }
 
   return {
     referredCustomers,
     converted,
+    completedBookings,
     conversionRate: referredCustomers > 0 ? Math.round((converted / referredCustomers) * 1000) / 10 : null,
     repeatBookings,
     referralRevenueCents,
     shareOfRevenuePercent,
     byChannel: Array.from(channels, ([channel, customers]) => ({ channel, customers })).sort((a, b) => b.customers - a.customers),
+    byCampaign: Array.from(campaigns, ([campaign, customers]) => ({ campaign, customers })).sort((a, b) => b.customers - a.customers),
     note: allKnown
       ? 'Every referred customer’s revenue was read.'
       : 'Some referred customers’ revenue could not be read, so the referral total is unknown.',

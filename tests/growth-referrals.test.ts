@@ -38,6 +38,9 @@ ok('a referral parameter is read and normalised', parsed.code === 'AB12')
 ok('a source is lowercased and cleaned', parsed.source === 'instagram')
 ok('a campaign is carried', parsed.campaign === 'fall')
 ok('a missing parameter is null, not a guess', parseReferralParams(new URLSearchParams('')).code === '')
+const hostile = parseReferralParams(new URLSearchParams('ref=%3Cscript%3E&source=../../Instagram%3F&campaign=%3Cimg%20src=x%20onerror=alert(1)%3E'))
+ok('hostile referral text cannot become executable markup', !/[<>]/.test(hostile.code) && !/[<>]/.test(hostile.campaign ?? ''))
+ok('hostile source text is reduced to the safe source alphabet', hostile.source === 'instagram')
 
 // ─── Attribution ───────────────────────────────────────────────────────────
 
@@ -66,15 +69,17 @@ ok('an unreadable referral list says so', /could not be read/i.test(unknownSumma
 ok('an unreadable referral list has no rate', unknownSummary.conversionRate === null)
 
 const rows = [
-  { customerId: 'c1', referrerCustomerId: 'r1', source: null, revenueCents: 5000, bookings: 2 },
-  { customerId: 'c2', referrerCustomerId: 'r2', source: null, revenueCents: 3000, bookings: 1 },
+  { customerId: 'c1', referrerCustomerId: 'r1', source: null, campaign: 'summer', revenueCents: 5000, bookings: 2 },
+  { customerId: 'c2', referrerCustomerId: 'r2', source: null, campaign: 'summer', revenueCents: 3000, bookings: 1 },
   { customerId: 'c3', referrerCustomerId: null, source: 'instagram', revenueCents: 2000, bookings: 0 },
 ]
 const summary = summariseReferrals(rows, 100000)
 ok('every referred customer is counted', summary.referredCustomers === 3)
 ok('converted counts only customers who booked', summary.converted === 2)
+ok('completed bookings are counted separately from customers', summary.completedBookings === 3)
 ok('the conversion rate is a percentage', summary.conversionRate === 66.7)
-ok('repeat bookings are counted', summary.repeatBookings === 1)
+ok('repeat bookings count bookings after the first', summary.repeatBookings === 1)
+ok('campaign customers are grouped', summary.byCampaign[0].campaign === 'summer' && summary.byCampaign[0].customers === 2)
 ok('referral revenue is summed', summary.referralRevenueCents === 10000)
 ok('the share of total revenue is a percentage', summary.shareOfRevenuePercent === 10)
 ok('customer referrals are named as a channel', summary.byChannel[0].channel === 'Customer referral')

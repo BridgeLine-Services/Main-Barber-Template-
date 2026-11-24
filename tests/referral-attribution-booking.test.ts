@@ -171,10 +171,10 @@ async function main() {
     book(A, email, slotFor(300), raceResolved, `ref-race-1-${RUN}`),
     book(A, email, slotFor(360), raceResolved, `ref-race-2-${RUN}`),
   ])
-  assert(r1.success || r2.success, 'at least one of the two bookings succeeds')
+  assert(r1.success && r2.success, 'both distinct valid bookings succeed under serializable retry')
   const raceCustomer = await prisma.customer.findFirst({ where: { businessId: A.business.id, email } })
   const raceCount = await prisma.referralAttribution.count({ where: { customerId: raceCustomer!.id } })
-  assert(raceCount <= 1, `at most one attribution exists (found ${raceCount})`)
+  assert(raceCount === 1, `exactly one attribution exists after simultaneous first bookings (found ${raceCount})`)
 
   console.log('\n--- a failed booking leaves no attribution behind ---')
   const D = await makeShop('d')

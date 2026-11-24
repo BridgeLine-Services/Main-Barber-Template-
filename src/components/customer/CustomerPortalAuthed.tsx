@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { Loader2, CalendarClock, History, LogOut } from 'lucide-react'
 import RescheduleFlow from '@/components/customer/RescheduleFlow'
+import { CustomerReferralPanel } from '@/components/customer/CustomerReferralPanel'
 
 interface PortalAppointment {
   id: string
@@ -151,6 +152,8 @@ export function CustomerPortalAuthed({ businessName }: { businessName: string })
           </p>
         </div>
       )}
+
+      {me?.customer && <CustomerReferralPanel />}
 
       {/* Upcoming */}
       <section>

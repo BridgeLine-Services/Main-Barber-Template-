@@ -238,23 +238,16 @@ Not run in that pass: any suite that needs a live database
 - **Routes.** `GET`/`POST /api/dashboard/referrals` and `GET /api/dashboard/growth/analytics`.
   A barber is pinned to their own profile; an owner may name only a barber in their own shop.
 
-### Not done, and why
+### Referral implementation update
 
-- **Attribution is not wired into the booking flow.** Nothing calls `decideAttribution` when an
-  appointment is created, so no attribution row is written in normal use. This is the single
-  most important remaining piece for this priority: the rules, the table and the reporting are
-  ready, but the booking transaction does not yet use them.
-- **No barber or referral screens.** The analytics and referral data are available from the API
-  only.
-- **The referral programme is off by default** and codes are issued through the API. There is no
-  customer-facing "share your code" surface.
+- Referral attribution is connected to the serializable booking transaction. It checks first-visit eligibility and self-referral, is protected by the unique customer constraint, uses `createMany({ skipDuplicates: true })`, and logs attribution failures without blocking valid bookings.
+- The owner referral dashboard and authenticated customer sharing panel are available. Program disablement is confirmed in the UI and preserves referral history.
+- The program remains off by default. Owners enable it before issuing share links; customers see only their own code and aggregate referral activity.
+- See `docs/REFERRAL-PROGRAM.md` for attribution, privacy, revenue, and testing rules.
 
 ## What I would do next, in order
 
-1. Wire `decideAttribution` into the booking transaction, behind a flag, with a test that a
-   second booking never double-counts.
-2. Make `scripts/rehearse-restore.ts` record a `RestoreDrill` row so recovery verification has
-   evidence to read.
-3. Build the organization page and the barber analytics page, both read-only.
-4. Approve and apply the staged RLS plan, then switch the runtime role.
-5. Run the penetration test against staging.
+1. Make `scripts/rehearse-restore.ts` record a `RestoreDrill` row so recovery verification has evidence to read.
+2. Build the organization page and the barber analytics page, both read-only.
+3. Approve and apply the staged RLS plan, then switch the runtime role.
+4. Run the penetration test against staging.

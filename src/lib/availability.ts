@@ -817,8 +817,14 @@ export async function createAppointmentSafely(params: {
       //    the appointment stands. Duplicates are impossible because customerId is
       //    unique on ReferralAttribution and createMany skips a duplicate instead of
       //    raising, so two simultaneous bookings cannot both be attributed.
-      if (referral && (referral.code || referral.referrerCustomerId)) {
+      if (referral && (referral.code || referral.referrerCustomerId || referral.source)) {
+        let attributionSavepointCreated = false
         try {
+          // PostgreSQL marks a transaction failed after a statement error. A savepoint
+          // lets optional referral bookkeeping roll back independently while preserving
+          // the appointment in this same serializable transaction.
+          await tx.$executeRawUnsafe('SAVEPOINT referral_attribution')
+          attributionSavepointCreated = true
           const existingAttribution = await tx.referralAttribution.findUnique({
             where: { customerId: customer.id },
             select: { customerId: true, referrerCustomerId: true },
@@ -841,7 +847,25 @@ export async function createAppointmentSafely(params: {
           if (decision.attribute && decision.record) {
             await tx.referralAttribution.createMany({ data: [decision.record], skipDuplicates: true })
           }
-        } catch {
+          await tx.$executeRawUnsafe('RELEASE SAVEPOINT referral_attribution')
+        } catch (error) {
+          const code = (error as { code?: unknown } | null)?.code
+          console.error(JSON.stringify({
+            event: 'referral_attribution_failure',
+            errorCode: typeof code === 'string' ? code : 'UNKNOWN',
+          }))
+          if (attributionSavepointCreated) {
+            try {
+              await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT referral_attribution')
+              await tx.$executeRawUnsafe('RELEASE SAVEPOINT referral_attribution')
+            } catch (recoveryError) {
+              const recoveryCode = (recoveryError as { code?: unknown } | null)?.code
+              console.error(JSON.stringify({
+                event: 'referral_attribution_savepoint_recovery_failure',
+                errorCode: typeof recoveryCode === 'string' ? recoveryCode : 'UNKNOWN',
+              }))
+            }
+          }
           // Attribution is bookkeeping; the customer's appointment is not.
         }
       }
