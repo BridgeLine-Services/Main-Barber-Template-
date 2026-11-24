@@ -17,9 +17,15 @@ import {
   changeMemberRole,
   createOrganizationInvitation,
   invitationState,
+  listOrganizationInvitations,
   resendOrganizationInvitation,
   setMemberStatus,
 } from '../src/lib/organization/invitations'
+import { processDueNotifications } from '../src/lib/notification-worker'
+import {
+  invalidateQueuedOrganizationInvitationEmails,
+  queueOrganizationInvitationEmail,
+} from '../src/lib/organization/invitation-delivery'
 
 let passed = 0
 let failed = 0
@@ -29,6 +35,25 @@ function ok(condition: boolean, message: string) {
 }
 
 const stamp = Date.now()
+const deliveryInvitationIds: string[] = []
+const emailEnvironmentKeys = ['EMAIL_ENABLED', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'SMTP_SECURE']
+
+async function withEmailEnvironment(values: Record<string, string | undefined>, run: () => Promise<void>) {
+  const previous = new Map(emailEnvironmentKeys.map((key) => [key, process.env[key]]))
+  for (const key of emailEnvironmentKeys) {
+    const value = values[key]
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
+  try {
+    await run()
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+}
 
 async function main() {
   const business = await prisma.business.create({
@@ -198,6 +223,104 @@ async function main() {
     })
     ok(!afterCancel.ok && afterCancel.reason === 'cancelled', 'a cancelled invitation cannot be accepted')
 
+    console.log('--- queued invitation email delivery ---')
+    await withEmailEnvironment({ EMAIL_ENABLED: 'true' }, async () => {
+      const unavailable = await createOrganizationInvitation({
+        context: ownerContext, email: `unconfigured-${stamp}@test.example`, role: 'FRANCHISE_OWNER', invitedById: owner.id,
+      })
+      deliveryInvitationIds.push(unavailable.value!.id)
+      const fallback = await queueOrganizationInvitationEmail({
+        invitationId: unavailable.value!.id, recipient: `unconfigured-${stamp}@test.example`, token: unavailable.value!.token,
+      })
+      const unavailableLog = await prisma.notificationLog.findUnique({
+        where: { idempotencyKey: `organization-invitation:${unavailable.value!.id}:${(await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: unavailable.value!.id } })).tokenHash}` },
+      })
+      ok(!fallback.queued && fallback.state === 'failed', 'missing SMTP settings do not queue a message')
+      ok(Boolean(unavailableLog?.failureReason?.includes('SMTP_')), 'the owner gets the missing SMTP configuration names')
+      ok(unavailableLog?.content === null, 'a copy-link fallback does not persist its token in the queue')
+    })
+
+    const testMailEnvironment = {
+      EMAIL_ENABLED: 'true', SMTP_HOST: 'smtp.invalid', SMTP_PORT: '587', SMTP_USER: 'test-user',
+      SMTP_PASS: 'test-only-not-used', SMTP_FROM: 'noreply@example.test', SMTP_SECURE: 'false',
+    }
+    await withEmailEnvironment(testMailEnvironment, async () => {
+      const emailInvite = await createOrganizationInvitation({
+        context: ownerContext, email: `delivery-${stamp}@test.example`, role: 'FRANCHISE_OWNER', invitedById: owner.id,
+      })
+      deliveryInvitationIds.push(emailInvite.value!.id)
+      const queuedEmail = await queueOrganizationInvitationEmail({
+        invitationId: emailInvite.value!.id, recipient: `delivery-${stamp}@test.example`, token: emailInvite.value!.token,
+      })
+      const tokenHash = (await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: emailInvite.value!.id } })).tokenHash
+      let deliveryLog = await prisma.notificationLog.findUniqueOrThrow({ where: { idempotencyKey: `organization-invitation:${emailInvite.value!.id}:${tokenHash}` } })
+      ok(queuedEmail.queued && deliveryLog.status === 'PENDING', 'configured email is queued, not reported as sent')
+      ok(Boolean(deliveryLog.content) && !deliveryLog.content!.includes(emailInvite.value!.token), 'the queued token payload is encrypted at rest')
+      await queueOrganizationInvitationEmail({
+        invitationId: emailInvite.value!.id, recipient: `delivery-${stamp}@test.example`, token: emailInvite.value!.token,
+      })
+      ok((await prisma.notificationLog.count({ where: { idempotencyKey: `organization-invitation:${emailInvite.value!.id}:${tokenHash}` } })) === 1, 'repeating a queue request does not duplicate the delivery record')
+
+      const sentMessage: { value: { from: string; to: string; text: string } | null } = { value: null }
+      await processDueNotifications(10, {
+        notificationIds: [deliveryLog.id],
+        sendEmail: async (message) => { sentMessage.value = message; return { messageId: 'mock-provider-accepted' } },
+      })
+      deliveryLog = await prisma.notificationLog.findUniqueOrThrow({ where: { id: deliveryLog.id } })
+      ok(deliveryLog.status === 'SENT' && Boolean(deliveryLog.sentAt), 'the row becomes sent only after provider acceptance')
+      ok(deliveryLog.content === null, 'the encrypted token payload is erased after successful delivery')
+      ok(Boolean(sentMessage.value?.text.includes(emailInvite.value!.token)), 'the mock provider receives the intended one-time link')
+      ok(sentMessage.value?.from === testMailEnvironment.SMTP_FROM && sentMessage.value.to === `delivery-${stamp}@test.example`, 'delivery uses the configured sender and invited address')
+      const listedEmail = (await listOrganizationInvitations(ownerContext)).find((entry) => entry.id === emailInvite.value!.id)
+      ok(listedEmail?.deliveryState === 'sent' && Boolean(listedEmail.sentAt), 'the invitation screen can show its sent state and date')
+
+      const retryInvite = await createOrganizationInvitation({
+        context: ownerContext, email: `retry-${stamp}@test.example`, role: 'FRANCHISE_OWNER', invitedById: owner.id,
+      })
+      deliveryInvitationIds.push(retryInvite.value!.id)
+      await queueOrganizationInvitationEmail({ invitationId: retryInvite.value!.id, recipient: `retry-${stamp}@test.example`, token: retryInvite.value!.token })
+      const retryHash = (await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: retryInvite.value!.id } })).tokenHash
+      const retryLog = await prisma.notificationLog.findUniqueOrThrow({ where: { idempotencyKey: `organization-invitation:${retryInvite.value!.id}:${retryHash}` } })
+      await processDueNotifications(10, {
+        notificationIds: [retryLog.id],
+        sendEmail: async () => { throw Object.assign(new Error('temporary test failure'), { responseCode: 421 }) },
+      })
+      const waitingRetry = await prisma.notificationLog.findUniqueOrThrow({ where: { id: retryLog.id } })
+      ok(waitingRetry.status === 'PENDING' && waitingRetry.attemptCount === 1 && waitingRetry.scheduledAt! > new Date(), 'temporary provider errors schedule a bounded retry')
+      ok(!waitingRetry.errorMessage?.includes(retryInvite.value!.token), 'retry diagnostics do not expose the invitation token')
+      await prisma.notificationLog.update({ where: { id: retryLog.id }, data: { scheduledAt: new Date(Date.now() - 1_000) } })
+      await processDueNotifications(10, { notificationIds: [retryLog.id], sendEmail: async () => ({ messageId: 'mock-retry-accepted' }) })
+      ok((await prisma.notificationLog.findUniqueOrThrow({ where: { id: retryLog.id } })).status === 'SENT', 'a later successful attempt marks the retry sent')
+
+      const rejectedInvite = await createOrganizationInvitation({
+        context: ownerContext, email: `rejected-${stamp}@test.example`, role: 'FRANCHISE_OWNER', invitedById: owner.id,
+      })
+      deliveryInvitationIds.push(rejectedInvite.value!.id)
+      await queueOrganizationInvitationEmail({ invitationId: rejectedInvite.value!.id, recipient: `rejected-${stamp}@test.example`, token: rejectedInvite.value!.token })
+      const rejectedHash = (await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: rejectedInvite.value!.id } })).tokenHash
+      const rejectedLog = await prisma.notificationLog.findUniqueOrThrow({ where: { idempotencyKey: `organization-invitation:${rejectedInvite.value!.id}:${rejectedHash}` } })
+      await processDueNotifications(10, {
+        notificationIds: [rejectedLog.id],
+        sendEmail: async () => { throw Object.assign(new Error('provider rejected'), { responseCode: 550 }) },
+      })
+      const failedDelivery = await prisma.notificationLog.findUniqueOrThrow({ where: { id: rejectedLog.id } })
+      ok(failedDelivery.status === 'FAILED' && failedDelivery.content === null, 'permanent provider rejection is final and clears the payload')
+      ok(!failedDelivery.errorMessage?.includes(rejectedInvite.value!.token), 'provider rejection details remain token-free')
+
+      const cancelledInvite = await createOrganizationInvitation({
+        context: ownerContext, email: `cancel-queued-${stamp}@test.example`, role: 'FRANCHISE_OWNER', invitedById: owner.id,
+      })
+      deliveryInvitationIds.push(cancelledInvite.value!.id)
+      await queueOrganizationInvitationEmail({ invitationId: cancelledInvite.value!.id, recipient: `cancel-queued-${stamp}@test.example`, token: cancelledInvite.value!.token })
+      const cancelledHash = (await prisma.organizationInvitation.findUniqueOrThrow({ where: { id: cancelledInvite.value!.id } })).tokenHash
+      const cancelledLog = await prisma.notificationLog.findUniqueOrThrow({ where: { idempotencyKey: `organization-invitation:${cancelledInvite.value!.id}:${cancelledHash}` } })
+      await cancelOrganizationInvitation({ context: ownerContext, invitationId: cancelledInvite.value!.id, actorId: owner.id })
+      await invalidateQueuedOrganizationInvitationEmails(cancelledInvite.value!.id, 'This invitation was cancelled before its email was sent.')
+      let cancelledDeliveryCount = 0
+      await processDueNotifications(10, { notificationIds: [cancelledLog.id], sendEmail: async () => { cancelledDeliveryCount++; return {} } })
+      ok(cancelledDeliveryCount === 0, 'cancelling a queued invitation prevents SMTP dispatch')
+    })
+
     console.log('--- another organization cannot touch these ---')
     const otherContext: OrgContext = {
       organizationId: otherOrganization.id, organizationName: otherOrganization.name, membershipId: 'none',
@@ -247,7 +370,7 @@ async function main() {
 
     console.log('--- the audit trail ---')
     const actions = await prisma.auditLog.findMany({
-      where: { userId: owner.id, entityType: 'OrganizationMembership' },
+      where: { userId: { in: [owner.id, corporate.id, invitee.id] }, entityType: 'OrganizationMembership' },
       select: { action: true },
     })
     const seen = new Set(actions.map((row) => row.action))
@@ -261,17 +384,29 @@ async function main() {
       ok(seen.has(action as never), `${action} is recorded`)
     }
     const acceptance = await prisma.auditLog.findFirst({
-      where: { action: 'ORGANIZATION_INVITATION_ACCEPTED', entityType: 'OrganizationMembership' },
+      where: { action: 'ORGANIZATION_INVITATION_ACCEPTED', entityType: 'OrganizationMembership', userId: invitee.id },
     })
     ok(Boolean(acceptance), 'acceptance is recorded too')
-    const auditText = JSON.stringify(await prisma.auditLog.findMany({ where: { entityType: 'OrganizationMembership' } }))
+    const auditText = JSON.stringify(await prisma.auditLog.findMany({
+      where: { entityType: 'OrganizationMembership', userId: { in: [owner.id, corporate.id, invitee.id] } },
+    }))
     ok(!auditText.includes(token), 'no audit row contains an invitation token')
 
     console.log('--- nothing is deleted ---')
     ok(Boolean(await prisma.user.findUnique({ where: { id: stranger.id } })), 'accepting did not remove any user')
     ok(Boolean(await prisma.business.findUnique({ where: { id: business.id } })), 'the shop and its records are untouched')
   } finally {
-    await prisma.auditLog.deleteMany({ where: { entityType: 'OrganizationMembership' } })
+    if (deliveryInvitationIds.length) {
+      await prisma.notificationLog.deleteMany({
+        where: {
+          type: 'ORGANIZATION_INVITATION',
+          OR: deliveryInvitationIds.map((id) => ({ idempotencyKey: { startsWith: `organization-invitation:${id}:` } })),
+        },
+      })
+    }
+    await prisma.auditLog.deleteMany({
+      where: { entityType: 'OrganizationMembership', userId: { in: [owner.id, corporate.id, invitee.id] } },
+    })
     await prisma.organizationInvitation.deleteMany({ where: { organizationId: organization.id } })
     await prisma.organizationMember.deleteMany({ where: { organizationId: organization.id } })
     await prisma.user.deleteMany({ where: { businessId: business.id } })

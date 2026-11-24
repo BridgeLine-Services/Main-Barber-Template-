@@ -86,6 +86,9 @@ export default async function PeopleAndAccessPage() {
     stateWords: invitation.stateLabel,
     expiresAt: invitation.expiresAt,
     createdOn: invitation.createdAt,
+    deliveryState: invitation.deliveryState as InvitationView['deliveryState'],
+    deliveryError: invitation.deliveryError,
+    sentAt: invitation.sentAt,
   }))
 
   const allRoles: MemberRole[] = ['ORGANIZATION_OWNER', 'CORPORATE_ADMIN', 'REGIONAL_MANAGER', 'FRANCHISE_OWNER']

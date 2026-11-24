@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { describeInvitationState, describeRoleAbilities, roleLabel } from '@/lib/organization/invitations'
-import type { InvitationState, MemberRole } from '@/lib/organization/invitations'
+import type { InvitationDeliveryState, InvitationState, MemberRole } from '@/lib/organization/invitations'
 
 /**
  * "People and access": who is in the organization, and what they may do.
@@ -36,6 +36,9 @@ export interface InvitationView {
   stateWords: string
   expiresAt: string
   createdOn: string
+  deliveryState: InvitationDeliveryState
+  deliveryError: string | null
+  sentAt: string | null
 }
 
 interface Props {
@@ -44,6 +47,15 @@ interface Props {
   invitations: InvitationView[]
   invitableRoles: MemberRole[]
   allRoles: MemberRole[]
+}
+
+const DELIVERY_STATE_WORDS: Record<InvitationDeliveryState, string> = {
+  created: 'Created; no email is queued',
+  queued: 'Queued',
+  sending: 'Sending',
+  sent: 'Sent',
+  failed: 'Delivery failed',
+  'retry-scheduled': 'Retry scheduled',
 }
 
 const STATUS_WORDS: Record<MemberView['status'], string> = {
@@ -64,6 +76,7 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
   const [role, setRole] = useState<MemberRole>(invitableRoles[0] ?? 'REGIONAL_MANAGER')
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -106,6 +119,10 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
     if (!data) return
     const path = typeof data.acceptPath === 'string' ? data.acceptPath : null
     setInviteLink(path)
+    setLinkCopied(false)
+    setNotice(data.delivery === 'queued'
+      ? 'Your invitation was created. Its email is queued for delivery.'
+      : 'Your invitation was created, but the email could not be sent. You can copy the link and share it directly.')
     setEmail('')
     router.refresh()
   }
@@ -114,7 +131,10 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
     const data = await send(`/api/dashboard/organization/invitations/${id}`, 'POST', undefined, `resend-${id}`)
     if (!data) return
     setInviteLink(typeof data.acceptPath === 'string' ? data.acceptPath : null)
-    setNotice('A new link was made. The old one stopped working.')
+    setLinkCopied(false)
+    setNotice(data.delivery === 'queued'
+      ? 'A fresh invitation email is queued. The previous link no longer works.'
+      : 'A fresh link was created, but the email could not be sent. Copy and share the new link directly.')
     router.refresh()
   }
 
@@ -311,12 +331,28 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
 
           {fullLink && (
             <div className="mt-4 rounded-lg border border-border p-3">
-              <p className="text-sm font-medium text-foreground">No email was sent. Give this link to the person yourself.</p>
+              <p className="text-sm font-medium text-foreground">The invitation was created, but the email could not be sent. Copy the link and share it directly.</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 It works once, for their email address only, and stops working in seven days. Anyone with the link can accept
                 it, so send it the way you would send a password.
               </p>
               <p className="mt-2 break-all rounded border border-border bg-background p-2 text-xs text-foreground">{fullLink}</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 min-h-11"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(fullLink)
+                    setLinkCopied(true)
+                  } catch {
+                    setLinkCopied(false)
+                    setNotice('Copy is unavailable here. Select the link above and copy it manually.')
+                  }
+                }}
+              >
+                {linkCopied ? 'Link copied' : 'Copy invitation link'}
+              </Button>
             </div>
           )}
         </section>
@@ -325,7 +361,7 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
       <section aria-labelledby="invitations-heading" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
         <h2 id="invitations-heading" className="text-lg font-semibold text-foreground">Invitations</h2>
         {invitations.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No invitations have been sent.</p>
+          <p className="mt-2 text-sm text-muted-foreground">No invitations have been created.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {invitations.map((invitation) => (
@@ -335,8 +371,15 @@ export function PeopleAndAccess({ canManage, members, invitations, invitableRole
                   <span className="rounded-full border border-border px-2 py-0.5 text-xs text-foreground">{roleLabel(invitation.role)}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {invitation.stateWords} Sent {formatDay(invitation.createdOn)}. Expires {formatDay(invitation.expiresAt)}.
+                  {invitation.stateWords} Created {formatDay(invitation.createdOn)}.{' '}
+                  {invitation.sentAt
+                    ? `Email sent ${formatDay(invitation.sentAt)}.`
+                    : invitation.state === 'pending' ? `Delivery: ${DELIVERY_STATE_WORDS[invitation.deliveryState]}.` : null}{' '}
+                  Expires {formatDay(invitation.expiresAt)}.
                 </p>
+                {invitation.deliveryError && invitation.state === 'pending' && (
+                  <p className="mt-2 text-sm text-muted-foreground" role="status">{invitation.deliveryError}</p>
+                )}
 
                 {canManage && invitation.state === 'pending' && (
                   <div className="mt-2 space-y-2">

@@ -166,13 +166,38 @@ function audit(
   })
 }
 
+export type InvitationDeliveryState = 'created' | 'queued' | 'sending' | 'sent' | 'failed' | 'retry-scheduled'
+
 export async function listOrganizationInvitations(context: OrgContext, now = new Date()) {
   const rows = await prisma.organizationInvitation.findMany({
     where: { organizationId: context.organizationId },
     orderBy: { createdAt: 'desc' },
     take: 100,
   })
-  return rows.map((row) => ({
+  const deliveryLogs = rows.length ? await prisma.notificationLog.findMany({
+    where: {
+      type: 'ORGANIZATION_INVITATION',
+      OR: rows.map((row) => ({ idempotencyKey: { startsWith: `organization-invitation:${row.id}:` } })),
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { idempotencyKey: true, status: true, attemptCount: true, failureReason: true, sentAt: true },
+  }) : []
+  const latestDelivery = new Map<string, (typeof deliveryLogs)[number]>()
+  for (const log of deliveryLogs) {
+    const invitationId = log.idempotencyKey?.match(/^organization-invitation:([^:]+):/)?.[1]
+    if (invitationId && !latestDelivery.has(invitationId)) latestDelivery.set(invitationId, log)
+  }
+  return rows.map((row) => {
+    const delivery = latestDelivery.get(row.id)
+    const deliveryState = !delivery ? 'created'
+      : delivery.status === 'SENT' ? 'sent'
+        : delivery.status === 'PROCESSING' ? 'sending'
+          : delivery.status === 'PENDING' && delivery.attemptCount > 0 ? 'retry-scheduled'
+            : delivery.status === 'PENDING' ? 'queued' : 'failed'
+    return ({
+      deliveryState,
+      deliveryError: delivery?.status === 'FAILED' ? delivery.failureReason : null,
+      sentAt: delivery?.sentAt?.toISOString() ?? null,
     id: row.id,
     email: row.email,
     role: row.role as MemberRole,
@@ -182,7 +207,7 @@ export async function listOrganizationInvitations(context: OrgContext, now = new
     expiresAt: row.expiresAt.toISOString(),
     state: invitationState(row, now),
     stateLabel: describeInvitationState(invitationState(row, now)),
-  }))
+  })})
 }
 
 export async function createOrganizationInvitation(input: {
@@ -192,7 +217,7 @@ export async function createOrganizationInvitation(input: {
   regions?: string[]
   invitedById: string
   now?: Date
-}): Promise<Outcome<{ id: string; token: string; expiresAt: Date }>> {
+}): Promise<Outcome<{ id: string; token: string; expiresAt: Date; email: string }>> {
   const { context } = input
   if (!canManageMembers(context)) {
     return { ok: false, reason: 'not-permitted', error: 'Only the organization owner can invite people.' }
@@ -262,7 +287,7 @@ export async function createOrganizationInvitation(input: {
 
   // The token is returned to the caller once, to be delivered or copied. It is never stored
   // in plaintext and never written to a log.
-  return { ok: true, value: { id: created.id, token, expiresAt } }
+  return { ok: true, value: { id: created.id, token, expiresAt, email } }
 }
 
 export async function cancelOrganizationInvitation(input: {
@@ -298,14 +323,14 @@ export async function resendOrganizationInvitation(input: {
   invitationId: string
   actorId: string
   now?: Date
-}): Promise<Outcome<{ id: string; token: string; expiresAt: Date }>> {
+}): Promise<Outcome<{ id: string; token: string; expiresAt: Date; email: string }>> {
   if (!canManageMembers(input.context)) {
     return { ok: false, reason: 'not-permitted', error: 'Only the organization owner can resend an invitation.' }
   }
   const now = input.now ?? new Date()
   const row = await prisma.organizationInvitation.findFirst({
     where: { id: input.invitationId, organizationId: input.context.organizationId },
-    select: { id: true, role: true, acceptedAt: true, revokedAt: true },
+    select: { id: true, role: true, email: true, acceptedAt: true, revokedAt: true },
   })
   if (!row) return { ok: false, reason: 'not-found', error: 'That invitation could not be found.' }
   if (row.acceptedAt) return { ok: false, reason: 'already-accepted', error: 'That invitation was already accepted.' }
@@ -327,7 +352,7 @@ export async function resendOrganizationInvitation(input: {
     description: 'Sent a fresh link for a pending organization invitation',
     newValues: { expiresAt: expiresAt.toISOString() },
   })
-  return { ok: true, value: { id: row.id, token, expiresAt } }
+  return { ok: true, value: { id: row.id, token, expiresAt, email: row.email } }
 }
 
 /**
