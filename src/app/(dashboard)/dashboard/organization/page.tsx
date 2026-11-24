@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/lib/auth-helpers'
 import { can, describeRole } from '@/lib/organization/capabilities'
@@ -7,6 +8,8 @@ import { resolveOrganizationContext } from '@/lib/organization/resolve'
 import { aggregateOnlyGuard } from '@/lib/organization/privacy'
 import { buildOrganizationReport } from '@/lib/organization/reporting'
 import { loadLocationRefs, loadLocationRollup } from '@/lib/organization/report-query'
+import { loadManagedLocations } from '@/lib/organization/location-service'
+import { regionNames, statusCounts } from '@/lib/organization/location-management'
 import {
   RANGE_OPTIONS,
   UNVERIFIED,
@@ -75,6 +78,15 @@ export default async function OrganizationOverviewPage({
   const rangeLabel = `the last ${days} day${days === 1 ? '' : 's'}`
 
   const refs = await loadLocationRefs(context.locationBusinessIds)
+
+  let management: { counts: ReturnType<typeof statusCounts>; regions: string[] } | null = null
+  try {
+    const managed = await loadManagedLocations(context)
+    management = { counts: statusCounts(managed), regions: regionNames(managed) }
+  } catch {
+    // A failed read shows "Could not check" rather than a confident zero.
+    management = null
+  }
   const rollups = canSeeReports ? await Promise.all(refs.map((ref) => loadLocationRollup(ref, { start, end, label: rangeLabel }))) : []
   const report = canSeeReports
     ? buildOrganizationReport(context.organizationId, rollups, {
@@ -237,6 +249,44 @@ export default async function OrganizationOverviewPage({
           </ul>
         </section>
       )}
+
+      <section aria-labelledby="manage" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
+        <h2 id="manage" className="text-lg font-semibold text-foreground">Manage the organization</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Everything below is a screen of its own. Each one checks what you may do when it loads, so a link is never
+          the permission.
+        </p>
+        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: 'Locations', value: management ? String(management.counts.total) : 'Could not check' },
+            { label: 'Open', value: management ? String(management.counts.active) : 'Could not check' },
+            { label: 'Being set up', value: management ? String(management.counts.onboarding) : 'Could not check' },
+            { label: 'Regions', value: management ? String(management.regions.length) : 'Could not check' },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg border border-border p-3">
+              <dt className="text-xs text-muted-foreground">{item.label}</dt>
+              <dd className="mt-1 text-lg font-semibold text-foreground">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <nav aria-label="Organization management" className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {[
+            { href: '/dashboard/organization/locations', label: 'Shop locations', blurb: 'Add a shop, change its details, open it or start closing it.' },
+            { href: '/dashboard/organization/assignments', label: 'Employees and assignments', blurb: 'Who works where, from when to when, and the history of it.' },
+            { href: '/dashboard/organization/regions', label: 'Regions', blurb: 'Group shops and see who looks after each region.' },
+            { href: '/dashboard/organization/people', label: 'People and access', blurb: 'Invite people and set what their role may do.' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg border border-border p-3 hover:bg-[var(--dash-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="block text-sm font-medium text-foreground">{item.label}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">{item.blurb}</span>
+            </Link>
+          ))}
+        </nav>
+      </section>
 
       <p className="text-xs text-muted-foreground">
         No customer names, contact details or appointment histories appear on this page. It shows totals only.
