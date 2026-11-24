@@ -810,6 +810,7 @@ enum NotificationType {
   MARKETING_CAMPAIGN
   STAFF_INVITE
   SHOP_ORDER_CONFIRMATION
+  ORGANIZATION_INVITATION
 }
 
 enum NotificationChannel {
@@ -838,6 +839,7 @@ model NotificationLog {
   content           String?             @db.Text
   subject           String?
   status            NotificationStatus  @default(PENDING)
+  attemptCount      Int                 @default(0)
   errorMessage      String?
   failureReason     String?
   providerMessageId String?

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { scheduleInvitationDelivery } from '@/lib/organization/schedule-invitation-delivery'
 import { requireAuth } from '@/lib/auth-helpers'
 import { resolveOrganizationContext } from '@/lib/organization/resolve'
+import { queueOrganizationInvitationEmail } from '@/lib/organization/invitation-delivery'
 import {
   INVITABLE_ROLES,
   canManageMembers,
@@ -13,6 +15,7 @@ import {
 } from '@/lib/organization/invitations'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 /**
  * Organization members and invitations.
@@ -103,16 +106,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error, reason: result.reason }, { status })
   }
 
-  // The plaintext token is returned exactly once, for delivery or copying. It is never
-  // logged and never stored. No invitation email is sent from here: the repository has no
-  // organization-level delivery channel yet, and inventing one was out of scope.
+  const invitation = result.value!
+  let delivery: Awaited<ReturnType<typeof queueOrganizationInvitationEmail>>
+  try {
+    delivery = await queueOrganizationInvitationEmail({
+      invitationId: invitation.id,
+      recipient: email.trim().toLowerCase(),
+      token: invitation.token,
+    })
+  } catch {
+    delivery = { queued: false, state: 'failed', message: 'Email could not be queued. Copy the invitation link and share it directly.' }
+  }
+
+  if ((delivery.state === 'queued' || delivery.state === 'retry-scheduled') && delivery.notificationId) {
+    scheduleInvitationDelivery(delivery.notificationId)
+  }
+
   return NextResponse.json({
     success: true,
-    invitationId: result.value?.id,
-    expiresAt: result.value?.expiresAt?.toISOString(),
-    acceptPath: `/accept-organization-invitation?token=${result.value?.token}`,
-    delivery: 'not-sent',
-    deliveryNote:
-      'No email was sent. Copy the invitation link and give it to the person directly until an organization email channel is configured.',
+    invitationId: invitation.id,
+    expiresAt: invitation.expiresAt.toISOString(),
+    delivery: delivery.state,
+    deliveryNote: delivery.message ?? 'Invitation email queued for delivery.',
+    ...(!delivery.queued ? { acceptPath: `/accept-organization-invitation?token=${encodeURIComponent(invitation.token)}` } : {}),
   })
 }

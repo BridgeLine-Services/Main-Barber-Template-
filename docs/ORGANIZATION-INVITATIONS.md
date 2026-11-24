@@ -49,14 +49,38 @@ boundary this feature must not cross.
 **Owner action:** the migration is applied to the local test database only. Applying it to
 production is your call, per the standing rule about migrations.
 
-## What remains
+## Invitation email delivery
 
-1. **The "People and access" screen.** The routes above are ready; no page was built in this
-   task. It needs: the member list, the invitation list with pending/accepted/expired/
-   cancelled wording, an invite form with role explanations, and confirmations before each
-   change.
-2. **Email delivery.** No invitation email is sent. The repository has no organization-level
-   delivery channel, and inventing one was out of scope. `POST` returns the acceptance link
-   once, with `delivery: 'not-sent'` and a note, so an owner can pass it on directly. Wiring
-   this to the existing notification worker needs a decision about which mailbox sends
-   organization mail.
+Organization invitations use the existing SMTP configuration and notification worker; no
+new mail provider or sender address is introduced. The sender is exactly `SMTP_FROM`, and
+the owner must configure it as an address on a domain verified with their SMTP provider.
+Set `EMAIL_ENABLED=true` and provide `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and
+`SMTP_FROM` in the Vercel project environment. `SMTP_SECURE` remains optional (TLS is
+inferred for port 465). The current project has no SMTP variables configured, so invitations
+created in this environment use the copy-link fallback until those settings are supplied.
+
+The queue records `Created`, `Queued`, `Sending`, `Sent`, `Delivery failed`, and `Retry
+scheduled` states; the invitation itself separately shows `Accepted`, `Expired`, and
+`Cancelled`. A queue entry is not considered sent: it becomes sent only after the SMTP
+provider accepts it. The API runs the existing worker after responding, and the daily
+`/api/cron/organization-invitation-delivery` job picks up due retries. Temporary provider
+failures retry up to four attempts with 1-, 5-, and 15-minute backoff; because this project
+uses a daily Vercel Cron schedule, later attempts can wait until the next daily run. The cron
+route requires `CRON_SECRET`. A manual retry rotates the token and expiry, invalidating the
+previous link before enqueuing the new message. Cancellation invalidates queued work and the
+worker checks invitation state again immediately before dispatch.
+
+The invitation row stores only the token hash. While delivery is pending, the notification
+queue stores the minimal token payload encrypted with AES-256-GCM using a key derived from
+`NEXTAUTH_SECRET`; the payload is erased once delivery completes or fails permanently. The
+plaintext token is never written to application logs or returned after the email has been
+queued. When SMTP is disabled, incomplete, or unavailable, the one-time creation/resend
+response includes a manual link and the screen offers a copy action.
+
+## Operational note
+
+The invitation schema migrations are additive. The delivery migration,
+`prisma/migrations/20261124190000_organization_invitation_delivery/migration.sql`, adds the
+notification type and retry counter. Apply migrations to the local test database before
+running the database-backed invitation and delivery suites; production deployment remains
+an owner-controlled action.

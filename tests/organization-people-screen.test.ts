@@ -88,7 +88,9 @@ ok(!/^\s{0,2}fetch\(/m.test(screen), 'no request is made at the top level of the
 ok(/onSubmit=\{invite\}/.test(screen), 'an invitation needs a form submission')
 
 console.log('\n--- the invite flow tells the truth about delivery ---')
-ok(screen.includes('No email was sent'), 'the screen says plainly that no email was sent')
+ok(screen.includes('email could not be sent'), 'the screen says plainly when email delivery is unavailable')
+ok(screen.includes('Copy invitation link'), 'the unavailable-email fallback offers a copy action')
+ok(screen.includes('Delivery failed') && screen.includes('Retry scheduled'), 'delivery failures and automatic retries have distinct states')
 ok(screen.includes('stops working in seven days'), 'the link lifetime is stated')
 ok(screen.includes('works once'), 'single use is stated')
 ok(screen.includes('break-all'), 'a long link cannot overflow a phone screen')

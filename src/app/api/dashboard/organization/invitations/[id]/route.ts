@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { scheduleInvitationDelivery } from '@/lib/organization/schedule-invitation-delivery'
 import { requireAuth } from '@/lib/auth-helpers'
 import { resolveOrganizationContext } from '@/lib/organization/resolve'
 import { cancelOrganizationInvitation, resendOrganizationInvitation } from '@/lib/organization/invitations'
+import {
+  invalidateQueuedOrganizationInvitationEmails,
+  queueOrganizationInvitationEmail,
+} from '@/lib/organization/invitation-delivery'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 /** Cancel (DELETE) or resend (POST) one pending invitation. Scoped to the caller's organization. */
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +25,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const status = result.reason === 'not-permitted' ? 403 : 404
     return NextResponse.json({ error: result.error, reason: result.reason }, { status })
   }
+  await invalidateQueuedOrganizationInvitationEmails(id, 'This invitation was cancelled before its email was sent.')
   return NextResponse.json({ success: true })
 }
 
@@ -35,11 +42,28 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const status = result.reason === 'not-permitted' || result.reason === 'role-not-grantable' ? 403 : 400
     return NextResponse.json({ error: result.error, reason: result.reason }, { status })
   }
+  const invitation = result.value!
+  await invalidateQueuedOrganizationInvitationEmails(id, 'This invitation link was replaced before delivery.')
+  let delivery: Awaited<ReturnType<typeof queueOrganizationInvitationEmail>>
+  try {
+    delivery = await queueOrganizationInvitationEmail({
+      invitationId: invitation.id,
+      recipient: invitation.email,
+      token: invitation.token,
+    })
+  } catch {
+    delivery = { queued: false, state: 'failed', message: 'Email could not be queued. Copy the invitation link and share it directly.' }
+  }
+
+  if ((delivery.state === 'queued' || delivery.state === 'retry-scheduled') && delivery.notificationId) {
+    scheduleInvitationDelivery(delivery.notificationId)
+  }
+
   return NextResponse.json({
     success: true,
-    expiresAt: result.value?.expiresAt?.toISOString(),
-    acceptPath: `/accept-organization-invitation?token=${result.value?.token}`,
-    delivery: 'not-sent',
-    deliveryNote: 'No email was sent. Copy the link and give it to the person directly.',
+    expiresAt: invitation.expiresAt.toISOString(),
+    delivery: delivery.state,
+    deliveryNote: delivery.message ?? 'A fresh invitation email is queued. The previous link no longer works.',
+    ...(!delivery.queued ? { acceptPath: `/accept-organization-invitation?token=${encodeURIComponent(invitation.token)}` } : {}),
   })
 }
