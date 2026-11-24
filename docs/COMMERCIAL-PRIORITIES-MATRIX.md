@@ -3,6 +3,12 @@
 Inspected at `7ac8dd5`. Every line names the file that decides it, so a claim can be
 checked rather than believed. Statuses follow the directive's five classes.
 
+> **Partly superseded, 2026-11-23.** `main` has moved on since `7ac8dd5`. Three lines below
+> are no longer true and should be read with `docs/IMPLEMENTATION-MAP-2026-11-23.md`:
+> the QR booking code is implemented (`src/lib/barber/qr.ts`), the `Barber` model does have a
+> TikTok field, and in-app announcement delivery exists (email and SMS still do not). The
+> table is kept as the dated snapshot it is rather than rewritten.
+
 ## Priority 1: independent barber experience
 
 | Feature | Status | Evidence |
