@@ -31,7 +31,7 @@ export interface GrowthInput {
 }
 
 export interface GrowthCard {
-  id: 'reach' | 'returning' | 'rebooking' | 'campaigns' | 'reviews' | 'copy' | 'google'
+  id: 'reach' | 'returning' | 'rebooking' | 'campaigns' | 'reviews' | 'copy' | 'google' | 'slow-days'
   title: string
   state: GrowthState
   headline: string
