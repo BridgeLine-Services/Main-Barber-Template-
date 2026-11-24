@@ -4,6 +4,13 @@ import { redirect } from 'next/navigation'
 import { requireOwner } from '@/lib/auth-helpers'
 import { buildReadinessReport } from '@/lib/health'
 import { buildMaintenanceReport } from '@/lib/platform-reliability/dependency-monitor'
+import { compatibilityReport } from '@/lib/platform-reliability/compatibility'
+import { manifestVersions, withLiveVersions } from '@/lib/platform-reliability/installed-versions'
+import { readLivePostgresMajor } from '@/lib/platform-reliability/live-database-version'
+import { checkLiveAdvisories } from '@/lib/platform-reliability/live-advisories'
+import { checkLiveUpdates } from '@/lib/platform-reliability/live-updates'
+import { buildUpdatePlan } from '@/lib/platform-reliability/update-plan'
+import { LiveDependencyUpdates, RuntimeCompatibilitySection, SecurityAdvisorySection } from './live-sections'
 import { TEMPLATE_VERSION, describeTemplateVersion, nodeIsSufficient } from '@/lib/template-version'
 import { historyAvailability, summariseHistory, describeRecord } from '@/lib/platform-reliability/maintenance-history'
 import { listMaintenanceHistory } from '@/lib/platform-reliability/maintenance-history-store'
@@ -28,11 +35,11 @@ import { approvalsAnswer, backupAnswer, overallAnswer, recoveryAnswer, toneBadge
  */
 
 const TONE: Record<SectionState, { label: string; className: string }> = {
-  healthy: { label: 'Fine', className: 'text-emerald-400' },
-  'needs-attention': { label: 'Worth a look', className: 'text-amber-400' },
-  'action-required': { label: 'Needs attention', className: 'text-red-400' },
-  'not-configured': { label: 'Not set up', className: 'text-muted-foreground' },
-  'unable-to-verify': { label: 'Could not check', className: 'text-muted-foreground' },
+  healthy: { label: 'HEALTHY', className: 'text-emerald-400' },
+  'needs-attention': { label: 'ATTENTION NEEDED', className: 'text-amber-400' },
+  'action-required': { label: 'APPROVAL REQUIRED', className: 'text-red-400' },
+  'not-configured': { label: 'COULD NOT VERIFY', className: 'text-muted-foreground' },
+  'unable-to-verify': { label: 'COULD NOT VERIFY', className: 'text-muted-foreground' },
 }
 
 // Versions are read from the installed manifest, not typed in by hand, so the report
@@ -43,17 +50,22 @@ function installedComponents() {
       dependencies?: Record<string, string>
       devDependencies?: Record<string, string>
     }
+    const lock = JSON.parse(readFileSync(`${process.cwd()}/package-lock.json`, 'utf8')) as {
+      packages?: Record<string, { version?: string }>
+    }
     const all = { ...pkg.dependencies, ...pkg.devDependencies }
-    const wanted = ['next', 'react', 'typescript', '@prisma/client']
-    return wanted
-      .filter((name) => typeof all[name] === 'string')
-      .map((name) => ({
-        name,
-        installed: String(all[name]).replace(/^[^\d]*/, ''),
-        // Support dates are not invented here: this page does not call the vendors,
-        // so the monitor reports that the check could not be completed.
-        supported: null,
-      }))
+      const wanted = ['next', 'react', 'typescript', '@prisma/client', 'prisma']
+      return [
+        { name: 'node', installed: process.version, supported: null },
+        ...wanted
+          .filter((name) => typeof all[name] === 'string')
+          .map((name) => ({
+            name,
+            installed: String(lock.packages?.[`node_modules/${name}`]?.version ?? all[name]).replace(/^[^\d]*/, ''),
+            supported: null,
+          })),
+      ]
+
   } catch {
     return []
   }
@@ -77,6 +89,19 @@ export default async function ReliabilityPage() {
           checkedAt: new Date().toISOString(),
         })
       : null
+  const [advisoryCheck, updateCheck, postgresVersion] = await Promise.all([
+    checkLiveAdvisories(),
+    checkLiveUpdates(),
+    readLivePostgresMajor(),
+  ])
+  const compatibility = compatibilityReport(withLiveVersions(manifestVersions(), { postgres: postgresVersion }))
+  const advisoryPackages = new Set(advisoryCheck.advisories.map((advisory) => advisory.dependency))
+  const updatePlan = updateCheck.verified
+    ? buildUpdatePlan(
+        updateCheck.dependencies.map((dependency) => ({ ...dependency, hasAdvisory: advisoryPackages.has(dependency.name) })),
+        updateCheck.checkedAt,
+      )
+    : null
 
   // Backups and restore drills are platform records, not shop records: they are read here
   // and shown to the owner, never written. A failed read stays a failed read.
@@ -172,6 +197,12 @@ export default async function ReliabilityPage() {
         <AnswerCard id="restore" title="A backup has been restored in a test" answer={recoveryView} />
         <AnswerCard id="decisions" title="Waiting for your decision" answer={approvalsView} />
       </div>
+
+      <LiveDependencyUpdates updateCheck={updateCheck} updatePlan={updatePlan} />
+
+      <RuntimeCompatibilitySection report={compatibility} checkedAt={new Date().toISOString()} />
+
+      <SecurityAdvisorySection check={advisoryCheck} />
 
       {readiness && readiness.checks.length > 0 && (
         <section aria-labelledby="checks" className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
@@ -323,10 +354,10 @@ export default async function ReliabilityPage() {
 }
 
 const STATE_LABEL: Record<string, string> = {
-  'action-required': 'Needs a decision',
-  'needs-attention': 'Worth a look',
-  healthy: 'Fine',
-  'not-configured': 'Could not check',
+  'action-required': 'APPROVAL REQUIRED',
+  'needs-attention': 'ATTENTION NEEDED',
+  healthy: 'HEALTHY',
+  'not-configured': 'COULD NOT VERIFY',
 }
 
 const SUPPORT_LABEL: Record<string, string> = {
@@ -337,11 +368,20 @@ const SUPPORT_LABEL: Record<string, string> = {
 
 function SectionCard({ section }: { section: ReliabilitySection }) {
   const tone = TONE[section.state]
+  const label = section.state === 'action-required' && ['health', 'backups'].includes(section.id)
+    ? 'SPECIALIST REQUIRED'
+    : section.id === 'security' && section.state === 'needs-attention'
+      ? 'APPROVAL REQUIRED'
+      : section.id === 'software' && section.state === 'needs-attention'
+        ? 'UPDATE AVAILABLE'
+        : section.id === 'maintenance' && section.headline.includes('waiting for a yes')
+          ? 'APPROVAL REQUIRED'
+          : tone.label
   return (
     <section aria-labelledby={`section-${section.id}`} className="rounded-xl border border-border bg-[var(--dash-surface)] p-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id={`section-${section.id}`} className="text-base font-semibold text-foreground">{section.title}</h2>
-        <span className={`text-xs font-medium ${tone.className}`}>{tone.label}</span>
+        <span className={`text-xs font-medium ${tone.className}`}>{label}</span>
       </div>
       <p className="mt-2 text-sm font-medium text-foreground">{section.headline}</p>
       <p className="mt-1 text-sm text-muted-foreground">{section.detail}</p>

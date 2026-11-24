@@ -98,6 +98,7 @@ export interface EvidenceWriter {
 
 export interface EvidenceResult {
   saved: boolean
+  recordStatus: RestoreDrillRecord['status'] | null
   /** Plain-language reason, safe to print. */
   reason: string
 }
@@ -113,6 +114,7 @@ export async function recordRestoreDrill(
   if (!options.client && !url) {
     return {
       saved: false,
+      recordStatus: null,
       reason: 'No evidence database is configured, so nothing was written. Set RESTORE_DRILL_EVIDENCE_URL to keep a record the reliability report can read.',
     }
   }
@@ -125,12 +127,14 @@ export async function recordRestoreDrill(
       client = new PrismaClient({ datasources: { db: { url } } }) as unknown as EvidenceWriter
       owned = true
     }
-    await client.restoreDrill.create({ data: buildRestoreDrillRecord(outcome) })
-    return { saved: true, reason: 'The rehearsal outcome was saved to the reliability record.' }
+    const record = buildRestoreDrillRecord(outcome)
+    await client.restoreDrill.create({ data: record })
+    return { saved: true, recordStatus: record.status, reason: 'The rehearsal outcome was saved to the reliability record.' }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return {
       saved: false,
+      recordStatus: null,
       reason: `The rehearsal outcome could not be saved: ${sanitiseEvidenceText(message, 200) ?? 'unknown database error'}`,
     }
   } finally {

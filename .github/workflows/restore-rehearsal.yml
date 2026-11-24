@@ -1,0 +1,67 @@
+name: Quarterly restore rehearsal
+
+on:
+  schedule:
+    - cron: '17 4 1 */3 *'
+  workflow_dispatch:
+
+concurrency:
+  group: quarterly-restore-rehearsal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rehearse-staging-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Require isolated staging configuration
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          RESTORE_DRILL_EVIDENCE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.BACKUP_STORAGE_DRIVER }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+        run: |
+          test -n "$DATABASE_URL" || { echo 'STAGING_DATABASE_URL is required.'; exit 1; }
+          test -n "$RESTORE_DRILL_EVIDENCE_URL" || { echo 'STAGING_RESTORE_DRILL_EVIDENCE_URL is required.'; exit 1; }
+          test -n "$BACKUP_ENCRYPTION_KEY" || { echo 'BACKUP_ENCRYPTION_KEY is required.'; exit 1; }
+          test -n "$BACKUP_STORAGE_DRIVER" || { echo 'BACKUP_STORAGE_DRIVER is required.'; exit 1; }
+          if [ "$DATABASE_URL" != "$RESTORE_DRILL_EVIDENCE_URL" ]; then
+            echo 'Use the same staging application database for evidence so the staging reliability report can read it.'
+            exit 1
+          fi
+      - name: Rehearse latest verified off-site backup into scratch database
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          RESTORE_DRILL_EVIDENCE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_STORAGE_DRIVER: ${{ secrets.BACKUP_STORAGE_DRIVER }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+        run: npm run db:backup:rehearse -- --json
+      - name: Preserve machine-readable rehearsal output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-rehearsal-${{ github.run_id }}
+          path: backups/rehearsals/*.json
+          if-no-files-found: warn
+          retention-days: 365

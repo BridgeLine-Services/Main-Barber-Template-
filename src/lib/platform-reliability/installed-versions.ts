@@ -8,12 +8,17 @@
  */
 
 import pkg from '../../../package.json'
+import lockfile from '../../../package-lock.json'
 
 type Manifest = { dependencies?: Record<string, string>; devDependencies?: Record<string, string> }
+type Lockfile = { packages?: Record<string, { version?: string }> }
 
 export function manifestVersions(manifest: Manifest = pkg as Manifest): Record<string, string | null> {
   const deps = { ...(manifest.dependencies ?? {}), ...(manifest.devDependencies ?? {}) }
-  const pick = (name: string): string | null => deps[name] ?? null
+  const installed = manifest === pkg
+    ? lockfile as Lockfile
+    : null
+  const pick = (name: string): string | null => installed?.packages?.[`node_modules/${name}`]?.version ?? deps[name] ?? null
   return {
     node: process.version,
     next: pick('next'),

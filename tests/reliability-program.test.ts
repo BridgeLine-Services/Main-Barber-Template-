@@ -226,6 +226,24 @@ ok('a fully checked, clean report is healthy', healthy.overall === 'healthy')
 ok('a healthy report has nothing unverified', healthy.unverified.length === 0)
 ok('a healthy report needs no action', healthy.actionsRequired.length === 0)
 
+const prereleasePlan = buildUpdatePlan(
+  [{ name: 'prisma', installed: '6.19.3', latest: '8.0.0-rc.35' }],
+  NOW.toISOString(),
+)
+const prereleaseReport = buildScheduledReport({
+  generatedAt: NOW.toISOString(),
+  templateVersion: '1.2.0',
+  health: { state: 'healthy', headline: 'Running.', detail: 'All checks clear.', failedChecks: [] },
+  advisories: summariseAdvisories([]),
+  compatibility: goodReport,
+  updates: prereleasePlan,
+  recovery: verified,
+  pendingApprovals: 0,
+  failedRepairs: 0,
+})
+ok('a prerelease version cannot be reported as a clean update check', prereleaseReport.sections.find((section) => section.id === 'updates')?.state === 'unable-to-verify')
+ok('the scheduled report identifies unclassified update evidence', prereleaseReport.unverified.includes('Available updates'))
+
 const oneGap = buildScheduledReport({
   generatedAt: NOW.toISOString(),
   templateVersion: '1.2.0',

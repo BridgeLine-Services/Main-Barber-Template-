@@ -29,11 +29,11 @@ export interface OwnerAnswer {
 }
 
 const BADGE: Record<OwnerTone, string> = {
-  fine: 'Working normally',
-  attention: 'Worth a look',
-  action: 'Action required',
-  unknown: 'Could not be checked',
-  'not-configured': 'Not set up yet',
+  fine: 'HEALTHY',
+  attention: 'ATTENTION NEEDED',
+  action: 'APPROVAL REQUIRED',
+  unknown: 'COULD NOT VERIFY',
+  'not-configured': 'COULD NOT VERIFY',
 }
 
 export function toneBadge(tone: OwnerTone): string {
@@ -83,7 +83,7 @@ export function recoveryAnswer(report: RecoveryReport | null): OwnerAnswer {
         detail: 'A backup exists, but the last test to restore it failed or did not finish. This is exactly the situation backups are for, so it needs attention rather than waiting.',
         next: 'Contact your operator or a specialist before relying on these backups, and do not overwrite the existing ones.',
         tone: 'action',
-        badge: BADGE.action,
+        badge: 'SPECIALIST REQUIRED',
       }
     default:
       return {
@@ -158,9 +158,10 @@ export function backupAnswer(backupAgeHours: number | null): OwnerAnswer {
   return {
     headline: `Your newest verified backup is ${Math.round(hours / 24)} days old.`,
     detail: 'That is too long for a busy shop. If your data had to be recovered, a lot of recent work would be missing.',
-    next: 'Ask your operator to run a backup today, then check it again here.',
-    tone: 'action',
-    badge: BADGE.action,
+      next: 'Ask your operator to run a backup today, then check it again here.',
+      tone: 'action',
+      badge: 'SPECIALIST REQUIRED',
+
   }
 }
 
@@ -171,7 +172,7 @@ export function backupAnswer(backupAgeHours: number | null): OwnerAnswer {
 export function overallAnswer(answers: OwnerAnswer[]): OwnerAnswer {
   if (answers.some((a) => a.tone === 'action')) {
     const first = answers.find((a) => a.tone === 'action')!
-    return { ...first, tone: 'action', badge: BADGE.action }
+    return { ...first, tone: 'action', badge: first.badge }
   }
   if (answers.some((a) => a.tone === 'attention')) {
     const first = answers.find((a) => a.tone === 'attention')!

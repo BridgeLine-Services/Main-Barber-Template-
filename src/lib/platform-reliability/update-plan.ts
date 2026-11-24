@@ -59,18 +59,43 @@ export interface UpdatePlan {
   unclassified: string[]
 }
 
+function parsedVersion(value: string): [number, number, number] | null {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value)
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null
+}
+
+export function isNewerVersion(installed: string, latest: string): boolean | null {
+  const from = parsedVersion(installed)
+  const to = parsedVersion(latest)
+  if (!from || !to) return null
+  for (let index = 0; index < from.length; index++) {
+    if (to[index] > from[index]) return true
+    if (to[index] < from[index]) return false
+  }
+  return false
+}
+
 export function classifyUpdate(dep: DependencyState): PlannedUpdate | null {
   if (!dep.installed || !dep.latest) return null
   const from = majorOf(dep.installed)
   const to = majorOf(dep.latest)
+  const installedParts = /^(\d+)\.(\d+)\.(\d+)$/.exec(dep.installed)
+  const latestParts = /^(\d+)\.(\d+)\.(\d+)$/.exec(dep.latest)
   let kind: UpdateKind = 'unknown'
-  if (dep.hasAdvisory) kind = 'security'
-  else if (from === null || to === null) kind = 'unknown'
-  else if (to > from) kind = 'major'
-  else if (to === from) kind = dep.installed === dep.latest ? 'patch' : 'minor'
-  else kind = 'unknown'
+  if (from === null || to === null || !installedParts || !latestParts) kind = 'unknown'
+  else if (to > from) kind = dep.hasAdvisory ? 'security' : 'major'
+  else if (to === from) {
+    const fromMinor = Number(installedParts[2])
+    const toMinor = Number(latestParts[2])
+    const fromPatch = Number(installedParts[3])
+    const toPatch = Number(latestParts[3])
+    if (toMinor > fromMinor) kind = dep.hasAdvisory ? 'security' : 'minor'
+    else if (toMinor === fromMinor && toPatch > fromPatch) kind = dep.hasAdvisory ? 'security' : 'patch'
+    else kind = 'unknown'
+  } else kind = 'unknown'
+  if (dep.hasAdvisory && kind !== 'unknown') kind = 'security'
 
-  const breaking = kind === 'major' || kind === 'unknown'
+  const breaking = kind === 'major' || kind === 'unknown' || (kind === 'security' && to !== from)
   const runtime = dep.runtime !== false
   const reason = dep.hasAdvisory
     ? 'A published security advisory affects the installed version.'
@@ -105,6 +130,16 @@ export function buildUpdatePlan(deps: DependencyState[], generatedAt: string, op
   const planned: PlannedUpdate[] = []
   const unclassified: string[] = []
   for (const dep of deps) {
+    if (!dep.installed || !dep.latest) {
+      unclassified.push(dep.name)
+      continue
+    }
+    const newer = isNewerVersion(dep.installed, dep.latest)
+    if (newer === false) continue
+    if (newer === null) {
+      unclassified.push(dep.name)
+      continue
+    }
     const item = classifyUpdate(dep)
     if (item) planned.push(item)
     else unclassified.push(dep.name)
@@ -137,7 +172,7 @@ export function buildUpdatePlan(deps: DependencyState[], generatedAt: string, op
     testsToRun.length ? testsToRun.map((t) => `- \`${t}\``).join('\n') : '- none recorded',
     '',
     '## Rollback',
-    `Revert the branch and restore the lockfile: \`git checkout main && git branch -D ${branch}\`. Nothing outside this repository changed, so no data restore is needed.`,
+    'Before merge, close the pull request and remove its branch after review. After merge, revert the merge commit and restore the previous lockfile. No customer data is changed by a dependency plan.',
     '',
     '## Held back deliberately',
     deferredNames.length ? deferredNames.map((n) => `- ${n}`).join('\n') : '- nothing',
@@ -145,11 +180,16 @@ export function buildUpdatePlan(deps: DependencyState[], generatedAt: string, op
     'This pull request was prepared automatically. It has not been merged or deployed, and it will not be.',
   ].join('\n')
 
-  const summary = planned.length === 0
+  const knownSummary = planned.length === 0
     ? 'Every dependency is already at the version that was checked.'
     : routine.length > 0
       ? `${routine.length} routine update${routine.length === 1 ? '' : 's'} can be prepared together. ${deferredNames.length} change${deferredNames.length === 1 ? '' : 's'} need${deferredNames.length === 1 ? 's' : ''} their own approval.`
       : `No routine updates. ${deferredNames.length} change${deferredNames.length === 1 ? '' : 's'} need${deferredNames.length === 1 ? 's' : ''} individual approval because they can change behaviour.`
+  const summary = unclassified.length > 0
+    ? planned.length === 0
+      ? `${unclassified.length} dependency update candidate${unclassified.length === 1 ? '' : 's'} could not be classified. No change is recommended until the version is confirmed.`
+      : `${knownSummary} ${unclassified.length} other package update candidate${unclassified.length === 1 ? '' : 's'} could not be classified, so the report is not fully verified.`
+    : knownSummary
 
   return {
     generatedAt,

@@ -134,15 +134,20 @@ async function main() {
       detail: `Restored ${evidence.restoredTables} tables; ${evidence.foreignKeyViolations.length} foreign-key violations; ${evidence.migrationsApplied} migrations applied.`,
     }
     const saved = await recordRestoreDrill(outcome)
+    const rehearsalSucceeded = result.passed && saved.saved && saved.recordStatus === 'succeeded'
+    if (!rehearsalSucceeded) process.exitCode = 1
 
-    if (json) console.log(JSON.stringify({ ...result, evidenceSaved: saved.saved, evidenceNote: saved.reason }))
+    if (json) console.log(JSON.stringify({ ...result, restorePassed: result.passed, passed: rehearsalSucceeded, evidenceSaved: saved.saved, evidenceRecordStatus: saved.recordStatus, evidenceNote: saved.reason }))
     else {
-      console.log(`PASS  restored backup ${result.backupId} (${(result.bytes / 1_048_576).toFixed(1)} MB) in ${result.recoverySeconds}s`)
+      console.log(rehearsalSucceeded
+        ? `PASS  restored backup ${result.backupId} (${(result.bytes / 1_048_576).toFixed(1)} MB) in ${result.recoverySeconds}s`
+        : `FAIL  restore or evidence did not pass: ${saved.reason}`)
       console.log(`      ${result.schemaTables} tables, ${result.foreignKeyViolations.length} foreign-key violations, ${result.migrationsApplied} migrations`)
       console.log('      Scratch database dropped. Nothing was written to any existing database.')
       console.log(`      Evidence: ${evidencePath}`)
-      console.log(saved.saved ? '      Evidence was saved to the reliability record.' : `      Evidence could not be saved. ${saved.reason}`)
-      if (!saved.saved) console.log('      Manual attention is required: the restore test passed, but the reliability report will not see it.')
+      if (saved.recordStatus === 'succeeded') console.log('      A successful evidence record was saved to the reliability report.')
+      else console.log(`      The evidence record is ${saved.recordStatus ?? 'not saved'}; this rehearsal is not complete.`)
+      if (!rehearsalSucceeded) console.log('      Manual attention is required before treating this rehearsal as successful.')
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
