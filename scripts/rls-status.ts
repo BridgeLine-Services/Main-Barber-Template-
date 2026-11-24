@@ -34,7 +34,7 @@ const TENANT_TABLES = [
   'GiftCardSettings','GiftCard','GiftCardTransaction',
   // organization layer (migration 20261120150000) — rows that belong to one shop
   'OrganizationLocation','StaffLocationAssignment',
-  'OrganizationServicePriceException','CustomerLocationLink',
+  'OrganizationServicePriceException','OrganizationServicePriceRequest','CustomerLocationLink',
   'ReferralProgram','ReferralCode','ReferralAttribution',
   // tenant roots
   'Business','Schedule',

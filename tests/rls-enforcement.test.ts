@@ -562,10 +562,10 @@ function main() {
         WHERE n.nspname='public' AND c.relkind='r'
           AND EXISTS (SELECT 1 FROM information_schema.columns col
                        WHERE col.table_schema='public' AND col.table_name=c.relname AND col.column_name='businessId')
-          AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname AND p.policyname='tenant_isolation')
+          AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname AND p.policyname IN ('tenant_isolation', 'organization_isolation'))
         ORDER BY c.relname`,
     )
-    assert(policyless === '', `every tenant table has a tenant_isolation policy${policyless ? `: ${policyless.split('\n').join(', ')}` : ''}`)
+    assert(policyless === '', `every business-scoped table has a tenant or organization isolation policy${policyless ? `: ${policyless.split('\n').join(', ')}` : ''}`)
 
     console.log('\n5. The runtime role only ever sees the tenant it was given')
     const [tenantA, tenantB] = FIXTURES.tenants.map((t) => t.id)

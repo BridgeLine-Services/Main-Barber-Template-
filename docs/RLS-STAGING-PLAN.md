@@ -264,13 +264,17 @@ records this.
 
 ### 8.2 The organization layer
 
-Migration `20261120150000_organization_and_referrals` adds fourteen tables. Seven are scoped by
-`businessId` and join the existing direct-policy array:
+Migration `20261120150000_organization_and_referrals` adds the organization and location layer.
+Seven tables are scoped by `businessId` and join the existing direct-policy array:
 
 `OrganizationLocation`, `StaffLocationAssignment`, `OrganizationServicePriceException`,
 `CustomerLocationLink`, `ReferralProgram`, `ReferralCode`, `ReferralAttribution`
 
-Seven are scoped by the organization itself and get their own policy, keyed on
+Migration `20261124180000_reopening_and_price_approvals` adds
+`OrganizationServicePriceRequest`. Although it includes `businessId`, authorization is by its
+`organizationId`, so it uses the organization policy above.
+
+Eight are scoped by the organization itself and get their own policy, keyed on
 `app.current_organization_id`:
 
 `Organization`, `OrganizationMember`, `OrganizationBrandSettings`,

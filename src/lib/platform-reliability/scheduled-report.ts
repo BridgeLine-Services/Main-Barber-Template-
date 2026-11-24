@@ -167,11 +167,25 @@ function updatesSection(updates: UpdatePlan | null): ReportSection {
   return {
     id: 'updates',
     title: 'Available updates',
-    state: count === 0 ? 'healthy' : updates.risk === 'high' ? 'action-required' : 'needs-attention',
-    verified: true,
+    state: updates.unclassified.length > 0
+      ? 'unable-to-verify'
+      : count === 0
+        ? 'healthy'
+        : updates.risk === 'high'
+          ? 'action-required'
+          : 'needs-attention',
+    verified: updates.unclassified.length === 0,
     headline: updates.summary,
-    detail: count === 0 ? 'Every dependency is at the version that was checked.' : 'Updates are prepared for approval. Nothing is merged or deployed automatically.',
-    action: count > 0 ? 'Review the prepared update plan and approve it if it looks right.' : null,
+    detail: updates.unclassified.length > 0
+      ? 'One or more package versions could not be classified. This report does not say that updates are clear.'
+      : count === 0
+        ? 'Every dependency is at the version that was checked.'
+        : 'Updates are prepared for approval. Nothing is merged or deployed automatically.',
+    action: updates.unclassified.length > 0
+      ? 'Review the unclassified versions before treating this update check as complete.'
+      : count > 0
+        ? 'Review the prepared update plan and approve it if it looks right.'
+        : null,
     facts: [
       { label: 'Routine updates', value: String(updates.batch.length) },
       { label: 'Needing their own approval', value: String(updates.deferred.length) },

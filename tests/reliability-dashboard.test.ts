@@ -46,6 +46,12 @@ const goodRestore: RestoreEvidence = {
 
 const page = readFileSync('src/app/(dashboard)/dashboard/reliability/page.tsx', 'utf8')
 
+console.log('--- owner status vocabulary ---')
+ok(toneBadge('fine') === 'HEALTHY', 'a verified check uses the shared healthy status')
+ok(toneBadge('attention') === 'ATTENTION NEEDED', 'a review item uses the shared attention status')
+ok(toneBadge('action') === 'APPROVAL REQUIRED', 'a pending decision uses the approval status')
+ok(toneBadge('unknown') === 'COULD NOT VERIFY', 'an incomplete check uses the shared unverifiable status')
+
 console.log('--- unknown is never healthy ---')
 const unreadableRecovery = recoveryAnswer(null)
 ok(unreadableRecovery.tone === 'unknown', 'an unreadable recovery record is unknown')

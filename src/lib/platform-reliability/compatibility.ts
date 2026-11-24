@@ -38,6 +38,7 @@ export interface CompatibilityFinding {
   component: string
   label: string
   installed: string | null
+  source: string
   status: CompatibilityStatus
   headline: string
   detail: string
@@ -60,6 +61,7 @@ export function checkComponent(rule: ComponentRule, installed: string | null | u
       component: rule.component,
       label: rule.label,
       installed: installed ?? null,
+      source: rule.source,
       status: 'unknown',
       headline: `We could not read the ${rule.label} version.`,
       detail: 'Without the version there is no way to say whether it is supported.',
@@ -73,6 +75,7 @@ export function checkComponent(rule: ComponentRule, installed: string | null | u
       component: rule.component,
       label: rule.label,
       installed: installed ?? null,
+      source: rule.source,
       status: 'unsupported',
       headline: `${rule.label} ${installed} is outside the version this template is tested with.`,
       detail: `The template is built and tested with ${rule.label} ${rule.testedLine}. Running outside that line is not covered by the test suite.`,
@@ -83,6 +86,7 @@ export function checkComponent(rule: ComponentRule, installed: string | null | u
     component: rule.component,
     label: rule.label,
     installed: installed ?? null,
+    source: rule.source,
     status: 'supported',
     headline: `${rule.label} ${installed} is a supported version.`,
     detail: `It is inside the line this template is tested with (${rule.testedLine}).`,

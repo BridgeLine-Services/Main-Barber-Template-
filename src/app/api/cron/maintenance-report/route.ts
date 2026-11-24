@@ -20,6 +20,10 @@ import { manifestVersions, postgresMajor, withLiveVersions } from '@/lib/platfor
 import { compatibilityReport } from '@/lib/platform-reliability/compatibility'
 import { evaluateRecovery, type BackupEvidence, type RestoreEvidence } from '@/lib/platform-reliability/recovery-verification'
 import { buildScheduledReport, renderReportMarkdown, type ReportState } from '@/lib/platform-reliability/scheduled-report'
+import { checkLiveAdvisories } from '@/lib/platform-reliability/live-advisories'
+import { summariseAdvisories } from '@/lib/platform-reliability/advisory-monitor'
+import { checkLiveUpdates } from '@/lib/platform-reliability/live-updates'
+import { buildUpdatePlan } from '@/lib/platform-reliability/update-plan'
 
 const CHECK_TO_STATE: Record<string, ReportState> = {
   ok: 'healthy',
@@ -101,16 +105,21 @@ export async function GET(req: NextRequest) {
     }
 
     const compatibility = compatibilityReport(withLiveVersions(manifestVersions(), { postgres: postgresVersion }))
+    const liveAdvisories = await checkLiveAdvisories()
+    const liveUpdates = await checkLiveUpdates({
+      advisoryPackages: liveAdvisories.verified ? liveAdvisories.advisories.map((advisory) => advisory.dependency) : [],
+    })
+    const updatePlan = liveUpdates.verified
+      ? buildUpdatePlan(liveUpdates.dependencies, liveUpdates.checkedAt)
+      : null
 
     const report = buildScheduledReport({
       generatedAt: now.toISOString(),
       templateVersion: TEMPLATE_VERSION.version,
       health,
-      // Advisories and update checks need the network; this job does not reach for it, so
-      // it reports honestly that those sections were not checked.
-      advisories: null,
+      advisories: liveAdvisories.verified ? summariseAdvisories(liveAdvisories.advisories) : null,
       compatibility,
-      updates: null,
+      updates: updatePlan,
       recovery: evaluateRecovery(backups, restores, now),
       pendingApprovals,
       failedRepairs,

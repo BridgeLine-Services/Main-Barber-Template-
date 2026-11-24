@@ -23,7 +23,7 @@ function ok(name: string, condition: boolean, detail = '') {
 const ROOT = join(__dirname, '..')
 const GIFT_CARD_TABLES = ['GiftCardSettings', 'GiftCard', 'GiftCardTransaction']
 const BUSINESS_SCOPED_ORG_TABLES = ['OrganizationLocation', 'StaffLocationAssignment', 'OrganizationServicePriceException', 'CustomerLocationLink', 'ReferralProgram', 'ReferralCode', 'ReferralAttribution']
-const ORG_SCOPED_TABLES = ['Organization', 'OrganizationMember', 'OrganizationBrandSettings', 'OrganizationReportingConfiguration', 'OrganizationServiceTemplate', 'OrganizationAnnouncement', 'OrganizationAnnouncementRead', 'OrganizationConfigAudit']
+const ORG_SCOPED_TABLES = ['Organization', 'OrganizationMember', 'OrganizationBrandSettings', 'OrganizationReportingConfiguration', 'OrganizationServiceTemplate', 'OrganizationServicePriceRequest', 'OrganizationAnnouncement', 'OrganizationAnnouncementRead', 'OrganizationConfigAudit']
 
 async function main() {
   const migrationsDir = join(ROOT, 'prisma', 'migrations')
@@ -65,6 +65,7 @@ async function main() {
   for (const table of BUSINESS_SCOPED_ORG_TABLES) {
     ok(`the RLS status report tracks ${table}`, new RegExp(`'${table}'`).test(status))
   }
+  ok('the RLS status report tracks OrganizationServicePriceRequest', /'OrganizationServicePriceRequest'/.test(status))
 
   if (!process.env.DATABASE_URL) {
     skipped++

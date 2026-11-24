@@ -70,6 +70,8 @@ ALTER ROLE barber_app NOSUPERUSER;
 --   BarberRewardProgram and AppointmentIntakeResponse.
 -- Tenant-root tables (their `id` IS the tenant key):
 --   Business, Schedule
+-- OrganizationServicePriceRequest also carries businessId, but is governed by its
+-- organizationId policy below because it belongs to an organization-level approval flow.
 
 DO $$
 DECLARE
@@ -185,6 +187,8 @@ DECLARE
   t_org TEXT[] := ARRAY[
     'Organization','OrganizationMember','OrganizationBrandSettings',
     'OrganizationReportingConfiguration','OrganizationServiceTemplate',
+    -- Price requests carry businessId too, but are owned and authorized by an organization.
+    'OrganizationServicePriceRequest',
     'OrganizationAnnouncement','OrganizationAnnouncementRead','OrganizationConfigAudit'
   ];
   tbl TEXT;
