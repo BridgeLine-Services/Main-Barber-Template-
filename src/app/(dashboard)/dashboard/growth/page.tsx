@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { requireOwner } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone'
 import { getRebookingTasks } from '@/lib/rebooking-engine'
 import { buildGrowthCards, summariseGrowth } from '@/lib/growth/overview'
 import { SLOW_DAY_WINDOW_WEEKS, buildSlowDayReport, groupByShopDay, recentWindow, slowDayCard } from '@/lib/growth/slow-days'
@@ -116,7 +117,7 @@ export default async function GrowthPage() {
   const timezone =
     (await safe(() =>
       prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } }),
-    ))?.timezone ?? 'America/Los_Angeles'
+    ))?.timezone ?? DEFAULT_BUSINESS_TIMEZONE
 
   const quietWindow = recentWindow(SLOW_DAY_WINDOW_WEEKS)
   const bookedTimes = await safe(() =>

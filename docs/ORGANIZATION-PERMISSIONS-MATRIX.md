@@ -16,7 +16,7 @@ Roles: **OWN** organization owner, **CORP** corporate admin, **REG** regional ma
 | Open a location | `locations.manage` | yes | no | no | no | no | no | no | `POST .../[id]` action `activate` |
 | Start closing | `locations.manage` | yes | no | no | no | no | no | no | `POST .../[id]` action `start-closing` |
 | Close a location | `locations.manage` | yes | no | no | no | no | no | no | `POST .../[id]` action `close` |
-| Reopen a closed location | none | no | no | no | no | no | no | no | Not permitted by the state machine. See the proposal below. |
+| Begin reopening a closed location | `locations.manage` | yes | no | no | no | no | no | no | `transitionLocation` in `location-service.ts` |
 | Move a location into a region | `locations.manage` + region scope | yes | no | no | no | no | no | no | `regionChangeVerdict` in `location-service` |
 | Rename a region | `locations.manage` | yes | no | no | no | no | no | no | `POST /api/dashboard/organization/regions` |
 | See assignments | `organization.read` | yes | yes | yes | yes | yes | yes | no | `GET /api/dashboard/organization/assignments` |
@@ -26,7 +26,8 @@ Roles: **OWN** organization owner, **CORP** corporate admin, **REG** regional ma
 | Set corporate branding | `branding.manage` | yes | yes | no | no | no | no | no | `capabilities.ts` (editor not built in this phase) |
 | Revoke a branding exception | `branding.manage` | yes | yes | no | no | no | no | no | Not built in this phase |
 | Edit service templates | `services.manage` | yes | yes | no | no | no | no | no | `capabilities.ts` (editor not built in this phase) |
-| Approve a price exception | `services.manage` | yes | yes | no | no | no | no | no | Not built in this phase |
+| Ask for a location price | `services.read` at an assigned location | yes | yes | yes | yes | yes | yes | no | `pricing-requests` POST |
+| Approve, decline or revoke a location price | `services.manage` | yes | yes | no | no | no | no | no | `pricing-requests/[id]` PATCH |
 | View organization financial totals | `financial.organization.read` | yes | yes | no | yes | no | no | no | `reporting.aggregate.read` guard on the overview |
 | View one location's financials | `financial.location.read` | yes | no | yes | yes | yes | no | no | `resolve.ts` location scope |
 | Read the configuration audit | `config.audit.read` | yes | yes | no | no | no | no | no | `capabilities.ts` |

@@ -2424,6 +2424,7 @@ model Organization {
   assignments   StaffLocationAssignment[]
   customerLinks CustomerLocationLink[]
   configAudit   OrganizationConfigAudit[]
+  servicePriceRequests OrganizationServicePriceRequest[]
   announcementReads OrganizationAnnouncementRead[]
 
   @@index([slug])
@@ -2458,6 +2459,8 @@ model OrganizationLocation {
   status         String        @default("active")
   openedAt       DateTime?
   closedAt       DateTime?
+  /// Set when a closed location is reopened. The row, and so the identity, never changes.
+  reopenedAt     DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -2549,8 +2552,37 @@ model OrganizationServiceTemplate {
   updatedAt        DateTime     @updatedAt
 
   exceptions       OrganizationServicePriceException[]
+  priceRequests    OrganizationServicePriceRequest[]
 
   @@index([organizationId, active])
+}
+
+/// A location asking to charge something other than the standard price.
+///
+/// Deliberately separate from OrganizationServicePriceException: resolveServicePrice applies
+/// any exception row it is given, so an unapproved request must never be stored there. An
+/// approved request writes the exception row; the request rows keep the whole history.
+model OrganizationServicePriceRequest {
+  id             String                      @id @default(cuid())
+  organizationId String
+  organization   Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       OrganizationServiceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  businessId     String
+  priceCents     Int
+  reason         String?
+  /// 'PENDING' | 'APPROVED' | 'DECLINED' | 'REVOKED'
+  status         String                      @default("PENDING")
+  requestedById  String
+  decidedById    String?
+  decidedAt      DateTime?
+  decisionNote   String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  @@index([organizationId, status])
+  @@index([templateId, businessId, status])
+  @@index([businessId, status])
 }
 
 model OrganizationServicePriceException {

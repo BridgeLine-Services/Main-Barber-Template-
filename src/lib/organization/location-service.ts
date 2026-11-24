@@ -12,6 +12,7 @@ import { buildConfigAuditEntry } from './config-audit'
 import type { OrgContext } from './resolve'
 import {
   activationVerdict,
+  reopenPlan,
   buildClosureReview,
   findDuplicateLocation,
   isValidTimezone,
@@ -319,10 +320,13 @@ export async function updateLocation(
   }
 }
 
-export type LocationAction = 'activate' | 'start-closing' | 'close'
+export type LocationAction = 'activate' | 'start-closing' | 'close' | 'reopen' | 'prepare-reopening'
 
 export interface TransitionInput {
   action: LocationAction
+  /** Reopening needs a written reason and an acknowledgement; both are recorded. */
+  reason?: string | null
+  acknowledged?: boolean
   /** The owner confirms a copy of the records was produced. It cannot be verified, so it is recorded. */
   recordsExported?: boolean
 }
@@ -366,6 +370,33 @@ export async function transitionLocation(
       { recordsExported: Boolean(input.recordsExported) })
   }
 
+  if (input.action === 'reopen') {
+    const plan = reopenPlan({ status: location.status, reason: input.reason, acknowledged: input.acknowledged })
+    if (!plan.ok) return fail(409, plan.errors[0], plan.errors)
+    const reason = (input.reason ?? '').trim()
+    return writeTransition(
+      context,
+      actorId,
+      location,
+      'reopening',
+      'location.reopen',
+      `Began reopening ${location.name}. Reason given: ${reason}. It cannot take bookings until it reaches active.`,
+      { reason, acknowledged: true },
+    )
+  }
+
+  if (input.action === 'prepare-reopening') {
+    if (location.status !== 'reopening') return fail(409, 'This location is not reopening.')
+    return writeTransition(
+      context,
+      actorId,
+      location,
+      'onboarding',
+      'location.reopen-prepare',
+      `Moved ${location.name} from reopening to onboarding so its people, services and hours can be checked before it opens again.`,
+    )
+  }
+
   return fail(400, 'That action is not recognised.')
 }
 
@@ -386,6 +417,7 @@ async function writeTransition(
           status,
           openedAt: status === 'active' && !location.openedAt ? new Date() : undefined,
           closedAt: status === 'closed' ? new Date() : undefined,
+          reopenedAt: status === 'reopening' ? new Date() : undefined,
         },
       })
       await tx.organizationConfigAudit.create({

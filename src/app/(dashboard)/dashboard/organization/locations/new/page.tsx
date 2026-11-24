@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/lib/auth-helpers'
+import { DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone'
 import { can } from '@/lib/organization/capabilities'
 import { loadManagedLocations } from '@/lib/organization/location-service'
 import { regionNames } from '@/lib/organization/location-management'
@@ -35,7 +36,7 @@ export default async function NewLocationPage() {
       <LocationWizard
         regions={regionNames(locations)}
         existingNames={locations.map((row) => row.name)}
-        defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles'}
+        defaultTimezone={DEFAULT_BUSINESS_TIMEZONE}
       />
     </div>
   )

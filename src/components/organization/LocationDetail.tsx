@@ -81,6 +81,8 @@ export function LocationDetail({ location, canManage, regions, activation, openi
   const [notice, setNotice] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
   const [exported, setExported] = useState(false)
+  const [reopenReason, setReopenReason] = useState('')
+  const [reopenAck, setReopenAck] = useState(false)
 
   async function call(action: string, run: () => Promise<Response>, success: string) {
     setBusy(action)
@@ -118,20 +120,24 @@ export function LocationDetail({ location, canManage, regions, activation, openi
     )
   }
 
-  function act(action: 'activate' | 'start-closing' | 'close') {
+  function act(action: 'activate' | 'start-closing' | 'close' | 'reopen' | 'prepare-reopening') {
     const words =
       action === 'activate'
         ? 'The location is open and can take bookings.'
         : action === 'start-closing'
           ? 'The location is closing. New bookings stop; existing appointments are untouched.'
-          : 'The location is closed. Its records are kept.'
+          : action === 'close'
+            ? 'The location is closed. Its records are kept.'
+            : action === 'reopen'
+              ? 'Reopening has started. The location cannot take bookings until it is activated.'
+              : 'The location is in onboarding. Finish the opening checklist, then activate it.'
     void call(
       action,
       () =>
         fetch('/api/dashboard/organization/locations/' + location.businessId, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, recordsExported: exported }),
+          body: JSON.stringify({ action, recordsExported: exported, reason: reopenReason, acknowledged: reopenAck }),
         }),
       words,
     )
@@ -311,6 +317,74 @@ export function LocationDetail({ location, canManage, regions, activation, openi
         <section aria-labelledby="closed" className="rounded-xl border border-border bg-[var(--dash-surface)] p-4 sm:p-5">
           <h2 id="closed" className="text-sm font-semibold text-foreground">This location is closed</h2>
           <p className="mt-2 text-sm text-foreground/90">{reopen.message}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Reopening does not create a second shop. This location keeps its name, its appointments and its customer
+            records, and it cannot take bookings again until it has been through onboarding and activated.
+          </p>
+          {canManage && reopen.allowed && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <Label htmlFor="reopen-reason">Why are you reopening it?</Label>
+                <textarea
+                  id="reopen-reason"
+                  value={reopenReason}
+                  onChange={(event) => setReopenReason(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-md border border-input bg-background p-2 text-base"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved with the change, so the history explains itself later.
+                </p>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-foreground/90">
+                <input
+                  type="checkbox"
+                  checked={reopenAck}
+                  onChange={(event) => setReopenAck(event.target.checked)}
+                  className="mt-1 h-4 w-4"
+                />
+                <span>I understand this location keeps its existing records and history.</span>
+              </label>
+              {confirming === 'reopen' ? (
+                <div>
+                  <p className="text-sm text-foreground/90">
+                    Begin reopening now? The location moves to reopening. Nothing is booked, cancelled or deleted.
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      className="min-h-11 w-full sm:w-auto"
+                      onClick={() => act('reopen')}
+                      disabled={busy !== null || reopenReason.trim().length < 10 || !reopenAck}
+                    >
+                      {busy === 'reopen' ? 'Starting…' : 'Yes, begin reopening'}
+                    </Button>
+                    <Button className="min-h-11 w-full sm:w-auto" variant="outline" onClick={() => setConfirming(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button className="min-h-11 w-full sm:w-auto" variant="outline" onClick={() => setConfirming('reopen')}>
+                  Reopen this location
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {location.status === 'reopening' && (
+        <section aria-labelledby="reopening" className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5">
+          <h2 id="reopening" className="text-sm font-semibold text-foreground">Reopening in progress</h2>
+          <p className="mt-2 text-sm text-foreground/90">
+            Check the people, the services and the opening hours. When you are ready, move it to onboarding to finish the
+            opening checklist. It cannot take bookings until it is activated.
+          </p>
+          {canManage && (
+            <Button className="mt-3 min-h-11 w-full sm:w-auto" variant="outline" onClick={() => act('prepare-reopening')} disabled={busy !== null}>
+              {busy === 'prepare-reopening' ? 'Moving…' : 'Move to onboarding'}
+            </Button>
+          )}
         </section>
       )}
 
