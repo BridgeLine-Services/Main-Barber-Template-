@@ -68,7 +68,7 @@ region with nothing in it. Renaming moves every location in it in one transactio
 `/dashboard/organization/regions` lists regions, their locations and the regional managers
 who hold them.
 
-## The reopening decision: proposed, not built
+## The reopening path: built 2026-11-24
 
 The state machine in `locations.ts` allows `onboarding → active`, `active → closing`,
 `closing → active|closed`, and nothing out of `closed`. That is deliberate and it was not
@@ -105,7 +105,7 @@ the file that enforces it. Nothing in this phase added a capability or changed a
 | Service template editor | `service-templates.ts` has the validation and the pricing resolver; no screen was added. |
 | Price exception approval workflow | Needs a request/approve record with history. `OrganizationServicePriceException` stores one approved price per template and location and has no request state, so an approval workflow would need an additive migration. Documented rather than forced. |
 | Scheduled corporate reporting | `OrganizationReportingConfiguration` exists. There is no scheduler for this report type, and inventing one here would have been a reliability change, which this phase was told to leave alone. The existing report remains read-only and in-app. |
-| Reopening a closed location | See the proposal above. |
+| Reopening a closed location | Built. See the reopening path above. |
 | Email or SMS delivery | Out of scope for this phase. |
 
 ## Verification
@@ -124,3 +124,61 @@ the file that enforces it. Nothing in this phase added a capability or changed a
 
 Not run: suites needing a live database (`organization-invitations`,
 `organization-isolation`), and any staging or CodeQL gate.
+
+## Reopening and price approvals: what was added on 2026-11-24
+
+### Reopening a closed location
+
+The path is `closed → reopening → onboarding → active`, with `reopening → closed` available to
+abandon an attempt. It is deliberately not a jump back to `active`: a shop that has been shut
+needs its people, services and hours checked before it takes bookings again, and the
+intermediate states are what make that preparation visible in the history.
+
+What the server requires before it will begin:
+
+1. The location is `closed`. Nothing else can be reopened.
+2. The actor holds `locations.manage` (an organization owner).
+3. A written reason of at least 10 characters, which is stored in the audit entry.
+4. An explicit acknowledgement that the location keeps its existing records and history.
+
+The location row is never replaced or copied. `reopenedAt` is stamped on the same row, so the
+name, appointments, payments, commissions and customer history stay attached to the shop a
+customer already knows. No appointment is cancelled and no person is unassigned by reopening.
+
+`docs/ORGANIZATION-MANAGEMENT.md` and `docs/ORGANIZATION-PERMISSIONS-MATRIX.md` both record that
+reopening is owner-only.
+
+### Price approvals
+
+`OrganizationServicePriceRequest` is a new table. It is separate from
+`OrganizationServicePriceException` on purpose: `resolveServicePrice()` applies any exception row
+it is given, so a request that has not been approved must not be able to change a shop's price by
+existing. Approval is the only thing that writes the exception row, and it happens in the same
+transaction as the decision.
+
+| Step | Who | What happens |
+| --- | --- | --- |
+| Ask | anyone with `services.read` at a location they are assigned to | A `PENDING` request row. The shop's price does not change. |
+| Approve | `services.manage` (owner, corporate admin) | The exception row is written with the approved price, and the request becomes `APPROVED`. |
+| Decline | `services.manage` | The request becomes `DECLINED` with the note. The price does not change. |
+| Revoke | `services.manage` | The exception row is removed, the location returns to the standard price, and the request becomes `REVOKED`. |
+
+A second request for the same service and location is refused while one is pending, and refused
+again while one is approved: the owner has to revoke first. Every step writes a configuration
+audit entry naming the actor, the previous price and the new one.
+
+A template price change never overwrites an approved exception. `describeTemplateChange()` states
+how many locations follow the standard price and how many keep their own before anything is
+published.
+
+### The migration
+
+`prisma/migrations/20261124180000_reopening_and_price_approvals` is additive: one nullable column
+on `OrganizationLocation`, one new table, three indexes and two cascading foreign keys. Nothing
+is altered, renamed or dropped and no row is deleted. It has **not** been applied to any
+database from this workspace; `npm run deploy:migration-check` reports it as backward compatible.
+
+### Still not built
+
+Corporate branding editor, service template editor, and scheduled corporate reporting. The first
+two have tested rules and no screen; the third needs a scheduler this phase was told not to add.

@@ -7,7 +7,7 @@
  * whether it can be undone, and what happens if it goes wrong.
  */
 
-export type LocationStatus = 'onboarding' | 'active' | 'closing' | 'closed'
+export type LocationStatus = 'onboarding' | 'active' | 'closing' | 'closed' | 'reopening'
 
 export interface LocationTransition {
   from: LocationStatus
@@ -20,7 +20,11 @@ const TRANSITIONS: Record<LocationStatus, LocationStatus[]> = {
   onboarding: ['active', 'closed'],
   active: ['closing'],
   closing: ['active', 'closed'],
-  closed: [],
+  // Reopening is its own state, not a jump back to active. A closed shop must be
+  // readied again (staff, services, hours) before it can take bookings, and the
+  // intermediate state is what makes that preparation visible in the audit history.
+  closed: ['reopening'],
+  reopening: ['onboarding', 'closed'],
 }
 
 export function canTransition(from: LocationStatus, to: LocationStatus): LocationTransition {
@@ -31,7 +35,11 @@ export function canTransition(from: LocationStatus, to: LocationStatus): Locatio
     allowed,
     reason: allowed
       ? `A location can move from ${from} to ${to}.`
-      : `A location cannot move from ${from} to ${to}. ${from === 'closed' ? 'A closed location must be reopened as a new location.' : ''}`.trim(),
+      : `A location cannot move from ${from} to ${to}. ${
+          from === 'closed'
+            ? 'A closed location reopens through reopening, then onboarding, then active. It keeps the same identity and the same records.'
+            : ''
+        }`.trim(),
   }
 }
 
@@ -127,13 +135,14 @@ export const CLOSING_STEPS: ChecklistStep[] = [
     whatItDoes: 'Marks the location closed and removes it from organization totals.',
     whatChanges: 'The location status. Its records are kept.',
     whoMayDoIt: 'The organization owner.',
-    canBeUndone: 'No. A closed location must be reopened as a new location. Its records remain readable.',
+    canBeUndone: 'Yes, through reopening then onboarding. The location keeps its identity and its records.',
     ifSomethingGoesWrong: 'The location stays in closing, which is a safe state: it takes no new bookings and its data is intact.',
   },
 ]
 
 export function checklistFor(status: LocationStatus): ChecklistStep[] {
-  if (status === 'onboarding') return OPENING_STEPS
+  // A reopening location is getting ready to open again, so it uses the opening steps.
+  if (status === 'onboarding' || status === 'reopening') return OPENING_STEPS
   if (status === 'closing') return CLOSING_STEPS
   return []
 }

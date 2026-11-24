@@ -82,13 +82,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ review })
   }
 
-  if (action !== 'activate' && action !== 'start-closing' && action !== 'close') {
+  const known = ['activate', 'start-closing', 'close', 'reopen', 'prepare-reopening']
+  if (!action || !known.includes(action)) {
     return NextResponse.json({ error: 'That action is not recognised.' }, { status: 400 })
   }
 
   const result = await transitionLocation(resolved.context, auth.user.id, id, {
-    action,
+    action: action as 'activate' | 'start-closing' | 'close' | 'reopen' | 'prepare-reopening',
     recordsExported: Boolean(body.recordsExported),
+    reason: str(body.reason),
+    acknowledged: body.acknowledged === true,
   })
 
   if (!result.ok) return NextResponse.json({ error: result.error, reasons: result.reasons }, { status: result.status })

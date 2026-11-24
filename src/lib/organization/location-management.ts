@@ -262,14 +262,64 @@ export function buildClosureReview(facts: ClosureFacts): ClosureReview {
 }
 
 /** A closed location cannot come back as itself. The state machine says so, and so do we. */
+/**
+ * Reopening a closed location.
+ *
+ * The path is closed, then reopening, then onboarding, then active. It never jumps back to
+ * active, because a shop that has been shut for months is not ready to take bookings the
+ * moment somebody clicks a button: it needs its people, services and hours checked first.
+ *
+ * The location keeps its own identity and its own records throughout. Nothing is copied
+ * into a replacement shop, which is what would otherwise split a customer's history.
+ */
+export const REOPEN_STEPS: LocationStatus[] = ['reopening', 'onboarding', 'active']
+
+export interface ReopenRequest {
+  status: string
+  reason?: string | null
+  acknowledged?: boolean
+}
+
+export interface ReopenPlan {
+  ok: boolean
+  errors: string[]
+  steps: LocationStatus[]
+  message: string
+}
+
 export function reopenGuidance(status: string): { allowed: boolean; message: string } {
-  if (status !== 'closed') {
-    return { allowed: false, message: 'This location is not closed, so there is nothing to reopen.' }
+  if (status === 'closed') {
+    return {
+      allowed: true,
+      message:
+        'This location is closed. Reopening moves it to reopening, then to onboarding so its people, services and hours can be checked, then to active when it is ready. It keeps the same identity and the same records.',
+    }
+  }
+  if (status === 'reopening') {
+    return { allowed: false, message: 'This location is already reopening. Finish the opening checklist, then activate it.' }
+  }
+  return { allowed: false, message: 'This location is not closed, so there is nothing to reopen.' }
+}
+
+export function reopenPlan(request: ReopenRequest): ReopenPlan {
+  const errors: string[] = []
+  const guidance = reopenGuidance(request.status)
+  if (!guidance.allowed) errors.push(guidance.message)
+  const reason = (request.reason ?? '').trim()
+  if (reason.length < 10) {
+    errors.push('Write a short reason for reopening, at least 10 characters, so the history explains itself later.')
+  }
+  if (request.acknowledged !== true) {
+    errors.push('Confirm that you understand the location keeps its existing records and history.')
   }
   return {
-    allowed: false,
+    ok: errors.length === 0,
+    errors,
+    steps: errors.length === 0 ? REOPEN_STEPS : [],
     message:
-      'A closed location cannot be reopened. Its records stay readable, and a new location can be created for the same shop address. If reopening the original is needed, the proposal in docs/ORGANIZATION-MANAGEMENT.md describes a closed to reopening to onboarding path that keeps the same identity. That change needs an owner decision before it is built.',
+      errors.length === 0
+        ? 'The location will move to reopening. It cannot take bookings until it reaches active.'
+        : 'The location was not reopened.',
   }
 }
 
@@ -279,15 +329,17 @@ export interface StatusCounts {
   onboarding: number
   closing: number
   closed: number
+  reopening: number
 }
 
 export function statusCounts(locations: LocationFacts[]): StatusCounts {
-  const counts: StatusCounts = { total: locations.length, active: 0, onboarding: 0, closing: 0, closed: 0 }
+  const counts: StatusCounts = { total: locations.length, active: 0, onboarding: 0, closing: 0, closed: 0, reopening: 0 }
   for (const row of locations) {
     if (row.status === 'active') counts.active += 1
     else if (row.status === 'onboarding') counts.onboarding += 1
     else if (row.status === 'closing') counts.closing += 1
     else if (row.status === 'closed') counts.closed += 1
+    else if (row.status === 'reopening') counts.reopening += 1
   }
   return counts
 }

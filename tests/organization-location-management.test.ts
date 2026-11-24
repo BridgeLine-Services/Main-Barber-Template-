@@ -135,8 +135,9 @@ ok('an onboarding location may close directly', buildClosureReview({ ...settledF
 
 // --- reopening --------------------------------------------------------------
 
-ok('a closed location cannot reopen itself', !reopenGuidance('closed').allowed)
-ok('the refusal points at the proposal', /docs\/ORGANIZATION-MANAGEMENT\.md/.test(reopenGuidance('closed').message))
+ok('a closed location may reopen', reopenGuidance('closed').allowed)
+ok('the reopening guidance names the path', /reopening/.test(reopenGuidance('closed').message))
+ok('it cannot jump straight to active', /onboarding/.test(reopenGuidance('closed').message))
 ok('an active location has nothing to reopen', !reopenGuidance('active').allowed)
 
 // --- counts -----------------------------------------------------------------
