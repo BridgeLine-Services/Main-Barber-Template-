@@ -22,6 +22,7 @@ async function main() {
   ok(result.source === 'npm registry', 'the update source is named')
   ok(result.packageCount > 0 && result.dependencies.length === result.packageCount, 'installed versions are checked against the registry')
   ok(calls.length === result.packageCount, 'each direct runtime and development dependency gets checked')
+  ok(calls.some((url) => url.includes('%2f')), 'scoped package names encode every slash as one registry path segment')
   ok(result.plan !== null && result.plan.requiresApproval && result.plan.autoMerge === false && result.plan.autoDeploy === false, 'live updates produce a review-only plan')
   ok(result.plan?.deferred.some((item) => item.name === 'next' && item.breaking), 'major framework updates are separated as breaking changes')
   ok(result.plan?.deferred.every((item) => item.kind !== 'security' || item.reason.includes('security advisory')), 'security updates retain their security classification')

@@ -40,7 +40,7 @@ function installedVersions(): Array<{ name: string; version: string; runtime: bo
 }
 
 async function requestLatest(fetcher: typeof fetch, packageName: string, timeoutMs: number): Promise<string> {
-  const encodedName = packageName.replace('/', '%2f')
+  const encodedName = packageName.replaceAll('/', '%2f')
   let lastError = 'The npm registry did not return a latest version.'
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController()

@@ -384,7 +384,7 @@ async function main() {
       ok(seen.has(action as never), `${action} is recorded`)
     }
     const acceptance = await prisma.auditLog.findFirst({
-      where: { action: 'ORGANIZATION_INVITATION_ACCEPTED', entityType: 'OrganizationMembership', userId: invitee.id },
+      where: { action: 'ORGANIZATION_INVITATION_ACCEPTED', entityType: 'OrganizationMembership', userId: stranger.id },
     })
     ok(Boolean(acceptance), 'acceptance is recorded too')
     const auditText = JSON.stringify(await prisma.auditLog.findMany({
