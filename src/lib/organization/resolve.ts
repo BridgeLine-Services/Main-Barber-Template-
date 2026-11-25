@@ -69,38 +69,47 @@ export async function resolveOrganizationContext(userId: string | null | undefin
   const role = normaliseRole(active.role)
   if (!role) return { ok: false, context: null, reason: 'unrecognised-role', message: FAILURE_MESSAGE['unrecognised-role'] }
 
-  const locations = await prisma.organizationLocation.findMany({
-    where: { organizationId: active.organizationId },
-    select: { businessId: true, region: true, status: true },
-  })
-
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { businessId: true } })
-  const homeBusinessId = user?.businessId ?? null
-
-  let visible = locations.filter((l) => l.status !== 'closed')
-  if (role === 'REGIONAL_MANAGER') {
-    // Fail closed. An empty region list used to skip this filter entirely, so a
-    // regional manager whose regions were never set could see every location in
-    // the organization. All-region access is now an explicit, auditable grant;
-    // without it, a manager sees the regions they were given and nothing else.
-    // Explicit per-location assignments are added below, as before.
-    visible = active.allRegions
-      ? visible
-      : visible.filter((l) => l.region !== null && active.regions.includes(l.region))
-  }
-  if (role === 'FRANCHISE_OWNER' || role === 'LOCATION_MANAGER' || role === 'BARBER') {
-    // A location-level role sees only the location it belongs to.
-    visible = visible.filter((l) => l.businessId === homeBusinessId)
-  }
-
-  // Explicit staff assignments can widen a regional manager or barber's reach.
-  if (role === 'REGIONAL_MANAGER' || role === 'BARBER' || role === 'LOCATION_MANAGER') {
-    const assignments = await prisma.staffLocationAssignment.findMany({
-      where: { organizationId: active.organizationId, userId, effectiveTo: null },
-      select: { businessId: true },
+  // The membership lookup above was guarded; these three lookups were not, so a
+  // database error here could hand a caller a partially resolved context. Every
+  // failure now returns the same controlled, fail-closed result.
+  let visible: Array<{ businessId: string; region: string | null; status: string }>
+  let homeBusinessId: string | null
+  try {
+    const locations = await prisma.organizationLocation.findMany({
+      where: { organizationId: active.organizationId },
+      select: { businessId: true, region: true, status: true },
     })
-    const assigned = new Set(assignments.map((a) => a.businessId))
-    visible = locations.filter((l) => l.status !== 'closed' && (visible.some((v) => v.businessId === l.businessId) || assigned.has(l.businessId)))
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { businessId: true } })
+    const homeBusinessId = user?.businessId ?? null
+
+    visible = locations.filter((l) => l.status !== 'closed')
+    if (role === 'REGIONAL_MANAGER') {
+      // Fail closed. An empty region list used to skip this filter entirely, so a
+      // regional manager whose regions were never set could see every location in
+      // the organization. All-region access is now an explicit, auditable grant;
+      // without it, a manager sees the regions they were given and nothing else.
+      // Explicit per-location assignments are added below, as before.
+      visible = active.allRegions
+        ? visible
+        : visible.filter((l) => l.region !== null && active.regions.includes(l.region))
+    }
+    if (role === 'FRANCHISE_OWNER' || role === 'LOCATION_MANAGER' || role === 'BARBER') {
+      // A location-level role sees only the location it belongs to.
+      visible = visible.filter((l) => l.businessId === homeBusinessId)
+    }
+
+    // Explicit staff assignments can widen a regional manager or barber's reach.
+    if (role === 'REGIONAL_MANAGER' || role === 'BARBER' || role === 'LOCATION_MANAGER') {
+      const assignments = await prisma.staffLocationAssignment.findMany({
+        where: { organizationId: active.organizationId, userId, effectiveTo: null },
+        select: { businessId: true },
+      })
+      const assigned = new Set(assignments.map((a) => a.businessId))
+      visible = locations.filter((l) => l.status !== 'closed' && (visible.some((v) => v.businessId === l.businessId) || assigned.has(l.businessId)))
+    }
+  } catch {
+    return { ok: false, context: null, reason: 'read-failed', message: FAILURE_MESSAGE['read-failed'] }
   }
 
   return {
