@@ -26,17 +26,53 @@ import {
 // which is off by one day for non-UTC businesses.
 // ============================================================================
 
-// Cache business timezone lookups within a request
-const tzCache = new Map<string, string>()
+// Business timezone lookups are cached, but the cache is bounded and expires.
+//
+// A module-level Map outlives a request on a warm server instance, so an
+// unbounded, never-expiring cache meant a shop that changed its timezone kept
+// being served the old one until the process restarted. Booking a shop's day in
+// the wrong timezone is a correctness bug, not a performance nicety, so the
+// cache is now short-lived and explicitly invalidated whenever a business
+// changes its timezone. The TTL is the backstop for any write path that forgets
+// to invalidate; the explicit call is the primary mechanism.
+const TZ_CACHE_TTL_MS = 30_000
+const TZ_CACHE_MAX_ENTRIES = 500
+
+type TzCacheEntry = { timezone: string; expiresAt: number }
+const tzCache = new Map<string, TzCacheEntry>()
+
+/**
+ * Drop a business's cached timezone. Call this after writing business.timezone.
+ */
+export function invalidateBusinessTimezone(businessId: string): void {
+  tzCache.delete(businessId)
+}
+
+/** Visible for tests: how many businesses are currently cached. */
+export function businessTimezoneCacheSize(): number {
+  return tzCache.size
+}
 
 export async function getBusinessTimezone(businessId: string): Promise<string> {
-  if (tzCache.has(businessId)) return tzCache.get(businessId)!
+  const now = Date.now()
+  const cached = tzCache.get(businessId)
+  if (cached && cached.expiresAt > now) return cached.timezone
+
   const business = await prisma.business.findUnique({
     where: { id: businessId },
     select: { timezone: true },
   })
   const tz = resolveBusinessTimezone(business)
-  tzCache.set(businessId, tz)
+
+  // Keep the cache from growing without limit on a long-lived instance. The
+  // oldest insertion is dropped first; entries are equivalent, so eviction
+  // only costs one extra query.
+  if (tzCache.size >= TZ_CACHE_MAX_ENTRIES && !tzCache.has(businessId)) {
+    const oldest = tzCache.keys().next()
+    if (!oldest.done) tzCache.delete(oldest.value)
+  }
+
+  tzCache.set(businessId, { timezone: tz, expiresAt: now + TZ_CACHE_TTL_MS })
   return tz
 }
 
