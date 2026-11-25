@@ -69,6 +69,7 @@ const PUBLIC_BY_DESIGN: Record<string, { why: string; proof: RegExp }> = {
   'src/app/api/cron/maintenance-report/route.ts': { why: 'scheduled job, secret header, read-only', proof: /CRON_SECRET/ },
   'src/app/api/cron/memberships/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/cron/organization-invitation-delivery/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
+  'src/app/api/cron/organization-report-delivery/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/cron/reminders/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/cron/review-requests/route.ts': { why: 'scheduled job, secret header', proof: /CRON_SECRET/ },
   'src/app/api/ecommerce/checkout/route.ts': { why: 'public checkout, resolves the shop from its slug', proof: /businessSlug/ },

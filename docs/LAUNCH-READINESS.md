@@ -99,7 +99,10 @@ authorization before anything is touched.
 
 **Hosting.** The project runs on a Vercel Hobby plan. Hobby is for personal, non-commercial
 projects and does not permit commercial use, so every client deployment must sit on a paid
-plan (Pro, or the client's own team). This is a billing decision, not an engineering one,
+plan (Pro, or the client's own team). A second, separate reason for the paid plan: the
+organization-report cron (`/api/cron/organization-report-delivery`) polls every 15 minutes,
+and Hobby only permits daily crons. On Hobby that job does not run, so scheduled corporate
+reports would silently never be delivered. This is a billing decision, not an engineering one,
 and nothing in this repository upgrades it automatically.
 
 **Repository protection.** The master repository is public and the LICENSE is a structural

@@ -144,10 +144,30 @@ async function main() {
     assert(resolvePaymentProvider({ paymentInPerson: false }) === stripeProvider, 'online payments resolve to Stripe only when fully configured')
 
     const vercel = JSON.parse(readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8')) as {
-      crons: Array<{ schedule: string }>
+      crons: Array<{ path: string; schedule: string }>
     }
-    assert(vercel.crons.every(({ schedule }) => /^\d{1,2}\s+\d{1,2}\s+\*\s+\*\s+\*$/.test(schedule)),
-      'Vercel cron schedules run at most once daily')
+    // Cron policy, as the product actually needs it.
+    //
+    // Every job runs at most once a day, with one deliberate exception: the
+    // organization-report sweep. A report is due at a wall-clock time chosen by
+    // each organization (08:00 in their own timezone, say), so the sweep has to
+    // poll more often than daily or reports would arrive hours late. This was
+    // previously asserted as "all daily", which the real schedule never was.
+    //
+    // That exception has a cost the deployment must pay: sub-daily crons are not
+    // available on the Vercel Hobby plan, so a commercial deployment of this
+    // template needs a paid plan. Recorded in docs/LAUNCH-READINESS.md.
+    const DAILY = /^\d{1,2}\s+\d{1,2}\s+\*\s+\*\s+\*$/
+    const EVERY_FIFTEEN = /^\*\/15\s+\*\s+\*\s+\*\s+\*$/
+    const SUB_DAILY_ALLOWED = new Set(['/api/cron/organization-report-delivery'])
+    const offenders = vercel.crons.filter(
+      ({ path, schedule }) => !DAILY.test(schedule) && !(SUB_DAILY_ALLOWED.has(path) && EVERY_FIFTEEN.test(schedule))
+    )
+    assert(offenders.length === 0, `only the report sweep may run sub-daily (offenders: ${offenders.map((c) => c.path).join(', ') || 'none'})`)
+    assert(
+      vercel.crons.some(({ path, schedule }) => path === '/api/cron/organization-report-delivery' && EVERY_FIFTEEN.test(schedule)),
+      'the organization-report sweep polls every 15 minutes so a due report is delivered on time'
+    )
   } finally {
     globalThis.fetch = originalFetch
     for (const [key, value] of originalEnvironment) {
