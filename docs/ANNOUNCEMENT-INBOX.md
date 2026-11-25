@@ -50,8 +50,10 @@ could not be tracked at all. The smallest additive change is one table plus one 
   empty set.
 
 `prisma/migrations/20261123140000_organization_announcement_delivery` contains exactly
-that. It drops nothing, alters nothing existing, and deletes no row. It is written but not
-applied; until it runs, the inbox fails closed rather than showing or marking anything.
+that. It drops nothing, alters nothing existing, and deletes no row. Its status must be
+verified independently in each environment with `prisma migrate status`; the current
+workspace could not access the database connection, so no applied/pending state is claimed.
+The inbox fails closed rather than showing or marking anything when its schema is unavailable.
 
 The empty default means an announcement written before this column existed would resolve to
 "delivered to nobody" and stay invisible. Nothing in the application wrote an announcement
@@ -59,18 +61,25 @@ before this change, so no legitimate row is hidden by that default.
 
 ## Tests
 
-`tests/organization-announcement-inbox.test.ts` (101 assertions) covers audience
-restrictions, closed locations, wrong-organization access, read-status isolation,
-unauthorized senders, sender scope, unknown audience types, the server-side length limits,
-empty states, the server boundary checked in source, and a static mobile and accessibility
-guard. It needs no database.
+`tests/organization-announcement-inbox.test.ts` covers approved audience restrictions,
+closed locations, wrong-organization access, read-status isolation, unread-count scoping,
+unauthorized senders, sender scope, unknown audience types, server-side length limits,
+empty states, the server boundary checked in source, and mobile/accessibility guards. It needs
+no database.
 
-## What remains
+## Current boundaries and decisions
 
-- Applying the migration above.
-- Email and SMS delivery. The `POST` response already reports `delivery: 'in-app-only'`; a
-  future channel would read the same resolved set without changing a single rule.
-- An unread count on the sidebar link. It needs a per-request read in the dashboard layout,
-  which was out of scope for this pass.
-- A named-group picker. The resolver understands a group, but no model in this repository
-  defines one, so the form does not invent the concept.
+- Announcements remain **in-app only**. No external email or SMS channel was approved or
+  added; the send response continues to disclose `delivery: 'in-app-only'`.
+- The sidebar shows a capped unread badge from one organization/user/location-scoped count
+  query. Closed locations are excluded by the resolved membership scope, and database errors
+  suppress the badge rather than displaying a false zero.
+- Named employee groups could help target role-specific guidance, but there is no persisted
+  group membership model or approved definition of who can create and maintain group members.
+  Named groups are therefore deferred; new sends remain limited to all, region, and location.
+  The legacy saved-location-set audience is read-only and is not offered for new sends.
+- Migration application status remains unverified here. Check each configured database with
+  `prisma migrate status`; do not infer it from the migration directory or run a production
+  migration without the required approval.
+- Scheduled aggregate corporate reporting is documented separately in
+  `docs/ORGANIZATION-REPORTING.md`.

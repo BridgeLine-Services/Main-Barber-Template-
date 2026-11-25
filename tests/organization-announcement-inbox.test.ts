@@ -25,6 +25,7 @@ import {
   type AnnouncementRecord,
   type ViewerScope,
 } from '../src/lib/organization/announcement-inbox'
+import { unreadAnnouncementCountWhere } from '../src/lib/organization/announcement-delivery'
 import type { LocationRef } from '../src/lib/organization/announcements'
 
 let passed = 0
@@ -44,6 +45,16 @@ const LOCATIONS: LocationRef[] = [
   { businessId: 'b-harbor', region: 'East', status: 'active' },
   { businessId: 'b-closed', region: 'West', status: 'closed' },
 ]
+
+const unreadFilter = unreadAnnouncementCountWhere(ORG, 'viewer-1', LOCATIONS.filter((location) => location.status !== 'closed').map((location) => location.businessId))
+ok(
+  'unread count includes only open locations visible to the viewer',
+  unreadFilter.resolvedBusinessIds.hasSome.length === 3 && !unreadFilter.resolvedBusinessIds.hasSome.includes('b-closed'),
+)
+ok(
+  'unread count is scoped to the organization and current user read receipts',
+  unreadFilter.organizationId === ORG && unreadFilter.reads.none.organizationId === ORG && unreadFilter.reads.none.userId === 'viewer-1',
+)
 
 const OWNER: ViewerScope = {
   userId: 'u-owner',
@@ -103,14 +114,14 @@ const eastOnly = record({ id: 'a-east', audienceType: 'region', audienceValues: 
 ok('an East-only announcement is invisible to the West manager', announcementReaches(eastOnly, WEST_MANAGER).visible === false)
 ok('an East-only announcement is visible to the East manager', announcementReaches(eastOnly, EAST_MANAGER).visible === true)
 
-const namedGroup = record({
-  id: 'a-group',
-  audienceType: 'group',
+const locationAnnouncement = record({
+  id: 'a-location',
+  audienceType: 'location',
   audienceValues: ['b-airport'],
   resolvedBusinessIds: ['b-airport'],
 })
-ok('a named-group announcement reaches only the group location', announcementReaches(namedGroup, WEST_MANAGER).visible === true)
-ok('a named-group announcement skips a shop outside the group', announcementReaches(namedGroup, DOWNTOWN_BARBER).visible === false)
+ok('a location announcement reaches only the selected location', announcementReaches(locationAnnouncement, WEST_MANAGER).visible === true)
+ok('a location announcement skips a shop outside its audience', announcementReaches(locationAnnouncement, DOWNTOWN_BARBER).visible === false)
 
 const everyone = record({ id: 'a-all', audienceType: 'all', audienceValues: [], resolvedBusinessIds: ['b-downtown', 'b-airport', 'b-harbor'] })
 ok('everyone means every open location', announcementReaches(everyone, EAST_MANAGER).visible === true)
@@ -127,6 +138,11 @@ ok('a missing resolved set does not mean everyone', announcementReaches(record({
 
 const closedOnly = record({ id: 'a-closed', audienceType: 'location', audienceValues: ['b-closed'], resolvedBusinessIds: ['b-closed'] })
 ok('an announcement addressed only to a closed shop is invisible', announcementReaches(closedOnly, OWNER).visible === false)
+
+const unreadScope = unreadAnnouncementCountWhere(ORG, OWNER.userId, OWNER.businessIds)
+ok('unread count is organization scoped', unreadScope.organizationId === ORG)
+ok('unread count only includes the owner’s open locations', unreadScope.resolvedBusinessIds.hasSome.join(',') === 'b-downtown,b-airport,b-harbor' && !unreadScope.resolvedBusinessIds.hasSome.includes('b-closed'))
+ok('unread count checks receipts for the current user only', unreadScope.reads.none.userId === OWNER.userId && unreadScope.reads.none.organizationId === ORG)
 
 const sendToClosed = planDelivery({
   draft: { title: 'x', body: 'y', audience: { type: 'location', values: ['b-closed'] } },
@@ -244,7 +260,7 @@ const unknownType = planDelivery({
   locations: LOCATIONS,
 })
 ok('an audience type the resolver does not know is refused', unknownType.ok === false)
-ok('the refusal lists the real choices', /everyone, a region, a location or a named group/i.test(unknownType.errors.join(' ')))
+ok('the refusal lists only the approved audience choices', /everyone, a region, or a location/i.test(unknownType.errors.join(' ')))
 
 const longTitle = planDelivery({
   draft: { title: 'x'.repeat(201), body: 'y', audience: { type: 'all', values: [] } },
@@ -271,12 +287,12 @@ const atLimit = planDelivery({
 ok('a title and message at the limit are allowed', atLimit.ok === true)
 
 const groupPlan = planDelivery({
-  draft: { title: 'x', body: 'y', audience: { type: 'group', values: ['b-airport'] } },
+  draft: { title: 'x', body: 'y', audience: { type: 'group' as unknown as 'all', values: ['b-airport'] } },
   senderRole: 'ORGANIZATION_OWNER',
   senderBusinessIds: OWNER.businessIds,
   locations: LOCATIONS,
 })
-ok('a named group is preserved through the send plan', groupPlan.ok && groupPlan.businessIds.join(',') === 'b-airport')
+ok('named groups are rejected until their membership model is approved', groupPlan.ok === false)
 
 // ─── Wording ──────────────────────────────────────────────────────────────
 
@@ -287,7 +303,7 @@ ok(
   'unknown locations are counted, never guessed',
   audienceLabel('location', ['b-downtown', 'b-harbor'], { 'b-downtown': 'Downtown' }) === 'Downtown and 1 more',
 )
-ok('a named group without visible names stays general', audienceLabel('group', ['b-x']) === 'A named group of locations')
+ok('legacy location sets are not presented as employee groups', audienceLabel('group', ['b-x']) === 'A saved location set (legacy)')
 ok('an unrecorded audience says so', audienceLabel('mystery', []) === 'Audience not recorded')
 ok('a date is written for a person', sentOnWords('2026-11-23T18:00:00.000Z').includes('2026'))
 ok('a missing date is not invented', sentOnWords(null) === 'date not recorded')

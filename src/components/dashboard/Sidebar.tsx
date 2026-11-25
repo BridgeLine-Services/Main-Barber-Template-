@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import useSWR from 'swr'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 
@@ -58,6 +59,16 @@ import { signOut } from 'next-auth/react'
 import type { LucideIcon } from 'lucide-react'
 import { roleLabel } from '@/lib/role-labels'
 
+interface UnreadAnnouncementResponse {
+  unread: number | null
+}
+
+async function fetchUnreadAnnouncements(url: string): Promise<UnreadAnnouncementResponse> {
+  const response = await fetch(url, { headers: { accept: 'application/json' } })
+  if (!response.ok) throw new Error('Unread announcement count is unavailable')
+  return response.json()
+}
+
 interface SidebarProps {
   userName: string
   userRole: string
@@ -96,6 +107,11 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   // collapses them.
   const [sectionState, setSectionState] = useState<Record<string, 'open' | 'closed'>>({})
   const [groupState, setGroupState] = useState<Record<string, 'open' | 'closed'>>({})
+  const { data: unreadAnnouncements } = useSWR<UnreadAnnouncementResponse>(
+    '/api/dashboard/organization/announcements/unread',
+    fetchUnreadAnnouncements,
+    { refreshInterval: 60_000, revalidateOnFocus: true },
+  )
 
   // Owner nav is shared with BUSINESS_ADMIN — real authorization is server-side
   // (page gates + API guards); the sidebar only controls visibility.
@@ -362,11 +378,18 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
   const renderItem = (item: NavItem) => {
     const Icon = item.icon
     const isActive = isItemActive(item.href)
+    const unreadCount = item.href === '/dashboard/organization/announcements'
+      ? unreadAnnouncements?.unread
+      : null
+    const badgeText = typeof unreadCount === 'number' && unreadCount > 0
+      ? unreadCount > 9 ? '9+' : String(unreadCount)
+      : null
     return (
       <Link
         key={item.name}
         href={item.href}
         onClick={closeMobile}
+        aria-label={badgeText ? `${item.name}, ${unreadCount} unread` : undefined}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
           'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors group relative border',
@@ -381,8 +404,16 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             isActive ? 'text-[var(--dash-brand)]' : 'text-muted-foreground group-hover:text-foreground'
           )}
         />
-        <span className="flex-1">{item.name}</span>
-        {isActive && (
+      <span className="flex-1">{item.name}</span>
+      {badgeText && (
+        <span
+          aria-hidden="true"
+          className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-semibold leading-none text-destructive-foreground"
+        >
+          {badgeText}
+        </span>
+      )}
+      {isActive && (
           <>
             <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[var(--dash-brand)]" />
             <ChevronRight className="w-3.5 h-3.5 text-[var(--dash-brand)]" />

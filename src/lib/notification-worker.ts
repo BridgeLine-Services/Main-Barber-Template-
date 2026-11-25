@@ -8,9 +8,53 @@ import {
   buildOrganizationInvitationEmail,
   invitationDeliveryRetry,
 } from '@/lib/organization/invitation-delivery'
+import { buildConfigAuditEntry } from '@/lib/organization/config-audit'
+import { organizationReportDeliveryRetry } from '@/lib/organization/report-delivery'
 
 type EmailMessage = { from: string; to: string; subject: string; text: string; html?: string }
 type EmailSender = (message: EmailMessage) => Promise<{ messageId?: string } | void>
+
+async function recordOrganizationReportOutcome(
+  configurationId: string | null,
+  status: 'SENT' | 'RETRYING' | 'FAILED' | 'CANCELLED',
+  error?: string,
+  previousStatus: 'PENDING' | 'RETRYING' = 'PENDING',
+) {
+  if (!configurationId) return
+  try {
+    const deliveredAt = new Date()
+    const configuration = await prisma.organizationReportingConfiguration.update({
+      where: { id: configurationId },
+      data: {
+        lastDeliveryStatus: status,
+        lastDeliveryAt: deliveredAt,
+        lastDeliveryError: status === 'SENT' ? null : error ?? 'Email delivery failed.',
+      },
+      select: { organizationId: true },
+    })
+    await prisma.organizationConfigAudit.create({
+      data: buildConfigAuditEntry({
+        organizationId: configuration.organizationId,
+        actorId: null,
+        action: `organization-report.delivery.${status.toLowerCase()}`,
+        entity: 'OrganizationReportingConfiguration',
+        entityId: configurationId,
+        summary: status === 'SENT'
+          ? 'Scheduled organization report email was delivered.'
+          : status === 'RETRYING'
+            ? 'Scheduled organization report email delivery will be retried.'
+            : status === 'CANCELLED'
+              ? 'Scheduled organization report email was cancelled before delivery.'
+              : 'Scheduled organization report email delivery failed.',
+        previousValue: { status: previousStatus },
+        newValue: { status },
+        at: deliveredAt.toISOString(),
+      }),
+    })
+  } catch {
+    console.error('[notification-worker] could not record organization report delivery outcome')
+  }
+}
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -25,7 +69,7 @@ function getTransporter() {
  * so concurrent cron invocations cannot send the same row. */
 export async function processDueNotifications(
   limit = 50,
-  dependencies: { sendEmail?: EmailSender; notificationIds?: string[]; notificationType?: 'ORGANIZATION_INVITATION' } = {},
+  dependencies: { sendEmail?: EmailSender; notificationIds?: string[]; notificationType?: 'ORGANIZATION_INVITATION' | 'ORGANIZATION_REPORT' } = {},
 ) {
   const now = new Date()
 
@@ -75,21 +119,44 @@ export async function processDueNotifications(
 
   let sent = 0
   let failed = 0
+  let retrying = 0
   for (const row of pending) {
     const claimed = await prisma.notificationLog.updateMany({ // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
       where: { id: row.id, status: 'PENDING' },
       data: {
         status: 'PROCESSING',
-        ...(row.type === 'ORGANIZATION_INVITATION' ? { attemptCount: { increment: 1 } } : {}),
+        ...(['ORGANIZATION_INVITATION', 'ORGANIZATION_REPORT'].includes(row.type) ? { attemptCount: { increment: 1 } } : {}),
       },
     })
     if (claimed.count !== 1) continue
 
     const notification = await prisma.notificationLog.findUnique({
       where: { id: row.id },
-      include: { customer: { select: { smsConsent: true, marketingSmsConsent: true, smsOptedOutAt: true, emailOptOut: true } } },
+      include: {
+        customer: { select: { smsConsent: true, marketingSmsConsent: true, smsOptedOutAt: true, emailOptOut: true } },
+        organizationReportingConfiguration: { select: { enabled: true, recipients: true } },
+      },
     }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
     if (!notification) continue
+
+    if (notification.type === 'ORGANIZATION_REPORT') {
+      const configuration = notification.organizationReportingConfiguration
+      if (!configuration?.enabled || !configuration.recipients.includes(notification.recipient)) {
+        const message = 'The report schedule changed before delivery; this email was cancelled.'
+        await prisma.notificationLog.update({
+          where: { id: row.id },
+          data: { status: 'FAILED', errorMessage: message, failureReason: message },
+        })
+        await recordOrganizationReportOutcome(
+          notification.organizationReportingConfigurationId,
+          'CANCELLED',
+          message,
+          notification.attemptCount > 1 ? 'RETRYING' : 'PENDING',
+        )
+        failed++
+        continue
+      }
+    }
 
     // Honour the shop's channel switches before any provider is called.
     const allowed = notification.businessId ? channelAllowed.get(notification.businessId) : undefined
@@ -136,6 +203,14 @@ export async function processDueNotifications(
               ...(notification.type === 'ORGANIZATION_INVITATION' ? { content: null } : {}),
             },
           }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
+          if (notification.type === 'ORGANIZATION_REPORT') {
+            await recordOrganizationReportOutcome(
+              notification.organizationReportingConfigurationId,
+              'FAILED',
+              emailIssue,
+            )
+            failed++
+          }
           continue
         }
         const from = getSmtpFromAddress()
@@ -179,9 +254,39 @@ export async function processDueNotifications(
             failureReason: null,
           },
         }) // perf-ok: bounded claim-and-send worker (take: limit); per-row CAS is required for claim semantics
+        if (notification.type === 'ORGANIZATION_REPORT') {
+          await recordOrganizationReportOutcome(
+            notification.organizationReportingConfigurationId,
+            'SENT',
+            undefined,
+            notification.attemptCount > 1 ? 'RETRYING' : 'PENDING',
+          )
+        }
       }
       sent++
     } catch (error) {
+      if (notification.type === 'ORGANIZATION_REPORT') {
+        const retry = organizationReportDeliveryRetry(notification.attemptCount, error)
+        const status = retry.retryAt ? 'PENDING' : 'FAILED'
+        await prisma.notificationLog.update({
+          where: { id: row.id },
+          data: {
+            status,
+            scheduledAt: retry.retryAt ?? notification.scheduledAt,
+            errorMessage: retry.message,
+            failureReason: retry.message,
+          },
+        })
+        await recordOrganizationReportOutcome(
+          notification.organizationReportingConfigurationId,
+          retry.retryAt ? 'RETRYING' : 'FAILED',
+          retry.message,
+          notification.attemptCount > 1 ? 'RETRYING' : 'PENDING',
+        )
+        if (retry.retryAt) retrying++
+        else failed++
+        continue
+      }
       if (notification.type === 'ORGANIZATION_INVITATION') {
         const retry = invitationDeliveryRetry(notification.attemptCount, error)
         await prisma.notificationLog.update({
@@ -202,5 +307,5 @@ export async function processDueNotifications(
       failed++
     }
   }
-  return { checked: pending.length, sent, failed, requeued: requeued.count }
+  return { checked: pending.length, sent, failed, retrying, requeued: requeued.count }
 }

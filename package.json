@@ -42,6 +42,7 @@
     "test:platform": "npx tsx tests/platform-owner.test.ts",
     "test:reliability": "npx tsx tests/reliability.test.ts",
     "test:announcements": "npx tsx tests/organization-announcement-inbox.test.ts",
+    "test:organization-reporting": "npx tsx --test tests/organization-report-scheduling.test.ts",
     "test:organization-invitations": "npx tsx tests/organization-invitations.test.ts",
     "test:organization-locations": "npx tsx tests/organization-location-management.test.ts",
     "test:organization-assignments": "npx tsx tests/organization-assignment-management.test.ts",
