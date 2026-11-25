@@ -9,6 +9,7 @@ import { aggregateOnlyGuard } from '@/lib/organization/privacy'
 import { buildOrganizationReport } from '@/lib/organization/reporting'
 import { loadLocationRefs, loadLocationRollup } from '@/lib/organization/report-query'
 import { loadManagedLocations } from '@/lib/organization/location-service'
+import { ScheduledOrganizationReport } from '@/components/organization/ScheduledOrganizationReport'
 import { regionNames, statusCounts } from '@/lib/organization/location-management'
 import {
   RANGE_OPTIONS,
@@ -72,6 +73,8 @@ export default async function OrganizationOverviewPage({
 
   const context = resolved.context
   const canSeeReports = can(context.role, 'reporting.aggregate.read')
+  const canManageScheduledReports = canSeeReports &&
+    (context.role === 'ORGANIZATION_OWNER' || context.role === 'CORPORATE_ADMIN')
 
   const end = new Date()
   const start = new Date(end.getTime() - days * 86_400_000)
@@ -127,7 +130,7 @@ export default async function OrganizationOverviewPage({
           {context.regions.length > 0 ? ` · Regions: ${context.regions.join(', ')}` : ''}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          This page only looks. Nothing here changes a booking, a shop or a person.
+          The figures below are read-only. Organization owners and corporate admins can configure scheduled report delivery.
         </p>
       </div>
 
@@ -197,6 +200,8 @@ export default async function OrganizationOverviewPage({
           </p>
         </section>
       )}
+
+      {canManageScheduledReports && <ScheduledOrganizationReport />}
 
       <section aria-labelledby="locations" className="space-y-3">
         <h2 id="locations" className="text-lg font-semibold text-foreground">

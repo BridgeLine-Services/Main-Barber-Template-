@@ -83,13 +83,19 @@ export async function POST(req: NextRequest) {
 
   const raw = body as { title?: unknown; body?: unknown; audience?: unknown }
   const audience = raw.audience as { type?: unknown; values?: unknown } | undefined
+  const audienceType = audience && typeof audience.type === 'string' ? audience.type : null
+  const supportedAudienceTypes = new Set(['all', 'region', 'location'])
+  if (audienceType && !supportedAudienceTypes.has(audienceType)) {
+    return NextResponse.json({ error: 'Choose everyone, a region, or a location.' }, { status: 400 })
+  }
+
   const draft = {
     title: typeof raw.title === 'string' ? raw.title : '',
     body: typeof raw.body === 'string' ? raw.body : '',
     audience:
-      audience && typeof audience === 'object' && typeof audience.type === 'string'
+      audience && audienceType
         ? {
-            type: audience.type as 'all' | 'region' | 'location' | 'group',
+            type: audienceType as 'all' | 'region' | 'location',
             values: Array.isArray(audience.values)
               ? audience.values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
               : [],

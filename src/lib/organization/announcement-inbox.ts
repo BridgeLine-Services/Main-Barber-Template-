@@ -96,7 +96,7 @@ export function audienceLabel(
   const list = Array.isArray(values) ? values.filter((value) => typeof value === 'string' && value.trim().length > 0) : []
   const names = list.map((value) => visibleLocationNames[value]).filter(Boolean) as string[]
 
-  switch (type as AudienceType) {
+  switch (type) {
     case 'all':
       return 'Every open location'
     case 'region':
@@ -107,9 +107,7 @@ export function audienceLabel(
       if (names.length > 0) return `${names.join(', ')} and ${list.length - names.length} more`
       return `${list.length} location${list.length === 1 ? '' : 's'}`
     case 'group':
-      if (list.length === 0) return 'A named group'
-      if (names.length === list.length) return `Named group: ${names.join(', ')}`
-      return 'A named group of locations'
+      return 'A saved location set (legacy)'
     default:
       return 'Audience not recorded'
   }
@@ -222,8 +220,8 @@ export function emptyStateMessage(viewer: ViewerScope, deliveredToOrganization: 
   return 'Nothing is addressed to you right now. Announcements sent to other locations stay out of your inbox.'
 }
 
-/** The audiences the existing resolver understands. */
-const SENDABLE_AUDIENCES: AudienceType[] = ['all', 'region', 'location', 'group']
+/** Named groups remain deferred until a membership model and permissions are designed. */
+const SENDABLE_AUDIENCES: AudienceType[] = ['all', 'region', 'location']
 
 export const MAX_TITLE_LENGTH = 200
 export const MAX_BODY_LENGTH = 5000
@@ -271,12 +269,11 @@ export function planDelivery(input: SendPlanInput): SendPlan {
   const validation = validateAnnouncement(input.draft)
   const errors = [...validation.errors]
 
-  // The four audiences the resolver understands. Anything else is refused here rather than
-  // falling through to the group branch, so an unknown type cannot be used to guess at a
-  // wider audience than the sender chose.
+  // Only the established all, region, and location audiences can be sent. Legacy saved
+  // location sets remain readable but cannot be selected for new announcements.
   const declaredAudience = input.draft.audience as Audience
   if (declaredAudience && !SENDABLE_AUDIENCES.includes(declaredAudience.type)) {
-    errors.push('Choose everyone, a region, a location or a named group.')
+    errors.push('Choose everyone, a region, or a location.')
   }
 
   // Length limits live on the server too: the form's maxLength is a convenience, not a rule.

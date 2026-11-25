@@ -1,14 +1,14 @@
 /**
  * Corporate announcements (Priority 3, part E).
  *
- * An announcement may go to every location, one region, one location, or one named group
- * of employees. The audience is resolved from the organization's own location list, so an
- * announcement cannot be addressed to a location that is not part of it.
+ * An announcement may go to every location, one region, or one location. The audience is
+ * resolved from the organization's own location list, so an announcement cannot be
+ * addressed to a location that is not part of it.
  */
 
 import { can, type OrgRole } from './capabilities'
 
-export type AudienceType = 'all' | 'region' | 'location' | 'group'
+export type AudienceType = 'all' | 'region' | 'location'
 
 export interface Audience {
   type: AudienceType
@@ -54,14 +54,10 @@ export function resolveAudience(audience: Audience, locations: LocationRef[]): A
       empty: matched.length === 0,
     }
   }
-  // A named group is a list of location ids the caller has already resolved from
-  // assignments. Unknown ids are dropped, never invented.
-  const wanted = new Set(audience.values)
-  const matched = open.filter((l) => wanted.has(l.businessId))
   return {
-    businessIds: matched.map((l) => l.businessId),
-    explanation: `Locations with people in the chosen group (${matched.length}).`,
-    empty: matched.length === 0,
+    businessIds: [],
+    explanation: 'Unsupported audience type.',
+    empty: true,
   }
 }
 
@@ -81,7 +77,7 @@ export function validateAnnouncement(draft: Partial<AnnouncementDraft>): Validat
   if (!draft.title?.trim()) errors.push('An announcement needs a title.')
   if (!draft.body?.trim()) errors.push('An announcement needs a message.')
   if (!draft.audience) errors.push('Choose who should see this.')
-  else if (draft.audience.type !== 'all' && draft.audience.values.length === 0) errors.push('Choose at least one region, location or group.')
+  else if (draft.audience.type !== 'all' && draft.audience.values.length === 0) errors.push('Choose at least one region or location.')
   return { valid: errors.length === 0, errors }
 }
 

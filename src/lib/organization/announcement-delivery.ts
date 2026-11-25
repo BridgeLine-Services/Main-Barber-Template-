@@ -34,6 +34,35 @@ function viewerFrom(context: OrgContext, userId: string): ViewerScope {
   }
 }
 
+export function unreadAnnouncementCountWhere(
+  organizationId: string,
+  userId: string,
+  visibleBusinessIds: string[],
+) {
+  return {
+    organizationId,
+    publishedAt: { not: null },
+    resolvedBusinessIds: { hasSome: visibleBusinessIds },
+    reads: { none: { organizationId, userId } },
+  }
+}
+
+/** One scoped aggregate query; null means the count could not be verified. */
+export async function countUnreadAnnouncementInbox(
+  organizationId: string,
+  userId: string,
+  visibleBusinessIds: string[],
+): Promise<number | null> {
+  if (visibleBusinessIds.length === 0) return 0
+  try {
+    return await prisma.organizationAnnouncement.count({
+      where: unreadAnnouncementCountWhere(organizationId, userId, visibleBusinessIds),
+    })
+  } catch {
+    return null
+  }
+}
+
 /** Location references for the organization, used to resolve an audience at send time. */
 export async function loadOrganizationLocationRefs(organizationId: string): Promise<LocationRef[]> {
   const rows = await prisma.organizationLocation.findMany({
