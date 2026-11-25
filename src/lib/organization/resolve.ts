@@ -18,6 +18,7 @@ export interface OrgContext {
   role: OrgRole
   /** Regions this member may act on. Empty means every region. */
   regions: string[]
+  allRegions: boolean
   /** The locations this person may act on, resolved from membership and assignment. */
   locationBusinessIds: string[]
   /** The location a location-level member primarily works at, when known. */
@@ -77,8 +78,15 @@ export async function resolveOrganizationContext(userId: string | null | undefin
   const homeBusinessId = user?.businessId ?? null
 
   let visible = locations.filter((l) => l.status !== 'closed')
-  if (role === 'REGIONAL_MANAGER' && active.regions.length > 0) {
-    visible = visible.filter((l) => l.region !== null && active.regions.includes(l.region))
+  if (role === 'REGIONAL_MANAGER') {
+    // Fail closed. An empty region list used to skip this filter entirely, so a
+    // regional manager whose regions were never set could see every location in
+    // the organization. All-region access is now an explicit, auditable grant;
+    // without it, a manager sees the regions they were given and nothing else.
+    // Explicit per-location assignments are added below, as before.
+    visible = active.allRegions
+      ? visible
+      : visible.filter((l) => l.region !== null && active.regions.includes(l.region))
   }
   if (role === 'FRANCHISE_OWNER' || role === 'LOCATION_MANAGER' || role === 'BARBER') {
     // A location-level role sees only the location it belongs to.
@@ -105,6 +113,7 @@ export async function resolveOrganizationContext(userId: string | null | undefin
       membershipId: active.id,
       role,
       regions: active.regions,
+      allRegions: active.allRegions,
       locationBusinessIds: visible.map((l) => l.businessId),
       homeBusinessId,
     },

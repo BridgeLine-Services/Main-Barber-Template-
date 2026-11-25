@@ -82,7 +82,9 @@ export async function POST(req: NextRequest) {
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'The invitation could not be read.' }, { status: 400 })
   }
-  const { email, role, regions } = body as { email?: unknown; role?: unknown; regions?: unknown }
+  const { email, role, regions, allRegions } = body as {
+    email?: unknown; role?: unknown; regions?: unknown; allRegions?: unknown
+  }
 
   if (typeof email !== 'string') {
     return NextResponse.json({ error: 'Enter the email address of the person you want to invite.' }, { status: 400 })
@@ -92,11 +94,36 @@ export async function POST(req: NextRequest) {
   }
   const regionList = Array.isArray(regions) ? regions.filter((value): value is string => typeof value === 'string') : []
 
+  // A regional manager's scope is now decided by what was actually chosen.
+  // Previously a missing or malformed list became [] which the resolver read as
+  // "every region", so a typo in the form granted organization-wide access.
+  // Now: an explicit all-regions choice grants everything; an explicit list
+  // grants those regions; neither means no locations until an owner assigns
+  // them. A manager invited with no scope at all is rejected outright rather
+  // than silently given the whole organization.
+  const wantsAllRegions = allRegions === true
+  if (role === 'REGIONAL_MANAGER' && !wantsAllRegions && regionList.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          'Choose the regions this manager should look after. If they should see every location, tick "All locations" instead.',
+      },
+      { status: 400 }
+    )
+  }
+  if (wantsAllRegions && regionList.length > 0) {
+    return NextResponse.json(
+      { error: 'Choose either specific regions or all locations, not both.' },
+      { status: 400 }
+    )
+  }
+
   const result = await createOrganizationInvitation({
     context: resolved.context,
     email,
     role: role as MemberRole,
     regions: regionList,
+    allRegions: wantsAllRegions,
     invitedById: auth.user.id,
   })
 
