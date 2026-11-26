@@ -2,13 +2,13 @@
 
 Where the platform brief's acceptance criteria (Section 23) actually stand. Every line is
 either backed by a test that runs, or says plainly that it is not done. Last updated
-2026-11-25 against `main`.
+2026-11-25 (later commit) against `main`.
 
 ## Security
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| Tenant context in real protected queries | **Not done** | `withTenant()` exists; routes still scope by resolved session business. Section 5 open. |
-| Cross-tenant regression tests | **Partial** | Organization isolation suites cover organization/location boundaries. No `withTenant` cross-tenant suite. |
+| Tenant context in real protected queries | **Partial** | `withTenant()` exists but is not yet wired into query call sites; routes scope by a session-resolved business. Section 5 still open. |
+| Cross-tenant regression tests | **Partial** | Organization isolation suites cover organization/location boundaries; `tests/tenant-scoping-guard.test.ts` audits all 156 dashboard routes for IDOR patterns and passes. No `withTenant` cross-tenant suite. |
 | Organization scope explicit and fail-closed | **Done** | `resolveOrganizationContext`, `capabilities.ts`, `tests/organization-isolation.test.ts`, `tests/organization-architecture.test.ts`. |
 | Production RLS only after prerequisites | **Correctly gated** | Not enabled. `docs/RLS-STAGING-PLAN.md`, `prisma/rls/production-rls.sql` unchanged. |
 | Role and location permissions server-side | **Done** | Every organization route re-resolves context and re-checks capability; `tests/organization-location-management.test.ts`, `tests/organization-assignments.test.ts`. |
@@ -68,6 +68,6 @@ either backed by a test that runs, or says plainly that it is not done. Last upd
 | --- | --- | --- |
 | Existing tests continue to pass | **Done** | Suites listed in each phase report. |
 | New features have regression tests | **Done** | Per feature. |
-| TypeScript safety improves | **Not done** | `strict: false` unchanged; Section 16 open. |
-| Accessibility and responsive tests remain | **Partial** | `accessibility-guard` and `visual-config` pass; brand-colour contrast audit written and tested but **not yet shown in the UI**. |
+| TypeScript safety improves | **Partial** | Three zero-cost strict flags enabled (`noImplicitOverride`, `noFallthroughCasesInSwitch`, `noUncheckedIndexedAccess`); remaining 701 errors measured and ordered in `docs/TYPESCRIPT-STRICTNESS.md`. `strict` is still `false`. |
+| Accessibility and responsive tests remain | **Done** | `accessibility-guard` and `visual-config` pass; the brand-colour contrast audit is tested and shown in the setup wizard and the organization brand editor, where colours are chosen. |
 | Application builds | **Done** | `npm run build` compiled. |
