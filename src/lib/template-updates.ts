@@ -165,3 +165,201 @@ export function assessUpdate(
     summary,
   }
 }
+
+/**
+ * Section 15 asks for a six-way classification rather than one risk word, and for a change
+ * report a person reads before anything is deployed. `assessUpdate` answers "how much does
+ * this need signing off"; this layer answers "what is this file, and what do I do with it".
+ */
+export type ChangeClass = 'safe' | 'review' | 'conflict' | 'migration' | 'security' | 'blocked'
+
+export interface ClassifiedChange {
+  path: string
+  status: ChangedFile['status']
+  changeClass: ChangeClass
+  /** Why it landed in that class, in words an owner can act on. */
+  why: string
+  /** What to do about it. */
+  action: string
+}
+
+/** Files an update must never overwrite: a shop's own secrets and hosting configuration. */
+const NEVER_OVERWRITE = ['.env', 'vercel.json', 'config/', 'TEMPLATE-VERSION.json']
+
+function isNeverOverwritten(path: string): boolean {
+  return NEVER_OVERWRITE.some((entry) => path === entry || path.startsWith(entry) || path.startsWith('.env'))
+}
+
+/**
+ * Classify one changed file. Precedence is deliberate: security outranks everything, a
+ * migration outranks a conflict, and a file that must never be overwritten is blocked
+ * rather than merely conflicting.
+ */
+export function classifyChange(file: ChangedFile, clientOwned: string[] = DEFAULT_CLIENT_OWNED): ClassifiedChange {
+  const base = { path: file.path, status: file.status }
+  if (isSecurity(file.path)) {
+    return {
+      ...base,
+      changeClass: 'security',
+      why: 'This file decides how the site is protected.',
+      action: 'Read the diff, get explicit approval, then apply it at a maintenance window.',
+    }
+  }
+  if (isMigration(file.path)) {
+    return {
+      ...base,
+      changeClass: 'migration',
+      why: 'This changes the database.',
+      action: 'Back up first. Never applied automatically; apply it deliberately and verify.',
+    }
+  }
+  if (isNeverOverwritten(file.path)) {
+    return {
+      ...base,
+      changeClass: 'blocked',
+      why: 'This holds your own secrets or hosting settings and must not be overwritten.',
+      action: 'Do not copy it. Re-apply anything relevant by hand.',
+    }
+  }
+  if (isClientOwned(file.path, clientOwned)) {
+    return {
+      ...base,
+      changeClass: 'conflict',
+      why: 'You may have customised this file, so a straight overwrite could lose your work.',
+      action: 'Compare both versions and merge by hand.',
+    }
+  }
+  if (file.status === 'removed') {
+    return {
+      ...base,
+      changeClass: 'review',
+      why: 'This file is being removed, and something here may still use it.',
+      action: 'Check nothing you rely on imports it before accepting the removal.',
+    }
+  }
+  if (isDependency(file.path)) {
+    return {
+      ...base,
+      changeClass: 'review',
+      why: 'This changes installed dependencies.',
+      action: 'Install, then run the test suite and the build before deploying.',
+    }
+  }
+  return {
+    ...base,
+    changeClass: 'safe',
+    why: 'An ordinary source change with no database, security or configuration effect.',
+    action: 'Apply with the rest of the safe changes.',
+  }
+}
+
+export interface Blocker {
+  code: string
+  detail: string
+}
+
+/**
+ * Reasons an update cannot proceed yet, as opposed to reasons it needs approval. A blocker
+ * is something only a person can resolve; it is not a risk level.
+ */
+export function findBlockers(input: {
+  local: VersionStamp | null
+  remote: VersionStamp | null
+  runningNodeMajor: number | null
+  requiredNodeMajor?: number | null
+  localMigrationCount?: number | null
+  remoteMigrationCount?: number | null
+}): Blocker[] {
+  const blockers: Blocker[] = []
+  const { local, remote } = input
+  if (!local) {
+    blockers.push({ code: 'no-local-version', detail: 'This copy cannot say which version it is running.' })
+  }
+  if (!remote) {
+    blockers.push({ code: 'no-upstream-version', detail: 'The source could not be read, so there is nothing to compare against.' })
+  }
+  if (local && remote && !local.sourceCommit) {
+    blockers.push({ code: 'unstamped-local', detail: 'This copy has no release commit, so the changed files cannot be trusted.' })
+  }
+  if (local && remote && !remote.sourceCommit) {
+    blockers.push({ code: 'unstamped-upstream', detail: 'The upstream release has no commit recorded.' })
+  }
+  if (input.requiredNodeMajor !== null && input.requiredNodeMajor !== undefined && input.runningNodeMajor !== null) {
+    if (input.runningNodeMajor < input.requiredNodeMajor) {
+      blockers.push({
+        code: 'node-too-old',
+        detail: `This update needs Node.js ${input.requiredNodeMajor} or newer; this server runs ${input.runningNodeMajor}.`,
+      })
+    }
+  }
+  if (
+    typeof input.localMigrationCount === 'number' &&
+    typeof input.remoteMigrationCount === 'number' &&
+    input.remoteMigrationCount < input.localMigrationCount
+  ) {
+    blockers.push({
+      code: 'schema-ahead',
+      detail: 'This copy already has migrations the update does not contain, so it is not a clean forward move.',
+    })
+  }
+  return blockers
+}
+
+const CLASS_ORDER: ChangeClass[] = ['blocked', 'security', 'migration', 'conflict', 'review', 'safe']
+
+const CLASS_HEADING: Record<ChangeClass, string> = {
+  blocked: 'Do not overwrite (blocked)',
+  security: 'Security critical',
+  migration: 'Migration required',
+  conflict: 'Your customisations (conflict)',
+  review: 'Requires review',
+  safe: 'Safe',
+}
+
+/**
+ * The change report an owner reads before deploying. Plain Markdown, no build step, and it
+ * lists every changed file under exactly one class so nothing is quietly dropped.
+ */
+export function renderChangeReport(
+  assessment: UpdateAssessment,
+  changes: ClassifiedChange[],
+  blockers: Blocker[] = [],
+): string {
+  const lines: string[] = []
+  lines.push('# Update change report')
+  lines.push('')
+  lines.push(`From: ${assessment.fromVersion ?? 'unknown'}  `)
+  lines.push(`To: ${assessment.toVersion ?? 'unknown'}  `)
+  lines.push(`Risk: ${assessment.risk}  `)
+  lines.push(`Changed files: ${assessment.counts.total}`)
+  lines.push('')
+  lines.push(assessment.summary)
+  lines.push('')
+  if (blockers.length > 0) {
+    lines.push('## Blocked: resolve these first')
+    lines.push('')
+    for (const blocker of blockers) lines.push(`- **${blocker.code}**: ${blocker.detail}`)
+    lines.push('')
+  }
+  if (!assessment.hasUpdate && changes.length === 0) {
+    lines.push('Nothing to do: this copy matches the source you checked.')
+    return lines.join('\n')
+  }
+  for (const changeClass of CLASS_ORDER) {
+    const group = changes.filter((change) => change.changeClass === changeClass)
+    if (group.length === 0) continue
+    lines.push(`## ${CLASS_HEADING[changeClass]} (${group.length})`)
+    lines.push('')
+    for (const change of group) {
+      lines.push(`- \`${change.path}\` (${change.status})`)
+      lines.push(`  - Why: ${change.why}`)
+      lines.push(`  - Do: ${change.action}`)
+    }
+    lines.push('')
+  }
+  lines.push('## Order of work')
+  lines.push('')
+  assessment.steps.forEach((step, index) => lines.push(`${index + 1}. ${step}`))
+  lines.push('')
+  return lines.join('\n')
+}
