@@ -36,6 +36,9 @@ const TENANT_TABLES = [
   'OrganizationLocation','StaffLocationAssignment',
   'OrganizationServicePriceException','OrganizationServicePriceRequest','CustomerLocationLink',
   'ReferralProgram','ReferralCode','ReferralAttribution',
+  // referral rewards + website content history: direct businessId, added after the
+  // enforcement test caught them missing from the SQL protection list
+  'ReferralReward','ReferralRewardEvent','WebsiteContentVersion',
   // tenant roots
   'Business','Schedule',
 ]

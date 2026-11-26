@@ -129,6 +129,18 @@ jobs:
             echo "::warning::Client ${psql_major}/${dump_major} does not match the 15 server; the RLS test drops the settings this server cannot accept, so it still runs."
           fi
       - run: npx prisma migrate deploy
+      # The deployed cron configuration must be the one the Vercel plan allows. A Hobby
+      # deployment whose vercel.json carries a sub-daily schedule is rejected by Vercel, so
+      # this runs before anything expensive and names the file to fix.
+      - name: Validate the deployed cron plan
+        run: npm run cron:plan --check
+
+      # The Pro plan is verified by its own assertions (the 15-minute schedule and the
+      # endpoint's route) rather than by pointing vercel.json at it, because the deployment
+      # ships Hobby.
+      - name: Cron plan and scheduled-report switch tests
+        run: npm run test:cron-plan
+
       - run: npm run test:ci
       # Backup reliability gates (reliability hardening, Part 3):
       #   • cleanup runs on every failure path (scratch databases and temp dumps

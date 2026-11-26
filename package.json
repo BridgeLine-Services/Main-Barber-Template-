@@ -165,7 +165,8 @@
     "test:tenant-isolation": "npx tsx tests/tenant-isolation.test.ts",
     "test:referral-issuance": "npx tsx tests/referral-issuance.test.ts",
     "test:marketing-performance": "npx tsx tests/marketing-performance.test.ts",
-    "test:update-classification": "npx tsx tests/template-update-classification.test.ts"
+    "test:update-classification": "npx tsx tests/template-update-classification.test.ts",
+    "test:cron-plan": "npx tsx tests/cron-plan.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",

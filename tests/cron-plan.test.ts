@@ -6,6 +6,7 @@
  * plan files, and the job does nothing unless the deployment explicitly switched it on.
  */
 import { readFileSync, existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import {
   ORGANIZATION_REPORT_CRON_FLAG,
@@ -41,12 +42,46 @@ ok('no Hobby schedule runs more than once a day', hobby.every((c) => !c.schedule
 ok('the Hobby plan has no report schedule at all', !hobby.some((c) => c.path === REPORT))
 ok('the report job is not quietly turned into a daily job', !hobby.some((c) => c.path === REPORT))
 
-// The deployed file is one of the plans, not a third hand-edited truth.
-ok('vercel.json matches the Pro plan', JSON.stringify(live) === JSON.stringify(pro))
+// The deployed file is one of the plans, not a third hand-edited truth. The deployment
+// ships Hobby today, so vercel.json must be the Hobby file: a Hobby deploy that carries a
+// sub-daily schedule is rejected by Vercel before the app ever runs.
+const matchesHobby = JSON.stringify(live) === JSON.stringify(hobby)
+const matchesPro = JSON.stringify(live) === JSON.stringify(pro)
+ok('vercel.json matches exactly one of the two plan files', matchesHobby !== matchesPro)
+ok('the deployed configuration is the Hobby plan', matchesHobby)
+ok('the deployed configuration has no sub-daily schedule', live.every((c) => !c.schedule.startsWith('*')), live.filter((c) => c.schedule.startsWith('*')).map((c) => c.path).join(','))
+ok('the deployed configuration keeps every daily job', hobby.every((h) => live.some((c) => c.path === h.path && c.schedule === h.schedule)))
 
-// Nothing else became frequent.
-const subDaily = live.filter((c) => c.schedule.startsWith('*'))
-ok('the report job is the only sub-daily schedule', subDaily.length === 1 && subDaily[0].path === REPORT, subDaily.map((c) => c.path).join(','))
+// The Pro-only endpoint stays implemented even though Hobby does not schedule it, so the
+// upgrade is a configuration change and not a rebuild.
+ok('the Pro-only report endpoint still exists as a route', existsSync(join(ROOT, 'src/app', REPORT, 'route.ts')))
+ok('the Pro plan is a superset of the Hobby plan', hobby.every((h) => pro.some((c) => c.path === h.path && c.schedule === h.schedule)))
+
+// Nothing else became frequent in either plan.
+const proSubDaily = pro.filter((c) => c.schedule.startsWith('*'))
+ok('the report job is the only sub-daily schedule in Pro', proSubDaily.length === 1 && proSubDaily[0].path === REPORT, proSubDaily.map((c) => c.path).join(','))
+
+// The script's default must be the deployed plan, proved by running it, not by reading it.
+const scriptRun = execFileSync('node', ['scripts/cron-plan.mjs', '--check'], {
+  cwd: ROOT,
+  encoding: 'utf8',
+  env: { ...process.env, CRON_PLAN: '' },
+})
+ok('an unspecified plan defaults to the deployed plan', /matches hobby/i.test(scriptRun), scriptRun.trim())
+// Drift is refused: asking for a plan the file does not match must fail, and say which
+// file it expected. This is what stops a Pro file from shipping to a Hobby deployment.
+let driftMessage = ''
+let drifted = false
+try {
+  execFileSync('node', ['scripts/cron-plan.mjs', '--check'], {
+    cwd: ROOT, encoding: 'utf8', env: { ...process.env, CRON_PLAN: 'pro' }, stdio: 'pipe',
+  })
+} catch (error) {
+  drifted = true
+  driftMessage = String((error as { stderr?: string }).stderr ?? '')
+}
+ok('a configuration that drifts from the selected plan is refused', drifted)
+ok('the refusal names the plan file it expected', /crons\.pro\.json/.test(driftMessage), driftMessage.trim())
 
 // Every scheduled path is a route that exists, so no cron points at nothing.
 const missing = live.filter((c) => !existsSync(join(ROOT, 'src/app', c.path, 'route.ts')))

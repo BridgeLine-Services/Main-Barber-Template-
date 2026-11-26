@@ -65,6 +65,7 @@ ALTER ROLE barber_app NOSUPERUSER;
 --   StaffInvitation, MembershipSettings, MembershipPlan, Membership,
 --   MembershipUsage, EcommerceSettings, Product, ShopOrder,
 --   ReviewRequestSettings, ReviewRequest, SmsConsentLog
+--   ReferralReward, ReferralRewardEvent, WebsiteContentVersion
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
@@ -131,7 +132,12 @@ DECLARE
     -- consent and the referral tables are all scoped by businessId.
     'OrganizationLocation','StaffLocationAssignment',
     'OrganizationServicePriceException','CustomerLocationLink',
-    'ReferralProgram','ReferralCode','ReferralAttribution'
+    'ReferralProgram','ReferralCode','ReferralAttribution',
+    -- Referral rewards (businessId direct): the ledger of what a customer earned and
+    -- the immutable events behind it. Added after the enforcement test caught both.
+    'ReferralReward','ReferralRewardEvent',
+    -- Website content history (businessId direct): every saved version of a shop's page.
+    'WebsiteContentVersion'
   ];
   tbl TEXT;
 BEGIN

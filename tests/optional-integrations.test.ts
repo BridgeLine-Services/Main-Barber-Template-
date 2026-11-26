@@ -164,9 +164,20 @@ async function main() {
       ({ path, schedule }) => !DAILY.test(schedule) && !(SUB_DAILY_ALLOWED.has(path) && EVERY_FIFTEEN.test(schedule))
     )
     assert(offenders.length === 0, `only the report sweep may run sub-daily (offenders: ${offenders.map((c) => c.path).join(', ') || 'none'})`)
+    // The deployed file is whichever plan the Vercel plan allows, so the 15-minute entry is
+    // asserted on the Pro plan file rather than on vercel.json. Hobby cannot run it, and a
+    // Hobby deployment that carries it is rejected by Vercel at deploy time.
+    const proPlan = JSON.parse(readFileSync(resolve(process.cwd(), 'config/vercel/crons.pro.json'), 'utf8')) as {
+      path: string
+      schedule: string
+    }[]
     assert(
-      vercel.crons.some(({ path, schedule }) => path === '/api/cron/organization-report-delivery' && EVERY_FIFTEEN.test(schedule)),
-      'the organization-report sweep polls every 15 minutes so a due report is delivered on time'
+      proPlan.some(({ path, schedule }) => path === '/api/cron/organization-report-delivery' && EVERY_FIFTEEN.test(schedule)),
+      'the Pro plan keeps the organization-report sweep at every 15 minutes so a due report is delivered on time'
+    )
+    assert(
+      !vercel.crons.some(({ path, schedule }) => SUB_DAILY_ALLOWED.has(path) && EVERY_FIFTEEN.test(schedule)),
+      'the deployed configuration does not schedule a sub-daily job unless it is on a plan that allows one'
     )
   } finally {
     globalThis.fetch = originalFetch
