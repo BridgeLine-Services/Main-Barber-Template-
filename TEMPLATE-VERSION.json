@@ -1,8 +1,10 @@
 {
-  "manifestVersion": 1,
-  "templateVersion": "1.0.0",
-  "sourceCommit": "f32913573fe76398025bf65275d91966e1410000",
-  "copiedAt": "2026-11-26T00:01:03.295Z",
-  "sourceRepository": "BridgeLine-Services/Main-Barber-Template-",
-  "schemaFingerprint": "b8f8a618b8c28571"
+  "template": "Main Barber Template",
+  "version": "1.2.0",
+  "releasedAt": "2026-11-20",
+  "sourceCommit": "30f99cdf98690da880c63b57ba68be38407eb560",
+  "compatibleAppVersion": "1.0.0",
+  "requiredNodeMajor": 24,
+  "schemaMigrationCount": 63,
+  "notes": "Reliability program (scheduled reports, advisories, compatibility, update planning, gated repairs, restore verification), additive organization layer with aggregate-only corporate reporting, referral attribution and barber growth analytics, CodeQL remediation and staged RLS reconciliation."
 }
