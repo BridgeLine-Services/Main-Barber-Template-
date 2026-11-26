@@ -163,6 +163,13 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
     howToFix: 'Set the https address of the deployment. It is public, so it must never hold a secret.',
   },
   {
+    name: 'CRON_PLAN', description: 'Which cron plan vercel.json must match: pro or hobby', category: 'SCHEDULED_TASKS',
+    secret: false, public: false, platformManaged: false, requiredIn: NONE, requiredAt: 'build',
+    connectivityTestable: false,
+    howToObtain: 'The Vercel plan the deployment runs on. Defaults to pro when unset.',
+    howToFix: 'Optional. Used by npm run cron:plan --check to catch vercel.json drifting from the reviewed plan.',
+  },
+  {
     name: 'NEXT_PUBLIC_APP_NAME', description: 'Application name shown in metadata and emails', category: 'CORE',
     secret: false, public: true, platformManaged: false, requiredIn: NONE, requiredAt: 'build',
     connectivityTestable: false,
