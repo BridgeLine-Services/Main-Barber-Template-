@@ -13,7 +13,7 @@
 
 import { prisma } from '../src/lib/prisma'
 import { localTimeToUTCFromYMD, dayBoundsFromYMD, formatTimeInTimezone } from '../src/lib/timezone'
-import { getAvailableSlots } from '../src/lib/availability'
+import { getAvailableSlots, getBusinessTimezone, invalidateBusinessTimezone, businessTimezoneCacheSize } from '../src/lib/availability'
 
 const TZ = 'America/Los_Angeles'
 let passed = 0
@@ -130,6 +130,56 @@ async function main() {
       }
     }
     await prisma.business.delete({ where: { id: business.id } }).catch(() => {})
+  }
+
+  // A shop that moves timezone must not keep serving the old one.
+  //
+  // The lookup is cached across requests on a warm server instance, which is
+  // fine until the timezone changes: then a booking could be offered in the
+  // shop's previous timezone until the process restarts. These assertions pin
+  // both halves: the cache really is used (so the fix is not accidentally
+  // removed by deleting the cache), and invalidation makes the new timezone
+  // visible immediately.
+  {
+    const stamp = Date.now()
+    const business = await prisma.business.create({
+      data: {
+        name: `TZ Change ${stamp}`, slug: `tz-change-${stamp}`, email: `tzc${stamp}@example.com`,
+        phone: '555-0103', address: '2 Test St', city: 'TestCity', state: 'CA', zipCode: '90001',
+        timezone: 'America/Los_Angeles', minAdvanceBookingMinutes: 0, bufferMinutes: 0, cancellationDeadlineHours: 0,
+      },
+    })
+
+    assert(await getBusinessTimezone(business.id) === 'America/Los_Angeles',
+      'timezone change: starts on the shop timezone')
+
+    await prisma.business.update({ where: { id: business.id }, data: { timezone: 'America/New_York' } })
+    assert(await getBusinessTimezone(business.id) === 'America/Los_Angeles',
+      'timezone change: the cached value is still served before invalidation (cache is real)')
+
+    invalidateBusinessTimezone(business.id)
+    assert(await getBusinessTimezone(business.id) === 'America/New_York',
+      'timezone change: invalidation makes the new timezone visible immediately')
+
+    // The cache must stay bounded: writing many businesses must not grow it
+    // without limit on a long-lived instance.
+    const many: string[] = []
+    for (let i = 0; i < 60; i++) {
+      const b = await prisma.business.create({
+        data: {
+          name: `TZ Fill ${stamp}-${i}`, slug: `tz-fill-${stamp}-${i}`, email: `tzf${stamp}${i}@example.com`,
+          phone: '555-0104', address: '3 Test St', city: 'TestCity', state: 'CA', zipCode: '90001',
+          timezone: 'America/Chicago', minAdvanceBookingMinutes: 0, bufferMinutes: 0, cancellationDeadlineHours: 0,
+        },
+      })
+      many.push(b.id)
+      await getBusinessTimezone(b.id)
+    }
+    assert(businessTimezoneCacheSize() <= 500, `timezone cache stays bounded (${businessTimezoneCacheSize()} entries)`)
+    assert(await getBusinessTimezone(many[many.length - 1]) === 'America/Chicago',
+      'timezone change: newest entry is readable while the cache is full')
+
+    await prisma.business.deleteMany({ where: { id: { in: [business.id, ...many] } } }).catch(() => {})
   }
 
   console.log(`\nTimezone/DST: ${passed} passed, ${failed} failed`)
