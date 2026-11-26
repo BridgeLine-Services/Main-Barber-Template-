@@ -20,8 +20,14 @@ export interface FocusItem {
   why: string
 }
 
+export type OrganizationRoleName =
+  | 'ORGANIZATION_OWNER'
+  | 'CORPORATE_ADMIN'
+  | 'REGIONAL_MANAGER'
+  | 'FRANCHISE_OWNER'
+
 export interface RoleExperience {
-  role: AppRole
+  role: AppRole | OrganizationRoleName
   /** How this person is described to themselves. */
   label: string
   /** One sentence about what this page is for them. */
@@ -83,6 +89,70 @@ const BARBER: RoleExperience = {
   needsOwnerApproval: true,
 }
 
+const ORGANIZATION_OWNER: RoleExperience = {
+  role: 'ORGANIZATION_OWNER',
+  label: 'Organization owner',
+  intro: 'Every location in your organization, plus the settings that apply to all of them.',
+  focus: [
+    { label: 'Locations', href: '/dashboard/organization', why: 'How each location is doing, side by side.' },
+    { label: 'Shop locations', href: '/dashboard/organization/locations', why: 'Which shops are part of the organization, and their regions.' },
+    { label: 'Standard services', href: '/dashboard/organization/services', why: 'The shared service list every location starts from.' },
+    { label: 'People', href: '/dashboard/organization/people', why: 'Who can see which locations, and what they may change.' },
+  ],
+  boundaries: [],
+  needsOwnerApproval: false,
+}
+
+const CORPORATE_ADMIN: RoleExperience = {
+  role: 'CORPORATE_ADMIN',
+  label: 'Corporate administrator',
+  intro: 'You run the organization day to day: locations, people, shared services and announcements.',
+  focus: [
+    { label: 'Locations', href: '/dashboard/organization', why: 'Totals across the locations you look after.' },
+    { label: 'People', href: '/dashboard/organization/people', why: 'Invite someone, or change what they can see.' },
+    { label: 'Assignments', href: '/dashboard/organization/assignments', why: 'Give a person access to one more location.' },
+    { label: 'Announcements', href: '/dashboard/organization/announcements', why: 'Tell every location about something at once.' },
+  ],
+  boundaries: [
+    'Closing a location and changing who owns the organization belong to the organization owner.',
+    'A location\'s own customers and appointments stay with that location.',
+  ],
+  needsOwnerApproval: true,
+}
+
+const REGIONAL_MANAGER: RoleExperience = {
+  role: 'REGIONAL_MANAGER',
+  label: 'Regional manager',
+  intro: 'The locations in the regions you were given, and nothing outside them.',
+  focus: [
+    { label: 'Locations', href: '/dashboard/organization', why: 'Only the shops in your regions are listed.' },
+    { label: 'Assignments', href: '/dashboard/organization/assignments', why: 'Who is working at the shops you look after.' },
+    { label: 'Service prices', href: '/dashboard/organization/pricing', why: 'Price requests raised by your locations.' },
+  ],
+  boundaries: [
+    'You see the locations in the regions assigned to you. If a shop is missing, ask the organization owner to add its region to your access.',
+    'The shared service list, the organization brand and the list of people belong to corporate.',
+    'You cannot change what a shop charges without an approved price request.',
+  ],
+  needsOwnerApproval: true,
+}
+
+const FRANCHISE_OWNER: RoleExperience = {
+  role: 'FRANCHISE_OWNER',
+  label: 'Franchise owner',
+  intro: 'Your own location, plus the organization totals you are allowed to see.',
+  focus: [
+    { label: 'Locations', href: '/dashboard/organization', why: 'How your location compares with the organization.' },
+    { label: 'Today\'s appointments', href: '/dashboard', why: 'The daily view for the shop you run.' },
+    { label: 'Service prices', href: '/dashboard/organization/pricing', why: 'Ask to charge something other than the standard price.' },
+  ],
+  boundaries: [
+    'You run your own location. Other locations in the organization belong to their own owners.',
+    'Organization-wide settings, shared services and the brand are corporate decisions.',
+  ],
+  needsOwnerApproval: true,
+}
+
 const CUSTOMER: RoleExperience = {
   role: 'CUSTOMER',
   label: 'Customer',
@@ -134,9 +204,19 @@ const BY_ROLE: Record<AppRole, RoleExperience> = {
  * An unknown or missing role gets the most restricted answer, not the most generous one.
  * A dashboard that guesses "owner" when the session is incomplete is how a leak starts.
  */
+const ORGANIZATION_ROLES: Record<string, RoleExperience> = {
+  ORGANIZATION_OWNER,
+  CORPORATE_ADMIN,
+  REGIONAL_MANAGER,
+  FRANCHISE_OWNER,
+}
+
 export function describeRoleExperience(role: string | null | undefined): RoleExperience {
   if (!role) return PUBLIC_VISITOR
-  return BY_ROLE[role as AppRole] ?? PUBLIC_VISITOR
+  // Organization roles live in a separate map because AppRole describes shop-level
+  // membership. A regional manager used to fall through to PUBLIC_VISITOR, which told
+  // them about booking a haircut rather than the shops they actually look after.
+  return ORGANIZATION_ROLES[role] ?? BY_ROLE[role as AppRole] ?? PUBLIC_VISITOR
 }
 
 /** One sentence for a heading, e.g. "Good morning. This is your chair for today." */
