@@ -18,7 +18,10 @@ const PLANS = {
 const VERCEL = 'vercel.json'
 
 const command = process.argv[2] ?? '--check'
-const selected = (process.env.CRON_PLAN ?? 'pro').toLowerCase()
+// Default to the plan the deployment actually ships. Hobby is the current Vercel plan, and a
+// Hobby deployment whose vercel.json carries a sub-daily schedule is rejected at deploy time,
+// so the safe default is the one that deploys. Pro is a deliberate, reviewable command.
+const selected = (process.env.CRON_PLAN?.trim() || 'hobby').toLowerCase()
 
 function read(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
