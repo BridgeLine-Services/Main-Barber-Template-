@@ -11,6 +11,7 @@
     "src/lib/website-navigation.ts",
     "src/lib/theme-contrast.ts",
     "src/lib/marketing/birthday.ts",
-    "src/lib/growth/referral-rewards.ts"
+    "src/lib/growth/referral-rewards.ts",
+    "src/lib/growth/referral-ledger.ts"
   ]
 }

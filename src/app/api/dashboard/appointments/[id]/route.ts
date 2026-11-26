@@ -231,6 +231,18 @@ export async function PATCH(req: NextRequest, props: RouteParams) {
         } catch (error) {
           console.error('[appointment-mutation] commission hook failed', error)
         }
+        // Referral rewards pay the referrer once the referred customer actually turns up.
+        // Idempotent on (businessId, sourceKey), and never allowed to fail the update.
+        try {
+          const { issueRewardForCompletedVisit } = await import('@/lib/growth/referral-ledger')
+          await issueRewardForCompletedVisit({
+            businessId,
+            customerId: updated.customerId,
+            appointmentId: updated.id,
+          })
+        } catch (error) {
+          console.error('[appointment-mutation] referral reward hook failed', error)
+        }
       }
       return NextResponse.json(updated)
     } catch (error) {
