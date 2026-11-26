@@ -136,7 +136,7 @@
     "test:accessibility": "npx tsx tests/accessibility-guard.test.ts",
     "test:safe-url": "npx tsx tests/safe-url.test.ts",
     "test:reliability-program": "npx tsx tests/reliability-program.test.ts",
-    "test:organization": "npx tsx tests/organization-architecture.test.ts && npx tsx tests/organization-isolation.test.ts",
+    "test:organization": "npx tsx tests/organization-architecture.test.ts && npx tsx tests/organization-isolation.test.ts && npx tsx tests/organization-service-templates.test.ts",
     "test:growth-referrals": "npx tsx tests/growth-referrals.test.ts",
     "test:rls-reconcile": "npx tsx tests/rls-reconciliation.test.ts",
     "db:rls-reconcile": "tsx scripts/rls-reconcile.ts",
@@ -146,11 +146,11 @@
     "test:reliability-dashboard": "npx tsx tests/reliability-dashboard.test.ts",
     "test:organization-dashboard": "npx tsx tests/organization-dashboard.test.ts",
     "test:organization-dashboard-data": "npx tsx tests/organization-dashboard-data.test.ts",
-    "test:organization-invitations": "npx tsx tests/organization-invitations.test.ts",
     "test:organization-people": "npx tsx tests/organization-people-screen.test.ts",
     "test:accept-invitation-page": "npx tsx tests/accept-invitation-page.test.ts",
     "test:growth-dashboard": "npx tsx tests/growth-dashboard.test.ts",
-    "test:organization-franchise": "npx tsx tests/organization-franchise-overview.test.ts"
+    "test:organization-franchise": "npx tsx tests/organization-franchise-overview.test.ts",
+    "test:organization-service-templates": "npx tsx tests/organization-service-templates.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
