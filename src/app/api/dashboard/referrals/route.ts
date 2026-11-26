@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireOwner, getBusinessIdForUser, logAudit } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
 import { buildReferralCode, normaliseReferralCode, referralLink, summariseReferrals, type ReferralRow } from '@/lib/growth/referrals'
 
 export async function GET() {
@@ -14,13 +15,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Shop staff access is required.' }, { status: 403 })
     }
     const businessId = await getBusinessIdForUser(auth.user)
-    const program = await prisma.referralProgram.findUnique({ where: { businessId } })
-    const attributions = await prisma.referralAttribution.findMany({
+    // Tenant-bound: the entire referral read runs inside the shop's own context, so it
+    // stays correct when RLS policies are switched on.
+    return withTenant(businessId, async (tx) => {
+    const program = await tx.referralProgram.findUnique({ where: { businessId } })
+    const attributions = await tx.referralAttribution.findMany({
       where: { businessId },
       select: { customerId: true, referrerCustomerId: true, source: true, campaign: true },
     })
     const referredIds = attributions.map((row) => row.customerId)
-    const allCompletedAppointments = await prisma.appointment.findMany({
+    const allCompletedAppointments = await tx.appointment.findMany({
       where: { businessId, status: 'COMPLETED' },
       select: { id: true, customerId: true },
     })
@@ -30,7 +34,7 @@ export async function GET() {
 
     // Only settled service charges/deposits tied to a completed appointment count.
     // Payment records for shop orders, tips, pending payments and unrelated visits do not.
-    const paymentRows = completedIds.length ? await prisma.payment.findMany({
+    const paymentRows = completedIds.length ? await tx.payment.findMany({
       where: {
         businessId,
         appointmentId: { in: completedIds },
@@ -96,6 +100,7 @@ export async function GET() {
       : null
 
     return NextResponse.json({ enabled: program?.enabled ?? false, metrics: summariseReferrals(rows, totalRevenueCents) })
+    })
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/referrals')
   }

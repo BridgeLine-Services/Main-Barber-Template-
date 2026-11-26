@@ -254,18 +254,14 @@ export async function sellGiftCard(input: SellGiftCardInput): Promise<SoldGiftCa
 /** Activate a PENDING card once its purchase payment settles (online
  * purchases). Idempotent — no-op for already-active/depleted cards. */
 export async function activateGiftCardForPayment(paymentId: string): Promise<void> {
-  let activated: {
-    id: string; businessId: string; code: string; amount: number; expiresAt: Date | null
-    purchaserName: string; purchaserEmail: string | null
-    recipientName: string | null; recipientEmail: string | null
-    message: string | null
-  } | null = null
-
-  await prisma.$transaction(async (tx) => {
+  // The card comes back from the transaction rather than being assigned inside the
+  // callback: a value written by a closure is invisible to the type checker, which used
+  // to leave `activated` narrowed to null and hid every field read behind it.
+  const activated = await prisma.$transaction(async (tx) => {
     const card = await tx.giftCard.findFirst({ where: { purchasePaymentId: paymentId } })
-    if (!card || card.status !== 'PENDING') return
+    if (!card || card.status !== 'PENDING') return null
     await tx.giftCard.update({ where: { id: card.id }, data: { status: 'ACTIVE' } })
-    activated = {
+    return {
       id: card.id, businessId: card.businessId, code: card.code, amount: card.initialValue,
       expiresAt: card.expiresAt, purchaserName: card.purchaserName,
       purchaserEmail: card.purchaserEmail, recipientName: card.recipientName,
