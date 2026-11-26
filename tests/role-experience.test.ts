@@ -109,5 +109,27 @@ ok('the dashboard renders the card with the session role', /RoleWelcomeCard role
 ok('the existing today view is still rendered', /TodayAppointmentsView/.test(page))
 ok('the barber filter on the today view is untouched', /userRole === 'BARBER' && barberId/.test(page))
 
+// ─── Organization roles ────────────────────────────────────────────────────
+// These roles exist in the permission model. Before this block they had no role
+// experience at all, so a regional manager was described as a public visitor.
+
+for (const role of ['ORGANIZATION_OWNER', 'CORPORATE_ADMIN', 'REGIONAL_MANAGER', 'FRANCHISE_OWNER'] as const) {
+  const org = describeRoleExperience(role)
+  ok(`${role}: is not described as a visitor`, org.role !== 'PUBLIC_VISITOR', org.label)
+  ok(`${role}: has a human label`, org.label !== role && org.label.length > 3, org.label)
+  ok(`${role}: every focus link is a real page`, org.focus.every((f) => pageExists(f.href)), org.focus.filter((f) => !pageExists(f.href)).map((f) => f.href).join(','))
+  ok(`${role}: explains why each link matters`, org.focus.every((f) => f.why.length > 10))
+}
+
+const regional = describeRoleExperience('REGIONAL_MANAGER')
+ok('a regional manager is told the region limit plainly', regional.boundaries.some((b) => /regions assigned to you/i.test(b)), regional.boundaries.join(' | '))
+ok('a regional manager is not offered the organization brand', !regional.focus.some((f) => /brand|settings/i.test(f.href)))
+ok('a regional manager does not see shop takings', !regional.focus.some((f) => /analytics|payroll/i.test(f.href)))
+
+const franchise = describeRoleExperience('FRANCHISE_OWNER')
+ok('a franchise owner is told other locations are not theirs', franchise.boundaries.some((b) => /belong to their own owners/i.test(b)), franchise.boundaries.join(' | '))
+ok('an unknown role still falls back to the visitor experience', describeRoleExperience('SOMETHING_ELSE').role === 'PUBLIC_VISITOR')
+
 console.log(`\nRole experience: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)
+
