@@ -27,7 +27,10 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "strictFunctionTypes": true
   },
   "include": [
     "next-env.d.ts",
