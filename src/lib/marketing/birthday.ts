@@ -58,7 +58,8 @@ export function parseBirthdayText(text: string | null | undefined): Birthday | n
   }
   const named = trimmed.match(/^([A-Za-z]+)\s+(\d{1,2})$/)
   if (named) {
-    const month = MONTH_NAMES.findIndex((name) => name.toLowerCase() === named[1].toLowerCase()) + 1
+    const monthWord = named[1] ?? ''
+    const month = MONTH_NAMES.findIndex((name) => name.toLowerCase() === monthWord.toLowerCase()) + 1
     const day = Number(named[2])
     return month > 0 && validateBirthday(month, day).valid ? { month, day } : null
   }

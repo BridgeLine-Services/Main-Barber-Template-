@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
 import { handleApiError } from '@/lib/api-errors'
 import type { Prisma } from '@prisma/client'
 
@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
     // read business customer data.
     if (!['OWNER', 'BUSINESS_ADMIN', 'BARBER'].includes(role as string)) {
       return NextResponse.json({ error: 'Staff access required' }, { status: 403 })
+    }
+    if (!businessId) {
+      return NextResponse.json({ error: 'No shop is attached to this session.' }, { status: 401 })
     }
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search') || ''
@@ -48,8 +51,9 @@ export async function GET(req: NextRequest) {
         { email: { contains: search, mode: 'insensitive' } },
       ]
     }
-    const [customers, total] = await Promise.all([
-      prisma.customer.findMany({
+    const [customers, total] = await withTenant(businessId, async (tx) =>
+      Promise.all([
+      tx.customer.findMany({
         where,
         include: {
           _count: { select: { appointments: true } },
@@ -63,8 +67,9 @@ export async function GET(req: NextRequest) {
         take: limit,
         skip,
       }),
-      prisma.customer.count({ where }),
-    ])
+      tx.customer.count({ where }),
+      ]),
+    )
     return NextResponse.json({
       customers: customers.map(c => ({
         ...c,

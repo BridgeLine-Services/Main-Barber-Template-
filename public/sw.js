@@ -48,7 +48,14 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/dashboard/') ||
     url.pathname.startsWith('/login') ||
-    url.pathname.startsWith('/admin')
+    url.pathname.startsWith('/admin') ||
+    // Private customer pages. A confirmation number is the only thing protecting an
+    // appointment page, so it must never sit in a cache another person could read on a
+    // shared device.
+    url.pathname.startsWith('/appointment/') ||
+    url.pathname.startsWith('/account') ||
+    url.pathname.startsWith('/rewards') ||
+    url.pathname.startsWith('/checkout')
   ) {
     return // no respondWith: fetch goes straight to network
   }

@@ -93,6 +93,7 @@ export function moveNavigationItem(links: NavLink[], index: number, direction: '
   if (index < 0 || index >= links.length || target < 0 || target >= links.length) return links
   const next = links.slice()
   const [moved] = next.splice(index, 1)
+  if (!moved) return links
   next.splice(target, 0, moved)
   return next
 }
