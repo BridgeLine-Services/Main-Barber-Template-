@@ -101,6 +101,7 @@ model Business {
   waitlistEntries              WaitlistEntry[]
   closures                     BusinessClosure[]
   rewardPrograms               BusinessRewardProgram[]
+  referralRewards              ReferralReward[]
   barberServices               BarberService[]
   barberRewardPrograms         BarberRewardProgram[]
   intakeResponses              AppointmentIntakeResponse[]
@@ -515,6 +516,7 @@ model Customer {
   notes               String?      @db.Text
   smsConsent          Boolean      @default(false) // legacy transactional SMS compatibility flag
   marketingSmsConsent Boolean      @default(false) // separate promotional SMS permission
+  referralRewards     ReferralReward[]
   /// Birthday kept as month and day only, never a full date of birth. Null means the
   /// customer never gave one, and every birthday feature must treat that as "unknown".
   birthdayMonth       Int?
@@ -2761,4 +2763,49 @@ model ReferralAttribution {
   @@index([businessId, createdAt])
   @@index([referrerCustomerId])
   @@index([source])
+}
+
+/// A referral reward. One row per grant, keyed by sourceKey so a retried event can never
+/// pay twice. Status moves only through the lifecycle module, and every move appends an
+/// event row: the grant is the balance, the events are the history.
+model ReferralReward {
+  id             String    @id @default(cuid())
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status         String    @default("ISSUED") // ISSUED | REDEEMED | REVERSED | EXPIRED
+  amount         Decimal   @db.Decimal(10, 2)
+  currency       String    @default("USD")
+  reason         String
+  sourceKey      String
+  referralId     String?
+  expiresAt      DateTime?
+  issuedAt       DateTime  @default(now())
+  redeemedAt     DateTime?
+  reversedAt     DateTime?
+  reversalReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  events         ReferralRewardEvent[]
+
+  @@unique([businessId, sourceKey])
+  @@index([businessId, customerId, status])
+  @@index([businessId, status, expiresAt])
+}
+
+/// Append-only. Never updated, never deleted.
+model ReferralRewardEvent {
+  id         String         @id @default(cuid())
+  rewardId   String
+  reward     ReferralReward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  businessId String
+  type       String // ISSUED | REDEEMED | REVERSED | EXPIRED
+  amount     Decimal        @db.Decimal(10, 2)
+  note       String?
+  actorId    String?
+  createdAt  DateTime       @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([rewardId])
 }

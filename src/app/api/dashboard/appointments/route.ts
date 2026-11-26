@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
 import { requireStaff } from '@/lib/auth-helpers'
 import { getBusinessIdForUser } from '@/lib/auth-helpers'
 import { createAppointmentSafely } from '@/lib/availability'
@@ -81,7 +82,9 @@ export async function GET(req: NextRequest) {
           { customer: { email: { contains: searchParam, mode: 'insensitive' } } },
         ]
       }
-      const appointments = await prisma.appointment.findMany({
+      // Tenant-bound read: correct by construction once RLS policies are on.
+      const appointments = await withTenant(businessId, (tx) =>
+        tx.appointment.findMany({
         where,
         // Field-checked performance fix (Requirement 31): return only the
         // relation fields the dashboard actually renders (verified across
@@ -96,8 +99,9 @@ export async function GET(req: NextRequest) {
             select: { id: true, questionKey: true, questionLabel: true, answer: true },
           },
         },
-        orderBy: { startTime: 'asc' },
-      })
+          orderBy: { startTime: 'asc' },
+        }),
+      )
       // Include the business timezone so the dashboard calendar can bucket and
       // format appointments in the zone the shop actually operates in.
       return NextResponse.json({ appointments, timezone: timezoneForQuery })
