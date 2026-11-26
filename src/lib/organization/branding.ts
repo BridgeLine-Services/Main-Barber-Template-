@@ -22,7 +22,8 @@ export interface BrandSettingsRecord extends BrandValues {
 export interface ResolvedBrandField {
   field: BrandField
   value: string | null
-  source: 'organization' | 'location' | 'unset'
+  /** 'cleared' is distinct from 'unset': a saved empty value means show nothing, not inherit. */
+  source: 'organization' | 'location' | 'cleared' | 'unset'
 }
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
@@ -66,9 +67,14 @@ export function resolveBrandField(
   overrides: Partial<BrandValues> | null,
   field: BrandField,
 ): ResolvedBrandField {
-  const override = overrides?.[field] ?? null
-  if (override && settings?.allowedOverrides.includes(field)) {
-    return { field, value: override, source: 'location' }
+  // Presence, not truthiness, decides whether an override exists: '' is a saved decision to
+  // clear the field, while undefined or null means the location never saved one.
+  const saved =
+    overrides != null && Object.prototype.hasOwnProperty.call(overrides, field) && overrides[field] != null
+  if (saved && settings?.allowedOverrides.includes(field)) {
+    const raw = String(overrides[field]).trim()
+    if (raw.length === 0) return { field, value: null, source: 'cleared' }
+    return { field, value: raw, source: 'location' }
   }
   const corporate = settings?.[field] ?? null
   if (corporate) return { field, value: corporate, source: 'organization' }
