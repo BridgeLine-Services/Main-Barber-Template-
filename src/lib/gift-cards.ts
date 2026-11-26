@@ -21,6 +21,7 @@
 import { randomInt } from 'crypto'
 import type { Prisma, GiftCard, GiftCardTransaction } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
 import type { GiftCardSettings } from '@prisma/client'
 
 type Tx = Prisma.TransactionClient
@@ -557,12 +558,14 @@ export interface GiftCardSummary {
  * outstanding gift card liability (remaining balances of redeemable
  * cards). */
 export async function giftCardSummary(businessId: string): Promise<GiftCardSummary> {
+  // Tenant-bound: a shop's own gift-card liability, read inside its own context.
+  return withTenant(businessId, async (tx) => {
   const now = new Date()
-  const cards = await prisma.giftCard.findMany({
+  const cards = await tx.giftCard.findMany({
     where: { businessId },
     select: { status: true, remainingBalance: true, initialValue: true, expiresAt: true },
   })
-  const txns = await prisma.giftCardTransaction.groupBy({
+  const txns = await tx.giftCardTransaction.groupBy({
     by: ['type'],
     where: { businessId },
     _count: { _all: true },
@@ -590,6 +593,7 @@ export async function giftCardSummary(businessId: string): Promise<GiftCardSumma
     depletedCount: cards.filter((c) => c.status === 'DEPLETED').length,
     expiredCount: cards.filter(expired).length,
   }
+  })
 }
 
 /** Owner list with filters, tenant-scoped, newest first. */
