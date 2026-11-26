@@ -39,6 +39,7 @@ export interface InvitationRow {
   email: string
   role: MemberRole
   regions: string[]
+  allRegions: boolean
   expiresAt: Date
   acceptedAt: Date | null
   revokedAt: Date | null
@@ -203,6 +204,7 @@ export async function listOrganizationInvitations(context: OrgContext, now = new
     role: row.role as MemberRole,
     roleLabel: roleLabel(row.role as MemberRole),
     regions: row.regions,
+    allRegions: row.allRegions,
     createdAt: row.createdAt.toISOString(),
     expiresAt: row.expiresAt.toISOString(),
     state: invitationState(row, now),
@@ -215,6 +217,7 @@ export async function createOrganizationInvitation(input: {
   email: string
   role: MemberRole
   regions?: string[]
+  allRegions?: boolean
   invitedById: string
   now?: Date
 }): Promise<Outcome<{ id: string; token: string; expiresAt: Date; email: string }>> {
@@ -267,6 +270,8 @@ export async function createOrganizationInvitation(input: {
       email,
       role: input.role,
       regions: input.regions ?? [],
+      // All-region access must be asked for. A missing list no longer implies it.
+      allRegions: input.allRegions === true,
       tokenHash,
       expiresAt,
       invitedById: input.invitedById,
@@ -279,7 +284,13 @@ export async function createOrganizationInvitation(input: {
       userId: input.invitedById,
       entityId: created.id,
       description: `Invited ${email} as ${roleLabel(input.role).toLowerCase()}`,
-      newValues: { email, role: input.role, regions: input.regions ?? [] },
+      newValues: {
+        email,
+        role: input.role,
+        regions: input.regions ?? [],
+        // Recorded so an all-region grant is never invisible in the audit trail.
+        allRegions: input.allRegions === true,
+      },
     })
   } catch {
     return { ok: false, reason: 'audit-failed', error: 'The invitation was not saved because it could not be recorded. Nothing changed.' }

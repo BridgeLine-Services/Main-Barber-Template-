@@ -96,6 +96,25 @@ machine.
 `docs/ORGANIZATION-PERMISSIONS-MATRIX.md` lists every action, the capability behind it, and
 the file that enforces it. Nothing in this phase added a capability or changed a role.
 
+## Scheduled reporting, as built
+
+`OrganizationReportingConfiguration` stores a schedule (`daily`/`weekly`/`monthly`), a time zone
+and the next due instant. `nextOrganizationReportAt()` computes the next run in the
+organization's own time zone, so the DST behaviour is covered by
+`tests/organization-report-scheduling.test.ts`. The cron route
+`/api/cron/organization-report-delivery` requires `Authorization: Bearer $CRON_SECRET` (401
+otherwise), selects configurations whose `nextRunAt` has passed, queues the notifications and
+returns counts of due, queued, failed and skipped.
+
+`vercel.json` polls that route every 15 minutes, because a report is due at a wall-clock time
+each organization chooses: a daily sweep would deliver it up to 23 hours late. **This has a
+deployment consequence:** Vercel's Hobby plan does not run sub-daily crons, so a deployment
+with scheduled reporting enabled needs a paid plan. Recorded in `docs/LAUNCH-READINESS.md`.
+
+The other cron jobs (reminders, memberships, review requests, invitation delivery) stay on a
+single daily schedule; `tests/optional-integrations.test.ts` enforces that, and allows the
+report sweep as the one deliberate exception.
+
 ## Not built in this phase
 
 | Item | Why |
@@ -104,7 +123,7 @@ the file that enforces it. Nothing in this phase added a capability or changed a
 | Branding exception request and revoke | `requestLocationOverride()` exists; no screen or endpoint was added. |
 | Service template editor | `service-templates.ts` has the validation and the pricing resolver; no screen was added. |
 | Price exception approval workflow | Needs a request/approve record with history. `OrganizationServicePriceException` stores one approved price per template and location and has no request state, so an approval workflow would need an additive migration. Documented rather than forced. |
-| Scheduled corporate reporting | `OrganizationReportingConfiguration` exists. There is no scheduler for this report type, and inventing one here would have been a reliability change, which this phase was told to leave alone. The existing report remains read-only and in-app. |
+| Scheduled corporate reporting | **Built in a later change.** `/api/cron/organization-report-delivery` (CRON_SECRET bearer) schedules due reports via `scheduled-report.ts` and queues the delivery notifications; `vercel.json` polls it every 15 minutes. See "Scheduled reporting, as built" below for the hosting requirement this creates. |
 | Reopening a closed location | Built. See the reopening path above. |
 | Email or SMS delivery | Out of scope for this phase. |
 

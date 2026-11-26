@@ -52,3 +52,49 @@ A capability says what a role may do; `resolve.ts` says where. Three rules hold 
 Role permissions, the capability table, organization isolation, the configuration audit, the
 location lifecycle state machine and the customer privacy boundary are untouched. The only
 additions are new callers of the existing rules.
+
+## Regional scope: empty no longer means everything
+
+**What was wrong.** `OrganizationMember.regions` was documented as "empty means every region in
+the organization". The resolver implemented exactly that (`regions.length > 0` guarded the
+filter), and the invitation API turned a missing or malformed `regions` value into `[]`. So a
+regional manager whose regions were never filled in, or an invitation sent without a scope,
+silently held access to every location in the organization. Missing data was being read as
+maximum authority.
+
+**What changed.** Access to every region is now an explicit, auditable grant.
+
+| Concept | Before | After |
+| --- | --- | --- |
+| `regions: []` | every location | no locations |
+| `allRegions: true` | did not exist | every open location, deliberately granted |
+| `regions: ['North']` | North | North |
+| `regions: ['North','South']` | North and South | North and South |
+| explicit staff assignment | widened scope | widened scope (unchanged) |
+| malformed invitation scope | became `[]`, i.e. everything | rejected before the invitation is created |
+
+**Reconciliation of existing members.** Migration
+`20261125190000_organization_explicit_all_regions` adds `allRegions` (default `false`) to
+`OrganizationMember` and `OrganizationInvitation`, then sets `allRegions = true` for every
+existing membership and every still-pending invitation whose `regions` list is empty. Those
+records were created under the old meaning, where an empty list *was* an all-region grant, so
+this preserves exactly what the inviter and the member already had. Nobody's access is widened
+or revoked by the migration; the meaning of an empty list only changes for records created from
+now on.
+
+**Before deploying**, the operator should still confirm that assumption against real data:
+
+```sql
+SELECT om.id, u.email, om.role, om.regions, om.allRegions
+FROM "OrganizationMember" om JOIN "User" u ON u.id = om."userId"
+WHERE om.role = 'REGIONAL_MANAGER' AND cardinality(om.regions) = 0;
+```
+
+Any row returned was, until this change, an all-region manager. If a row is an all-region
+manager *by accident*, set `allRegions = false` for it after the migration and give it the
+regions it actually needs; that is a deliberate revocation and should be recorded in the audit
+log like any other scope change.
+
+**Granting all-region access now** requires `allRegions: true` on the invitation, which the
+invitation record stores and the audit entry records (`newValues.allRegions`), so an all-region
+grant can never again be invisible.

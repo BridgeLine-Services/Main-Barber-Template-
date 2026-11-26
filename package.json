@@ -136,7 +136,7 @@
     "test:accessibility": "npx tsx tests/accessibility-guard.test.ts",
     "test:safe-url": "npx tsx tests/safe-url.test.ts",
     "test:reliability-program": "npx tsx tests/reliability-program.test.ts",
-    "test:organization": "npx tsx tests/organization-architecture.test.ts && npx tsx tests/organization-isolation.test.ts",
+    "test:organization": "npx tsx tests/organization-architecture.test.ts && npx tsx tests/organization-isolation.test.ts && npx tsx tests/organization-service-templates.test.ts",
     "test:growth-referrals": "npx tsx tests/growth-referrals.test.ts",
     "test:rls-reconcile": "npx tsx tests/rls-reconciliation.test.ts",
     "db:rls-reconcile": "tsx scripts/rls-reconcile.ts",

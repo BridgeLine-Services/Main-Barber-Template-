@@ -89,7 +89,7 @@ ok(/3 locations, 2 open, 1 being prepared/.test(summariseStructure({ organizatio
 
 console.log('\n--- every role sees only its own locations ---')
 const ctx = (role: OrgContext['role'], ids: string[], regions: string[] = []): OrgContext => ({
-  organizationId: 'o1', organizationName: 'Acme', membershipId: 'm1', role, regions, locationBusinessIds: ids, homeBusinessId: ids[0] ?? null,
+  organizationId: 'o1', organizationName: 'Acme', membershipId: 'm1', role, regions, allRegions: false, locationBusinessIds: ids, homeBusinessId: ids[0] ?? null,
 })
 const owner = ctx('ORGANIZATION_OWNER', ['b1', 'b2', 'b3'])
 const regional = ctx('REGIONAL_MANAGER', ['b1'], ['North'])
