@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, getBusinessIdForUser } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
 import { buildBarberAnalytics, type AppointmentFact, type PaymentFact, type ReferralFact, type ScheduleFact } from '@/lib/growth/barber-analytics'
 
 const MAX_DAYS = 365
@@ -44,7 +45,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'This account is not linked to a barber, so there are no numbers to show.' }, { status: 404 })
     }
 
-    const appointmentRows = await prisma.appointment.findMany({
+    // Tenant-bound: every number on this page is read inside the shop's own context.
+    return withTenant(businessId, async (tx) => {
+    const appointmentRows = await tx.appointment.findMany({
       where: { businessId, barberId, startTime: { gte: start, lte: end } },
       select: { id: true, startTime: true, status: true, customerId: true, service: { select: { name: true, price: true } } },
     })
@@ -58,15 +61,15 @@ export async function GET(req: NextRequest) {
       customerId: row.customerId,
     }))
 
-    const paymentRows = await prisma.payment.findMany({
+    const paymentRows = await tx.payment.findMany({
       where: { businessId, barberId, createdAt: { gte: start, lte: end }, status: { in: ['SUCCEEDED', 'PARTIALLY_REFUNDED', 'REFUNDED'] } },
       select: { amount: true, refundedAmount: true },
     })
-    const commissionRows = await prisma.commissionEntry.findMany({
+    const commissionRows = await tx.commissionEntry.findMany({
       where: { businessId, barberId, createdAt: { gte: start, lte: end } },
       select: { source: true, grossAmount: true, commissionAmount: true, adjustment: true, refundAdjustment: true },
     })
-    const commissionSettings = await prisma.commissionSettings.findUnique({ where: { businessId }, select: { tipsMode: true } })
+    const commissionSettings = await tx.commissionSettings.findUnique({ where: { businessId }, select: { tipsMode: true } })
 
     // Tips are only a number when this shop records them. EXCLUDED means tips are the
     // barber's own and are never written to the ledger, so the figure is unknown.
@@ -88,13 +91,13 @@ export async function GET(req: NextRequest) {
         }]
       : []
 
-    const referralRows = await prisma.referralAttribution.findMany({
+    const referralRows = await tx.referralAttribution.findMany({
       where: { businessId },
       select: { customerId: true, referrerCustomerId: true, source: true },
     })
     const referrals: ReferralFact[] = referralRows
 
-    const scheduleRows = await prisma.schedule.findMany({
+    const scheduleRows = await tx.schedule.findMany({
       where: { barberId },
       select: { dayOfWeek: true, startTime: true, endTime: true, isOff: true },
     })
@@ -106,6 +109,7 @@ export async function GET(req: NextRequest) {
       barberId,
       rangeDays,
       ...result,
+      })
     })
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/growth/analytics')

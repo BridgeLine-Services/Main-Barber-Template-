@@ -57,3 +57,20 @@ a removed navigation item that could be `undefined`). Both are fixed properly, n
 
 Growing the gate is deliberate: add a module to `include`, run `npm run typecheck:strict`,
 fix what it finds, keep it green.
+
+## Next tranche, measured
+
+Adding `src/lib/organization/**` and `src/lib/payments/**` to the gate produces 35 errors,
+which is close enough to attempt rather than defer. Nine of them were a single real defect
+in `src/lib/gift-cards.ts`: `activateGiftCardForPayment` assigned its result inside a
+`$transaction` callback, and a value written by a closure is invisible to the type checker,
+so `activated` stayed narrowed to `null` and every field read behind it was unchecked. The
+transaction now returns the value instead, and those nine errors are gone.
+
+What remains is 26 errors in six files, all the same shape: a value read by index or a
+lookup that may be missing, then used where a value is required
+(`location-service.ts` 8, `platform-reliability/support-sources.ts` 9,
+`organization/franchise-view.ts` 4, plus one each in `twilio.ts`,
+`organization/scheduled-report.ts`, `organization/resolve.ts` and
+`organization/report-delivery.ts`). The gate stays at nine modules until those are handled
+one file at a time; turning it on and ignoring 26 errors would be worse than leaving it off.
