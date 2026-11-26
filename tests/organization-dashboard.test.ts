@@ -129,10 +129,10 @@ ok(!page.includes('requireOwner'), 'the page is not limited to a single-shop own
 
 const owner: OrgContext = {
   organizationId: 'org_1', organizationName: 'Bridge Line', membershipId: 'm1', role: 'ORGANIZATION_OWNER',
-  regions: [], locationBusinessIds: ['biz_a', 'biz_b'], homeBusinessId: null,
+  regions: [], allRegions: false, locationBusinessIds: ['biz_a', 'biz_b'], homeBusinessId: null,
 }
-const regional: OrgContext = { ...owner, role: 'REGIONAL_MANAGER', regions: ['North'], locationBusinessIds: ['biz_a'] }
-const local: OrgContext = { ...owner, role: 'LOCATION_MANAGER', regions: [], locationBusinessIds: ['biz_b'], homeBusinessId: 'biz_b' }
+const regional: OrgContext = { ...owner, role: 'REGIONAL_MANAGER', regions: ['North'], allRegions: false, locationBusinessIds: ['biz_a'] }
+const local: OrgContext = { ...owner, role: 'LOCATION_MANAGER', regions: [], allRegions: false, locationBusinessIds: ['biz_b'], homeBusinessId: 'biz_b' }
 ok(hasLocationAccess(owner, 'biz_a') && hasLocationAccess(owner, 'biz_b'), 'an organization owner may see both of their locations')
 ok(hasLocationAccess(regional, 'biz_a') && !hasLocationAccess(regional, 'biz_b'), 'a regional manager sees only their assigned region')
 ok(hasLocationAccess(local, 'biz_b') && !hasLocationAccess(local, 'biz_a'), 'a location user sees only their own location')
@@ -153,7 +153,10 @@ ok(!/<button/.test(page), 'the page renders no button that could change somethin
 ok(!/fetch\(/.test(page) && !/method:\s*'(POST|PUT|PATCH|DELETE)'/.test(page), 'the page issues no write request')
 ok(!/prisma\.\w+\.(create|update|delete|upsert)/.test(page), 'the page writes no record')
 ok(!/\$executeRaw|\$queryRaw/.test(page), 'the page runs no raw SQL')
-ok(page.includes('This page only looks'), 'the page says so')
+// The page must tell the reader it is read-only. The exact sentence changed in
+// the copy pass ("The figures below are read-only..."), so this asserts the
+// disclosure rather than one phrasing of it — the guarantee is unchanged.
+ok(/read-only|only looks/i.test(page), 'the page says it is read-only')
 
 console.log('\n--- usable on a phone, labelled for a screen reader ---')
 ok(page.includes('sm:grid-cols-2') && page.includes('lg:grid-cols-3'), 'cards stack on a phone and spread on larger screens')
