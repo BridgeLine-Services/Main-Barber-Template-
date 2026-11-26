@@ -20,6 +20,7 @@ import { FaqManager } from '@/components/dashboard/FaqManager'
 import { ResetShopCard } from '@/components/dashboard/ResetShopCard'
 import { DeactivateShopCard } from '@/components/dashboard/DeactivateShopCard'
 import { PublishWebsiteCard } from '@/components/dashboard/PublishWebsiteCard'
+import { WebsiteVersionHistory } from '@/components/dashboard/WebsiteVersionHistory'
 import { FeaturesTab } from '@/components/dashboard/FeaturesTab'
 import { TwoFactorCard } from '@/components/dashboard/TwoFactorCard'
 import { SessionCard } from '@/components/dashboard/SessionCard'
@@ -1183,6 +1184,7 @@ export default function SettingsPage() {
       {activeTab !== 'danger-zone' && (
         <div className="space-y-3">
           <PublishWebsiteCard key={savedAt} />
+          <WebsiteVersionHistory key={'versions-' + savedAt} />
           <div className="flex flex-wrap items-center justify-end gap-3">
             {hasUnsavedChanges && !saving && (
               <span role="status" className="text-xs font-medium text-amber-700 dark:text-amber-300">
