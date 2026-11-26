@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { normaliseNavigation, parseNavigation, validateNavigation } from '@/lib/website-navigation'
 import { validateVisualConfigInput } from '@/lib/visual-config'
 import { validateHomeModulesInput } from '@/lib/home-modules'
 import { requireBusinessAdmin } from '@/lib/auth-helpers'
@@ -114,6 +115,20 @@ export async function PATCH(req: NextRequest) {
       if (websiteContent && typeof websiteContent === 'object') {
         const allowedWebsiteFields = ['heroEyebrow', 'heroTitle', 'heroDescription', 'heroImageUrl', 'heroPrimaryCtaLabel', 'heroPrimaryCtaHref', 'heroSecondaryCtaLabel', 'heroSecondaryCtaHref', 'showServices', 'showTeam', 'showReviews', 'showVisit', 'showFaq', 'showFinalCta', 'servicesTitle', 'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle', 'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle', 'faqDescription', 'finalCtaTitle', 'finalCtaDescription', 'featuredReviewCount', 'visualPreset', 'visualConfig', 'homeModules']
         const websiteData: Record<string, unknown> = {}
+        // The menu is validated here, not in the editor: a browser request that skips the
+        // editor must meet the same rules.
+        if ('navigation' in websiteContent) {
+          const parsedNavigation = parseNavigation(websiteContent.navigation)
+          const navigationVerdict = validateNavigation(parsedNavigation)
+          if (!navigationVerdict.valid) {
+            return NextResponse.json(
+              { error: navigationVerdict.errors[0], errors: navigationVerdict.errors },
+              { status: 400 },
+            )
+          }
+          ;(websiteData as Record<string, unknown>).navigation =
+            parsedNavigation.length > 0 ? normaliseNavigation(parsedNavigation) : null
+        }
         for (const field of allowedWebsiteFields) if (field in websiteContent) websiteData[field] = websiteContent[field]
         // Visual identity: normalize + reject invalid values (never trust raw input)
         if ('visualPreset' in websiteContent || 'visualConfig' in websiteContent) {

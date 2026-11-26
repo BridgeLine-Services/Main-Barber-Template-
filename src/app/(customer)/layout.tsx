@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { resolveBusiness } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
+import { parseNavigation } from '@/lib/website-navigation'
 import { Navbar } from '@/components/customer/Navbar'
 import { Footer } from '@/components/customer/Footer'
 import { MobileBottomNav } from '@/components/customer/MobileBottomNav'
@@ -107,6 +108,7 @@ export default async function CustomerLayout({
           walkInsWelcome={business.walkInsWelcome !== false}
           giftCardsEnabled={giftCardSettings?.enabled === true}
           shopEnabled={shopEnabled}
+          navigation={parseNavigation((content as Record<string, unknown> | null)?.navigation)}
         />
         <main className="flex-1">{children}</main>
         <Footer business={business} giftCardsEnabled={giftCardSettings?.enabled === true} shopEnabled={shopEnabled} />
