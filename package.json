@@ -126,7 +126,7 @@
     "test:reopening-pricing": "npx tsx tests/organization-reopening-and-pricing.test.ts",
     "test:support-sources": "npx tsx tests/support-sources.test.ts",
     "test:security-sweep": "npx tsx tests/security-sweep.test.ts",
-    "template:version": "npx tsx scripts/template-version.ts",
+    "template:version": "npx tsx scripts/template-version.ts version",
     "template:stamp": "npx tsx scripts/template-version.ts stamp",
     "template:check": "npx tsx scripts/template-version.ts check",
     "test:template-updates": "npx tsx tests/template-updates.test.ts",
