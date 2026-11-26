@@ -514,6 +514,10 @@ model Customer {
   notes               String?      @db.Text
   smsConsent          Boolean      @default(false) // legacy transactional SMS compatibility flag
   marketingSmsConsent Boolean      @default(false) // separate promotional SMS permission
+  /// Birthday kept as month and day only, never a full date of birth. Null means the
+  /// customer never gave one, and every birthday feature must treat that as "unknown".
+  birthdayMonth       Int?
+  birthdayDay         Int?
   smsOptedOutAt       DateTime?
   emailOptOut         Boolean      @default(false) // global email do-not-contact (respected by ALL email sends)
   tags                String[]     @default([])
@@ -538,6 +542,7 @@ model Customer {
   @@unique([businessId, email])
   @@index([businessId])
   @@index([businessId, phone])
+  @@index([businessId, birthdayMonth])
 }
 
 // ─── Appointments ──────────────────────────────────────────────────────────

@@ -95,6 +95,21 @@ export function checkComponent(rule: ComponentRule, installed: string | null | u
 }
 
 /** A combination that is known to break even when each part looks individually fine. */
+/**
+ * The true/false/null flag the dependency monitor expects, decided by the rules above.
+ *
+ * null means "we cannot say", which the monitor renders as Unable to verify. A component with
+ * no rule is also null: guessing a support status is worse than admitting we have no rule.
+ */
+export function supportedFlag(component: string, installed: string | null | undefined): boolean | null {
+  const rule = COMPATIBILITY_RULES.find((candidate) => candidate.component === component)
+  if (!rule) return null
+  const status = checkComponent(rule, installed).status
+  if (status === 'supported') return true
+  if (status === 'unsupported') return false
+  return null
+}
+
 export interface CombinationRule {
   id: string
   requires: string

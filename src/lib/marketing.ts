@@ -1,6 +1,15 @@
 import type { CampaignAudience } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { campaignPostalAddress, createUnsubscribeUrl } from '@/lib/email-marketing'
+import { inZone } from '@/lib/calendar-tz'
+import { DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone'
+import {
+  describeBirthdayAudience,
+  matchesBirthdayAudience,
+  type Birthday,
+  type BirthdayAudience,
+  type ShopDate,
+} from '@/lib/marketing/birthday'
 
 // ============================================================================
 // Marketing Automation Engine
@@ -30,6 +39,9 @@ export interface AudienceCustomer {
   lastName: string
   phone: string
   email: string
+  /** Month and day only; null means the customer never gave a birthday. */
+  birthdayMonth?: number | null
+  birthdayDay?: number | null
   appointments: Array<{
     status: string
     startTime: Date | string
@@ -128,6 +140,8 @@ export function matchAudienceCustomer(
     serviceId?: string
     barberName?: string
     serviceName?: string
+    /** The shop's IANA zone. Omitted means the deployment default, never the viewer's clock. */
+    timezone?: string
   }
 ): { matches: boolean; reason: string } {
   const appts = customer.appointments ?? []
@@ -168,9 +182,20 @@ export function matchAudienceCustomer(
       return { matches, reason: matches ? 'Has no-showed an appointment' : '' }
     }
 
-    case 'BIRTHDAY_MONTH':
-      // Would need a birthday field on Customer — not currently in the schema.
-      return { matches: false, reason: '' }
+    case 'BIRTHDAY_TODAY':
+    case 'BIRTHDAY_WEEK':
+    case 'BIRTHDAY_MONTH': {
+      // The shop's own calendar day decides this, never the server's: an 11pm Pacific
+      // birthday is still today for the shop even when UTC has already moved on.
+      const birthday: Birthday | null =
+        typeof customer.birthdayMonth === 'number' && typeof customer.birthdayDay === 'number'
+          ? { month: customer.birthdayMonth, day: customer.birthdayDay }
+          : null
+      const local = inZone(now.toISOString(), audienceConfig?.timezone || DEFAULT_BUSINESS_TIMEZONE)
+      const today: ShopDate = { year: local.year, month: local.month, day: local.day }
+      const matches = matchesBirthdayAudience(audience as BirthdayAudience, birthday, today)
+      return { matches, reason: matches ? describeBirthdayAudience(audience as BirthdayAudience) : '' }
+    }
 
     case 'NOT_VISITED_BARBER': {
       const barberId = audienceConfig?.barberId

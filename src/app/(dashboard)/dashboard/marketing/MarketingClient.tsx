@@ -40,6 +40,9 @@ const AUDIENCE_OPTIONS = [
   { value: 'NO_SHOWED', label: 'Have no-showed' },
   { value: 'NOT_VISITED_BARBER', label: "Haven't visited a specific barber" },
   { value: 'USED_SERVICE', label: 'Used a specific service' },
+  { value: 'BIRTHDAY_TODAY', label: 'Birthday today' },
+  { value: 'BIRTHDAY_WEEK', label: 'Birthday in the next 7 days' },
+  { value: 'BIRTHDAY_MONTH', label: 'Birthday this month' },
   { value: 'ALL_CUSTOMERS', label: 'All customers' },
 ]
 

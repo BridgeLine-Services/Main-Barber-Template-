@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { requireOwner } from '@/lib/auth-helpers'
 import { buildReadinessReport } from '@/lib/health'
 import { buildMaintenanceReport } from '@/lib/platform-reliability/dependency-monitor'
-import { compatibilityReport } from '@/lib/platform-reliability/compatibility'
+import { compatibilityReport, supportedFlag } from '@/lib/platform-reliability/compatibility'
 import { manifestVersions, withLiveVersions } from '@/lib/platform-reliability/installed-versions'
 import { readLivePostgresMajor } from '@/lib/platform-reliability/live-database-version'
 import { checkLiveAdvisories } from '@/lib/platform-reliability/live-advisories'
@@ -56,14 +56,17 @@ function installedComponents() {
     const all = { ...pkg.dependencies, ...pkg.devDependencies }
       const wanted = ['next', 'react', 'typescript', '@prisma/client', 'prisma']
       return [
-        { name: 'node', installed: process.version, supported: null },
+        { name: 'node', installed: process.version, supported: supportedFlag('node', process.version) },
         ...wanted
           .filter((name) => typeof all[name] === 'string')
-          .map((name) => ({
-            name,
-            installed: String(lock.packages?.[`node_modules/${name}`]?.version ?? all[name]).replace(/^[^\d]*/, ''),
-            supported: null,
-          })),
+          .map((name) => {
+            const installedVersion = String(lock.packages?.[`node_modules/${name}`]?.version ?? all[name]).replace(/^[^\d]*/, '')
+            return {
+              name,
+              installed: installedVersion,
+              supported: supportedFlag(name === '@prisma/client' ? 'prisma' : name, installedVersion),
+            }
+          }),
       ]
 
   } catch {
