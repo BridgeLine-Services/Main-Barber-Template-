@@ -20,6 +20,7 @@ model Business {
   /// Priority 2: the organization this shop belongs to, when it belongs to one.
   /// Nullable by design: a shop keeps working whether or not it joins an organization.
   organizationLocation       OrganizationLocation?
+  websiteContentVersions     WebsiteContentVersion[]
   id                         String            @id @default(cuid())
   name                       String
   slug                       String            @unique // URL slug for the shop
@@ -910,6 +911,7 @@ enum AuditAction {
   BUSINESS_DEACTIVATED
   BUSINESS_REACTIVATED
   WEBSITE_CONTENT_PUBLISHED
+  WEBSITE_VERSION_RESTORED_TO_DRAFT
   SETTINGS_UPDATED
   REBOOKING_REMINDER_SENT
   CAMPAIGN_CREATED
@@ -1287,6 +1289,26 @@ model WebsiteContent {
   featuredReviewCount   Int       @default(3)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+}
+
+/// An append-only record of every published website snapshot. Nothing edits or deletes a
+/// version: restoring an old one copies it into the draft, and publishing makes a new version.
+model WebsiteContentVersion {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  /// Counts up from 1 per business, so "version 4" means the same thing to everyone.
+  version     Int
+  /// Exactly what the public site rendered at this version.
+  snapshot    Json
+  /// Plain words: either the owner's note or a generated list of what changed.
+  summary     String?
+  authorId    String?
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@unique([businessId, version])
+  @@index([businessId, version])
 }
 
 // ─── Payment architecture (Requirement 23) ──────────────────────────────

@@ -8,20 +8,13 @@ import { authOptions } from '@/lib/auth'
 import { logAudit } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { ensureWebsiteContentDraft } from '@/lib/website-content'
+import {
+  PUBLISH_FIELDS,
+  buildVersionEntry,
+  describeSnapshotChange,
+  nextVersionNumber,
+} from '@/lib/website-versions'
 
-/**
- * The editable WebsiteContent fields that make up a publishable snapshot.
- */
-const PUBLISH_FIELDS = [
-  'heroEyebrow', 'heroTitle', 'heroDescription', 'heroImageUrl',
-  'heroPrimaryCtaLabel', 'heroPrimaryCtaHref', 'heroSecondaryCtaLabel',
-  'heroSecondaryCtaHref', 'showServices', 'showTeam', 'showReviews',
-  'showVisit', 'showFaq', 'showFinalCta', 'servicesTitle',
-  'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle',
-  'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle',
-  'faqDescription', 'finalCtaTitle', 'finalCtaDescription',
-  'featuredReviewCount', 'visualPreset', 'visualConfig', 'homeModules',
-] as const
 
 /**
  * POST /api/dashboard/website-content/publish
@@ -57,9 +50,30 @@ export async function POST() {
       snapshot[field] = (draft as unknown as Record<string, unknown>)[field]
     }
 
-    const updated = await prisma.websiteContent.update({
-      where: { businessId },
-      data: { publishedContent: snapshot as unknown as Prisma.InputJsonValue, publishedAt: new Date() },
+    const previous = (draft.publishedContent as Record<string, unknown> | null) ?? null
+
+    // The snapshot and its history entry land together: a publish that cannot be recorded
+    // must not happen, or the history would silently miss a version.
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await tx.websiteContent.update({
+        where: { businessId },
+        data: { publishedContent: snapshot as unknown as Prisma.InputJsonValue, publishedAt: new Date() },
+      })
+      const existing = await tx.websiteContentVersion.findMany({
+        where: { businessId },
+        select: { version: true },
+      })
+      await tx.websiteContentVersion.create({
+        data: buildVersionEntry({
+          businessId,
+          version: nextVersionNumber(existing.map((entry) => entry.version)),
+          snapshot,
+          summary: describeSnapshotChange(previous, snapshot),
+          authorId: session.user.id,
+          publishedAt: new Date().toISOString(),
+        }) as unknown as Prisma.WebsiteContentVersionUncheckedCreateInput,
+      })
+      return row
     })
 
     await logAudit({
