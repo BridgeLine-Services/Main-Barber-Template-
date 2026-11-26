@@ -22,7 +22,7 @@ export interface BrandSettingsView {
 export interface LocationBrandView {
   businessId: string
   name: string
-  resolved: Array<{ field: string; value: string | null; source: 'organization' | 'location' | 'unset' }>
+  resolved: Array<{ field: string; value: string | null; source: 'organization' | 'location' | 'cleared' | 'unset' }>
   usesOwnValue: boolean
 }
 
@@ -240,7 +240,10 @@ export default function BrandEditor({ initialSettings, locations, canManage }: P
                     <th scope="row" className="py-2 pr-4 text-left font-medium text-foreground">{l.name}</th>
                     <td className="py-2 pr-4 text-muted-foreground">{l.usesOwnValue ? 'Its own values' : 'Shared brand'}</td>
                     <td className="py-2 text-muted-foreground">
-                      {l.resolved.filter((f) => f.source === 'location').map((f) => FIELD_LABELS[f.field] ?? f.field).join(', ') || '—'}
+                      {l.resolved
+                        .filter((f) => f.source === 'location' || f.source === 'cleared')
+                        .map((f) => (FIELD_LABELS[f.field] ?? f.field) + (f.source === 'cleared' ? ' (cleared)' : ''))
+                        .join(', ') || '—'}
                     </td>
                   </tr>
                 ))}
