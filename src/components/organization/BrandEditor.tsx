@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react'
+import { auditBrandContrast, summariseContrast } from '@/lib/theme-contrast'
 
 export interface BrandSettingsView {
   logoUrl: string | null
@@ -126,6 +127,25 @@ export default function BrandEditor({ initialSettings, locations, canManage }: P
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             />
           </label>
+          {/* Same rule as the setup wizard: an organization's colours decide whether its own
+              text reads, so a failing pairing is named before it reaches a location's site. */}
+          <div aria-live="polite" className="rounded-lg border border-border bg-background/60 p-3">
+            <p className="text-xs font-medium text-foreground">Contrast check</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {summariseContrast(
+                auditBrandContrast({ primaryColor: primaryColor || null, accentColor: accentColor || null }),
+              )}
+            </p>
+            <ul className="mt-2 space-y-1">
+              {auditBrandContrast({ primaryColor: primaryColor || null, accentColor: accentColor || null }).map(
+                (entry) => (
+                  <li key={entry.pair} className={entry.passes ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'}>
+                    {entry.pair}: {entry.ratio === null ? 'cannot be checked' : `${entry.ratio}:1`}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
           <label className="block text-sm">
             <span className="font-medium text-foreground">Brand guidelines address (optional)</span>
             <input

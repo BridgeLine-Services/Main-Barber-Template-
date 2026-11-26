@@ -30,7 +30,9 @@
     },
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "strictFunctionTypes": true
+    "strictFunctionTypes": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true
   },
   "include": [
     "next-env.d.ts",

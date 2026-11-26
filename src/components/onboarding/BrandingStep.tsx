@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { generateThemeCSS, FONT_FAMILY_OPTIONS, isValidHexColor, type ThemeSettings } from '@/lib/theme'
+import { auditBrandContrast, summariseContrast } from '@/lib/theme-contrast'
 import {
   ArrowLeft,
   ArrowRight,
@@ -117,6 +118,16 @@ export function BrandingStep({
     !logoError
 
   // ─── Live preview (same code path as the public website) ────────────────
+  const contrastFindings = useMemo(
+    () =>
+      auditBrandContrast({
+        primaryColor: form.primaryColor,
+        accentColor: form.accentColor,
+        secondaryColor: form.secondaryColor,
+      }),
+    [form.primaryColor, form.accentColor, form.secondaryColor],
+  )
+
   const previewCSS = useMemo(
     () => generateThemeCSS(form as ThemeSettings, '.brand-preview-scope'),
     [form]
@@ -248,6 +259,25 @@ export function BrandingStep({
               disabled={submitting}
               optional
             />
+          </div>
+
+          {/* The colours a shop picks decide whether its own text is readable. This names a
+              failing pairing now, while it is still cheap to change, instead of letting the
+              owner discover it on a customer's phone. */}
+          <div aria-live="polite" className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+            <p className="text-xs font-medium text-zinc-200">Contrast check</p>
+            <p className="mt-1 text-xs text-zinc-400">{summariseContrast(contrastFindings)}</p>
+            <ul className="mt-2 space-y-1">
+              {contrastFindings.map((entry) => (
+                <li
+                  key={entry.pair}
+                  className={entry.passes ? 'text-xs text-zinc-500' : 'text-xs text-amber-400'}
+                >
+                  {entry.pair}: {entry.ratio === null ? 'cannot be checked' : `${entry.ratio}:1`}
+                  {entry.passes ? '' : ` — needs ${entry.required}:1`}
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Theme mode */}
