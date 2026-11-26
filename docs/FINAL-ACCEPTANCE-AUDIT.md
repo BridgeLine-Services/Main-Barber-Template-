@@ -13,7 +13,8 @@ Each phase is a separate branch off `main`. `main` was never committed to.
 | 1 — release confidence | `phase1/release-confidence` | `577051a` | Cron policy test scoped to the report sweep; security sweep recognises the CRON_SECRET cron route; docs corrected, Hobby/sub-daily cron consequence stated |
 | 2 — organization scope | `phase2/organization-explicit-scope` | `88b4066` | `allRegions` additive migration with backfill; resolver fails closed on empty scope and on lookup errors; invitation scope must be explicit; 9 new isolation assertions; reconciliation documented |
 | 3 — timezone reliability | `phase3/timezone-cache-freshness` | `70b4166` | Bounded, expiring timezone cache with explicit invalidation on write |
-| 4 — corporate screens | `phase4/organization-service-templates` | `d9f4a91` | Service-template editor (service layer, two routes, page, component, nav, 30 assertions). **Branding editor not built** |
+| 4 — corporate screens | `phase4/organization-service-templates` | `d9f4a91` | Service-template editor (service layer, two routes, page, component, nav, 30 assertions) |
+| 4 — corporate branding | `phase4/organization-branding` | `f737fe4` | Corporate branding editor (service layer, GET/PUT route, page, component, nav, 30 assertions). Phase 4 is now complete on two branches |
 | 5 — tenant isolation | `phase5/tenant-inventory` | (pushed) | Generated tenant-scope inventory from source; Phase 5 facts measured (withTenant unused, aggregates separately authorised, RLS off) |
 | 7 — operations | `phase7/operations-truth` | (pushed) | Operations status separating implemented / configured / verified; corrected a stale claim before shipping it |
 | 8 — template versioning | `phase8/template-versioning` | (pushed) | `TEMPLATE-VERSION.json`, pure manifest library, `--check` update assessment, 33 assertions |
@@ -34,7 +35,7 @@ Each phase is a separate branch off `main`. `main` was never committed to.
 | 4 | Barber and employee workflows | IMPLEMENTED BUT NOT FULLY VERIFIED | `test:barber-mode` 23/23; barber nav spec is credential-gated and skipped in CI |
 | 5 | Customer booking and accounts | IMPLEMENTED BUT NOT FULLY VERIFIED | `test:booking` 20/20; browser suite `public-booking` and `customer-auth` specs pass locally (5 and 3 tests) |
 | 6 | Multi-location management | IMPLEMENTED BUT NOT FULLY VERIFIED | `organization-isolation` 38/38, `organization-location-management` via `test:organization`; RLS layer not active |
-| 7 | Franchise and corporate administration | PARTIALLY IMPLEMENTED | Locations, assignments, regions, pricing approvals, announcements, standard services exist; **corporate branding editor does not** |
+| 7 | Franchise and corporate administration | IMPLEMENTED BUT NOT FULLY VERIFIED | Locations, assignments, regions, pricing approvals, announcements, standard services and the corporate branding editor exist. Organization service templates 30/30, branding 30/30 locally |
 | 8 | Organization-level reporting | IMPLEMENTED BUT NOT FULLY VERIFIED | Cron route + scheduling library + 15-minute sweep; scheduling DST tests pass; **delivery to a real inbox never tested** |
 | 9 | Financial and employee data security | IMPLEMENTED BUT NOT FULLY VERIFIED | Payroll CSV injection guard and commission tests pass; no independent security review |
 | 10 | Booking and timezone correctness | IMPLEMENTED, LOCALLY VERIFIED | `timezone-dst` 23/23 including the cache-freshness assertions added in Phase 3; `test:booking` 20/20 |
@@ -54,11 +55,12 @@ whether a shop can take money on Monday.
 
 ## 3. Remaining defects found and left open
 
-1. **Corporate branding editor does not exist.** `branding.manage`, `resolveBrand()` and
-   `requestLocationOverride()` are implemented and tested; there is no screen. Phase 4 built the
-   service-template editor and stopped there.
-2. **Role-specific dashboards are shared surfaces.** Co-owner, barber and location-manager views
+1. **Role-specific dashboards are shared surfaces.** Co-owner, barber and location-manager views
    reuse the owner dashboard with role framing; Phase 6 was not started.
+2. **A branding override changes every existing location at once.** `Business.accentColor` has a
+   schema default, so allowing an accent override switches locations that never chose a colour to
+   their own default. The editor warns about it and the table names the locations, but there is no
+   per-location confirmation step; that is the next improvement if a franchise finds it surprising.
 3. **`withTenant()` has zero call sites in `src/`.** Tenant isolation is entirely application-level.
    Introducing it requires classifying every query first.
 4. **Cron policy is inconsistent on `main` until Phase 1 merges**: `optional-integrations` is
@@ -143,5 +145,5 @@ the schedules the product needs, an independent accessibility pass, a legal lice
 seen any of this work.
 
 The three highest-value next steps, in order: open the pull requests so CI judges this work; run
-Stripe test-mode acceptance and one real restore rehearsal; then build the branding editor and the
-role-specific dashboards that Phases 4 and 6 left open.
+Stripe test-mode acceptance and one real restore rehearsal; then build the role-specific dashboards
+that Phase 6 left open.
