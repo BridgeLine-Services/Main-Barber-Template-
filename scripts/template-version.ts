@@ -19,7 +19,14 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
-import { assessUpdate, type ChangedFile, type VersionStamp } from '../src/lib/template-updates'
+import {
+  assessUpdate,
+  classifyChange,
+  findBlockers,
+  renderChangeReport,
+  type ChangedFile,
+  type VersionStamp,
+} from '../src/lib/template-updates'
 
 const ROOT = join(__dirname, '..')
 const VERSION_FILE = join(ROOT, 'TEMPLATE-VERSION.json')
@@ -108,11 +115,36 @@ async function commandCheck() {
   }
 
   const assessment = assessUpdate(local, remote, files)
+  // Section 15: classify each change and leave a report a person reads before deploying.
+  const changes = files.map((file) => classifyChange(file))
+  const blockers = findBlockers({
+    local,
+    remote,
+    runningNodeMajor: Number(process.versions.node.split('.')[0]),
+    requiredNodeMajor: Number(remote.requiredNodeMajor ?? 0) || null,
+    localMigrationCount: typeof local.schemaMigrationCount === 'number' ? local.schemaMigrationCount : null,
+    remoteMigrationCount: typeof remote.schemaMigrationCount === 'number' ? remote.schemaMigrationCount : null,
+  })
+  const reportPath = process.argv.includes('--report') ? 'update-report.md' : null
+  if (reportPath) {
+    writeFileSync(reportPath, renderChangeReport(assessment, changes, blockers) + '\n')
+    console.log(`Change report written to ${reportPath}`)
+  }
+  if (blockers.length > 0) {
+    console.log('')
+    console.log('Blocked until these are resolved:')
+    for (const blocker of blockers) console.log(`  - ${blocker.code}: ${blocker.detail}`)
+  }
+  const byClass = changes.reduce<Record<string, number>>((acc, change) => {
+    acc[change.changeClass] = (acc[change.changeClass] ?? 0) + 1
+    return acc
+  }, {})
   console.log('')
   console.log(assessment.summary)
   console.log('')
   console.log(`Changed: ${assessment.counts.total} (${assessment.counts.added} added, ${assessment.counts.modified} modified, ${assessment.counts.removed} removed)`)
   console.log(`Risk:    ${assessment.risk}`)
+  console.log(`Classes: ${Object.entries(byClass).map(([name, count]) => `${name} ${count}`).join(', ')}`)
   if (assessment.migrations.length > 0) console.log(`Migrations (never automatic): ${assessment.migrations.join(', ')}`)
   if (assessment.security.length > 0) console.log(`Security files: ${assessment.security.join(', ')}`)
   if (assessment.dependencies) console.log('Dependencies: package files changed')
