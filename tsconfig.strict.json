@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/lib/tenant-context.ts",
+    "src/lib/cron-flags.ts",
+    "src/lib/website-versions.ts",
+    "src/lib/website-navigation.ts",
+    "src/lib/theme-contrast.ts",
+    "src/lib/marketing/birthday.ts"
+  ]
+}

@@ -42,3 +42,18 @@ correct. Doing it in that order keeps every step reviewable and reversible.
 `strict` remains `false`. No file in this repository is described as strict-safe beyond the
 four flags above. Section 16 of the brief is therefore **partly done**, and this document is
 the honest measure of how far.
+
+## A strict gate that already runs
+
+`tsconfig.strict.json` compiles the highest-risk modules with `strict: true`, and
+`npm run typecheck` now runs it after the normal check, so the gate is enforced rather than
+aspirational. It covers the tenant helper, the cron switch, the website version and
+navigation rules, the brand contrast audit, and birthday segmentation: code that decides
+who can see what and what a customer is told.
+
+Two real defects surfaced the moment it was switched on, both null-handling mistakes that
+the loose configuration had been hiding (a parsed month name that could be `undefined`, and
+a removed navigation item that could be `undefined`). Both are fixed properly, not cast away.
+
+Growing the gate is deliberate: add a module to `include`, run `npm run typecheck:strict`,
+fix what it finds, keep it green.
