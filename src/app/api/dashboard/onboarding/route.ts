@@ -9,6 +9,7 @@ import { bookingSettingsSchema } from '@/lib/validation'
 import { checkOnboardingRequirements } from '@/lib/onboarding'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/api-errors'
+import { invalidateBusinessTimezone } from '@/lib/availability'
 
 // ─── Validation schemas ─────────────────────────────────────────────────────
 
@@ -389,6 +390,12 @@ export async function PATCH(req: NextRequest) {
         },
         select: businessSubset,
       })
+      // The timezone may have just changed. Availability caches it, so drop the
+      // cached value here rather than letting a shop keep yesterday's timezone
+      // until the cache expires.
+      if (d.timezone !== undefined) {
+        invalidateBusinessTimezone(business.id)
+      }
       return NextResponse.json({
         success: true,
         business,
