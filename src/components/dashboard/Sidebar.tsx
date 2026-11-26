@@ -305,6 +305,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Regions', href: '/dashboard/organization/regions', icon: LayoutDashboard },
         { name: 'Standard services', href: '/dashboard/organization/services', icon: Scissors },
         { name: 'Service prices', href: '/dashboard/organization/pricing', icon: BadgePercent },
+        { name: 'Shared brand', href: '/dashboard/organization/branding', icon: Palette },
         // The organization announcement inbox. Same graceful degradation as Locations:
         // a single-shop owner who opens it is told, in plain words, that announcements are
         // for organizations, and the page resolves every audience from the session.
