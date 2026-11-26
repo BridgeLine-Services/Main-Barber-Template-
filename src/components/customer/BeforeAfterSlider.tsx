@@ -53,7 +53,7 @@ export function BeforeAfterSlider({ pair, contextLabel, bookHref, bookLabel = 'B
   // Pointer events cover mouse + touch in one code path; `touch-action`
   // none on the handle keeps drags from scrolling the page.
   useEffect(() => {
-    if (!dragging) return
+    if (!dragging) return undefined
     const move = (e: PointerEvent) => {
       e.preventDefault()
       updateFromClientX(e.clientX)

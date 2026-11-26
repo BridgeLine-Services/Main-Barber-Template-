@@ -120,12 +120,12 @@ export function BusinessBasicsStep({
     const slugError = form.slug ? validateSlug(form.slug) : 'empty'
     if (!form.slug || slugError) {
       setSlugStatus(form.slug && slugError ? 'invalid' : 'idle')
-      return
+      return undefined
     }
     // In update mode, no need to re-check the unchanged slug
     if (mode === 'update' && form.slug === initial.slug) {
       setSlugStatus('idle')
-      return
+      return undefined
     }
     setSlugStatus('checking')
     checkTimer.current = setTimeout(async () => {

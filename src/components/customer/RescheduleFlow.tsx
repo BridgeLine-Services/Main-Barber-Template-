@@ -48,7 +48,7 @@ export default function RescheduleFlow({
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (!open || !date) return
+    if (!open || !date) return undefined
     let cancelled = false
     setLoading(true)
     setMessage('')

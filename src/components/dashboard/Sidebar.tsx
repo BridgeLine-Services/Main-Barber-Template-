@@ -303,6 +303,7 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
         { name: 'Shop locations', href: '/dashboard/organization/locations', icon: LayoutGrid },
         { name: 'Assignments', href: '/dashboard/organization/assignments', icon: UserCog },
         { name: 'Regions', href: '/dashboard/organization/regions', icon: LayoutDashboard },
+        { name: 'Standard services', href: '/dashboard/organization/services', icon: Scissors },
         { name: 'Service prices', href: '/dashboard/organization/pricing', icon: BadgePercent },
         { name: 'Shared brand', href: '/dashboard/organization/branding', icon: Palette },
         // The organization announcement inbox. Same graceful degradation as Locations:

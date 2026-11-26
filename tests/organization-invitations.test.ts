@@ -98,11 +98,11 @@ async function main() {
 
   const ownerContext: OrgContext = {
     organizationId: organization.id, organizationName: organization.name, membershipId: ownerMember.id,
-    role: 'ORGANIZATION_OWNER', regions: [], locationBusinessIds: [business.id], homeBusinessId: business.id,
+    role: 'ORGANIZATION_OWNER', regions: [], allRegions: false, locationBusinessIds: [business.id], homeBusinessId: business.id,
   }
   const corporateContext: OrgContext = {
     organizationId: organization.id, organizationName: organization.name, membershipId: corporateMember.id,
-    role: 'CORPORATE_ADMIN', regions: [], locationBusinessIds: [business.id], homeBusinessId: null,
+    role: 'CORPORATE_ADMIN', regions: [], allRegions: false, locationBusinessIds: [business.id], homeBusinessId: null,
   }
 
   try {
@@ -324,7 +324,7 @@ async function main() {
     console.log('--- another organization cannot touch these ---')
     const otherContext: OrgContext = {
       organizationId: otherOrganization.id, organizationName: otherOrganization.name, membershipId: 'none',
-      role: 'ORGANIZATION_OWNER', regions: [], locationBusinessIds: [], homeBusinessId: null,
+      role: 'ORGANIZATION_OWNER', regions: [], allRegions: false, locationBusinessIds: [], homeBusinessId: null,
     }
     const crossCancel = await cancelOrganizationInvitation({
       context: otherContext, invitationId: original.value!.id, actorId: owner.id,

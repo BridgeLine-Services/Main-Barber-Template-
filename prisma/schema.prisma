@@ -2444,8 +2444,12 @@ model OrganizationMember {
   userId         String
   role           OrganizationMemberRole
   status         OrganizationMemberStatus @default(INVITED)
-  /// Regions this member may act on. Empty means every region in the organization.
+  /// Regions this member may act on. An empty list now means NO region access:
+  /// an empty list used to mean "every region", which turned a missing value
+  /// into unrestricted access. All-region access is the explicit flag below.
   regions        String[]
+  /// Deliberate, audited grant of every region in the organization.
+  allRegions     Boolean                  @default(false)
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
 
@@ -2501,6 +2505,8 @@ model OrganizationInvitation {
   email          String
   role           OrganizationMemberRole
   /// Empty means every region, matching OrganizationMember.
+  /// Intended scope, applied to OrganizationMember on acceptance.
+  allRegions Boolean @default(false)
   regions        String[]
   /// sha256 of the token. The plaintext is shown once and never stored.
   tokenHash      String                 @unique

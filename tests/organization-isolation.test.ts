@@ -137,6 +137,51 @@ async function main() {
     ok('an explicit assignment adds exactly the assigned location',
       ctxRegionalAssigned.context?.locationBusinessIds.sort().join(',') === [shopA1.id, shopA2.id].sort().join(','))
 
+    // --- Empty scope must never mean "every location" -----------------------
+    // This is the defect this phase exists for. Before the fix the filter was
+    // `role === 'REGIONAL_MANAGER' && regions.length > 0`, so an empty list
+    // skipped filtering entirely and the manager saw every open location.
+    const noScope = await mkUser('regional-noscope', null)
+    const multiScope = await mkUser('regional-multi', null)
+    const allScope = await mkUser('regional-all', null)
+    const removed = await mkUser('regional-removed', null)
+    await prisma.organizationMember.createMany({
+      data: [
+        { organizationId: orgA.id, userId: noScope.id, role: 'REGIONAL_MANAGER', status: 'ACTIVE', regions: [], allRegions: false },
+        { organizationId: orgA.id, userId: multiScope.id, role: 'REGIONAL_MANAGER', status: 'ACTIVE', regions: ['North', 'South'] },
+        { organizationId: orgA.id, userId: allScope.id, role: 'REGIONAL_MANAGER', status: 'ACTIVE', regions: [], allRegions: true },
+        { organizationId: orgA.id, userId: removed.id, role: 'REGIONAL_MANAGER', status: 'REMOVED', regions: ['North'] },
+      ],
+    })
+
+    const ctxNoScope = await resolveOrganizationContext(noScope.id)
+    ok('a regional manager with no regions resolves no locations',
+      ctxNoScope.ok === true && ctxNoScope.context?.locationBusinessIds.length === 0)
+    ok('an empty region list is not read as all-region access',
+      ctxNoScope.context?.allRegions === false && !ctxNoScope.context?.locationBusinessIds.includes(shopA1.id))
+
+    const ctxMulti = await resolveOrganizationContext(multiScope.id)
+    ok('a regional manager with two regions sees both regions',
+      ctxMulti.context?.locationBusinessIds.sort().join(',') === [shopA1.id, shopA2.id].sort().join(','))
+
+    const ctxAll = await resolveOrganizationContext(allScope.id)
+    ok('all-region access works when it is granted explicitly',
+      ctxAll.context?.locationBusinessIds.sort().join(',') === [shopA1.id, shopA2.id].sort().join(','))
+    ok('the explicit grant is visible to callers', ctxAll.context?.allRegions === true)
+
+    const ctxRemoved = await resolveOrganizationContext(removed.id)
+    ok('a removed member is refused', ctxRemoved.ok === false && ctxRemoved.context === null)
+
+    // --- A database failure must fail closed, not half-resolve ----------------
+    const realFindMany = prisma.organizationLocation.findMany
+    ;(prisma.organizationLocation as any).findMany = async () => { throw new Error('connection reset') }
+    const ctxBroken = await resolveOrganizationContext(ownerA.id)
+    ;(prisma.organizationLocation as any).findMany = realFindMany
+    ok('a failed location lookup returns no context', ctxBroken.ok === false && ctxBroken.context === null)
+    ok('a failed location lookup is reported as a read failure', ctxBroken.reason === 'read-failed')
+    ok('the failure message is plain language, not a stack trace',
+      typeof ctxBroken.message === 'string' && !/Error|prisma|SELECT/i.test(ctxBroken.message))
+
     // The role column is a Postgres enum, so a value outside the known roles cannot be
     // stored at all. That is a stronger guarantee than an application check.
     const roleLabels = await prisma.$queryRawUnsafe<Array<{ label: string }>>(
