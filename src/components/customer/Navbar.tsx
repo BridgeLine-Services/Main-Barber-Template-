@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Scissors, Menu, X, Calendar, Phone, UserRound } from 'lucide-react'
+import { visibleNavigation, type NavLink } from '@/lib/website-navigation'
 
 interface NavbarProps {
   businessName?: string
@@ -16,10 +17,20 @@ interface NavbarProps {
   giftCardsEnabled?: boolean
   /** Shop page is only linked when the online store is enabled */
   shopEnabled?: boolean
+  /** The shop's own menu. Absent or empty means the standard one. */
+  navigation?: NavLink[] | null
 }
 
-export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelcome, giftCardsEnabled, shopEnabled }: NavbarProps) {
-  const navLinks = [
+export function Navbar({
+  businessName = 'Barber Shop',
+  logo,
+  phone,
+  walkInsWelcome,
+  giftCardsEnabled,
+  shopEnabled,
+  navigation,
+}: NavbarProps) {
+  const standardLinks = [
     { href: '/', label: 'Home' },
     { href: '/services', label: 'Services' },
     { href: '/barbers', label: 'Barbers' },
@@ -29,6 +40,10 @@ export function Navbar({ businessName = 'Barber Shop', logo, phone, walkInsWelco
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },
   ]
+  // A shop that built its own menu gets its own menu. No menu saved means the standard
+  // one, which is what every existing site has been showing.
+  const custom = visibleNavigation(navigation ?? [])
+  const navLinks = custom.length > 0 ? custom.map((link) => ({ href: link.href, label: link.label })) : standardLinks
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()

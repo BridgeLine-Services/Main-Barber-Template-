@@ -16,7 +16,7 @@ export const PUBLISH_FIELDS = [
   'servicesDescription', 'teamTitle', 'teamDescription', 'reviewsTitle',
   'reviewsDescription', 'visitTitle', 'visitDescription', 'faqTitle',
   'faqDescription', 'finalCtaTitle', 'finalCtaDescription',
-  'featuredReviewCount', 'visualPreset', 'visualConfig', 'homeModules',
+  'featuredReviewCount', 'visualPreset', 'visualConfig', 'homeModules', 'navigation',
   'navigation',
 ] as const
 
