@@ -126,7 +126,7 @@
     "test:reopening-pricing": "npx tsx tests/organization-reopening-and-pricing.test.ts",
     "test:support-sources": "npx tsx tests/support-sources.test.ts",
     "test:security-sweep": "npx tsx tests/security-sweep.test.ts",
-    "template:version": "npx tsx scripts/template-version.ts version",
+    "template:version": "npx tsx scripts/template-version.ts",
     "template:stamp": "npx tsx scripts/template-version.ts stamp",
     "template:check": "npx tsx scripts/template-version.ts check",
     "test:template-updates": "npx tsx tests/template-updates.test.ts",
@@ -146,11 +146,12 @@
     "test:reliability-dashboard": "npx tsx tests/reliability-dashboard.test.ts",
     "test:organization-dashboard": "npx tsx tests/organization-dashboard.test.ts",
     "test:organization-dashboard-data": "npx tsx tests/organization-dashboard-data.test.ts",
-    "test:organization-invitations": "npx tsx tests/organization-invitations.test.ts",
     "test:organization-people": "npx tsx tests/organization-people-screen.test.ts",
     "test:accept-invitation-page": "npx tsx tests/accept-invitation-page.test.ts",
     "test:growth-dashboard": "npx tsx tests/growth-dashboard.test.ts",
-    "test:organization-franchise": "npx tsx tests/organization-franchise-overview.test.ts"
+    "test:organization-franchise": "npx tsx tests/organization-franchise-overview.test.ts",
+    "template:version:check": "npx tsx scripts/template-version.ts --check",
+    "test:template-version": "npx tsx tests/template-version.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
