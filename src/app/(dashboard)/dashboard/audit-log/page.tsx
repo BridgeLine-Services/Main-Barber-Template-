@@ -49,7 +49,7 @@ export default function AuditLogPage() {
   // without a manual refresh. Skips a redundant fetch when the tab is hidden
   // and pauses on deeper pages (offset > 0) to avoid jumping the view.
   useEffect(() => {
-    if (offset !== 0) return
+    if (offset !== 0) return undefined
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') loadLogs()
     }, 30_000)

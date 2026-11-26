@@ -179,7 +179,12 @@ export async function scheduleAppointmentReminders(appointment: AppointmentWithR
     scheduledAt: new Date(appointment.startTime.getTime() - reminder.hours * 60 * 60 * 1000),
     idempotencyKey: `${appointment.id}:REMINDER_${reminder.hours || 'SAME_DAY'}:EMAIL`,
   })))
-} 
+
+  // The early return above reports { scheduled, skipped, reason }; falling off the end used
+  // to return undefined, so a caller reading .scheduled got a crash or a lie depending on
+  // whether email happened to be configured.
+  return { scheduled: reminders.length, skipped: false, reason: null as string | null }
+}
 
 function hasSmsConsent(appointment: AppointmentWithRelations & { customer: { smsConsent?: boolean } }) {
   return Boolean(appointment.customer.phone && appointment.customer.smsConsent)
