@@ -114,3 +114,43 @@ export function describeReward(reward: RewardState): string {
   if (reward.status === 'REVERSED') return `${money} credit, withdrawn.`
   return `${money} credit, expired.`
 }
+
+/** What a shop grants for a qualifying referral, in one place so the amount and the expiry
+ *  cannot drift apart between the service and the screen that shows them. */
+export const REFERRAL_REWARD_RULE = { amount: 10, currency: 'USD', expiresInDays: 90 } as const
+
+export interface IssuanceInput {
+  attribution: { id: string; referrerCustomerId: string | null } | null
+  businessId: string
+  referredCustomerId: string
+  appointmentStatus: string | null
+  existingSourceKeys: string[]
+}
+
+export interface IssuanceDecision {
+  issue: boolean
+  reason: string
+  sourceKey: string | null
+}
+
+/**
+ * Whether a completed visit earns the referrer a reward. Pure, so the reasons stay distinct
+ * instead of collapsing into one silent `false`.
+ */
+export function decideRewardIssuance(input: IssuanceInput): IssuanceDecision {
+  if (!input.attribution) return { issue: false, reason: 'This customer was not referred.', sourceKey: null }
+  if (!input.attribution.referrerCustomerId) {
+    return { issue: false, reason: 'The referral has no referrer recorded.', sourceKey: null }
+  }
+  if (input.attribution.referrerCustomerId === input.referredCustomerId) {
+    return { issue: false, reason: 'A customer cannot earn a reward for referring themselves.', sourceKey: null }
+  }
+  if (input.appointmentStatus !== 'COMPLETED') {
+    return { issue: false, reason: 'The visit is not completed yet.', sourceKey: null }
+  }
+  const sourceKey = sourceKeyFor(input.businessId, input.attribution.id)
+  if (input.existingSourceKeys.includes(sourceKey)) {
+    return { issue: false, reason: 'This referral has already been rewarded.', sourceKey }
+  }
+  return { issue: true, reason: 'The referred customer completed their first visit.', sourceKey }
+}

@@ -9,6 +9,8 @@
  * dashboard — always tenant-isolated by businessId.
  */
 import { prisma } from '@/lib/prisma'
+import { withTenant } from '@/lib/tenant-context'
+import type { Prisma } from '@prisma/client'
 import { createCommissionsForCheckout } from '@/lib/commissions'
 import { redeemGiftCardInTx } from '@/lib/gift-cards'
 import type { PaymentSettings, Barber, Appointment, Service } from '@prisma/client'
@@ -123,9 +125,18 @@ export interface CheckoutSummary {
 const round2 = (n: number) => Math.round(n * 100) / 100
 
 export async function buildCheckoutSummary(businessId: string, appointmentId: string): Promise<CheckoutSummary | null> {
+  // Financial read: tenant-bound, so it is already correct when RLS is enabled.
+  return withTenant(businessId, (tx) => buildCheckoutSummaryInTenant(tx, businessId, appointmentId))
+}
+
+async function buildCheckoutSummaryInTenant(
+  tx: Prisma.TransactionClient,
+  businessId: string,
+  appointmentId: string,
+): Promise<CheckoutSummary | null> {
   const [settings, appointment] = await Promise.all([
     getPosSettings(businessId),
-    prisma.appointment.findFirst({
+    tx.appointment.findFirst({
       where: { id: appointmentId, businessId }, // tenant-scoped
       include: {
         customer: true,
