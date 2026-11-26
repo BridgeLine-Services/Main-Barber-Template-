@@ -150,8 +150,7 @@
     "test:accept-invitation-page": "npx tsx tests/accept-invitation-page.test.ts",
     "test:growth-dashboard": "npx tsx tests/growth-dashboard.test.ts",
     "test:organization-franchise": "npx tsx tests/organization-franchise-overview.test.ts",
-    "template:version:check": "npx tsx scripts/template-version.ts --check",
-    "test:template-version": "npx tsx tests/template-version.test.ts"
+    "tenant:inventory": "npx tsx scripts/tenant-inventory.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.0",
