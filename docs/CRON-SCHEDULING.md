@@ -42,22 +42,46 @@ job unchanged, and simply has no entry for the report job, because a plan that c
 sub-daily crons cannot run this one. Nothing is rewritten into a daily report: the job is
 absent, not altered.
 
-`vercel.json` must always equal one of those two files. It currently equals the Pro plan.
+`vercel.json` must always equal one of those two files. It currently equals the **Hobby**
+plan, because Hobby is the plan this deployment actually ships and Vercel rejects a Hobby
+deployment whose cron configuration contains a sub-daily schedule. That rejection happens at
+deploy time against the file itself, so an environment flag cannot suppress it: the only
+lever is which plan file `vercel.json` contains.
 
 ## Switching plans
 
 ```bash
-npm run cron:plan --check     # vercel.json must match CRON_PLAN, default pro
+npm run cron:plan --check     # vercel.json must match CRON_PLAN, default hobby
 npm run cron:plan:pro         # write the Pro schedule (includes the 15-minute job)
 npm run cron:plan:hobby       # write the Hobby schedule (no sub-daily job)
 ```
 
 `--check` is the drift guard: it fails if someone edits `vercel.json` by hand instead of
-changing a plan file. To check against Hobby, set `CRON_PLAN=hobby`.
+changing a plan file. An empty `CRON_PLAN` is treated as unset, so a blank value in a CI
+environment resolves to the default rather than to an unknown plan name. CI runs
+`npm run cron:plan --check` and `npm run test:cron-plan` before `test:ci`, so a Pro file
+cannot reach a Hobby deployment unnoticed.
 
-**Moving to Pro:** run `npm run cron:plan:pro`, commit the resulting `vercel.json`, deploy,
-then set `ORGANIZATION_REPORT_CRON_ENABLED=true`. The schedule and the switch are separate so
-that the job can be deployed switched off and turned on without a code change.
+**Moving to Pro:** the deployment is currently Hobby, so the 15-minute job is implemented
+but not scheduled. Nothing about the job is missing or stubbed: the route, the scheduler,
+the idempotency key and the switch are all in place and tested. Activation is a
+configuration change plus an environment change:
+
+1. Upgrade the Vercel project to Pro (a billing decision, not a code change).
+2. `npm run cron:plan:pro` — writes `vercel.json` from `config/vercel/crons.pro.json`.
+3. `npm run cron:plan --check` with `CRON_PLAN=pro` — confirms the file matches the Pro plan.
+4. `npm run test:cron-plan` — 41 assertions, including that the 15-minute entry survived.
+5. Commit the `vercel.json` change and deploy.
+6. Confirm Vercel lists `/api/cron/organization-report-delivery` as scheduled.
+7. Set `ORGANIZATION_REPORT_CRON_ENABLED=true` in the Vercel environment.
+8. Confirm `CRON_SECRET` is set. Without it the route refuses every call.
+9. Trigger it once with the secret and confirm a `skipped: false` response and one report
+   per due configuration, not two (the idempotency key is configuration + scheduled time).
+
+Steps 2 to 5 are the whole code change. No scheduler code is rewritten.
+
+The schedule and the switch are separate so the job can be deployed switched off and turned
+on without a code change.
 
 **Moving to Hobby:** run `npm run cron:plan:hobby`, commit, deploy, and leave the flag unset.
 
