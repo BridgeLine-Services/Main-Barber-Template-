@@ -7,8 +7,7 @@
  * All data is scoped to the session's business.
  */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireStaff } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
 import { isFeatureEnabledForBusiness } from '@/lib/features'
@@ -27,13 +26,12 @@ const enrollSchema = z.object({
   paymentMethod: z.enum(['IN_PERSON', 'CARD']).default('IN_PERSON'),
 })
 
-type SessionUser = { role: string; businessId?: string | null }
-
 export async function GET() {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const businessId = user.businessId
     // Feature gate: enrolling someone creates a recurring agreement, so it must be
     // refused when memberships are off. Existing memberships are untouched.
@@ -79,9 +77,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const businessId = user.businessId
 
     const parsed = enrollSchema.safeParse(await request.json().catch(() => null))
