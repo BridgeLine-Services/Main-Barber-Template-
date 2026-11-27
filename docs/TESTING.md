@@ -248,3 +248,12 @@ The suite proves this rather than assuming it: it restores a dump that carries t
 PostgreSQL 18 line, asserts the unfiltered restore fails with exactly the CI error and
 leaves the database untouched, then asserts the same dump restores once the unsupported
 setting is dropped.
+
+### Organization announcements and client-copy rehearsal
+
+Template CI runs `npm run test:announcements` without email/SMS credentials. It verifies
+server-resolved audiences, cross-location visibility, and per-user read receipts; external
+provider delivery is not enabled by this test. `npm run test:client-distribution` also
+exercises the actual client-copy script against a disposable Git repository: dry-run is
+non-destructive, apply removes only designated test artifacts, and reusable source,
+migrations, and client workflows remain present.

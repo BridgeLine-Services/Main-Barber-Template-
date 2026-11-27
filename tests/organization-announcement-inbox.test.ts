@@ -372,7 +372,8 @@ ok('the page has a top-level heading', (page.match(/<h1/g) ?? []).length >= 1)
 ok('the client component starts at h2, never a second h1', !inbox.includes('<h1') && inbox.includes('<h2'))
 ok('the page renders the inbox component', page.includes('AnnouncementInbox'))
 ok('the inbox is reachable from the owner sidebar', /name: 'Announcements', href: '\/dashboard\/organization\/announcements'/.test(sidebar))
-ok('the inbox is reachable from the barber sidebar', (sidebar.match(/href: '\/dashboard\/organization\/announcements'/g) ?? []).length === 2)
+const barberNavigation = sidebar.slice(sidebar.indexOf('const barberSections:'), sidebar.indexOf('const coOwnerOnlyHiddenHrefs:'))
+ok('the inbox is reachable from the barber sidebar', barberNavigation.includes("href: '/dashboard/organization/announcements'"))
 
 // ─── Schema support for read status ───────────────────────────────────────
 

@@ -142,6 +142,8 @@ jobs:
         run: npm run test:cron-plan
 
       - run: npm run test:ci
+      # Pure announcement authorization, audience, and inbox tests need no provider credentials.
+      - run: npm run test:announcements
       # Backup reliability gates (reliability hardening, Part 3):
       #   • cleanup runs on every failure path (scratch databases and temp dumps
       #     cannot leak when a restore fails) — tests/backup-failure-modes
