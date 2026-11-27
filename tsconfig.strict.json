@@ -5,6 +5,7 @@
     "noEmit": true
   },
   "include": [
+    "src/lib/organization/announcement-inbox.ts",
     "src/lib/tenant-context.ts",
     "src/lib/cron-flags.ts",
     "src/lib/website-versions.ts",

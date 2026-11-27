@@ -1,4 +1,6 @@
-import { readFileSync, existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 // The client distribution must keep its security and build protection.
@@ -45,6 +47,54 @@ if (existsSync(clientCi)) {
 
 for (const kept of ['ci.yml', 'architecture.yml', 'backup-offsite.yml', 'backup-archive.yml', 'media-backup.yml', 'vercel-diagnostics.yml']) {
   ok(`master keeps ${kept}`, existsSync(join(root, '.github/workflows', kept)))
+}
+
+// Exercise the real copy script on a disposable, clean git repository. The dry-run must
+// leave every file untouched; apply may remove only the explicitly designated test files.
+const fixtureRoot = mkdtempSync(join(tmpdir(), 'barber-client-copy-'))
+try {
+  mkdirSync(join(fixtureRoot, '.github/workflows'), { recursive: true })
+  mkdirSync(join(fixtureRoot, 'src/lib'), { recursive: true })
+  mkdirSync(join(fixtureRoot, 'src/app/api/test'), { recursive: true })
+  mkdirSync(join(fixtureRoot, 'prisma/migrations/0001_initial'), { recursive: true })
+  mkdirSync(join(fixtureRoot, 'tests'), { recursive: true })
+  writeFileSync(join(fixtureRoot, 'package.json'), JSON.stringify({
+    scripts: { start: 'next start', 'test:fixture': 'tsx tests/sentinel.test.ts' },
+  }, null, 2))
+  writeFileSync(join(fixtureRoot, 'src/lib/runtime.ts'), 'export const runtime = true\n')
+  writeFileSync(join(fixtureRoot, 'src/app/api/test/route.ts'), 'export function POST() {}\n')
+  writeFileSync(join(fixtureRoot, 'prisma/migrations/0001_initial/migration.sql'), 'SELECT 1;\n')
+  writeFileSync(join(fixtureRoot, 'tests/sentinel.test.ts'), 'console.log("fixture")\n')
+  writeFileSync(join(fixtureRoot, '.github/workflows/ci.yml'), 'name: Internal CI\n')
+  writeFileSync(join(fixtureRoot, '.github/workflows/client-ci.yml'), 'name: Client CI\n')
+  writeFileSync(join(fixtureRoot, '.github/workflows/architecture.yml'), 'name: Architecture\n')
+
+  execFileSync('git', ['init', '--quiet', '--initial-branch=client-copy-test'], { cwd: fixtureRoot })
+  execFileSync('git', ['add', '.'], { cwd: fixtureRoot })
+  execFileSync('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '--quiet', '-m', 'fixture'], { cwd: fixtureRoot })
+
+  const dryRun = execFileSync('bash', [join(root, 'scripts/prepare-client-copy.sh'), `--target=${fixtureRoot}`, '--strip-tests'], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+  ok('dry-run reports no changes', dryRun.includes('Dry-run only'))
+  ok('dry-run preserves internal tests and creates no manifest', existsSync(join(fixtureRoot, 'tests/sentinel.test.ts')) && !existsSync(join(fixtureRoot, 'client-copy-removals.txt')))
+
+  execFileSync('bash', [join(root, 'scripts/prepare-client-copy.sh'), `--target=${fixtureRoot}`, '--strip-tests', '--apply'], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+  const clientScripts = JSON.parse(readFileSync(join(fixtureRoot, 'package.json'), 'utf8')).scripts
+  const manifest = readFileSync(join(fixtureRoot, 'client-copy-removals.txt'), 'utf8')
+  ok('apply removes designated test suites', !existsSync(join(fixtureRoot, 'tests')) && manifest.includes('tests'))
+  ok('apply removes only the internal test workflow', !existsSync(join(fixtureRoot, '.github/workflows/ci.yml')))
+  ok('apply preserves client CI and architecture workflows', existsSync(join(fixtureRoot, '.github/workflows/client-ci.yml')) && existsSync(join(fixtureRoot, '.github/workflows/architecture.yml')))
+  ok('apply preserves reusable code and migrations', existsSync(join(fixtureRoot, 'src/lib/runtime.ts')) && existsSync(join(fixtureRoot, 'prisma/migrations/0001_initial/migration.sql')))
+  ok('apply removes scripts that point into the stripped test tree', !('test:fixture' in clientScripts) && clientScripts.start === 'next start')
+} catch (error) {
+  ok('client-copy rehearsal completes on a disposable repository', false, error instanceof Error ? error.message : String(error))
+} finally {
+  rmSync(fixtureRoot, { recursive: true, force: true })
 }
 
 console.log(`\nClient distribution: ${pass} passed, ${fail} failed`)

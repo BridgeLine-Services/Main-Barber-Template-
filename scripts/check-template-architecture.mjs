@@ -4,6 +4,7 @@
  * It intentionally checks source/configuration files only and leaves generic
  * labels, fixtures, docs, and local development defaults to human review.
  */
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -30,6 +31,17 @@ const findings = []
 // Never allow real environment files into the master repository. The example
 // file is intentionally checked separately by architecture tests and may only
 // contain empty values or documentation-safe placeholders.
+let trackedFiles = null
+try {
+  trackedFiles = new Set(
+    execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+      .split('\0')
+      .filter(Boolean),
+  )
+} catch {
+  // Outside Git, retain the conservative filesystem check below.
+}
+
 function findEnvironmentFiles(dir) {
   if (!fs.existsSync(dir)) return
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -37,7 +49,10 @@ function findEnvironmentFiles(dir) {
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) findEnvironmentFiles(full)
     else if (/^\.env(?:\.|$)/.test(entry.name)) {
-      findings.push(`${path.relative(root, full)}: environment file must not be committed`)
+      const relative = path.relative(root, full).split(path.sep).join('/')
+      if (trackedFiles === null || trackedFiles.has(relative)) {
+        findings.push(`${relative}: environment file must not be committed`)
+      }
     }
   }
 }

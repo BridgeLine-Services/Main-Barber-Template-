@@ -74,3 +74,12 @@ lookup that may be missing, then used where a value is required
 `organization/scheduled-report.ts`, `organization/resolve.ts` and
 `organization/report-delivery.ts`). The gate stays at nine modules until those are handled
 one file at a time; turning it on and ignoring 26 errors would be worse than leaving it off.
+
+## Current verified gate (2026-11-26)
+
+The current `tsconfig.strict.json` adds `src/lib/organization/announcement-inbox.ts` to the
+staged gate, extending strict checking to announcement audience resolution and inbox
+visibility without changing the repository-wide compiler settings. The normal type check
+and the strict staged check both pass with this addition (`npm run typecheck`, exit 0).
+The organization and payments directories are still not claimed as fully strict; the
+historical 26-error measurement above remains the reason to expand them incrementally.

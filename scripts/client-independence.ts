@@ -32,6 +32,13 @@ const ALLOW = [
   // a client's own domain, so they belong here rather than in the source as an
   // exception. Without them the gate fails on day one and stops being read.
   /api\.stripe\.com/, /g\.page/,
+  // Official vendor and language/project documentation endpoints used by reusable
+  // platform tooling, not client business domains.
+  /^https:\/\/(?:api\.osv\.dev|osv\.dev|registry\.npmjs\.org|nodejs\.org|nextjs\.org|react\.dev|www\.prisma\.io|www\.typescriptlang\.org|www\.postgresql\.org|github\.com|api\.github\.com)$/i,
+  // Static security test sentinel: intentionally hostile URL used to prove host parsing.
+  /^https:\/\/evil\.test$/i,
+  // FNV-1a offset basis in the deterministic referral-code hash, not a phone number.
+  /^2166136261$/,
 ]
 
 const patterns: Array<{ name: string; re: RegExp }> = [
