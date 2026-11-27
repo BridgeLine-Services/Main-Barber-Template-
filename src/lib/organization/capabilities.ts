@@ -36,6 +36,7 @@ export type Capability =
   | 'staff.assign'
   | 'financial.organization.read'
   | 'financial.location.read'
+  | 'appointments.location.read'
   | 'config.audit.read'
   | 'customer.link.manage'
 
@@ -108,7 +109,7 @@ export const ROLE_CAPABILITIES: Record<OrgRole, Capability[]> = {
     'financial.location.read',
     'financial.organization.read',
   ],
-  LOCATION_MANAGER: LOCATION_LEVEL,
+  LOCATION_MANAGER: [...LOCATION_LEVEL, 'appointments.location.read'],
   BARBER: ['organization.read', 'locations.read', 'branding.read', 'services.read', 'announcements.read', 'reporting.customer.read'],
   CUSTOMER: [],
 }
@@ -140,7 +141,7 @@ export function describeRole(role: OrgRole): string {
     case 'FRANCHISE_OWNER':
       return 'You own one location and see its numbers plus your franchise totals. Other franchisees’ customer records stay private.'
     case 'LOCATION_MANAGER':
-      return 'You run one location. You can see that location’s customers, staff and finances. You cannot change organization-wide settings.'
+      return 'You run one location. You can see that location’s appointments, customers, staff and finances. You cannot change organization-wide settings.'
     case 'BARBER':
       return 'You see your own appointments and the customers you serve at this location. Nothing else.'
     case 'CUSTOMER':

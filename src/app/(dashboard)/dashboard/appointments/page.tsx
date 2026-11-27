@@ -2,8 +2,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
 import { AppointmentsListView } from '@/components/dashboard/AppointmentsListView'
+import { resolveOrganizationContext } from '@/lib/organization/resolve'
+import { withTenant } from '@/lib/tenant-context'
+import { can } from '@/lib/organization/capabilities'
 
 export default async function AppointmentsPage() {
   const session = await getServerSession(authOptions)
@@ -13,12 +15,25 @@ export default async function AppointmentsPage() {
   }
 
   const user = session.user
-  const businessId = user.businessId
   const userRole = user.role
   const barberId = user.barberId
+  const organizationResult = user.id
+    ? await resolveOrganizationContext(user.id).catch(() => null)
+    : null
+  const organizationContext = organizationResult?.ok ? organizationResult.context : null
+  const canReadLocationAppointments = organizationContext
+    ? can(organizationContext.role, 'appointments.location.read')
+    : false
+  const isLocationManager = organizationContext?.role === 'LOCATION_MANAGER'
+  const managerHomeBusinessId = canReadLocationAppointments
+    && organizationContext?.homeBusinessId
+    && organizationContext.locationBusinessIds.includes(organizationContext.homeBusinessId)
+    ? organizationContext.homeBusinessId
+    : null
+  const businessId = canReadLocationAppointments ? managerHomeBusinessId : user.businessId
 
   const whereFilter: Prisma.AppointmentWhereInput = { businessId }
-  if (userRole === 'BARBER' && barberId) {
+  if (userRole === 'BARBER' && barberId && !canReadLocationAppointments) {
     whereFilter.barberId = barberId
   }
 
@@ -27,28 +42,30 @@ export default async function AppointmentsPage() {
   }>
   let appointments: AppointmentWithIncludes[] = []
   let barbers: Array<{ id: string; name: string }> = []
-  try {
-    appointments = await prisma.appointment.findMany({
-      where: whereFilter,
-    include: {
-      customer: true,
-      barber: true,
-      service: true,
-      intakeResponses: { orderBy: { createdAt: 'asc' } },
-    },
-    orderBy: {
-      startTime: 'desc',
-    },
-      take: 300,
-    })
+  let appointmentsLoadFailed = !businessId
+  if (businessId) {
+    try {
+      appointments = await withTenant(businessId, (tx) => tx.appointment.findMany({
+        where: whereFilter,
+        include: {
+          customer: true,
+          barber: true,
+          service: true,
+          intakeResponses: { orderBy: { createdAt: 'asc' } },
+        },
+        orderBy: { startTime: 'desc' },
+        take: 300,
+      }))
 
-    barbers = await prisma.barber.findMany({
-    where: { businessId, isActive: true },
-    select: { id: true, name: true },
-      orderBy: { order: 'asc' },
-    })
-  } catch (error) {
-    console.error('Failed to load appointments:', error)
+      barbers = await withTenant(businessId, (tx) => tx.barber.findMany({
+        where: { businessId, isActive: true },
+        select: { id: true, name: true },
+        orderBy: { order: 'asc' },
+      }))
+    } catch (error) {
+      appointmentsLoadFailed = true
+      console.error('Failed to load appointments:', error)
+    }
   }
 
   const formattedAppointments = appointments.map((a) => ({
@@ -85,6 +102,8 @@ export default async function AppointmentsPage() {
       initialAppointments={formattedAppointments}
       barbers={barbers}
       userRole={userRole}
+      isLocationManager={isLocationManager}
+      initialLoadError={appointmentsLoadFailed}
     />
   )
 }

@@ -6,6 +6,9 @@ import { TodayAppointmentsView } from '@/components/dashboard/TodayAppointmentsV
 import { resolveBusinessTimezone, formatInTimezone, dayBoundsFromYMD } from '@/lib/timezone'
 import type { Prisma } from '@prisma/client'
 import { RoleWelcomeCard } from '@/components/dashboard/RoleWelcomeCard'
+import { resolveOrganizationContext } from '@/lib/organization/resolve'
+import { withTenant } from '@/lib/tenant-context'
+import { can } from '@/lib/organization/capabilities'
 
 export default async function DashboardHomePage() {
   const session = await getServerSession(authOptions)
@@ -18,6 +21,24 @@ export default async function DashboardHomePage() {
   const businessId = user.businessId
   const userRole = user.role
   const barberId = user.barberId
+  const organizationResult = user.id
+    ? await resolveOrganizationContext(user.id).catch(() => null)
+    : null
+  const organizationContext = organizationResult?.ok ? organizationResult.context : null
+  const organizationRole = organizationContext?.role ?? null
+  const dashboardExperienceRole = organizationRole && organizationRole !== 'BARBER' && organizationRole !== 'CUSTOMER'
+    ? organizationRole
+    : userRole
+  const assignedLocationCount = organizationContext?.locationBusinessIds.length
+  const canReadLocationAppointments = organizationContext
+    ? can(organizationContext.role, 'appointments.location.read')
+    : false
+  const managerHomeBusinessId = canReadLocationAppointments
+    && organizationContext?.homeBusinessId
+    && organizationContext.locationBusinessIds.includes(organizationContext.homeBusinessId)
+    ? organizationContext.homeBusinessId
+    : null
+  const dashboardBusinessId = canReadLocationAppointments ? managerHomeBusinessId : businessId
 
   // If owner has no business yet, redirect to onboarding
   if (userRole === 'OWNER' && !businessId) {
@@ -26,8 +47,8 @@ export default async function DashboardHomePage() {
 
   // Start and end of today — in the business timezone, so the daily list
   // matches the shop's calendar day (not the server's UTC day).
-  const tzBusiness = businessId
-    ? await prisma.business.findUnique({ where: { id: businessId }, select: { timezone: true } }).catch(() => null)
+  const tzBusiness = dashboardBusinessId
+    ? await prisma.business.findUnique({ where: { id: dashboardBusinessId }, select: { timezone: true } }).catch(() => null)
     : null
   const businessTz = resolveBusinessTimezone(tzBusiness)
   const now = new Date()
@@ -40,7 +61,7 @@ export default async function DashboardHomePage() {
 
   // Build where filter
   const whereFilter: Prisma.AppointmentWhereInput = {
-    businessId,
+    businessId: dashboardBusinessId,
     startTime: {
       gte: startOfDay,
       lte: endOfDay,
@@ -48,25 +69,29 @@ export default async function DashboardHomePage() {
   }
 
   // If BARBER role, limit to their appointments
-  if (userRole === 'BARBER' && barberId) {
+  if (userRole === 'BARBER' && barberId && !canReadLocationAppointments) {
     whereFilter.barberId = barberId
   }
 
   let appointments: Prisma.AppointmentGetPayload<{ include: { customer: true; barber: true; service: true } }>[] = []
-  try {
-    appointments = await prisma.appointment.findMany({
-      where: whereFilter,
-      include: {
-        customer: true,
-        barber: true,
-        service: true,
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
-    })
-  } catch (error) {
-    console.error('Failed to load appointments:', error)
+  let appointmentsLoadFailed = !dashboardBusinessId
+  if (dashboardBusinessId) {
+    try {
+      appointments = await withTenant(dashboardBusinessId, (tx) => tx.appointment.findMany({
+        where: whereFilter,
+        include: {
+          customer: true,
+          barber: true,
+          service: true,
+        },
+        orderBy: {
+          startTime: 'asc',
+        },
+      }))
+    } catch (error) {
+      appointmentsLoadFailed = true
+      console.error('Failed to load appointments:', error)
+    }
   }
 
   // Format dates to JSON safe strings
@@ -101,9 +126,10 @@ export default async function DashboardHomePage() {
 
   return (
     <>
-      <RoleWelcomeCard role={userRole} />
+      <RoleWelcomeCard role={dashboardExperienceRole} assignedLocationCount={assignedLocationCount} />
       <TodayAppointmentsView
         initialAppointments={formattedAppointments}
+        initialLoadError={appointmentsLoadFailed}
         todayDateStr={todayDateStr}
         userName={user.name || 'User'}
         userRole={userRole}

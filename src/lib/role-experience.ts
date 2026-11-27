@@ -25,6 +25,7 @@ export type OrganizationRoleName =
   | 'CORPORATE_ADMIN'
   | 'REGIONAL_MANAGER'
   | 'FRANCHISE_OWNER'
+  | 'LOCATION_MANAGER'
 
 export interface RoleExperience {
   role: AppRole | OrganizationRoleName
@@ -60,13 +61,32 @@ const BUSINESS_ADMIN: RoleExperience = {
   intro: 'You can run the day to day of this shop. A few things belong to the owner alone, and this page says which.',
   focus: [
     { label: "Today's appointments", href: '/dashboard', why: 'The same daily view the owner sees.' },
-    { label: 'Staff', href: '/dashboard/staff', why: 'Schedules, time clock and who is working.' },
+    { label: 'Calendar', href: '/dashboard/calendar', why: 'Plan the shop schedule and spot gaps in the day.' },
+    { label: 'Staff', href: '/dashboard/staff', why: 'See who is working and manage the team you are allowed to oversee.' },
+    { label: 'Services', href: '/dashboard/services', why: 'Keep the services customers can book up to date.' },
     { label: 'Customers', href: '/dashboard/customers', why: 'History and contact details for people who book.' },
   ],
   boundaries: [
-    'Only the owner can change the shop’s payment settings and who has owner-level access.',
-    'Only the owner can delete the shop or hand it to someone else.',
+    'Only the owner can change the shop’s payment settings, owner-level access, or transfer ownership.',
+    'Payroll totals, customer exports, shop deactivation and platform administration remain owner-only.',
     'If a page you need is missing, ask the owner to give you that permission rather than sharing their login.',
+  ],
+  needsOwnerApproval: true,
+}
+
+const LOCATION_MANAGER: RoleExperience = {
+  role: 'LOCATION_MANAGER',
+  label: 'Location manager',
+  intro: 'You manage the location or locations assigned to you. Organization totals and announcements are scoped to that access.',
+  focus: [
+    { label: 'Assigned locations', href: '/dashboard/organization', why: 'See only locations included in your current organization access.' },
+    { label: 'Your schedule', href: '/dashboard/schedule', why: 'Check your own working hours and availability.' },
+    { label: 'Announcements', href: '/dashboard/organization/announcements', why: 'Read updates shared with your assigned locations.' },
+  ],
+  boundaries: [
+    'You cannot see locations outside your assignments or regions.',
+    'Organization-wide branding, shared services and people access belong to corporate administrators.',
+    'Your barber tools remain limited to your own profile and schedule; location-wide data is shown only on pages that check your organization access.',
   ],
   needsOwnerApproval: true,
 }
@@ -209,6 +229,7 @@ const ORGANIZATION_ROLES: Record<string, RoleExperience> = {
   CORPORATE_ADMIN,
   REGIONAL_MANAGER,
   FRANCHISE_OWNER,
+  LOCATION_MANAGER,
 }
 
 export function describeRoleExperience(role: string | null | undefined): RoleExperience {

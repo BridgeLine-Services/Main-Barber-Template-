@@ -43,6 +43,9 @@ for (const role of CORPORATE_ROLES) {
   ok(`${role} can read aggregate reporting`, can(role, 'reporting.aggregate.read') === true)
 }
 ok('a location manager can read customer records', can('LOCATION_MANAGER', CUSTOMER_RECORD_CAPABILITY) === true)
+ok('a location manager can read appointments at assigned locations', can('LOCATION_MANAGER', 'appointments.location.read') === true)
+ok('a barber does not inherit location-wide appointment access', can('BARBER', 'appointments.location.read') === false)
+ok('a regional manager does not inherit customer-level appointment access', can('REGIONAL_MANAGER', 'appointments.location.read') === false)
 ok('a barber can read customer records at their location', can('BARBER', CUSTOMER_RECORD_CAPABILITY) === true)
 ok('a customer has no organization capabilities', capabilitiesFor('CUSTOMER').length === 0)
 ok('an unknown role is refused', normaliseRole('SUPERUSER') === null)
