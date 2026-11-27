@@ -119,6 +119,15 @@ ok('the growth-stage route takes its tenant from the session', /getBusinessIdFor
 ok('the growth-stage route never reads a tenant from the body', !/businessId:\s*body/.test(growthRoute))
 ok('the growth-stage route validates the value it writes', /isBusinessStage/.test(growthRoute))
 
+const membershipsRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/memberships/route.ts'), 'utf8')
+const membershipPlansRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/memberships/plans/route.ts'), 'utf8')
+const membershipSettingsRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/memberships/settings/route.ts'), 'utf8')
+const membershipCancelRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/memberships/[id]/cancel/route.ts'), 'utf8')
+ok('membership list and enrollment require staff auth', (membershipsRoute.match(/await requireStaff\(\)/g) ?? []).length === 2)
+ok('every membership-plan handler requires staff auth', (membershipPlansRoute.match(/await requireStaff\(\)/g) ?? []).length === 4)
+ok('membership settings require owner/admin auth', (membershipSettingsRoute.match(/await requireBusinessAdmin\(\)/g) ?? []).length === 2)
+ok('membership cancellation requires staff auth', /await requireStaff\(\)/.test(membershipCancelRoute))
+
 // ─── RLS stays staged ──────────────────────────────────────────────────────
 
 const migrationsDir = join(ROOT, 'prisma', 'migrations')

@@ -7,8 +7,7 @@
  *                                                 history-referenced plans)
  */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireStaff } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { can } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
@@ -30,20 +29,13 @@ const planSchema = z.object({
 
 const patchSchema = planSchema.partial().extend({ id: z.string().min(1) })
 
-type SessionUser = { role: string; businessId?: string | null }
-
-async function sessionUser(): Promise<SessionUser | null> {
-  const session = (await getServerSession(authOptions)) as { user?: SessionUser } | null
-  const user = session?.user
-  if (!user?.businessId) return null
-  return user
-}
-
 export async function GET() {
   try {
-    const user = await sessionUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    return NextResponse.json({ plans: await listPlans(user.businessId, true) })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const businessId = auth.user.businessId
+    if (!businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ plans: await listPlans(businessId, true) })
   } catch (error) {
     return handleApiError(error, 'GET /api/dashboard/memberships/plans')
   }
@@ -51,9 +43,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const user = await sessionUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!can(user.role, 'business.manage-settings')) {
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const businessId = auth.user.businessId
+    if (!businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!can(auth.user.role, 'business.manage-settings')) {
       return NextResponse.json({ error: 'Only owners can create membership plans' }, { status: 403 })
     }
     const parsed = planSchema.safeParse(await request.json().catch(() => null))
@@ -63,7 +57,7 @@ export async function POST(request: Request) {
     const check = validatePlanInput(parsed.data)
     if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
     const plan = await prisma.membershipPlan.create({
-      data: { businessId: user.businessId, ...parsed.data },
+      data: { businessId, ...parsed.data },
     })
     return NextResponse.json({ success: true, plan }, { status: 201 })
   } catch (error) {
@@ -73,9 +67,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const user = await sessionUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!can(user.role, 'business.manage-settings')) {
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const businessId = auth.user.businessId
+    if (!businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!can(auth.user.role, 'business.manage-settings')) {
       return NextResponse.json({ error: 'Only owners can change membership plans' }, { status: 403 })
     }
     const parsed = patchSchema.safeParse(await request.json().catch(() => null))
@@ -89,7 +85,7 @@ export async function PATCH(request: Request) {
     }
     // Tenant scope: updateMany filters by businessId — a foreign plan id is a 404.
     const result = await prisma.membershipPlan.updateMany({
-      where: { id, businessId: user.businessId },
+      where: { id, businessId },
       data: patch,
     })
     if (result.count === 0) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
@@ -104,16 +100,18 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const user = await sessionUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!can(user.role, 'business.manage-settings')) {
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const businessId = auth.user.businessId
+    if (!businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!can(auth.user.role, 'business.manage-settings')) {
       return NextResponse.json({ error: 'Only owners can remove membership plans' }, { status: 403 })
     }
     const id = new URL(request.url).searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'Plan id required' }, { status: 400 })
     // Deactivate instead of delete so membership history stays intact.
     const result = await prisma.membershipPlan.updateMany({
-      where: { id, businessId: user.businessId },
+      where: { id, businessId },
       data: { active: false },
     })
     if (result.count === 0) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
