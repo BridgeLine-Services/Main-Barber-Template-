@@ -64,6 +64,13 @@ ok(
   /if \(!businessId\)/.test(customersRoute) && /status: 401/.test(customersRoute),
 )
 
+const organizationResolver = readFileSync(join(root, 'src/lib/organization/resolve.ts'), 'utf8')
+ok(
+  'the organization resolver assigns the authenticated home business to the returned context',
+  /let homeBusinessId: string \| null[\s\S]*?homeBusinessId = user\?\.businessId \?\? null/.test(organizationResolver)
+    && !/const homeBusinessId = user\?\.businessId/.test(organizationResolver),
+)
+
 if (failures.length > 0) {
   console.error(`\nTenant context: ${passed} passed, ${failures.length} failed`)
   for (const f of failures) console.error('  FAIL ' + f)

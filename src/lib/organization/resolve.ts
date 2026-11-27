@@ -81,7 +81,7 @@ export async function resolveOrganizationContext(userId: string | null | undefin
     })
 
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { businessId: true } })
-    const homeBusinessId = user?.businessId ?? null
+    homeBusinessId = user?.businessId ?? null
 
     visible = locations.filter((l) => l.status !== 'closed')
     if (role === 'REGIONAL_MANAGER') {
