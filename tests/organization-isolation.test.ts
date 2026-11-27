@@ -103,6 +103,7 @@ async function main() {
     const ctxOwnerA = await resolveOrganizationContext(ownerA.id)
     ok('an organization owner resolves their organization', ctxOwnerA.ok && ctxOwnerA.context?.organizationId === orgA.id)
     ok('an organization owner sees every open location in it', ctxOwnerA.context?.locationBusinessIds.sort().join(',') === [shopA1.id, shopA2.id].sort().join(','))
+    ok('the home location is retained from the authenticated user record', ctxOwnerA.context?.homeBusinessId === shopA1.id)
     ok('an organization owner never sees the other organization’s location', !ctxOwnerA.context?.locationBusinessIds.includes(shopB1.id))
 
     const ctxRegional = await resolveOrganizationContext(regionalA.id)
