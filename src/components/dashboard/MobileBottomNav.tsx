@@ -5,16 +5,39 @@ import { CalendarDays, Clock3, Home, Users, MoreHorizontal } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-const items = [
+const ownerItems = [
   { href: '/dashboard', label: 'Today', icon: Home },
   { href: '/dashboard/appointments', label: 'Bookings', icon: CalendarDays },
-  { href: '/dashboard/schedule', label: 'Schedule', icon: Clock3 },
+  { href: '/dashboard/calendar', label: 'Calendar', icon: Clock3 },
   { href: '/dashboard/customers', label: 'Clients', icon: Users },
   { href: '/dashboard/settings', label: 'More', icon: MoreHorizontal },
 ]
 
-export function MobileBottomNav() {
+const barberItems = [
+  { href: '/dashboard', label: 'Today', icon: Home },
+  { href: '/dashboard/appointments', label: 'My bookings', icon: CalendarDays },
+  { href: '/dashboard/schedule', label: 'Schedule', icon: Clock3 },
+  { href: '/dashboard/my-commissions', label: 'Pay', icon: Users },
+  { href: '/dashboard/profile', label: 'Profile', icon: MoreHorizontal },
+]
+
+const managerItems = [
+  ...barberItems.slice(0, 3),
+  { href: '/dashboard/organization', label: 'Locations', icon: Users },
+  { href: '/dashboard/organization/announcements', label: 'Updates', icon: MoreHorizontal },
+]
+
+export function MobileBottomNav({
+  userRole = 'BARBER',
+  organizationRole,
+}: {
+  userRole?: string
+  organizationRole?: string | null
+}) {
   const pathname = usePathname()
+  const items = userRole === 'OWNER' || userRole === 'BUSINESS_ADMIN'
+    ? ownerItems
+    : organizationRole === 'LOCATION_MANAGER' ? managerItems : barberItems
   return (
     <nav aria-label="Mobile dashboard navigation" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-[var(--dash-surface)]/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {items.map(({ href, label, icon: Icon }) => {

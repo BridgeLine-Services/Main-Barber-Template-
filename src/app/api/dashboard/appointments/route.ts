@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { withTenant } from '@/lib/tenant-context'
 import { requireStaff } from '@/lib/auth-helpers'
 import { getBusinessIdForUser } from '@/lib/auth-helpers'
+import { resolveOrganizationContext } from '@/lib/organization/resolve'
+import { can } from '@/lib/organization/capabilities'
 import { createAppointmentSafely } from '@/lib/availability'
 import { createManualAppointmentSchema } from '@/lib/validation'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
@@ -19,10 +21,23 @@ export async function GET(req: NextRequest) {
     const auth = await requireStaff({ restrictToOwnBarber: true })
     if (!auth.success) return auth.response
     const user = auth.user
-    const isBarber = user.role === 'BARBER'
     const sessionBarberId = user.barberId
     try {
-      const businessId = await getBusinessIdForUser(user)
+      const organizationResult = user.id ? await resolveOrganizationContext(user.id) : null
+      const organizationContext = organizationResult?.ok ? organizationResult.context : null
+      const canReadLocationAppointments = organizationContext
+        ? can(organizationContext.role, 'appointments.location.read')
+        : false
+      const managerHomeBusinessId = canReadLocationAppointments
+        && organizationContext?.homeBusinessId
+        && organizationContext.locationBusinessIds.includes(organizationContext.homeBusinessId)
+        ? organizationContext.homeBusinessId
+        : null
+      if (canReadLocationAppointments && !managerHomeBusinessId) {
+        return NextResponse.json({ error: 'No assigned home location is available.' }, { status: 403 })
+      }
+      const businessId = managerHomeBusinessId ?? await getBusinessIdForUser(user)
+      const isBarber = user.role === 'BARBER' && !canReadLocationAppointments
       // Timezone for calendar day/range queries (business calendar days)
       const tzBusiness = await prisma.business.findUnique({
         where: { id: businessId },

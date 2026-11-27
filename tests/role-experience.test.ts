@@ -23,7 +23,7 @@ function ok(name: string, condition: boolean, detail = '') {
 }
 
 const ROOT = join(__dirname, '..')
-const ROLES = ['OWNER', 'BUSINESS_ADMIN', 'BARBER', 'CUSTOMER', 'PLATFORM_OWNER', 'PUBLIC_VISITOR'] as const
+const ROLES = ['OWNER', 'BUSINESS_ADMIN', 'BARBER', 'CUSTOMER', 'PLATFORM_OWNER', 'PUBLIC_VISITOR', 'LOCATION_MANAGER'] as const
 
 /** Does a page file exist for this href? Route groups like (dashboard) are transparent. */
 function pageExists(href: string): boolean {
@@ -76,6 +76,10 @@ const coOwner = describeRoleExperience('BUSINESS_ADMIN')
 ok('a co-owner is told payments belong to the owner', coOwner.boundaries.some((b) => /payment/i.test(b)), coOwner.boundaries.join(' | '))
 ok('a co-owner is told owner-level access is not theirs to change', coOwner.boundaries.some((b) => /owner-level access|owner-level/i.test(b)))
 ok('a co-owner is not offered the payroll page', !coOwner.focus.some((f) => f.href.includes('/payroll')))
+ok('a co-owner gets operational calendar and service links',
+  coOwner.focus.some((f) => f.href === '/dashboard/calendar') && coOwner.focus.some((f) => f.href === '/dashboard/services'))
+ok('a co-owner is told payroll and exports remain restricted',
+  coOwner.boundaries.some((b) => /Payroll totals, customer exports/i.test(b)))
 
 const customer = describeRoleExperience('CUSTOMER')
 ok('a customer is offered booking', customer.focus.some((f) => f.href === '/book'))
@@ -105,7 +109,7 @@ ok('the card does not fetch or mutate anything', !/fetch\(|useEffect|prisma/i.te
 ok('the card hides an empty boundary list instead of showing a blank heading', /boundaries\.length > 0/.test(card))
 
 const page = readFileSync(join(ROOT, 'src/app/(dashboard)/dashboard/page.tsx'), 'utf8')
-ok('the dashboard renders the card with the session role', /RoleWelcomeCard role=\{userRole\}/.test(page))
+ok('the dashboard renders the card with the resolved dashboard experience role', /RoleWelcomeCard role=\{dashboardExperienceRole\}/.test(page))
 ok('the existing today view is still rendered', /TodayAppointmentsView/.test(page))
 ok('the barber filter on the today view is untouched', /userRole === 'BARBER' && barberId/.test(page))
 
@@ -113,7 +117,7 @@ ok('the barber filter on the today view is untouched', /userRole === 'BARBER' &&
 // These roles exist in the permission model. Before this block they had no role
 // experience at all, so a regional manager was described as a public visitor.
 
-for (const role of ['ORGANIZATION_OWNER', 'CORPORATE_ADMIN', 'REGIONAL_MANAGER', 'FRANCHISE_OWNER'] as const) {
+for (const role of ['ORGANIZATION_OWNER', 'CORPORATE_ADMIN', 'REGIONAL_MANAGER', 'FRANCHISE_OWNER', 'LOCATION_MANAGER'] as const) {
   const org = describeRoleExperience(role)
   ok(`${role}: is not described as a visitor`, org.role !== 'PUBLIC_VISITOR', org.label)
   ok(`${role}: has a human label`, org.label !== role && org.label.length > 3, org.label)
@@ -128,6 +132,38 @@ ok('a regional manager does not see shop takings', !regional.focus.some((f) => /
 
 const franchise = describeRoleExperience('FRANCHISE_OWNER')
 ok('a franchise owner is told other locations are not theirs', franchise.boundaries.some((b) => /belong to their own owners/i.test(b)), franchise.boundaries.join(' | '))
+
+const locationManager = describeRoleExperience('LOCATION_MANAGER')
+ok('a location manager is explicitly described', locationManager.label === 'Location manager')
+ok('a location manager is shown assigned locations and announcements',
+  locationManager.focus.some((f) => f.href === '/dashboard/organization')
+    && locationManager.focus.some((f) => f.href === '/dashboard/organization/announcements'))
+ok('a location manager is told their assignment boundary',
+  locationManager.boundaries.some((b) => /outside your assignments or regions/i.test(b)))
+ok('a location manager does not get corporate service or branding links',
+  !locationManager.focus.some((f) => /organization\/(services|branding)/.test(f.href)))
+
+const sidebar = readFileSync(join(ROOT, 'src/components/dashboard/Sidebar.tsx'), 'utf8')
+ok('co-owner navigation filters owner-only destinations',
+  /coOwnerOnlyHiddenHrefs/.test(sidebar) && /userRole === 'BUSINESS_ADMIN'/.test(sidebar))
+const appointmentList = readFileSync(join(ROOT, 'src/components/dashboard/AppointmentsListView.tsx'), 'utf8')
+ok('appointment exports remain owner-only and location managers are read-only',
+  /isOwner && \(/.test(appointmentList) && /!isLocationManager && \(/.test(appointmentList))
+ok('location manager appointment list is scoped in the server page',
+  /locationBusinessIds\.includes\(organizationContext\.homeBusinessId\)/.test(readFileSync(join(ROOT, 'src/app/(dashboard)/dashboard/appointments/page.tsx'), 'utf8')))
+ok('organization navigation is selected by the resolved organization role',
+  /organizationNavigation\[organizationRole/.test(sidebar) && /resolveOrganizationContext/.test(readFileSync(join(ROOT, 'src/app/(dashboard)/dashboard/layout.tsx'), 'utf8')))
+const mobileNav = readFileSync(join(ROOT, 'src/components/dashboard/MobileBottomNav.tsx'), 'utf8')
+ok('mobile navigation uses role-specific destinations',
+  /managerItems/.test(mobileNav) && /userRole === 'OWNER' \|\| userRole === 'BUSINESS_ADMIN'/.test(mobileNav))
+const todayView = readFileSync(join(ROOT, 'src/components/dashboard/TodayAppointmentsView.tsx'), 'utf8')
+ok('today appointments show a retry state instead of false zero totals',
+  /!loadError && \(/.test(todayView) && /Appointments are unavailable/.test(todayView) && /onClick=\{refreshData\}/.test(todayView))
+ok('location manager home data is tied to an assigned home location',
+  /locationBusinessIds\.includes\(organizationContext\.homeBusinessId\)/.test(page) && /withTenant\(dashboardBusinessId/.test(page))
+const appointmentApi = readFileSync(join(ROOT, 'src/app/api/dashboard/appointments/route.ts'), 'utf8')
+ok('appointment refresh resolves the manager home location before querying',
+  /resolveOrganizationContext\(user\.id\)/.test(appointmentApi) && /locationBusinessIds\.includes/.test(appointmentApi))
 ok('an unknown role still falls back to the visitor experience', describeRoleExperience('SOMETHING_ELSE').role === 'PUBLIC_VISITOR')
 
 console.log(`\nRole experience: ${passed} passed, ${failed} failed`)

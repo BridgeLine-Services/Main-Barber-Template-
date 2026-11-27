@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
 import { ExternalLink } from 'lucide-react'
 import { roleLabel } from '@/lib/role-labels'
+import { resolveOrganizationContext } from '@/lib/organization/resolve'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,13 @@ export default async function DashboardLayout({
     : null
   const businessId = dbUser?.businessId ?? null
   const userRole = dbUser?.role || user.role || 'BARBER'
+  const organizationResult = user.id
+    ? await resolveOrganizationContext(user.id).catch(() => null)
+    : null
+  const organizationRole = organizationResult?.ok ? organizationResult.context?.role ?? null : null
+  const organizationLocationCount = organizationResult?.ok
+    ? organizationResult.context?.locationBusinessIds.length ?? 0
+    : 0
 
   let business = null
   try {
@@ -87,6 +95,8 @@ export default async function DashboardLayout({
       <Sidebar
         userName={userName}
         userRole={userRole}
+        organizationRole={organizationRole}
+        organizationLocationCount={organizationLocationCount}
         businessName={businessName}
       />
 
@@ -114,7 +124,7 @@ export default async function DashboardLayout({
             <div className="text-right min-w-0">
               <p className="text-sm font-medium text-foreground truncate max-w-[12rem] xl:max-w-[16rem]">{userName}</p>
               <span className="inline-block text-[11px] font-semibold text-[var(--dash-brand)] bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] px-2 py-0.5 rounded-full capitalize">
-                {roleLabel(userRole)}
+                {roleLabel(organizationRole && organizationRole !== 'BARBER' && organizationRole !== 'CUSTOMER' ? organizationRole : userRole)}
               </span>
             </div>
             <div className="w-9 h-9 rounded-full bg-[var(--dash-brand-soft)] border border-[var(--dash-brand-border)] flex items-center justify-center text-[var(--dash-brand)] font-bold text-sm shrink-0" aria-hidden="true">
@@ -127,7 +137,7 @@ export default async function DashboardLayout({
         <main className="flex-1 overflow-x-hidden bg-background p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8 min-w-0">
           {children}
         </main>
-        <MobileBottomNav />
+        <MobileBottomNav userRole={userRole} organizationRole={organizationRole} />
       </div>
     </div>
   )

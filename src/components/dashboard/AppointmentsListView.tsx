@@ -35,21 +35,26 @@ interface AppointmentsListViewProps {
   initialAppointments: AppointmentListItem[]
   barbers: Array<{ id: string; name: string }>
   userRole: string
+  isLocationManager?: boolean
+  initialLoadError?: boolean
 }
 
 export function AppointmentsListView({
   initialAppointments,
   barbers,
   userRole,
+  isLocationManager = false,
+  initialLoadError = false,
 }: AppointmentsListViewProps) {
   const router = useRouter()
   const [appointments, setAppointments] = useState(initialAppointments)
+  const [loadError, setLoadError] = useState(initialLoadError)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [barberFilter, setBarberFilter] = useState('ALL')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [, setRefreshing] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Dialogs
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null)
@@ -63,12 +68,14 @@ export function AppointmentsListView({
     setRefreshing(true)
     try {
       const res = await fetch('/api/dashboard/appointments')
-      if (res.ok) {
-        const data = await res.json()
-        setAppointments(Array.isArray(data) ? data : data.appointments)
-      }
-    } catch (e) {
-      console.error(e)
+      if (!res.ok) throw new Error('Appointments could not be refreshed')
+      const data = await res.json()
+      const refreshedAppointments = Array.isArray(data) ? data : data.appointments
+      if (!Array.isArray(refreshedAppointments)) throw new Error('Appointments response is invalid')
+      setAppointments(refreshedAppointments)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
     } finally {
       setRefreshing(false)
       router.refresh()
@@ -172,43 +179,60 @@ export function AppointmentsListView({
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <CalendarDays className="w-6 h-6 text-[var(--dash-brand)]" />
-            <span>All Appointments</span>
+            <span>{isLocationManager ? 'Location appointments' : 'All Appointments'}</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Search, filter, manage, and export shop bookings.
+            {isLocationManager
+              ? 'Bookings for the location linked to your account. Other assigned locations remain separate.'
+              : 'Search, filter, manage, and review shop bookings.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToCSV}
-            className="bg-[var(--dash-surface)] border-border text-foreground/85 hover:bg-card text-xs h-9 gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
-            Export CSV
-          </Button>
+          {isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToCSV}
+              className="bg-[var(--dash-surface)] border-border text-foreground/85 hover:bg-card text-xs h-9 gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5 text-[var(--dash-brand)]" />
+              Export CSV
+            </Button>
+          )}
 
-          <Button
-            size="sm"
-            onClick={() => setAddDialogOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-black/10"
-          >
-            <Plus className="w-4 h-4" />
-            New Appointment
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setRecurringOpen(true)}
-            variant="outline"
-            className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] font-semibold text-xs h-9 gap-1.5"
-          >
-            <Repeat className="w-4 h-4 text-[var(--dash-brand)]" />
-            Recurring
-          </Button>
+          {!isLocationManager && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => setAddDialogOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-black/10"
+              >
+                <Plus className="w-4 h-4" />
+                New Appointment
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setRecurringOpen(true)}
+                variant="outline"
+                className="bg-card border-border text-foreground/85 hover:bg-[var(--dash-hover)] font-semibold text-xs h-9 gap-1.5"
+              >
+                <Repeat className="w-4 h-4 text-[var(--dash-brand)]" />
+                Recurring
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {loadError && (
+        <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-[var(--dash-surface)] p-4">
+          <p className="text-sm text-muted-foreground">Appointments could not be loaded. No results are shown until the data is available.</p>
+          <Button variant="outline" onClick={refreshData} disabled={refreshing}>
+            Try again
+          </Button>
+        </section>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-4 space-y-3">
@@ -240,8 +264,9 @@ export function AppointmentsListView({
           </Select>
 
           {/* Barber Filter (if owner) */}
-          {isOwner && (
-            <Select value={barberFilter} onValueChange={setBarberFilter}>
+      {(isOwner || isLocationManager) && (
+        <Select value={barberFilter} onValueChange={setBarberFilter}>
+
               <SelectTrigger className="bg-card border-border text-xs text-foreground h-9">
                 <SelectValue placeholder="Barber" />
               </SelectTrigger>
@@ -293,7 +318,7 @@ export function AppointmentsListView({
               {filteredAppointments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    No appointments match your search criteria.
+                    {loadError ? 'Appointment data is unavailable.' : 'No appointments match your search criteria.'}
                   </td>
                 </tr>
               ) : (

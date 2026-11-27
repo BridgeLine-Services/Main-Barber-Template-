@@ -8,7 +8,13 @@ import { describeRoleExperience } from '@/lib/role-experience'
  * discover a permission boundary by hitting it. Every link is an existing page; the
  * links are not a permission grant, and the destination still checks access itself.
  */
-export function RoleWelcomeCard({ role }: { role: string | null | undefined }) {
+export function RoleWelcomeCard({
+  role,
+  assignedLocationCount,
+}: {
+  role: string | null | undefined
+  assignedLocationCount?: number
+}) {
   const experience = describeRoleExperience(role)
 
   return (
@@ -20,6 +26,16 @@ export function RoleWelcomeCard({ role }: { role: string | null | undefined }) {
         {experience.label}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">{experience.intro}</p>
+      {experience.role === 'LOCATION_MANAGER' && typeof assignedLocationCount === 'number' && (
+        <div className="mt-2">
+          <p className="text-xs font-medium text-[var(--dash-brand)]">
+            {assignedLocationCount} assigned {assignedLocationCount === 1 ? 'location' : 'locations'} in your organization access.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The schedule below shows only the location linked to your account; location records are not combined.
+          </p>
+        </div>
+      )}
 
       {experience.focus.length > 0 && (
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">

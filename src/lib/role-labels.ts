@@ -18,6 +18,11 @@ export const ROLE_LABEL: Record<string, string> = {
   BARBER: 'Barber',
   CUSTOMER: 'Customer',
   PUBLIC_VISITOR: 'Visitor',
+  ORGANIZATION_OWNER: 'Organization owner',
+  CORPORATE_ADMIN: 'Corporate administrator',
+  REGIONAL_MANAGER: 'Regional manager',
+  FRANCHISE_OWNER: 'Franchise owner',
+  LOCATION_MANAGER: 'Location manager',
 }
 
 /** Friendly label for a role identifier, falling back to the raw value. */

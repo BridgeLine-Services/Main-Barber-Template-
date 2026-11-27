@@ -72,6 +72,8 @@ async function fetchUnreadAnnouncements(url: string): Promise<UnreadAnnouncement
 interface SidebarProps {
   userName: string
   userRole: string
+  organizationRole?: string | null
+  organizationLocationCount?: number
   businessName: string
 }
 
@@ -95,7 +97,13 @@ interface NavSection {
   groups?: NavGroup[]
 }
 
-export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
+export function Sidebar({
+  userName,
+  userRole,
+  organizationRole,
+  organizationLocationCount = 0,
+  businessName,
+}: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -361,7 +369,115 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
     },
   ]
 
-  const sections = isOwner ? ownerSections : barberSections
+  const coOwnerOnlyHiddenHrefs = new Set([
+    '/dashboard/setup',
+    '/dashboard/getting-started',
+    '/dashboard/commissions',
+    '/dashboard/payroll',
+    '/dashboard/gift-cards',
+    '/dashboard/ecommerce/orders',
+    '/dashboard/analytics',
+    '/dashboard/growth',
+    '/dashboard/growth/performance',
+    '/dashboard/factory-launch',
+    '/dashboard/factory-status',
+    '/dashboard/reliability',
+    '/dashboard/organization',
+    '/dashboard/organization/locations',
+    '/dashboard/organization/assignments',
+    '/dashboard/organization/regions',
+    '/dashboard/organization/services',
+    '/dashboard/organization/pricing',
+    '/dashboard/organization/branding',
+    '/dashboard/organization/announcements',
+  ])
+  const filterCoOwnerItem = (item: NavItem) => {
+    const path = item.href.split('?')[0]
+    return !coOwnerOnlyHiddenHrefs.has(path)
+      && item.href !== '/dashboard/settings?tab=security'
+      && item.href !== '/dashboard/settings?tab=danger-zone'
+  }
+  const coOwnerSections = ownerSections
+    .map((section) => ({
+      ...section,
+      items: section.items?.filter(filterCoOwnerItem),
+      groups: section.groups
+        ?.map((group) => ({ ...group, items: group.items.filter(filterCoOwnerItem) }))
+        .filter((group) => group.items.length > 0),
+    }))
+    .filter((section) => (section.items?.length ?? 0) > 0 || (section.groups?.length ?? 0) > 0)
+  const organizationNavigation: Record<string, NavItem[]> = {
+    ORGANIZATION_OWNER: [
+      { name: 'Locations overview', href: '/dashboard/organization', icon: Building2 },
+      { name: 'Shop locations', href: '/dashboard/organization/locations', icon: LayoutGrid },
+      { name: 'Assignments', href: '/dashboard/organization/assignments', icon: UserCog },
+      { name: 'Regions', href: '/dashboard/organization/regions', icon: LayoutDashboard },
+      { name: 'Standard services', href: '/dashboard/organization/services', icon: Scissors },
+      { name: 'Service prices', href: '/dashboard/organization/pricing', icon: BadgePercent },
+      { name: 'Shared brand', href: '/dashboard/organization/branding', icon: Palette },
+      { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
+    ],
+    CORPORATE_ADMIN: [
+      { name: 'Locations overview', href: '/dashboard/organization', icon: Building2 },
+      { name: 'Standard services', href: '/dashboard/organization/services', icon: Scissors },
+      { name: 'Shared brand', href: '/dashboard/organization/branding', icon: Palette },
+      { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
+    ],
+    REGIONAL_MANAGER: [
+      { name: 'Assigned locations', href: '/dashboard/organization', icon: Building2 },
+      { name: 'Assignments', href: '/dashboard/organization/assignments', icon: UserCog },
+      { name: 'Service prices', href: '/dashboard/organization/pricing', icon: BadgePercent },
+      { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
+    ],
+    FRANCHISE_OWNER: [
+      { name: 'Locations overview', href: '/dashboard/organization', icon: Building2 },
+      { name: 'Service prices', href: '/dashboard/organization/pricing', icon: BadgePercent },
+      { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
+    ],
+    LOCATION_MANAGER: [
+      { name: 'Assigned locations', href: '/dashboard/organization', icon: Building2 },
+      { name: 'Announcements', href: '/dashboard/organization/announcements', icon: Megaphone },
+    ],
+  }
+  const organizationSections: NavSection[] = organizationRole && organizationNavigation[organizationRole]
+    ? [{ label: 'organization', items: organizationNavigation[organizationRole] }]
+    : []
+  const baseSections = isOwner
+    ? userRole === 'BUSINESS_ADMIN' ? coOwnerSections : ownerSections
+    : barberSections
+  const hasRoleScopedOrganizationNavigation = Boolean(organizationRole && organizationNavigation[organizationRole])
+  const permittedOrganizationHrefs = new Set(organizationNavigation[organizationRole ?? '']?.map((item) => item.href) ?? [])
+  const scopedBaseSections = hasRoleScopedOrganizationNavigation
+    ? baseSections
+        .map((section) => ({
+          ...section,
+          items: section.items?.filter((item) =>
+            !item.href.startsWith('/dashboard/organization/') && item.href !== '/dashboard/organization'
+              ? true
+              : permittedOrganizationHrefs.has(item.href),
+          ),
+          groups: section.groups?.map((group) => ({
+            ...group,
+            items: group.items.filter((item) =>
+              !item.href.startsWith('/dashboard/organization/') && item.href !== '/dashboard/organization'
+                ? true
+                : permittedOrganizationHrefs.has(item.href),
+            ),
+          })),
+        }))
+        .filter((section) => (section.items?.length ?? 0) > 0 || (section.groups?.length ?? 0) > 0)
+    : baseSections
+  const existingHrefs = new Set(scopedBaseSections.flatMap((section) => [
+    ...(section.items ?? []).map((item) => item.href),
+    ...(section.groups ?? []).flatMap((group) => group.items.map((item) => item.href)),
+  ]))
+  const additionalOrganizationSections = organizationSections
+    .map((section) => ({ ...section, items: section.items?.filter((item) => !existingHrefs.has(item.href)) }))
+    .filter((section) => (section.items?.length ?? 0) > 0)
+  const sections = [...scopedBaseSections, ...additionalOrganizationSections]
+  const displayedRole = organizationRole && organizationRole !== 'BARBER' && organizationRole !== 'CUSTOMER'
+    ? organizationRole
+    : userRole
 
   // Nav destinations that are a URL-prefix of ANOTHER nav destination
   // (e.g. /dashboard/ecommerce → /dashboard/ecommerce/orders) must match
@@ -463,7 +579,8 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground leading-tight">{businessName}</h2>
-            <p className="text-[10px] text-muted-foreground">{roleLabel(userRole)} portal</p>
+            <p className="text-[10px] text-muted-foreground">                {roleLabel(displayedRole)} portal
+</p>
           </div>
         </div>
         <Button
@@ -504,8 +621,13 @@ export function Sidebar({ userName, userRole, businessName }: SidebarProps) {
             <div className="overflow-hidden">
               <h1 className="text-sm font-semibold tracking-tight text-foreground truncate [font-family:var(--dash-display-font)]">{businessName}</h1>
               <p className="text-xs text-[var(--dash-brand)] font-medium">
-                {isOwner ? 'Owner Dashboard' : 'Barber Portal'}
+                {roleLabel(displayedRole)} Dashboard
               </p>
+              {organizationRole && (
+                <p className="text-[10px] text-muted-foreground">
+                  {organizationLocationCount} assigned {organizationLocationCount === 1 ? 'location' : 'locations'}
+                </p>
+              )}
             </div>
           </div>
           <button

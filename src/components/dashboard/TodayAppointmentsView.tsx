@@ -19,6 +19,7 @@ import type { CalendarAppointment } from '@/lib/dashboard-appointment'
 
 interface TodayAppointmentsViewProps {
   initialAppointments: CalendarAppointment[]
+  initialLoadError?: boolean
   todayDateStr: string
   userName: string
   userRole: string
@@ -27,6 +28,7 @@ interface TodayAppointmentsViewProps {
 
 export function TodayAppointmentsView({
   initialAppointments,
+  initialLoadError = false,
   todayDateStr,
   userName,
   userRole,
@@ -34,6 +36,7 @@ export function TodayAppointmentsView({
 }: TodayAppointmentsViewProps) {
   const router = useRouter()
   const [appointments, setAppointments] = useState(initialAppointments)
+  const [loadError, setLoadError] = useState(initialLoadError)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -41,12 +44,13 @@ export function TodayAppointmentsView({
     setRefreshing(true)
     try {
       const res = await fetch(`/api/dashboard/appointments?date=${todayDateStr}`)
-      if (res.ok) {
-        const data = await res.json()
-        setAppointments(data)
-      }
-    } catch (err) {
-      console.error(err)
+      if (!res.ok) throw new Error('Appointments could not be refreshed')
+      const data = await res.json()
+      if (!Array.isArray(data?.appointments)) throw new Error('Appointments response is invalid')
+      setAppointments(data.appointments)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
     } finally {
       setRefreshing(false)
       router.refresh()
@@ -93,6 +97,8 @@ export function TodayAppointmentsView({
             size="sm"
             onClick={() => setAddDialogOpen(true)}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-lg shadow-black/10"
+            disabled={loadError}
+            aria-describedby={loadError ? 'appointments-load-error' : undefined}
           >
             <Plus className="w-4 h-4" />
             Add Appointment
@@ -127,7 +133,8 @@ export function TodayAppointmentsView({
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {!loadError && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="bg-[var(--dash-surface)] border-border">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
@@ -175,7 +182,8 @@ export function TodayAppointmentsView({
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
 
       {/* Today's timeline view */}
       <div className="space-y-4">
@@ -184,7 +192,16 @@ export function TodayAppointmentsView({
           <span className="text-xs text-muted-foreground">Sorted chronologically</span>
         </div>
 
-        {appointments.length === 0 ? (
+        {loadError ? (
+          <div id="appointments-load-error" role="alert" className="mx-auto my-8 max-w-md space-y-3 rounded-xl border border-destructive/40 bg-[var(--dash-surface)] p-6 text-center">
+            <h3 className="text-base font-semibold text-foreground">Appointments are unavailable</h3>
+            <p className="text-sm text-muted-foreground">Today&apos;s schedule could not be loaded. No appointment totals are shown until the data is available.</p>
+            <Button variant="outline" onClick={refreshData} disabled={refreshing}>
+              <RefreshCw data-icon="inline-start" />
+              Try again
+            </Button>
+          </div>
+        ) : appointments.length === 0 ? (
           <div className="bg-[var(--dash-surface)] border border-border rounded-2xl p-12 text-center max-w-md mx-auto my-8 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-card border border-border text-[var(--dash-brand)] flex items-center justify-center mx-auto">
               <Scissors className="w-6 h-6" />
