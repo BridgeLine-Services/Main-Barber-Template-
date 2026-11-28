@@ -150,6 +150,15 @@ function psqlApp(sql: string): string {
   }).trim()
 }
 
+/** Test the no-login support group under an administrative session, never through barber_app. */
+function psqlPlatform(sql: string): string {
+  return execFileSync('psql', [adminUrl(activeScratch), '-v', 'ON_ERROR_STOP=1', '-t', '-A', '-F', '\t', '-c', `SET ROLE barber_platform; ${sql}`], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: adminEnv(),
+  }).trim()
+}
+
 function psqlFile(url: string, file: string): string {
   return execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-q', '-f', file], {
     encoding: 'utf8',
@@ -651,11 +660,13 @@ function main() {
     const ddlError = psqlExpectFailure(appUrl(scratch), 'CREATE TABLE rls_probe_ddl (id int)', true)
     assert(ddlError !== '', `${APP_USER} cannot create tables`)
 
-    console.log('\n10. Support access still works when it is asked for explicitly')
-    const staff = psqlAppTx(
-      `BEGIN; SET LOCAL app.platform_staff = '1'; SELECT count(DISTINCT "businessId") FROM "Appointment"; COMMIT;`,
-    )
-    assert(Number(staff) >= 2, `platform staff sees every tenant when it sets app.platform_staff (${staff} tenants)`)
+    console.log('\n10. Platform access requires the separate support role; the runtime cannot grant it to itself')
+    const platformResult = psqlPlatform(`SELECT current_user || ':' || count(DISTINCT "businessId") FROM "Appointment"`)
+    const [platformRole, platformTenantCount] = platformResult.split(':')
+    assert(platformRole === 'barber_platform' && Number(platformTenantCount) >= 2,
+      `the dedicated platform role can see both synthetic tenants (${platformResult})`)
+    const selfEscalation = psqlExpectFailure(appUrl(scratch), 'SET ROLE barber_platform', true)
+    assert(selfEscalation !== '', 'barber_app cannot become a member of barber_platform')
   } finally {
     if (created) {
       try {

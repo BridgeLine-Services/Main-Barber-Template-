@@ -21,19 +21,26 @@ const enforcement = readFileSync('tests/rls-enforcement.test.ts', 'utf8')
 const written = [...helper.matchAll(/set_config\('([^']+)'/g)].map((m) => m[1])
 const read = [...policies.matchAll(/current_setting\('([^']+)'/g)].map((m) => m[1])
 const probed = [...enforcement.matchAll(/(?:SET LOCAL|current_setting\(')([a-z_.]+)/g)].map((m) => m[1])
+const organizationSetting = 'app.current_organization_id'
+const platformSetting = 'app.platform_staff'
 
 ok('the helper writes exactly one tenant setting', written.length === 1, written.join(','))
 ok('the helper writes a namespaced setting', /^app\./.test(written[0] ?? ''), written[0])
 ok('policies read at least one setting', read.length > 0, String(read.length))
-const PLATFORM = 'app.platform_staff'
-ok('policies read the tenant setting', read.includes(written[0]), read.join(','))
-ok('policies read nothing outside the two authorised settings',
-  read.every((name) => name === written[0] || name === PLATFORM), [...new Set(read)].join(','))
-ok('the runtime helper never grants itself platform access',
-  !helper.includes(PLATFORM), 'tenant-context.ts must not set ' + PLATFORM)
-ok('platform access is a separate, explicitly named setting', policies.includes(PLATFORM))
+ok('policies read the business tenant setting written by withTenant', read.includes(written[0]), read.join(','))
+ok('policies read only documented business or organization context settings',
+  read.every((name) => [written[0], organizationSetting].includes(name)), [...new Set(read)].join(','))
+ok('the business helper never grants organization or platform scope',
+  !helper.includes(organizationSetting) && !helper.includes(platformSetting))
+ok('the staged policy documents organization scope separately', policies.includes(organizationSetting))
+ok('platform access uses database role membership, not a caller-set variable',
+  policies.includes("pg_has_role(current_user, 'barber_platform', 'member')") && !policies.includes(platformSetting))
+const stageRoles = readFileSync('prisma/rls/stage-1-roles.sql', 'utf8')
+ok('barber_app is not granted platform membership', !stageRoles.includes('GRANT barber_platform TO barber_app'))
+ok('stage 1 revokes legacy support membership from barber_app', /REVOKE barber_platform FROM barber_app/.test(stageRoles))
 ok('no policy reads a stale name', !policies.includes('app.business_id'))
-ok('the enforcement suite probes the same setting', probed.every((name) => name === written[0]), [...new Set(probed)].join(','))
+ok('the enforcement suite probes only recognized tenant settings',
+  probed.every((name) => [written[0], organizationSetting].includes(name)), [...new Set(probed)].join(','))
 ok('the enforcement suite does not probe a stale name', !enforcement.includes("app.business_id'"))
 ok('the setting is transaction-local in the helper', /is_local\s*=>\s*true|,\s*true\)/.test(helper))
 ok('policies fail closed when unset', policies.includes("NULLIF(current_setting('app.current_business_id', true), '')"))

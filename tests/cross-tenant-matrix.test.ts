@@ -72,6 +72,7 @@ async function main() {
   const bizB = await prisma.business.create({ data: { name: 'Matrix Shop B', slug: `matrix-b-${stamp}`, timezone: 'America/Los_Angeles' } })
 
   const ownerA = await prisma.user.create({ data: { email: `owner.a-${stamp}@matrix.test`, passwordHash, name: 'Owner A', role: 'OWNER', businessId: bizA.id } })
+  const customerLoginA = await prisma.user.create({ data: { email: `customer.a-${stamp}@matrix.test`, passwordHash, name: 'Customer A', role: 'CUSTOMER', businessId: bizA.id } })
   const barberA = await prisma.barber.create({ data: { name: 'Barber A', businessId: bizA.id } })
   const serviceA = await prisma.service.create({ data: { name: 'Matrix Cut A', businessId: bizA.id, duration: 30, price: 20, isActive: true } })
   const customerA = await prisma.customer.create({ data: { firstName: 'Ann', lastName: 'Alpha', phone: '111-111-1111', email: `ann.a-${stamp}@matrix.test`, businessId: bizA.id } })
@@ -90,6 +91,16 @@ async function main() {
   const reviewB = await prisma.review.create({ data: { businessId: bizB.id, authorName: `B Reviewer ${stamp}`, rating: 5, comment: `B comment ${stamp}` } })
   const staffUserB = await prisma.user.create({ data: { email: `barber.b-${stamp}@matrix.test`, passwordHash, name: 'Barber B User', role: 'BARBER', businessId: bizB.id, barberId: barberB.id } })
   const overrideB = await prisma.availabilityOverride.create({ data: { businessId: bizB.id, barberId: barberB.id, date: new Date('2026-10-15'), isAvailable: false, reason: `B off ${stamp}` } })
+  const giftCardB = await prisma.giftCard.create({
+    data: {
+      businessId: bizB.id,
+      code: `MATRIX-GIFT-${stamp}`,
+      initialValue: 100,
+      remainingBalance: 100,
+      purchaserName: 'Gift Customer B',
+      purchaserEmail: `gift-b-${stamp}@matrix.test`,
+    },
+  })
 
   // Snapshot B's data (mutation-diff after the attack matrix).
   const snapshot = async () => ({
@@ -104,6 +115,7 @@ async function main() {
     inventory: await prisma.inventoryItem.findUnique({ where: { id: inventoryB.id } }),
     review: await prisma.review.findUnique({ where: { id: reviewB.id } }),
     override: await prisma.availabilityOverride.findUnique({ where: { id: overrideB.id } }),
+    giftCard: await prisma.giftCard.findUnique({ where: { id: giftCardB.id } }),
     business: await prisma.business.findUnique({ where: { id: bizB.id } }),
   })
   const strip = (o: unknown) => JSON.stringify(o, (k, v) => (k === 'updatedAt' ? undefined : v))
@@ -121,11 +133,20 @@ async function main() {
     inventory: `B Product ${stamp}`,
     review: `B comment ${stamp}`,
     closure: `B Holiday ${stamp}`,
+    giftCard: `MATRIX-GIFT-${stamp}`,
+    giftCardEmail: `gift-b-${stamp}@matrix.test`,
   }
 
   const loginA = await login(ownerA.email, 'TestPass123!')
   assert(loginA.ok, 'owner A signed in')
   const A = loginA.sessionCookie
+  const customerLogin = await login(customerLoginA.email, 'TestPass123!')
+  assert(customerLogin.ok, 'customer A signed in for staff-route denial test')
+  if (customerLogin.ok) {
+    const customerGiftCards = await api('/api/dashboard/gift-cards', {}, customerLogin.sessionCookie)
+    assert(customerGiftCards.status === 403, `customer cannot list dashboard gift cards (got ${customerGiftCards.status})`)
+    assert(!customerGiftCards.text.includes(`MATRIX-GIFT-${stamp}`), 'customer gift-card denial reveals no card code')
+  }
 
   try {
     console.log('\n  --- IDOR matrix: A attacking B by ID ---')
@@ -161,6 +182,10 @@ async function main() {
     safeAttempt(await api(`/api/dashboard/customers/${customerB.id}/tags`, { method: 'POST', body: JSON.stringify({ tags: ['hacked'] }) }, A), [M.email], 'tag B customer')
     safeAttempt(await api(`/api/dashboard/customers/${customerB.id}/intelligence`, {}, A), [M.email], 'B customer intelligence')
     safeAttempt(await api(`/api/dashboard/customers/${customerB.id}/rebook`, { method: 'POST', body: JSON.stringify({}) }, A), [M.email], 'rebook B customer')
+
+    // Gift cards and their purchaser details
+    safeAttempt(await api(`/api/dashboard/gift-cards/${giftCardB.id}`, {}, A), [M.giftCard, M.giftCardEmail], 'GET B gift card and ledger')
+    safeAttempt(await api(`/api/dashboard/gift-cards/${giftCardB.id}/adjust`, { method: 'POST', body: JSON.stringify({ amount: 10, note: 'cross-tenant attempt' }) }, A), [M.giftCard, M.giftCardEmail], 'adjust B gift card')
 
     // FAQs
     safeAttempt(await api(`/api/dashboard/faqs/${faqB.id}`, {}, A), [M.faq], 'GET B FAQ')
@@ -217,6 +242,7 @@ async function main() {
       ['/api/dashboard/appointments', [M.confirm], 'appointments list'],
       ['/api/dashboard/customers', [M.email, M.secretNote], 'customers list'],
       ['/api/dashboard/customers/export', [M.email], 'customers CSV export'],
+      ['/api/dashboard/gift-cards', [M.giftCard, M.giftCardEmail], 'gift card list'],
       ['/api/dashboard/services', [M.service], 'services list'],
       ['/api/dashboard/barbers', [M.barber], 'barbers list'],
       ['/api/dashboard/faqs', [M.faq], 'FAQ list'],
@@ -256,6 +282,7 @@ async function main() {
     await prisma.marketingCampaign.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.faq.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     await prisma.businessClosure.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
+    await prisma.giftCard.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })
     // join table has no businessId; scope via the test barbers
     await prisma.barberService.deleteMany({ where: { barberId: { in: [barberA.id, barberB.id] } } })
     await prisma.service.deleteMany({ where: { businessId: { in: [bizA.id, bizB.id] } } })

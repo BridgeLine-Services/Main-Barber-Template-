@@ -28,15 +28,19 @@ END $$;
 
 ALTER ROLE barber_app NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
--- 3. Platform administrator role: the only role allowed to see every tenant,
---    used by audited support paths. Give it to nobody by default.
+-- 3. Platform administrator role: a separate NOLOGIN group role for support
+--    access. Never grant it to barber_app. A separately controlled support login
+--    may be made a member only after its application path is authorized and audited.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'barber_platform') THEN
     CREATE ROLE barber_platform NOLOGIN;
   END IF;
 END $$;
-GRANT barber_platform TO barber_app;
+
+-- Clear membership left by earlier stage-1 revisions. Reapplying this setup
+-- must never allow the runtime role to assume the support group.
+REVOKE barber_platform FROM barber_app;
 
 -- 4. Hand ownership to the migration owner, then grant the runtime role DML
 --    only. Re-run the GRANT block whenever a migration adds a table.

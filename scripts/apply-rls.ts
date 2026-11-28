@@ -14,7 +14,7 @@
  *    runtime connection, because enabling FORCE ROW LEVEL SECURITY
  *    while the app still connects as the table owner would break every
  *    query. First switch the app to the dedicated runtime role and the
- *    per-transaction `set_config('app.business_id', ...)` pattern —
+ *    per-transaction `set_config('app.current_business_id', ...)` pattern —
  *    see docs/TENANT-ISOLATION.md §"Database-level RLS".
  *  - Role names default to barber_migrator / barber_app, the pair stage 1
  *    creates; override with RLS_APP_ROLE / RLS_OWNER_ROLE env vars.

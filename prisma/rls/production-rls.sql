@@ -29,10 +29,12 @@
 --   1. Two roles: one for migrations/DDL (table owner), one for the
 --      app runtime (NON-superuser, NON-table-owner, NO BYPASSRLS):
 --        DO NOT connect the template app to the owner role anymore.
---   2. The runtime sets, inside EVERY transaction:
+--   2. The runtime sets, inside EVERY tenant transaction:
 --        SET LOCAL app.current_business_id = '<business id>';
---      and for platform-staff requests:
---        SET LOCAL app.platform_staff = '1';
+--      Organization access additionally requires an independently authorized
+--      transaction-local organization context. Support access is role-based:
+--      a separately controlled login may be granted membership in barber_platform;
+--      barber_app must never be a member of that role.
 --   3. Take a backup first. Test on a staging copy of the database.
 -- ═══════════════════════════════════════════════════════════════════════
 
@@ -69,8 +71,10 @@ ALTER ROLE barber_app NOSUPERUSER;
 -- Indirectly scoped — RESOLVED by migration 20260927153000, which
 --   denormalizes businessId (trigger-maintained) onto BarberService,
 --   BarberRewardProgram and AppointmentIntakeResponse.
--- Tenant-root tables (their `id` IS the tenant key):
---   Business, Schedule
+-- Tenant-root table (its `id` IS the tenant key):
+--   Business
+-- Indirectly scoped through a parent businessId:
+--   Schedule -> Barber, OrderItem -> ShopOrder, TwoFactorRecoveryCode -> User
 -- OrganizationServicePriceRequest also carries businessId, but is governed by its
 -- organizationId policy below because it belongs to an organization-level approval flow.
 
@@ -150,33 +154,70 @@ BEGIN
       CREATE POLICY tenant_isolation ON %I
         USING (
           -- platform staff (deployment-operated support access)
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          (current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member'))
           -- or: row belongs to the caller's tenant
           OR "businessId" = NULLIF(current_setting('app.current_business_id', true), '')
         )
         WITH CHECK (
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          (current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member'))
           OR "businessId" = NULLIF(current_setting('app.current_business_id', true), '')
         )
     $f$, tbl);
   END LOOP;
 
   -- (b) Tenant-root table: the row's own id is the tenant key.
-  FOREACH tbl IN ARRAY ARRAY['Business','Schedule'] LOOP
+  FOREACH tbl IN ARRAY ARRAY['Business'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY',  tbl);
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', tbl);
     EXECUTE format($f$
       CREATE POLICY tenant_isolation ON %I
         USING (
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          (current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member'))
           OR "id" = NULLIF(current_setting('app.current_business_id', true), '')
         )
         WITH CHECK (
-          COALESCE(current_setting('app.platform_staff', true), '0') = '1'
+          (current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member'))
           OR "id" = NULLIF(current_setting('app.current_business_id', true), '')
         )
     $f$, tbl);
+  END LOOP;
+END $$;
+
+-- (b1) Indirectly-scoped tables. Their tenant key is reached through a parent
+--      whose own businessId is protected above. Keep this list in sync with
+--      scripts/rls-plan.ts; a child row must never be exposed just because the
+--      parent table is protected.
+DO $$
+DECLARE
+  child_table TEXT;
+  foreign_key TEXT;
+  parent_table TEXT;
+BEGIN
+  FOR child_table, foreign_key, parent_table IN
+    SELECT * FROM (VALUES
+      ('Schedule', 'barberId', 'Barber'),
+      ('OrderItem', 'orderId', 'ShopOrder'),
+      ('TwoFactorRecoveryCode', 'userId', 'User')
+    ) AS indirect(child_table, foreign_key, parent_table)
+  LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', child_table);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', child_table);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', child_table);
+    EXECUTE format($policy$
+      CREATE POLICY tenant_isolation ON %I
+        USING ((current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member')) OR EXISTS (
+          SELECT 1 FROM %I parent_row
+          WHERE parent_row."id" = %I.%I
+            AND parent_row."businessId" = NULLIF(current_setting('app.current_business_id', true), '')
+        ))
+        WITH CHECK ((current_user = 'barber_platform' OR pg_has_role(current_user, 'barber_platform', 'member')) OR EXISTS (
+          SELECT 1 FROM %I parent_row
+          WHERE parent_row."id" = %I.%I
+            AND parent_row."businessId" = NULLIF(current_setting('app.current_business_id', true), '')
+        ))
+    $policy$, child_table, parent_table, child_table, foreign_key,
+      parent_table, child_table, foreign_key);
   END LOOP;
 END $$;
 
@@ -191,8 +232,12 @@ END $$;
 DO $$
 DECLARE
   t_org TEXT[] := ARRAY[
-    'Organization','OrganizationMember','OrganizationBrandSettings',
-    'OrganizationReportingConfiguration','OrganizationServiceTemplate',
+    'Organization','OrganizationMember','OrganizationInvitation',
+    'OrganizationBrandSettings','OrganizationReportingConfiguration',
+    'OrganizationServiceTemplate',
+    -- These rows carry both organizationId and businessId. The business policy
+    -- keeps single-shop access scoped; this policy permits authorized org flows.
+    'OrganizationLocation','StaffLocationAssignment','CustomerLocationLink',
     -- Price requests carry businessId too, but are owned and authorized by an organization.
     'OrganizationServicePriceRequest',
     'OrganizationAnnouncement','OrganizationAnnouncementRead','OrganizationConfigAudit'
@@ -215,9 +260,9 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS organization_isolation ON %I', tbl);
     EXECUTE format(
       'CREATE POLICY organization_isolation ON %I '
-      'USING (COALESCE(current_setting(''app.platform_staff'', true), ''0'') = ''1'' '
+      'USING ((current_user = ''barber_platform'' OR pg_has_role(current_user, ''barber_platform'', ''member'')) '
       '  OR %I = NULLIF(current_setting(''app.current_organization_id'', true), '''')) '
-      'WITH CHECK (COALESCE(current_setting(''app.platform_staff'', true), ''0'') = ''1'' '
+      'WITH CHECK ((current_user = ''barber_platform'' OR pg_has_role(current_user, ''barber_platform'', ''member'')) '
       '  OR %I = NULLIF(current_setting(''app.current_organization_id'', true), ''''))',
       tbl, tenant_col, tenant_col
     );
@@ -240,15 +285,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO barber_ap
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO barber_app;
 
--- ─── 3b. About the app.platform_staff escape hatch ─────────────────────
--- The policy lets a session that sets app.platform_staff = '1' see every
--- tenant. That is deliberate (support tooling) and it is the weakest part
--- of this design: any code able to run SQL on the runtime connection can
--- set it. Treat it as a bug-containment layer, not as a defence against a
--- compromised application. If you need that stronger guarantee, move the
--- escape from a session setting to role membership
--- (pg_has_role(current_user, 'barber_platform', 'member')) and keep the
--- platform role out of barber_app's membership.
+-- Platform support is a separate NOLOGIN role, not a session variable that
+-- application code can set. A reviewed provisioning step must grant this role
+-- only to a dedicated support login after the application has authenticated and
+-- audited the operation. barber_app is intentionally not a member.
+GRANT USAGE ON SCHEMA public TO barber_platform;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO barber_platform;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO barber_platform;
 
 -- ─── 4. How the runtime sets the tenant per transaction ────────────────
 -- Example (Prisma, per request):
@@ -258,5 +302,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 --   })
 -- `true` = transaction-local: reverts automatically at COMMIT/ROLLBACK,
 -- so a pooled connection can never leak one tenant's setting to another.
--- Platform-staff requests (support tooling) instead set
--- set_config('app.platform_staff', '1', true) and set NO business_id.
+-- A support operation runs through its separately authorized and audited
+-- application path using a controlled login that is a member of barber_platform;
+-- it does not set an application-controlled bypass variable.

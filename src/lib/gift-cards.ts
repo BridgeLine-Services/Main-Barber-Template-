@@ -620,13 +620,15 @@ export async function getGiftCardDetail(businessId: string, giftCardId: string):
   giftCard: GiftCard
   transactions: Array<GiftCardTransaction>
 } | null> {
-  const giftCard = await prisma.giftCard.findFirst({
-    where: { id: giftCardId, businessId },
+  return withTenant(businessId, async (tx) => {
+    const giftCard = await tx.giftCard.findFirst({
+      where: { id: giftCardId, businessId },
+    })
+    if (!giftCard) return null
+    const transactions = await tx.giftCardTransaction.findMany({
+      where: { giftCardId: giftCard.id, businessId },
+      orderBy: { createdAt: 'asc' },
+    })
+    return { giftCard, transactions }
   })
-  if (!giftCard) return null
-  const transactions = await prisma.giftCardTransaction.findMany({
-    where: { giftCardId: giftCard.id },
-    orderBy: { createdAt: 'asc' },
-  })
-  return { giftCard, transactions }
 }

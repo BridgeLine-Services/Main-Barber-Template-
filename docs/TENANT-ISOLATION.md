@@ -50,71 +50,44 @@ dashboard context by default. See `docs/ARCHITECTURE_CONSTITUTION.md`.
 Run: `npm run test:tenant`, `npx tsx tests/cross-tenant-matrix.test.ts`,
 `npm run test:platform` (server on :3000 + `DATABASE_URL` required).
 
-## Database-level RLS (optional, deployment infrastructure)
+## Database-level RLS (staged; not production-enforced)
 
-The application layer above is the enforced isolation mechanism shipped
-in the repository. Some deployments additionally want PostgreSQL Row
-Level Security as defense-in-depth. RLS is **not enabled in this
-repository's migrations** because Prisma uses a single pooled database
-role and cannot safely set per-request session variables — enabling RLS
-without that wiring would either be bypassed (table-owner connections) or
-break all queries (FORCE RLS with no `app.business_id` set). We do not
-ship fake security.
+Application-level checks remain the active protection. PostgreSQL RLS is not enabled
+in production, and this repository does not have evidence that its deployed runtime
+uses a non-owner role or that every protected query sets the correct tenant context.
+Do not enable RLS or change a production connection as part of routine application
+work.
 
-A complete, syntax-validated production script for steps 1-3 ships at
-`prisma/rls/production-rls.sql` (deliberately NOT in `prisma/migrations/`
-so it never auto-applies). It covers every business-scoped table — the 31 direct `businessId`
-tables (including `BarberService`, `BarberRewardProgram` and
-`AppointmentIntakeResponse`, whose tenant key was denormalized by
-migration 20260927153000 and is maintained by database triggers, so it
-cannot drift from the parent record) plus the `Business`/`Schedule`
-tenant roots — uses `FORCE ROW LEVEL SECURITY`, grants the runtime role
-DML-only, and documents the `set_config(..., true)` transaction pattern
-for step 4.
-It was validated by executing the full policy-generation block against
-PostgreSQL inside a rolled-back transaction; apply it only after the
-role-split prerequisites are met.
+`prisma/rls/production-rls.sql` is a staged template, not a migration. It sets
+`app.current_business_id` and `app.current_organization_id` policies transactionally;
+`src/lib/tenant-context.ts` currently sets only the business context and is adopted by
+selected service and route paths. Organization APIs do not yet set an organization
+context, and many tenant-sensitive queries remain outside `withTenant()`. The app has
+not been proven end-to-end as `barber_app` with RLS enabled.
 
-To add real RLS in production, the DBA must:
+The schema planner classifies every Prisma model. Static reconciliation tests compare
+tenant-root, direct, indirect, and organization-scoped models with the staged policy
+lists. `scripts/rls-status.ts` checks `ENABLE`, `FORCE`, and policy presence only when
+provided an explicit `RLS_STATUS_DATABASE_URL`; `scripts/rls-reconcile.ts` similarly
+requires `RLS_RECONCILIATION_DATABASE_URL`. Only point either at a positively
+identified disposable or staging database. They never infer a target from
+`DATABASE_URL`.
 
-1. Create a dedicated non-owner database role for the application
-   (`barbershop_app`), grant `SELECT/INSERT/UPDATE/DELETE` on all tables.
-   (Scripted: `prisma/rls/production-rls.sql` provisions the grants and
-   `NOBYPASSRLS` itself when applied.)
-2. Enable RLS with `FORCE ROW LEVEL SECURITY` on business-scoped tables
-   and create the tenant policies.
-3. Refactor data access to set `app.business_id` per request inside a
-   Prisma interactive transaction (`$transaction` +
-   `SELECT set_config('app.business_id', $1, true)`), so reads/writes run
-   on the same connection that carries the variable.
+The gift-card migration enables RLS on `GiftCardSettings`, `GiftCard`, and
+`GiftCardTransaction` without creating policies. The staged SQL now supplies the
+business policy for all three; this closes the design gap in the template only. It
+does not prove a deployed database has received the policy. The template also scopes
+`Schedule`, `OrderItem`, and `TwoFactorRecoveryCode` through their tenant-bearing
+parents and includes organization invitations plus dual shop/organization rows.
 
-Reproducible application + verification (Master Task Part 2):
+`tests/rls-enforcement.test.ts` exercises staged SQL on an isolated scratch database
+when its explicit `RLS_TEST_*` settings are provided. Its session-variable platform
+bypass check does **not** prove that application support operations are authorized
+and audited. That proof and the runtime role/context gates remain prerequisites.
 
-    # 1. Provision the runtime role and point the app at it
-    #    (DATABASE_URL must use barbershop_app, NOT the owner role).
-    # 2. Switch the data layer to the per-transaction context pattern
-    #    (see "step 4" example in prisma/rls/production-rls.sql).
-    # 3. Apply:
-    DATABASE_ADMIN_URL=<owner-role connection URL> npm run db:apply-rls
-    # 4. Verify coverage (fails the build in ops pipelines via --enforce):
-    npm run db:rls-status -- --enforce
-
-`scripts/apply-rls.ts` refuses to run without `DATABASE_ADMIN_URL` and
-refuses if it equals `DATABASE_URL`, so a deployment cannot silently
-enable FORCE RLS against the connection the app still uses as owner.
-`scripts/rls-status.ts` reports per-table policy coverage across all 44
-tenant tables.
-
-The policies themselves are regression-tested against the real engine by
-`tests/rls-enforcement.test.ts`: it applies the template and seeds two
-tenants inside one rolled-back transaction, then proves cross-tenant
-reads/updates/deletes are refused, context-less sessions see nothing,
-platform-staff support access works, trigger-maintained child writes pass
-`WITH CHECK`, and no policy persists after rollback.
-
-These steps are external infrastructure + a data-access refactor and are
-documented here as the explicit production checklist; they are not
-claimed to be active in this repository's own deployment.
+See `docs/RLS-STAGING-PLAN.md` for the gated rollout. Production RLS remains off until
+the role split, full application context coverage, staging verification, support-path
+audit proof, backup, and explicit production approval are all complete.
 
 ## Adding a new business-scoped route (checklist)
 

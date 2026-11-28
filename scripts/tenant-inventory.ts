@@ -15,6 +15,7 @@
  */
 import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'fs'
 import { join, relative, resolve } from 'path'
+import { classify, parseModels } from './rls-plan'
 
 const ROOT = process.cwd()
 const SCHEMA = resolve(ROOT, 'prisma/schema.prisma')
@@ -28,20 +29,39 @@ interface ModelInfo {
 }
 
 function readModels(): ModelInfo[] {
-  const schema = readFileSync(SCHEMA, 'utf8')
-  const models: ModelInfo[] = []
-  for (const block of schema.split(/^model /m).slice(1)) {
-    const name = block.slice(0, block.indexOf(' ')).trim()
-    const body = block.slice(0, block.indexOf('\n}'))
-    const hasBusinessId = /^\s*businessId\s+String/m.test(body)
-    const hasOrganizationId = /^\s*organizationId\s+String/m.test(body)
-    models.push({
-      name,
-      tenantColumn: hasBusinessId ? 'businessId' : hasOrganizationId ? 'organizationId' : null,
-      note: hasBusinessId ? 'scoped to one shop' : hasOrganizationId ? 'scoped to an organization' : 'platform-level or reference data',
-    })
-  }
-  return models.sort((a, b) => a.name.localeCompare(b.name))
+  const parsed = parseModels(readFileSync(SCHEMA, 'utf8'))
+  const plans = new Map(classify(parsed).map((row) => [row.model, row]))
+  return parsed.map((model) => {
+    const classification = plans.get(model.name)
+    const hasBusinessId = model.fields.some((field) => field.name === 'businessId')
+    const hasOrganizationId = model.fields.some((field) => field.name === 'organizationId')
+    let tenantColumn: string | null = null
+    let note = 'platform-level; verify its separate authorization boundary'
+
+    if (classification?.classification === 'tenant_root') {
+      tenantColumn = 'id'
+      note = 'business tenant root'
+    } else if (classification?.classification === 'organization_root') {
+      tenantColumn = 'id'
+      note = 'organization tenant root'
+    } else if (classification?.classification === 'direct') {
+      tenantColumn = 'businessId'
+      note = 'shop-scoped'
+    } else if (classification?.classification === 'indirect') {
+      tenantColumn = `via ${classification.via}`
+      note = 'inherits tenant scope from a parent relation'
+    } else if (classification?.classification === 'organization') {
+      tenantColumn = hasBusinessId ? 'organizationId + businessId' : 'organizationId'
+      note = hasBusinessId ? 'organization- and shop-scoped; both access paths need review' : 'organization-scoped'
+    }
+
+    if (hasOrganizationId && hasBusinessId && classification?.classification === 'direct') {
+      tenantColumn = 'businessId + organizationId'
+      note = 'has both keys; confirm which access path each operation authorizes'
+    }
+
+    return { name: model.name, tenantColumn, note }
+  }).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -51,6 +71,21 @@ function walk(dir: string, out: string[] = []): string[] {
     else if (entry === 'route.ts') out.push(full)
   }
   return out
+}
+
+function tenantHelperCallSites(): string[] {
+  const src = resolve(ROOT, 'src')
+  const scan = (dir: string, found: string[] = []): string[] => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry)
+      if (statSync(full).isDirectory()) scan(full, found)
+      else if (/\.tsx?$/.test(entry) && full !== resolve(src, 'lib/tenant-context.ts')) {
+        if (/withTenant\s*\(/.test(readFileSync(full, 'utf8'))) found.push(relative(ROOT, full).replace(/\\/g, '/'))
+      }
+    }
+    return found
+  }
+  return scan(src).sort()
 }
 
 interface RouteInfo {
@@ -70,7 +105,8 @@ const GUARD_PATTERNS: Array<[RegExp, string]> = [
   [/getServerSession\(/, 'getServerSession'],
   [/CRON_SECRET/, 'CRON_SECRET bearer'],
   [/resolveOrganizationContext\(/, 'resolveOrganizationContext'],
-  [/verifyWebhook|constructEvent|validateSignature/, 'signature verification'],
+  [/verifyWebhook|constructEvent|validateSignature|verifyStripeSignature\(|isValidTwilioSignature\(/, 'webhook signature verification'],
+  [/PORTAL_SESSION_COOKIE|portalSession\./, 'customer portal session token'],
   [/requireStaff\(/, 'requireStaff'],
 ]
 
@@ -81,7 +117,12 @@ const GUARD_PATTERNS: Array<[RegExp, string]> = [
  */
 const PUBLIC_EVIDENCE: Array<[RegExp, string]> = [
   [/resolveBusinessId\(/, 'resolveBusinessId'],
+  [/resolvePublicBusiness\(|resolveBusiness\(/, 'server-resolved public tenant'],
+  [/findUnique\(\s*\{\s*where:\s*\{\s*slug\s*\}/, 'public tenant selected by server-verified shop slug'],
   [/checkRateLimit\(|rateLimit\(/, 'rate limited'],
+  [/NextAuth\(authOptions\)/, 'public authentication protocol endpoint'],
+  [/buildReadinessReport\(|prisma\.business\.count\(/, 'health/readiness response only'],
+  [/status:\s*410/, 'retired route returns Gone'],
 ]
 
 function readRoutes(models: ModelInfo[]): RouteInfo[] {
@@ -95,8 +136,9 @@ function readRoutes(models: ModelInfo[]): RouteInfo[] {
       const tenantFilters = [
         /\bbusinessId\s*:/.test(body) ? 'businessId' : null,
         /\borganizationId\s*:/.test(body) ? 'organizationId' : null,
+        /withTenant\s*\(/.test(body) ? 'withTenant transaction' : null,
       ].filter((v): v is string => v !== null)
-      const modelsTouched = modelNames.filter((m) => new RegExp(`prisma\\.${m[0].toLowerCase()}${m.slice(1)}\\b`).test(body))
+      const modelsTouched = modelNames.filter((m) => new RegExp(`(?:prisma|tx)\\.${m[0].toLowerCase()}${m.slice(1)}\\b`).test(body))
       const tenantModels = modelsTouched.filter((m) => models.find((x) => x.name === m)?.tenantColumn)
       const verdict: RouteInfo['verdict'] =
         guards.length > 0
@@ -118,7 +160,7 @@ function readRoutes(models: ModelInfo[]): RouteInfo[] {
     .sort((a, b) => a.path.localeCompare(b.path))
 }
 
-function render(models: ModelInfo[], routes: RouteInfo[]): string {
+function render(models: ModelInfo[], routes: RouteInfo[], tenantHelperFiles: string[]): string {
   const tenantModels = models.filter((m) => m.tenantColumn)
   const unguarded = routes.filter((r) => r.verdict === 'no-visible-guard')
   const publicRoutes = routes.filter((r) => r.verdict === 'public-with-evidence')
@@ -142,9 +184,9 @@ function render(models: ModelInfo[], routes: RouteInfo[]): string {
   lines.push('')
   lines.push('## Models with a tenant column')
   lines.push('')
-  lines.push(`Count: **${tenantModels.length}** of ${models.length} models.`)
+  lines.push(`Count: **${tenantModels.length}** of ${models.length} models, including indirect and organization scopes.`)
   lines.push('')
-  lines.push('| Model | Tenant column | Meaning |')
+  lines.push('| Model | Tenant key / path | Meaning |')
   lines.push('| --- | --- | --- |')
   for (const m of models) {
     lines.push(`| \`${m.name}\` | ${m.tenantColumn ? `\`${m.tenantColumn}\`` : '—'} | ${m.note} |`)
@@ -193,19 +235,18 @@ function render(models: ModelInfo[], routes: RouteInfo[]): string {
   }
   lines.push('## Row-Level Security')
   lines.push('')
-  lines.push('RLS is staged, not active. `prisma/rls/production-rls.sql` and the staging plan describe it;')
-  lines.push('nothing in this repository enables it in production, and this phase does not change that.')
-  lines.push('See `docs/RLS-STAGING-PLAN.md` for the prerequisites that must be proven first, including the')
-  lines.push('staging proof already executed on 2026-11-17 and the two defects it found.')
+  lines.push('RLS is staged, not production-enforced. The policy template and static coverage checks do not prove')
+  lines.push('the current SQL on PostgreSQL, a non-owner runtime, or a staging deployment. See the rollout gates in')
+  lines.push('`docs/RLS-STAGING-PLAN.md`; organization transaction context and full application adoption remain open.')
   lines.push('')
   lines.push('## Phase 5 status, measured')
   lines.push('')
   lines.push('| Item | State |')
   lines.push('| --- | --- |')
-  lines.push('| Application-level tenant checks | In place and unchanged by this phase. Every route above that touches a tenant model either guards and filters, or is public by design with verified tenant resolution. |')
-  lines.push('| `withTenant()` in application code | **Not used anywhere in `src/`** (0 call sites). `src/lib/tenant-context.ts` exists and is tested on its own, but routing ordinary queries through it is a change this phase did not make: it needs each query classified as tenant-specific or organization-wide first, and doing it blind is how a franchise report stops working. |')
-  lines.push('| Organization-wide aggregates | Authorised separately by the `reporting.aggregate.read` capability, which the role matrix grants only to organization-level roles. Corporate users do not gain individual customer records through it. |')
-  lines.push('| Row-Level Security | Still disabled in production. `prisma/rls/production-rls.sql` is staged; nothing here enables it. |')
+  lines.push('| Application-level tenant checks | This inventory is a review queue, not proof. For each high-risk route, confirm identity source, resolved tenant, query predicates, resource ownership, capability check, and safe denial behavior. |')
+  lines.push(`| \`withTenant()\` application call sites | ${tenantHelperFiles.length} source files: ${tenantHelperFiles.map((file) => `\`${file}\``).join(', ') || 'none'}. This is selective coverage, not completion of the tenant-query audit. |`)
+  lines.push('| Organization-wide aggregates | Organization capabilities and location membership are separate checks. Each report/query still requires review for record-level scoping and customer-data exclusion. |')
+  lines.push('| Row-Level Security | Not production-enforced. The policy template and static model mapping are not evidence of a live role split or staging enforcement. |')
   lines.push('| Cross-tenant behavioural tests | `tests/tenant-isolation.test.ts` and `tests/organization-isolation.test.ts`, plus the per-route suites. This inventory is the review list, not the proof. |')
   lines.push('')
   return lines.join('\n')
@@ -214,18 +255,19 @@ function render(models: ModelInfo[], routes: RouteInfo[]): string {
 function main() {
   const models = readModels()
   const routes = readRoutes(models)
-  const document = render(models, routes)
+  const helperFiles = tenantHelperCallSites()
+  const document = render(models, routes, helperFiles)
   mkdirSync(resolve(ROOT, 'docs'), { recursive: true })
   writeFileSync(OUT, document + '\n')
   console.log(`Wrote ${relative(ROOT, OUT)}`)
-  console.log(`  models with a tenant column: ${models.filter((m) => m.tenantColumn).length}/${models.length}`)
+  console.log(`  tenant-scoped models: ${models.filter((m) => m.tenantColumn).length}/${models.length}`)
+  console.log(`  withTenant call-site files: ${helperFiles.length}`)
   console.log(`  routes scanned: ${routes.length}`)
   console.log(`  no visible guard: ${routes.filter((r) => r.verdict === 'no-visible-guard').length}`)
   console.log(`  guarded, no visible tenant filter: ${routes.filter((r) => r.verdict === 'guarded-no-visible-filter').length}`)
 
   if (process.argv.includes('--check')) {
     const unguarded = routes.filter((r) => r.verdict === 'no-visible-guard')
-  const publicRoutes = routes.filter((r) => r.verdict === 'public-with-evidence')
     if (unguarded.length > 0) {
       console.error('\nRoutes with no visible guard:')
       for (const r of unguarded) console.error('  - ' + r.path)

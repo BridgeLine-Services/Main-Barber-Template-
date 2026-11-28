@@ -5,8 +5,7 @@
  * whether to show the gift card field); PATCH is owner-only.
  */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireStaff } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { prisma } from '@/lib/prisma'
 import {
@@ -20,9 +19,10 @@ import {
 
 export async function GET() {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: { businessId?: string | null } } | null
-    if (!session?.user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const settings = await getGiftCardSettings(session.user.businessId)
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    if (!auth.user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const settings = await getGiftCardSettings(auth.user.businessId)
     return NextResponse.json({
       enabled: settings.enabled,
       denominations: giftCardDenominations(settings),
@@ -35,9 +35,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: { role: string; businessId?: string | null } } | null
-    const user = session?.user
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (!canManageGiftCards(user.role)) {
       return NextResponse.json({ error: 'Forbidden — owner access required' }, { status: 403 })
     }
@@ -67,9 +68,9 @@ export async function PATCH(request: Request) {
       data.defaultValidityMonths = months
     }
 
-    await getGiftCardSettings(user.businessId!) // lazy-create the row
+    await getGiftCardSettings(user.businessId) // lazy-create the row
     const settings = await prisma.giftCardSettings.update({
-      where: { businessId: user.businessId! },
+      where: { businessId: user.businessId },
       data,
     })
     return NextResponse.json({

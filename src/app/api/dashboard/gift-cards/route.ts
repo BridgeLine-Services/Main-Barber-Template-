@@ -5,8 +5,7 @@
  * Reports (summary) are owner/admin only.
  */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireStaff } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { getPosSettings, canViewShopFinancials } from '@/lib/payments/pos'
 import {
@@ -20,9 +19,10 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const session = (await getServerSession(authOptions)) as { user?: { role: string; businessId?: string | null } } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
@@ -61,11 +61,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = (await getServerSession(authOptions)) as {
-      user?: { id: string; role: string; businessId?: string | null }
-    } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const posSettings = await getPosSettings(user.businessId)
     if (!canSellGiftCards({ role: user.role }, posSettings)) {

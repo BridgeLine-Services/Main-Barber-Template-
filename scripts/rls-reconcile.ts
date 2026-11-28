@@ -1,31 +1,26 @@
 /**
- * Gift-card RLS reconciliation report.
+ * Report-only RLS status for tables that have RLS enabled but lack FORCE or a
+ * recognized tenant policy. It never writes SQL or infers its target from the
+ * application's ordinary database connection.
  *
- * The `add_gift_cards` migration turned on Row-Level Security for three tables but, like
- * every other table, left the policies to the staged plan in `prisma/rls/production-rls.sql`.
- * On the owner connection that is harmless, because a table owner bypasses RLS. The moment
- * the runtime is switched to `barber_app` it stops being harmless: a table with RLS on and no
- * policy returns nothing, so gift cards would silently stop working.
- *
- * This script finds that exact state and prints the policy that closes it. It is
- * report-only by design: applying a policy is a production change and belongs in a reviewed
- * migration, not in a script someone ran to see what was wrong.
- *
- *   npx tsx scripts/rls-reconcile.ts             # report
- *   npx tsx scripts/rls-reconcile.ts --enforce   # exit 1 when a table has RLS but no policy
+ * Set RLS_RECONCILIATION_DATABASE_URL only in a positively identified
+ * disposable/staging environment, then run:
+ *   npx tsx scripts/rls-reconcile.ts
+ *   npx tsx scripts/rls-reconcile.ts --enforce
  */
 import { PrismaClient } from '@prisma/client'
 
 interface GapRow {
   relname: string
   rls: boolean
+  forced: boolean
   policies: number
 }
 
 async function main() {
-  const url = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL
+  const url = process.env.RLS_RECONCILIATION_DATABASE_URL
   if (!url) {
-    console.error('No database URL configured')
+    console.error('Set RLS_RECONCILIATION_DATABASE_URL to a positively identified disposable or staging database')
     process.exit(1)
   }
   const prisma = new PrismaClient({ datasources: { db: { url } } })
@@ -35,32 +30,29 @@ async function main() {
     const rows = await prisma.$queryRawUnsafe<GapRow[]>(`
       SELECT c.relname,
              c.relrowsecurity AS rls,
-             COUNT(p.polname)::int AS policies
+             c.relforcerowsecurity AS forced,
+             COUNT(p.polname) FILTER (WHERE p.polname IN ('tenant_isolation', 'organization_isolation'))::int AS policies
         FROM pg_class c
         LEFT JOIN pg_policy p ON p.polrelid = c.oid
        WHERE c.relkind = 'r'
          AND c.relnamespace = 'public'::regnamespace
-       GROUP BY c.relname, c.relrowsecurity
-      HAVING c.relrowsecurity = true AND COUNT(p.polname) = 0
+       GROUP BY c.relname, c.relrowsecurity, c.relforcerowsecurity
+      HAVING c.relrowsecurity = true
+         AND (c.relforcerowsecurity = false OR COUNT(p.polname) FILTER (WHERE p.polname IN ('tenant_isolation', 'organization_isolation')) = 0)
        ORDER BY c.relname`)
 
     if (rows.length === 0) {
-      console.log('No table has Row-Level Security enabled without a policy. Nothing to reconcile.')
+      console.log('No enabled table is missing FORCE RLS or all policies. This report does not prove complete model coverage.')
       return
     }
 
-    console.log(`${rows.length} table${rows.length === 1 ? '' : 's'} have Row-Level Security enabled and no policy:\n`)
+    console.log(`${rows.length} table${rows.length === 1 ? '' : 's'} have enabled RLS but are missing FORCE RLS or every policy:\n`)
     for (const row of rows) {
-      console.log(`  ${row.relname}`)
-      console.log(`    -- closes the gap for ${row.relname} (review, then apply in a migration)`)
-      console.log(`    ALTER TABLE "${row.relname}" FORCE ROW LEVEL SECURITY;`)
-      console.log(`    DROP POLICY IF EXISTS tenant_isolation ON "${row.relname}";`)
-      console.log(`    CREATE POLICY tenant_isolation ON "${row.relname}"`)
-      console.log(`      USING ("businessId" = NULLIF(current_setting('app.current_business_id', true), ''))`)
-      console.log(`      WITH CHECK ("businessId" = NULLIF(current_setting('app.current_business_id', true), ''));`)
+      console.log(`  ${row.relname}${row.forced ? '' : ' (FORCE RLS disabled)'}${row.policies > 0 ? '' : ' (no policy)'}`)
+      console.log('    Review the model classification and corresponding policy in prisma/rls/production-rls.sql; no generic SQL is safe for every tenant key.')
       console.log('')
     }
-    console.log('Nothing was changed. Until these policies exist, the runtime must stay on the owner role.')
+    console.log('Nothing was changed. Do not switch the runtime role or enable RLS until the exact policy gap is resolved and verified on isolated staging.')
     if (enforce) {
       console.log('--enforce set: failing.')
       process.exitCode = 1

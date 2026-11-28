@@ -22,14 +22,20 @@ shop out.
 | Tenant root | owns rows by identity | `Business` | policy on `id = current_tenant()` |
 | Directly scoped | has `businessId` | `Appointment`, `Customer`, `Barber`, `Service`, `Payment`, `Product`, `InventoryItem`, `Membership`, `GiftCard`, `WaitlistEntry`, `Review`, `AuditLog` | policy on `businessId = current_tenant()` |
 | Indirectly scoped | reaches a tenant through a parent | `AppointmentItem` → `Appointment`, `PaymentItem` → `Payment`, `CommissionEntry` → `Barber` | policy with an `EXISTS` join on the parent |
-| Global / platform | not owned by a shop | `User` (identity), `BackupRun`, `PlatformSetting`, session and job tables | **no** tenant policy; protected by role grants and application checks |
+| Global / platform | not owned by a shop | `BackupRun`, `PlatformSetting`, session and job tables | **no** tenant policy; protected by role grants and application checks |
 
-The current inventory is 51 tenant-scoped models plus the global tables listed in
-`prisma/rls/production-rls.sql` §39–69. The map is generated from the schema, not
-hand-written: `scripts/rls-plan.ts` reads `prisma/schema.prisma`, classifies every
-model by the presence of `businessId` or a relational path to it, and refuses to
-emit a plan if any model is unclassified. Adding a model later therefore fails the
-plan instead of silently escaping protection.
+The current schema has 89 Prisma models: 85 classify as tenant-root, direct,
+indirect, or organization-scoped; 4 are explicitly global. The map is generated from
+the schema, not hand-written: `scripts/rls-plan.ts` classifies every model by its
+business/organization key or relational path. `tests/rls-reconciliation.test.ts`
+compares each classified model with the staged SQL policy groups, including indirect
+children and models that intentionally have both shop and organization scopes.
+Adding a model therefore fails the coverage test instead of silently escaping review.
+
+This is still a policy template, not proof that all runtime paths can supply those
+transaction-local contexts. In particular, organization routes currently resolve
+membership in application code but do not set `app.current_organization_id`; the
+full application has not been run as `barber_app` with these policies enabled.
 
 ---
 
@@ -80,11 +86,12 @@ An unset or empty value returns `NULL`, which makes every comparison false: a
 query outside a tenant transaction returns **zero rows**, never every row. That
 failure mode is chosen deliberately — leaking nothing is better than leaking all.
 
-Application change (one place, not 178 routes): `src/lib/prisma.ts` exposes a
-`withTenant(businessId, fn)` helper that opens a transaction, issues `SET LOCAL`,
-and runs the callback. The existing `src/lib/tenant.ts` resolution stays exactly as
-it is: it still decides *which* tenant a request belongs to, and the database now
-independently enforces it.
+Application change: `src/lib/tenant-context.ts` exposes `withTenant(businessId, fn)`;
+it writes `app.current_business_id` transaction-locally and runs the callback on that
+transaction client. It is used by selected application paths, not every tenant-sensitive
+query. The public tenant resolver still decides which shop a request belongs to; RLS
+coverage cannot be treated as complete until all relevant reads and writes pass through
+the appropriate transaction context.
 
 ---
 
@@ -97,7 +104,7 @@ Each step has a gate; a failed gate stops the sequence.
 | 1 | Generate the table map: `npx tsx scripts/rls-plan.ts` | every model classified; count recorded |
 | 2 | Create the three roles on a **staging** database | verification queries in §2 pass |
 | 3 | Point staging `DATABASE_URL` at `barber_app`, no RLS | `npm run test:all` passes unchanged |
-| 4 | Add `withTenant()` and route the tenant-scoped read/write paths through it | suite passes; `npm run test:tenant`, `test:matrix` pass |
+| 4 | Route every approved tenant-scoped read/write path through `withTenant()`; add a separate organization transaction context before org-scoped policies are considered usable | suite passes; `npm run test:tenant`, `test:matrix`, and organization tests pass |
 | 5 | Apply policies **without** `FORCE` to staging | app still works; cross-tenant reads return zero rows |
 | 6 | Apply `FORCE ROW LEVEL SECURITY` on staging | app still works as `barber_app`; migrations as `barber_migrator` still run |
 | 7 | Run the isolation matrix (`npm run test:matrix`) with a second seeded shop | zero cross-tenant rows in every direction |
@@ -146,57 +153,42 @@ one layer instead of two.
 
 ---
 
-## 7. Stage 2 has now been executed and proven (2026-11-17)
+## 7. Historical SQL enforcement evidence (2026-11-17; not current proof)
 
-Until this round the policy file had never run against a database. `npm run
-test:rls-enforcement` (`tests/rls-enforcement.test.ts`) now closes that gap:
+An earlier revision of `npm run test:rls-enforcement` passed against a disposable
+scratch database. That result is historical: the staged SQL and harness have since
+changed to cover indirect models, organization policies, and role-based support access.
+The revised harness has not been run in this workspace, and no staging environment has
+proven the deployed application works as `barber_app`. Do not cite the old result as
+proof of the current policy template.
 
-1. copies the development schema and data into a throwaway database with
-   `pg_dump` (it never writes to the development database);
-2. applies `prisma/rls/stage-1-roles.sql` and then `prisma/rls/production-rls.sql`
-   exactly as a deployment would;
-3. connects as `barber_app` and tries to break out.
+The current harness is designed to copy schema only, seed synthetic tenants, apply the
+role and policy templates to an isolated scratch database, and run assertions as
+`barber_app` plus the separate `barber_platform` group role. It must run successfully
+before relying on the updated SQL. It does not use `DATABASE_URL` as a target fallback.
 
-Result on a copy of the real schema: **18 checks passed, 0 failed.** Specifically,
-as the runtime role:
+### Historical findings and current safeguards
 
-- a session given tenant A sees exactly A's appointments and exactly one Business
-  row, and the same holds for tenant B;
-- a session with no tenant set sees **nothing** (fail closed, not fail open);
-- a write into another tenant is refused by the database, and leaves no row;
-- a cross-tenant UPDATE and DELETE change **zero** rows;
-- `app.business_id` is gone after `COMMIT`, so a pooled connection cannot leak one
-  tenant's setting into the next request;
-- `barber_app` cannot create a table (no DDL), and is neither superuser nor
-  `BYPASSRLS`;
-- a session that explicitly asks for support access sees every tenant.
+The earlier run found a missing `SmsConsentLog` policy and mismatched role names.
+The current static coverage test derives model classes from `schema.prisma` and
+compares direct, indirect, organization, and root classes against the SQL policy
+sets. It additionally covers `Schedule`, `OrderItem`, `TwoFactorRecoveryCode`,
+`OrganizationInvitation`, and models that carry both business and organization keys.
+The updated policies have not yet been executed in PostgreSQL.
 
-### Two real defects the proof found
-
-1. **`SmsConsentLog` had a `businessId` column and no policy.** It is the TCPA
-   consent ledger. Under the old file it would have been the single tenant table
-   still readable across shops. It is now in the policy list, and the test fails if
-   any table with a `businessId` column lacks forced RLS or a `tenant_isolation`
-   policy, so a future model cannot quietly reopen the hole.
-2. **Stage 1 and stage 2 used different role names.** Stage 1 created
-   `barber_migrator` / `barber_app` / `barber_platform`; the policy file referenced
-   `barbershop_app` / `barbershop_owner`. A deployment that followed the plan in
-   order would have failed at `ALTER ROLE`. Both files now use the stage-1 names,
-   and `scripts/apply-rls.ts` substitutes `RLS_APP_ROLE` for any override.
+The previous `app.platform_staff` session-variable bypass has been removed. The
+staged policy now checks membership in `barber_platform`, and stage 1 deliberately
+does not grant that role to `barber_app`. A separate support login and audited
+application path are still deployment prerequisites; the SQL test of the group role
+alone does not prove the application support workflow is audited.
 
 ### What this does and does not license
 
-It proves the SQL is correct and the isolation holds on a real copy. It does
-**not** mean production is protected: production still connects as the table
-owner, so the policies are not installed there. The three conditions in §6 stand.
-The honest summary is now "the second layer is built and proven offline", not "the
-second layer is unverified".
-
-One weakness is recorded rather than hidden: the `app.platform_staff = '1'` escape
-hatch is a session setting, so any code able to run SQL on the runtime connection
-can use it. It contains application bugs; it does not contain a compromised
-application. §3 of `prisma/rls/production-rls.sql` explains how to move that escape
-to role membership if you ever need the stronger guarantee.
+No current run proves the revised SQL against PostgreSQL or the app against a
+non-owner role. Production remains unverified and RLS remains disabled there. The
+staging gates in §4 and §5 are still required; the accurate status is that the
+static model-policy map and test harness have been improved, not that the second
+layer is live or currently proven.
 
 ## How the enforcement test runs (and why it cannot lie)
 
@@ -241,58 +233,42 @@ Two additions since this plan was written, both handled without enabling anythin
 ### 8.1 The gift-card gap
 
 `20261005014500_add_gift_cards` turns RLS **on** for `GiftCardSettings`, `GiftCard` and
-`GiftCardTransaction` and creates no policy. On the owner role this is invisible, because a
-table owner bypasses RLS. On `barber_app` it is a fail-closed outage: a table with RLS enabled
-and no policy returns zero rows, so gift cards would appear to have vanished.
+`GiftCardTransaction` and creates no policy. On the table-owner role this is invisible; on
+`barber_app` it is a fail-closed outage. The staged SQL now includes all three business-key
+policies, but that closes the design gap only in the template; no live database was inspected
+or changed during this work.
 
-This plan already includes all three tables in the `businessId` policy array, so applying it
-closes the gap. Until then:
+The report-only reconciliation command requires an explicit, verified target:
 
 ```bash
-npm run db:rls-reconcile          # reports the gap and prints the exact policy
-npm run db:rls-reconcile -- --enforce   # exits 1 when a table has RLS but no policy
+RLS_RECONCILIATION_DATABASE_URL=<verified-staging-url> npm run db:rls-reconcile
+RLS_RECONCILIATION_DATABASE_URL=<verified-staging-url> npm run db:rls-reconcile -- --enforce
 ```
 
-The report is read-only on purpose. Applying a policy is a production change and belongs in a
-reviewed migration, not in a script run to diagnose a problem. `tests/rls-reconciliation.test.ts`
-pins the gap, pins that the staged plan covers it, and fails if any migration starts creating
-policies on its own.
+It reports tables with RLS enabled but missing `FORCE` or all policies. It does not emit generic
+SQL because business, organization, and indirect policies require different keys. The static
+`tests/rls-reconciliation.test.ts` now verifies model-to-policy coverage and preserves the rule
+that migrations do not enable policies. The explicit live check requires all gift-card policies
+to be forced in the disposable/staging database.
 
-**Consequence for the rollout order:** the runtime role switch (section 2) must not happen
-before the policies are applied, or gift cards break. Section 4 of `docs/STAGING-ENVIRONMENT.md`
-records this.
+**Consequence for rollout:** do not switch the runtime role until the matching policies are
+applied and verified on isolated staging. The database remains unchanged by this code work.
 
 ### 8.2 The organization layer
 
-Migration `20261120150000_organization_and_referrals` adds the organization and location layer.
-Seven tables are scoped by `businessId` and join the existing direct-policy array:
+The organization layer has both shop-keyed and organization-keyed rows. The staged policy
+uses `businessId` for shop access, `organizationId` (or the organization root's `id`) for
+organization access, and attaches both policies to `OrganizationLocation`,
+`StaffLocationAssignment`, and `CustomerLocationLink`, which carry both keys.
+`OrganizationInvitation` and `OrganizationServicePriceRequest` are included in the
+organization-keyed set.
 
-`OrganizationLocation`, `StaffLocationAssignment`, `OrganizationServicePriceException`,
-`CustomerLocationLink`, `ReferralProgram`, `ReferralCode`, `ReferralAttribution`
+The organization policy uses `app.current_organization_id`, but no application helper currently
+sets that value. Therefore these policies are not ready for application enforcement; a future
+change must add and test an authorized transaction-local organization context before staging
+RLS can be enabled.
 
-Migration `20261124180000_reopening_and_price_approvals` adds
-`OrganizationServicePriceRequest`. Although it includes `businessId`, authorization is by its
-`organizationId`, so it uses the organization policy above.
-
-Eight are scoped by the organization itself and get their own policy, keyed on
-`app.current_organization_id`:
-
-`Organization`, `OrganizationMember`, `OrganizationBrandSettings`,
-`OrganizationReportingConfiguration`, `OrganizationServiceTemplate`,
-`OrganizationAnnouncement`, `OrganizationAnnouncementRead`, `OrganizationConfigAudit`
-
-`OrganizationAnnouncementRead` arrived later, in migration
-`20261123140000_organization_announcement_delivery`. It carries `organizationId`, so the
-same policy shape covers it without a second policy: a receipt is visible only while the
-request acts for the organization that owns the announcement.
-
-The organization policy accepts either the row's own `id` or its `organizationId`, so one
-policy covers both the organization row and its children. A request that acts for a single
-shop never sets `app.current_organization_id`, so it sees none of these rows. A request that
-acts for an organization sets it and sees only that organization's rows.
-
-`RestoreDrill` (migration `20261120140000_restore_drill`) is deliberately **not** tenant-scoped.
-It is platform recovery evidence and belongs to no shop, like `StripeEvent`.
-
-`tests/rls-reconciliation.test.ts` asserts every one of these names appears in the staged plan,
-so a table added later cannot quietly escape it.
+`Schedule`, `OrderItem`, and `TwoFactorRecoveryCode` have no direct businessId column and are
+scoped through `Barber`, `ShopOrder`, and `User` respectively. The planner and policy coverage
+test explicitly classify these indirect relationships. `RestoreDrill` is platform recovery
+evidence and remains global, like `StripeEvent`.

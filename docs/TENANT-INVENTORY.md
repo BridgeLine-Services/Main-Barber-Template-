@@ -15,132 +15,135 @@ suites.
 
 ## Models with a tenant column
 
-Count: **77** of 86 models.
+Count: **85** of 89 models, including indirect and organization scopes.
 
-| Model | Tenant column | Meaning |
+| Model | Tenant key / path | Meaning |
 | --- | --- | --- |
-| `Appointment` | `businessId` | scoped to one shop |
-| `AppointmentIntakeResponse` | `businessId` | scoped to one shop |
-| `AuditLog` | `businessId` | scoped to one shop |
-| `AvailabilityOverride` | `businessId` | scoped to one shop |
-| `BackupRun` | — | platform-level or reference data |
-| `Barber` | `businessId` | scoped to one shop |
-| `BarberCommissionParticipation` | `businessId` | scoped to one shop |
-| `BarberRewardProgram` | `businessId` | scoped to one shop |
-| `BarberService` | `businessId` | scoped to one shop |
-| `BarberTimeClockAccess` | `businessId` | scoped to one shop |
-| `BeforeAfterPair` | `businessId` | scoped to one shop |
-| `BlockedTime` | `businessId` | scoped to one shop |
-| `BookingQuestion` | `businessId` | scoped to one shop |
-| `Business` | — | platform-level or reference data |
-| `BusinessClosure` | `businessId` | scoped to one shop |
-| `BusinessRewardProgram` | `businessId` | scoped to one shop |
-| `BusinessSEO` | `businessId` | scoped to one shop |
-| `CancellationRecord` | `businessId` | scoped to one shop |
-| `CommissionEntry` | `businessId` | scoped to one shop |
-| `CommissionRule` | `businessId` | scoped to one shop |
-| `CommissionSettings` | `businessId` | scoped to one shop |
-| `Customer` | `businessId` | scoped to one shop |
-| `CustomerLocationLink` | `businessId` | scoped to one shop |
-| `CustomerTagAssignment` | `businessId` | scoped to one shop |
-| `EcommerceSettings` | `businessId` | scoped to one shop |
-| `Faq` | `businessId` | scoped to one shop |
-| `GiftCard` | `businessId` | scoped to one shop |
-| `GiftCardSettings` | `businessId` | scoped to one shop |
-| `GiftCardTransaction` | `businessId` | scoped to one shop |
-| `InventoryItem` | `businessId` | scoped to one shop |
-| `MaintenanceAction` | `businessId` | scoped to one shop |
-| `MarketingCampaign` | `businessId` | scoped to one shop |
-| `MediaAsset` | `businessId` | scoped to one shop |
-| `Membership` | `businessId` | scoped to one shop |
-| `MembershipPlan` | `businessId` | scoped to one shop |
-| `MembershipSettings` | `businessId` | scoped to one shop |
-| `MembershipUsage` | `businessId` | scoped to one shop |
-| `NoShowPolicy` | `businessId` | scoped to one shop |
-| `NotificationLog` | `businessId` | scoped to one shop |
-| `OrderItem` | — | platform-level or reference data |
-| `Organization` | — | platform-level or reference data |
-| `OrganizationAnnouncement` | `organizationId` | scoped to an organization |
-| `OrganizationAnnouncementRead` | `organizationId` | scoped to an organization |
-| `OrganizationBrandSettings` | `organizationId` | scoped to an organization |
-| `OrganizationConfigAudit` | `organizationId` | scoped to an organization |
-| `OrganizationInvitation` | `organizationId` | scoped to an organization |
-| `OrganizationLocation` | `businessId` | scoped to one shop |
-| `OrganizationMember` | `organizationId` | scoped to an organization |
-| `OrganizationReportingConfiguration` | `organizationId` | scoped to an organization |
-| `OrganizationServicePriceException` | `businessId` | scoped to one shop |
-| `OrganizationServicePriceRequest` | `businessId` | scoped to one shop |
-| `OrganizationServiceTemplate` | `organizationId` | scoped to an organization |
-| `Payment` | `businessId` | scoped to one shop |
-| `PaymentSettings` | `businessId` | scoped to one shop |
-| `PayrollReport` | `businessId` | scoped to one shop |
-| `PayrollReportAdjustment` | `businessId` | scoped to one shop |
-| `PayrollReportLine` | `businessId` | scoped to one shop |
-| `PayrollSettings` | `businessId` | scoped to one shop |
-| `PortalSession` | `businessId` | scoped to one shop |
-| `PortalVerificationChallenge` | `businessId` | scoped to one shop |
-| `Product` | `businessId` | scoped to one shop |
-| `ReferralAttribution` | `businessId` | scoped to one shop |
-| `ReferralCode` | `businessId` | scoped to one shop |
-| `ReferralProgram` | `businessId` | scoped to one shop |
-| `RescheduleHistory` | `businessId` | scoped to one shop |
-| `RestoreDrill` | — | platform-level or reference data |
-| `RetentionSettings` | `businessId` | scoped to one shop |
-| `Review` | `businessId` | scoped to one shop |
-| `ReviewRequest` | `businessId` | scoped to one shop |
-| `ReviewRequestSettings` | `businessId` | scoped to one shop |
-| `Schedule` | — | platform-level or reference data |
-| `Service` | `businessId` | scoped to one shop |
-| `ShopOrder` | `businessId` | scoped to one shop |
-| `SmsConsentLog` | `businessId` | scoped to one shop |
-| `StaffInvitation` | `businessId` | scoped to one shop |
-| `StaffLocationAssignment` | `businessId` | scoped to one shop |
-| `StripeEvent` | — | platform-level or reference data |
-| `TimeClockBreak` | `businessId` | scoped to one shop |
-| `TimeClockEntry` | `businessId` | scoped to one shop |
-| `TimeClockEntryRevision` | `businessId` | scoped to one shop |
-| `TimeClockSettings` | `businessId` | scoped to one shop |
-| `TwoFactorRecoveryCode` | — | platform-level or reference data |
-| `User` | `businessId` | scoped to one shop |
-| `UserSession` | — | platform-level or reference data |
-| `WaitlistEntry` | `businessId` | scoped to one shop |
-| `WebsiteContent` | `businessId` | scoped to one shop |
+| `Appointment` | `businessId` | shop-scoped |
+| `AppointmentIntakeResponse` | `businessId` | shop-scoped |
+| `AuditLog` | `businessId` | shop-scoped |
+| `AvailabilityOverride` | `businessId` | shop-scoped |
+| `BackupRun` | — | platform-level; verify its separate authorization boundary |
+| `Barber` | `businessId` | shop-scoped |
+| `BarberCommissionParticipation` | `businessId` | shop-scoped |
+| `BarberRewardProgram` | `businessId` | shop-scoped |
+| `BarberService` | `businessId` | shop-scoped |
+| `BarberTimeClockAccess` | `businessId` | shop-scoped |
+| `BeforeAfterPair` | `businessId` | shop-scoped |
+| `BlockedTime` | `businessId` | shop-scoped |
+| `BookingQuestion` | `businessId` | shop-scoped |
+| `Business` | `id` | business tenant root |
+| `BusinessClosure` | `businessId` | shop-scoped |
+| `BusinessRewardProgram` | `businessId` | shop-scoped |
+| `BusinessSEO` | `businessId` | shop-scoped |
+| `CancellationRecord` | `businessId` | shop-scoped |
+| `CommissionEntry` | `businessId` | shop-scoped |
+| `CommissionRule` | `businessId` | shop-scoped |
+| `CommissionSettings` | `businessId` | shop-scoped |
+| `Customer` | `businessId` | shop-scoped |
+| `CustomerLocationLink` | `organizationId + businessId` | organization- and shop-scoped; both access paths need review |
+| `CustomerTagAssignment` | `businessId` | shop-scoped |
+| `EcommerceSettings` | `businessId` | shop-scoped |
+| `Faq` | `businessId` | shop-scoped |
+| `GiftCard` | `businessId` | shop-scoped |
+| `GiftCardSettings` | `businessId` | shop-scoped |
+| `GiftCardTransaction` | `businessId` | shop-scoped |
+| `InventoryItem` | `businessId` | shop-scoped |
+| `MaintenanceAction` | `businessId` | shop-scoped |
+| `MarketingCampaign` | `businessId` | shop-scoped |
+| `MediaAsset` | `businessId` | shop-scoped |
+| `Membership` | `businessId` | shop-scoped |
+| `MembershipPlan` | `businessId` | shop-scoped |
+| `MembershipSettings` | `businessId` | shop-scoped |
+| `MembershipUsage` | `businessId` | shop-scoped |
+| `NoShowPolicy` | `businessId` | shop-scoped |
+| `NotificationLog` | `businessId` | shop-scoped |
+| `OrderItem` | `via ShopOrder.businessId` | inherits tenant scope from a parent relation |
+| `Organization` | `id` | organization tenant root |
+| `OrganizationAnnouncement` | `organizationId` | organization-scoped |
+| `OrganizationAnnouncementRead` | `organizationId` | organization-scoped |
+| `OrganizationBrandSettings` | `organizationId` | organization-scoped |
+| `OrganizationConfigAudit` | `organizationId` | organization-scoped |
+| `OrganizationInvitation` | `organizationId` | organization-scoped |
+| `OrganizationLocation` | `organizationId + businessId` | organization- and shop-scoped; both access paths need review |
+| `OrganizationMember` | `organizationId` | organization-scoped |
+| `OrganizationReportingConfiguration` | `organizationId` | organization-scoped |
+| `OrganizationServicePriceException` | `businessId` | shop-scoped |
+| `OrganizationServicePriceRequest` | `organizationId + businessId` | organization- and shop-scoped; both access paths need review |
+| `OrganizationServiceTemplate` | `organizationId` | organization-scoped |
+| `Payment` | `businessId` | shop-scoped |
+| `PaymentSettings` | `businessId` | shop-scoped |
+| `PayrollReport` | `businessId` | shop-scoped |
+| `PayrollReportAdjustment` | `businessId` | shop-scoped |
+| `PayrollReportLine` | `businessId` | shop-scoped |
+| `PayrollSettings` | `businessId` | shop-scoped |
+| `PortalSession` | `businessId` | shop-scoped |
+| `PortalVerificationChallenge` | `businessId` | shop-scoped |
+| `Product` | `businessId` | shop-scoped |
+| `ReferralAttribution` | `businessId` | shop-scoped |
+| `ReferralCode` | `businessId` | shop-scoped |
+| `ReferralProgram` | `businessId` | shop-scoped |
+| `ReferralReward` | `businessId` | shop-scoped |
+| `ReferralRewardEvent` | `businessId` | shop-scoped |
+| `RescheduleHistory` | `businessId` | shop-scoped |
+| `RestoreDrill` | — | platform-level; verify its separate authorization boundary |
+| `RetentionSettings` | `businessId` | shop-scoped |
+| `Review` | `businessId` | shop-scoped |
+| `ReviewRequest` | `businessId` | shop-scoped |
+| `ReviewRequestSettings` | `businessId` | shop-scoped |
+| `Schedule` | `via Barber.businessId` | inherits tenant scope from a parent relation |
+| `Service` | `businessId` | shop-scoped |
+| `ShopOrder` | `businessId` | shop-scoped |
+| `SmsConsentLog` | `businessId` | shop-scoped |
+| `StaffInvitation` | `businessId` | shop-scoped |
+| `StaffLocationAssignment` | `organizationId + businessId` | organization- and shop-scoped; both access paths need review |
+| `StripeEvent` | — | platform-level; verify its separate authorization boundary |
+| `TimeClockBreak` | `businessId` | shop-scoped |
+| `TimeClockEntry` | `businessId` | shop-scoped |
+| `TimeClockEntryRevision` | `businessId` | shop-scoped |
+| `TimeClockSettings` | `businessId` | shop-scoped |
+| `TwoFactorRecoveryCode` | `via User.businessId` | inherits tenant scope from a parent relation |
+| `User` | `businessId` | shop-scoped |
+| `UserSession` | — | platform-level; verify its separate authorization boundary |
+| `WaitlistEntry` | `businessId` | shop-scoped |
+| `WebsiteContent` | `businessId` | shop-scoped |
+| `WebsiteContentVersion` | `businessId` | shop-scoped |
 
 ## Routes
 
-Count: **205**. Guarded and visibly scoped: **102**.
-Guarded with no visible tenant filter: **65**. Public by design with tenant resolution or rate limiting: **22**. No guard and no public-handling evidence: **16**.
+Count: **212**. Guarded and visibly scoped: **111**.
+Guarded with no visible tenant filter: **71**. Public by design with tenant resolution or rate limiting: **30**. No guard and no public-handling evidence: **0**.
 
 | Route | Guards | Public handling | Visible tenant filters | Tenant models touched |
 | --- | --- | --- | --- | --- |
-| `api/appointments` ⚠️ | — | — | — | — |
-| `api/appointments/[id]` ⚠️ | — | — | — | — |
+| `api/appointments` | — | retired route returns Gone | — | — |
+| `api/appointments/[id]` | — | retired route returns Gone | — | — |
 | `api/appointments/lookup` | — | rate limited | — | Appointment |
-| `api/auth/[...nextauth]` ⚠️ | — | — | — | — |
+| `api/auth/[...nextauth]` | — | public authentication protocol endpoint | — | — |
 | `api/auth/2fa/required` | — | rate limited | — | User |
-| `api/auth/accept-invitation` | getServerSession | rate limited | businessId | AuditLog, StaffInvitation, User |
+| `api/auth/accept-invitation` | getServerSession | rate limited, retired route returns Gone | businessId | AuditLog, Business, StaffInvitation, User |
 | `api/auth/accept-organization-invitation` | requireAuth | — | organizationId | — |
 | `api/auth/change-password` | getServerSession | — | businessId | User |
 | `api/auth/forgot-password` | — | rate limited | businessId | AuditLog, User |
 | `api/auth/register` | — | rate limited | — | User |
 | `api/auth/reset-password` | — | rate limited | businessId | AuditLog, User |
 | `api/availability` | — | resolveBusinessId, rate limited | — | Barber |
-| `api/availability/check` | — | resolveBusinessId, rate limited | — | Appointment, Barber, BlockedTime, Service |
-| `api/availability/earliest` | — | resolveBusinessId, rate limited | — | — |
-| `api/barbers` | — | rate limited | businessId | Barber |
+| `api/availability/check` | — | resolveBusinessId, rate limited | — | Appointment, Barber, BlockedTime, Business, Schedule, Service |
+| `api/availability/earliest` | — | resolveBusinessId, rate limited | — | Business |
+| `api/barbers` | — | server-resolved public tenant, rate limited | businessId | Barber |
 | `api/contact` | — | rate limited | — | — |
-| `api/cron/maintenance-report` ⚠️ | CRON_SECRET bearer | — | — | MaintenanceAction |
-| `api/cron/memberships` | CRON_SECRET bearer | — | businessId | — |
+| `api/cron/maintenance-report` ⚠️ | CRON_SECRET bearer | health/readiness response only | — | MaintenanceAction |
+| `api/cron/memberships` | CRON_SECRET bearer | — | businessId | Business |
 | `api/cron/organization-invitation-delivery` | CRON_SECRET bearer | — | — | — |
 | `api/cron/organization-report-delivery` | CRON_SECRET bearer | — | — | — |
 | `api/cron/reminders` | CRON_SECRET bearer | — | — | — |
 | `api/cron/review-requests` | CRON_SECRET bearer | — | — | — |
 | `api/dashboard/analytics` | getServerSession | — | — | — |
-| `api/dashboard/appointments` ⚠️ | requireStaff | rate limited | — | Appointment, Barber, Customer |
+| `api/dashboard/appointments` | resolveOrganizationContext, requireStaff | rate limited | withTenant transaction | Appointment, Barber, Business, Customer |
 | `api/dashboard/appointments/[id]` ⚠️ | requireStaff | rate limited | — | Appointment |
 | `api/dashboard/audit-logs` ⚠️ | requireBusinessAdmin | — | — | AuditLog |
 | `api/dashboard/availability-overrides` ⚠️ | getServerSession | — | — | AvailabilityOverride, Barber |
-| `api/dashboard/barber-mode/history` ⚠️ | getServerSession | — | — | Appointment, Customer, RetentionSettings |
+| `api/dashboard/barber-mode/history` ⚠️ | getServerSession | — | — | Appointment, Business, Customer, RetentionSettings |
 | `api/dashboard/barber-services` ⚠️ | getServerSession | — | — | Barber, BarberService, Service |
 | `api/dashboard/barbers` ⚠️ | getServerSession | — | — | Barber, Service, User |
 | `api/dashboard/barbers/[id]` ⚠️ | getServerSession | — | — | Appointment, AuditLog, Barber, BarberService, MediaAsset, Service, User |
@@ -149,10 +152,10 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/blocked-times` ⚠️ | getServerSession | — | — | BlockedTime |
 | `api/dashboard/blocked-times/[id]` ⚠️ | getServerSession | — | — | BlockedTime |
 | `api/dashboard/booking-questions` ⚠️ | requireBusinessAdmin | — | — | BookingQuestion |
-| `api/dashboard/business/deactivate` | getServerSession | — | — | — |
-| `api/dashboard/business/export` ⚠️ | getServerSession | — | — | Appointment, Barber, BlockedTime, BusinessClosure, Customer, MediaAsset, Service, WebsiteContent |
-| `api/dashboard/business/reactivate` | getServerSession | — | — | — |
-| `api/dashboard/calendar-feed` ⚠️ | getServerSession | — | — | Appointment |
+| `api/dashboard/business/deactivate` ⚠️ | getServerSession | — | — | Business |
+| `api/dashboard/business/export` ⚠️ | getServerSession | — | — | Appointment, Barber, BlockedTime, Business, BusinessClosure, Customer, MediaAsset, Service, WebsiteContent |
+| `api/dashboard/business/reactivate` ⚠️ | getServerSession | — | — | Business |
+| `api/dashboard/calendar-feed` ⚠️ | getServerSession | — | — | Appointment, Business |
 | `api/dashboard/cancellation-fill/[appointmentId]` | getServerSession | — | — | — |
 | `api/dashboard/cancellations` | getServerSession | — | businessId | CancellationRecord |
 | `api/dashboard/closures` ⚠️ | getServerSession | — | — | AuditLog, BusinessClosure |
@@ -165,9 +168,9 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/commissions/rules` | requireOwner | — | businessId | Barber, CommissionRule, Service |
 | `api/dashboard/commissions/rules/[id]` ⚠️ | requireOwner | — | — | CommissionRule |
 | `api/dashboard/commissions/settings` | requireOwner | — | businessId | CommissionRule, CommissionSettings |
-| `api/dashboard/create-shop` | requireAuth | — | businessId | — |
-| `api/dashboard/customers` ⚠️ | getServerSession | — | — | Customer |
-| `api/dashboard/customers/[id]` ⚠️ | getServerSession | — | — | Appointment, Customer, PortalSession, User |
+| `api/dashboard/create-shop` | requireAuth | — | businessId | Business, User |
+| `api/dashboard/customers` | getServerSession | — | withTenant transaction | Customer |
+| `api/dashboard/customers/[id]` ⚠️ | getServerSession, customer portal session token | — | — | Appointment, Customer, PortalSession, User |
 | `api/dashboard/customers/[id]/intelligence` ⚠️ | getServerSession | — | — | Customer |
 | `api/dashboard/customers/[id]/rebook` ⚠️ | getServerSession | — | — | AuditLog, Barber, Customer, Service |
 | `api/dashboard/customers/[id]/tags` | getServerSession | — | businessId | AuditLog, CustomerTagAssignment |
@@ -180,15 +183,15 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/factory-status` | requireOwner | — | businessId | User |
 | `api/dashboard/faqs` ⚠️ | requireBusinessAdmin | — | — | Faq |
 | `api/dashboard/faqs/[id]` ⚠️ | requireBusinessAdmin | — | — | Faq |
-| `api/dashboard/features` ⚠️ | requireOwner | — | — | AuditLog |
-| `api/dashboard/gift-cards` | getServerSession | — | businessId | — |
-| `api/dashboard/gift-cards/[id]` | getServerSession | — | — | — |
-| `api/dashboard/gift-cards/[id]/adjust` | getServerSession | — | — | — |
-| `api/dashboard/gift-cards/settings` | getServerSession | — | businessId | GiftCardSettings |
+| `api/dashboard/features` ⚠️ | requireOwner | — | — | AuditLog, Business |
+| `api/dashboard/gift-cards` | requireStaff | — | businessId | — |
+| `api/dashboard/gift-cards/[id]` | requireStaff | — | — | — |
+| `api/dashboard/gift-cards/[id]/adjust` | requireStaff | — | — | — |
+| `api/dashboard/gift-cards/settings` | requireStaff | — | businessId | GiftCardSettings |
 | `api/dashboard/google-business` | getServerSession | — | — | — |
 | `api/dashboard/google-business/callback` | getServerSession | — | — | — |
 | `api/dashboard/growth-stage` | requireOwner | — | — | — |
-| `api/dashboard/growth/analytics` ⚠️ | requireAuth | — | — | Appointment, Barber, CommissionEntry, CommissionSettings, Payment, ReferralAttribution |
+| `api/dashboard/growth/analytics` | requireAuth | — | withTenant transaction | Appointment, Barber, CommissionEntry, CommissionSettings, Payment, ReferralAttribution, Schedule |
 | `api/dashboard/inventory` | getServerSession | — | businessId | AuditLog, InventoryItem |
 | `api/dashboard/inventory/[id]` | getServerSession | — | businessId | AuditLog, InventoryItem |
 | `api/dashboard/loyalty/customer` ⚠️ | getServerSession | — | — | BusinessRewardProgram, Customer |
@@ -196,20 +199,21 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/marketing/campaigns` ⚠️ | getServerSession | — | — | MarketingCampaign |
 | `api/dashboard/marketing/campaigns/[id]` ⚠️ | getServerSession | — | — | MarketingCampaign |
 | `api/dashboard/marketing/campaigns/[id]/send` | getServerSession | — | — | — |
+| `api/dashboard/marketing/performance` | getServerSession | — | withTenant transaction | Appointment, MarketingCampaign, ReferralAttribution |
 | `api/dashboard/media` | getServerSession | — | businessId | Barber, BarberService, MediaAsset, Service |
 | `api/dashboard/media/upload` | getServerSession | — | — | — |
-| `api/dashboard/memberships` ⚠️ | getServerSession | — | — | Customer, Membership, MembershipPlan, Payment |
-| `api/dashboard/memberships/[id]/cancel` | getServerSession | — | — | — |
-| `api/dashboard/memberships/plans` | getServerSession | — | businessId | MembershipPlan |
-| `api/dashboard/memberships/settings` | getServerSession | — | businessId | MembershipSettings |
+| `api/dashboard/memberships` ⚠️ | requireStaff | — | — | Customer, Membership, MembershipPlan, Payment |
+| `api/dashboard/memberships/[id]/cancel` | requireStaff | — | — | — |
+| `api/dashboard/memberships/plans` ⚠️ | requireStaff | — | — | MembershipPlan |
+| `api/dashboard/memberships/settings` ⚠️ | requireBusinessAdmin | — | — | MembershipSettings |
 | `api/dashboard/no-shows` | getServerSession | — | businessId | Appointment, AuditLog, NoShowPolicy |
 | `api/dashboard/notifications` ⚠️ | requireStaff | — | — | NotificationLog |
-| `api/dashboard/onboarding` | requireOwner | — | businessId | Barber, Service, User |
-| `api/dashboard/onboarding/review` | requireOwner | — | businessId | Barber, Service, User |
+| `api/dashboard/onboarding` | requireOwner | public tenant selected by server-verified shop slug | businessId | Barber, Business, Service, User |
+| `api/dashboard/onboarding/review` | requireOwner | — | businessId | Barber, Business, Service, User |
 | `api/dashboard/onboarding/services` ⚠️ | requireOwner | — | — | Service |
 | `api/dashboard/onboarding/services/[id]` ⚠️ | requireOwner | — | — | Service |
-| `api/dashboard/onboarding/team` ⚠️ | requireOwner | — | — | Barber |
-| `api/dashboard/onboarding/team/[id]` ⚠️ | requireOwner | — | — | Barber |
+| `api/dashboard/onboarding/team` ⚠️ | requireOwner | public tenant selected by server-verified shop slug | — | Barber |
+| `api/dashboard/onboarding/team/[id]` ⚠️ | requireOwner | — | — | Barber, Schedule |
 | `api/dashboard/openings/candidates` ⚠️ | getServerSession | — | — | Customer |
 | `api/dashboard/openings/offer` ⚠️ | getServerSession | — | — | Appointment, Barber, Customer, Service, WaitlistEntry |
 | `api/dashboard/organization` | requireAuth, resolveOrganizationContext | — | — | — |
@@ -218,16 +222,19 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/organization/announcements/unread` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/assignments` | requireAuth, resolveOrganizationContext | — | businessId | — |
 | `api/dashboard/organization/assignments/[id]` | requireAuth, resolveOrganizationContext | — | — | — |
+| `api/dashboard/organization/branding` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/invitations` | requireAuth, resolveOrganizationContext | — | organizationId | OrganizationMember, User |
 | `api/dashboard/organization/invitations/[id]` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/locations` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/locations/[id]` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/members/[id]` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/pricing-requests` | requireAuth, resolveOrganizationContext | — | businessId, organizationId | OrganizationConfigAudit, OrganizationServicePriceRequest, OrganizationServiceTemplate, User |
-| `api/dashboard/organization/pricing-requests/[id]` | requireAuth, resolveOrganizationContext | — | businessId, organizationId | OrganizationServicePriceRequest |
+| `api/dashboard/organization/pricing-requests/[id]` | requireAuth, resolveOrganizationContext | — | businessId, organizationId | OrganizationConfigAudit, OrganizationServicePriceException, OrganizationServicePriceRequest |
 | `api/dashboard/organization/regions` | requireAuth, resolveOrganizationContext | — | businessId | — |
 | `api/dashboard/organization/report` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/organization/report/schedule` | requireAuth, resolveOrganizationContext | — | organizationId | OrganizationReportingConfiguration |
+| `api/dashboard/organization/service-templates` | requireAuth, resolveOrganizationContext | — | — | — |
+| `api/dashboard/organization/service-templates/[id]` | requireAuth, resolveOrganizationContext | — | — | — |
 | `api/dashboard/ownership-transfer` | getServerSession | — | businessId | User |
 | `api/dashboard/payments` ⚠️ | getServerSession | — | — | Payment |
 | `api/dashboard/payments/[id]/receipt` | getServerSession | — | businessId | Payment |
@@ -250,13 +257,14 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/rebooking/tasks` | getServerSession | — | — | — |
 | `api/dashboard/recurring/create` | getServerSession | — | — | — |
 | `api/dashboard/recurring/preview` | getServerSession | — | — | — |
-| `api/dashboard/referrals` ⚠️ | requireOwner, requireAuth | — | — | Appointment, Customer, Payment, ReferralAttribution, ReferralCode, ReferralProgram |
+| `api/dashboard/referrals` | requireOwner, requireAuth | — | withTenant transaction | Appointment, Customer, Payment, ReferralAttribution, ReferralCode, ReferralProgram |
 | `api/dashboard/referrals/customers` ⚠️ | requireOwner | — | — | Customer |
+| `api/dashboard/referrals/rewards` | getServerSession | — | — | — |
 | `api/dashboard/review-requests` | requireBusinessAdmin | — | — | — |
 | `api/dashboard/review-requests/report` ⚠️ | requireBusinessAdmin | — | — | Appointment, ReviewRequest |
 | `api/dashboard/review-requests/settings` | requireBusinessAdmin | — | — | — |
 | `api/dashboard/reviews` | getServerSession | resolveBusinessId | businessId | Barber, Review |
-| `api/dashboard/schedule` ⚠️ | getServerSession | — | — | Barber |
+| `api/dashboard/schedule` ⚠️ | getServerSession | — | — | Barber, Schedule |
 | `api/dashboard/security/2fa` ⚠️ | requireBusinessAdmin | — | — | User |
 | `api/dashboard/security/2fa/confirm` | requireBusinessAdmin | rate limited | businessId | — |
 | `api/dashboard/security/2fa/disable` | requireBusinessAdmin | rate limited | businessId | User |
@@ -267,57 +275,59 @@ Guarded with no visible tenant filter: **65**. Public by design with tenant reso
 | `api/dashboard/seo` ⚠️ | requireBusinessAdmin | — | — | BusinessSEO |
 | `api/dashboard/services` ⚠️ | getServerSession | — | — | Barber, Service |
 | `api/dashboard/services/[id]` ⚠️ | getServerSession | — | — | Appointment, BarberService, Service |
-| `api/dashboard/settings` ⚠️ | requireBusinessAdmin | — | — | BookingQuestion, BusinessSEO, WebsiteContent |
+| `api/dashboard/settings` ⚠️ | requireBusinessAdmin | — | — | BookingQuestion, Business, BusinessSEO, WebsiteContent |
 | `api/dashboard/settings/reset-shop` ⚠️ | getServerSession | — | — | AuditLog, Barber, Faq, MediaAsset, Review, Service |
 | `api/dashboard/staff` ⚠️ | getServerSession | — | — | AuditLog, Barber, StaffInvitation, User |
 | `api/dashboard/staff/[id]` | getServerSession | — | businessId | AuditLog, Barber, User |
 | `api/dashboard/staff/invitations/[id]` ⚠️ | getServerSession | — | — | AuditLog, StaffInvitation |
 | `api/dashboard/template-version` | requireOwner | — | — | — |
-| `api/dashboard/theme` | getServerSession | — | — | — |
+| `api/dashboard/theme` ⚠️ | getServerSession | — | — | Business |
 | `api/dashboard/time-clock/access` ⚠️ | requireOwner | — | — | Barber, BarberTimeClockAccess |
 | `api/dashboard/time-clock/break` | requireAuth | — | — | — |
 | `api/dashboard/time-clock/clock` | requireAuth | — | — | — |
-| `api/dashboard/time-clock/entries` | requireAuth | — | businessId | TimeClockEntry |
+| `api/dashboard/time-clock/entries` | requireAuth | — | businessId | Business, TimeClockEntry |
 | `api/dashboard/time-clock/entries/[id]` | requireAuth | — | businessId | TimeClockEntry |
-| `api/dashboard/time-clock/export` ⚠️ | requireAuth | — | — | TimeClockEntry |
-| `api/dashboard/time-clock/my` | requireAuth | — | businessId | TimeClockBreak, TimeClockEntry |
-| `api/dashboard/time-clock/report` | requireAuth | — | businessId | TimeClockEntry |
+| `api/dashboard/time-clock/export` ⚠️ | requireAuth | — | — | Business, TimeClockEntry |
+| `api/dashboard/time-clock/my` | requireAuth | — | businessId | Business, TimeClockBreak, TimeClockEntry |
+| `api/dashboard/time-clock/report` | requireAuth | — | businessId | Business, TimeClockEntry |
 | `api/dashboard/time-clock/settings` | requireOwner | — | businessId | TimeClockSettings |
-| `api/dashboard/time-clock/status` | requireAuth | — | — | — |
-| `api/dashboard/waitlist` ⚠️ | getServerSession | — | — | WaitlistEntry |
-| `api/dashboard/website-content/publish` ⚠️ | getServerSession | — | — | WebsiteContent |
-| `api/ecommerce/checkout` ⚠️ | — | — | businessId | — |
-| `api/ecommerce/order-status` ⚠️ | — | — | businessId | ShopOrder |
-| `api/ecommerce/products` ⚠️ | — | — | — | — |
-| `api/gift-cards/purchase` ⚠️ | — | — | businessId | — |
-| `api/gift-cards/status` ⚠️ | — | — | — | — |
-| `api/health` ⚠️ | — | — | — | — |
-| `api/health/ready` ⚠️ | — | — | — | — |
-| `api/platform/businesses` | requirePlatformOwner | — | businessId | User |
-| `api/portal/appointments` | getServerSession | — | businessId | Appointment |
-| `api/portal/appointments/[id]` | getServerSession | rate limited | businessId | Appointment, AuditLog |
-| `api/portal/me` | getServerSession | — | — | — |
-| `api/portal/referrals` | getServerSession | — | businessId | Appointment, ReferralAttribution, ReferralCode, ReferralProgram |
-| `api/public/appointments` | getServerSession | resolveBusinessId, rate limited | businessId | Appointment, Barber, RetentionSettings |
+| `api/dashboard/time-clock/status` ⚠️ | requireAuth | — | — | Business |
+| `api/dashboard/waitlist` ⚠️ | getServerSession | — | — | Business, WaitlistEntry |
+| `api/dashboard/website-content/publish` ⚠️ | getServerSession | — | — | WebsiteContent, WebsiteContentVersion |
+| `api/dashboard/website-content/versions` ⚠️ | getServerSession | — | — | WebsiteContentVersion |
+| `api/dashboard/website-content/versions/[id]/restore` ⚠️ | getServerSession | — | — | WebsiteContent, WebsiteContentVersion |
+| `api/ecommerce/checkout` | — | public tenant selected by server-verified shop slug | businessId | Business |
+| `api/ecommerce/order-status` | — | public tenant selected by server-verified shop slug | businessId | Business, ShopOrder |
+| `api/ecommerce/products` | — | public tenant selected by server-verified shop slug | — | Business |
+| `api/gift-cards/purchase` | — | server-resolved public tenant | businessId | — |
+| `api/gift-cards/status` | — | server-resolved public tenant | — | — |
+| `api/health` | — | health/readiness response only | — | Business |
+| `api/health/ready` | — | health/readiness response only | — | — |
+| `api/platform/businesses` | requirePlatformOwner | public tenant selected by server-verified shop slug | businessId | Business, User |
+| `api/portal/appointments` | getServerSession | server-resolved public tenant | businessId | Appointment |
+| `api/portal/appointments/[id]` | getServerSession | server-resolved public tenant, rate limited | businessId | Appointment, AuditLog, RescheduleHistory |
+| `api/portal/me` | getServerSession | server-resolved public tenant | — | — |
+| `api/portal/referrals` | getServerSession | server-resolved public tenant | businessId | Appointment, ReferralAttribution, ReferralCode, ReferralProgram |
+| `api/public/appointments` | getServerSession | resolveBusinessId, rate limited | businessId | Appointment, Barber, Business, RetentionSettings |
 | `api/public/appointments/[token]` | — | rate limited | — | Appointment |
 | `api/public/appointments/[token]/calendar` | — | rate limited | — | Appointment |
-| `api/public/appointments/[token]/cancel` | — | rate limited | — | Appointment |
-| `api/public/appointments/[token]/reschedule` | — | rate limited | businessId | Appointment |
-| `api/public/booking-questions` ⚠️ | — | — | businessId | BookingQuestion |
-| `api/public/policies` ⚠️ | — | — | — | — |
-| `api/public/portal/data-export` ⚠️ | — | — | businessId | Appointment, Customer, PortalSession |
-| `api/public/portal/delete-account` | — | rate limited | businessId | Appointment, Customer, PortalSession |
-| `api/public/portal/logout` ⚠️ | — | — | — | PortalSession |
-| `api/public/portal/lookup` | — | rate limited | businessId | Appointment, BusinessRewardProgram, Customer, PortalSession, RetentionSettings |
-| `api/public/portal/preferences` | — | rate limited | businessId | Customer, PortalSession |
-| `api/public/portal/request` | — | rate limited | businessId | Customer, PortalVerificationChallenge |
-| `api/public/portal/verify` | — | rate limited | businessId | Customer, PortalSession, PortalVerificationChallenge |
-| `api/public/queue` | — | rate limited | businessId | Barber, Service, WaitlistEntry |
-| `api/public/waitlist/claim` | — | rate limited | businessId | Appointment, RetentionSettings, WaitlistEntry |
-| `api/services` | — | rate limited | businessId | Service |
-| `api/test/e2e-booking` | getServerSession | — | businessId | Appointment, Barber, Customer, Service |
-| `api/webhooks/stripe` ⚠️ | — | — | — | Payment |
-| `api/webhooks/twilio` ⚠️ | — | — | businessId | Customer, SmsConsentLog |
+| `api/public/appointments/[token]/cancel` | — | rate limited | — | Appointment, Business |
+| `api/public/appointments/[token]/reschedule` | — | rate limited | businessId | Appointment, RescheduleHistory |
+| `api/public/booking-questions` | — | server-resolved public tenant | businessId | BookingQuestion |
+| `api/public/policies` | — | server-resolved public tenant | — | — |
+| `api/public/portal/data-export` | customer portal session token | server-resolved public tenant | businessId | Appointment, Customer, PortalSession |
+| `api/public/portal/delete-account` | customer portal session token | server-resolved public tenant, rate limited | businessId | Appointment, Customer, PortalSession |
+| `api/public/portal/logout` ⚠️ | customer portal session token | — | — | PortalSession |
+| `api/public/portal/lookup` | customer portal session token | server-resolved public tenant, rate limited | businessId | Appointment, BusinessRewardProgram, Customer, PortalSession, RetentionSettings |
+| `api/public/portal/preferences` | customer portal session token | server-resolved public tenant, rate limited | businessId | Customer, PortalSession |
+| `api/public/portal/request` | — | server-resolved public tenant, rate limited | businessId | Customer, PortalVerificationChallenge |
+| `api/public/portal/verify` | customer portal session token | server-resolved public tenant, rate limited | businessId | Customer, PortalSession, PortalVerificationChallenge |
+| `api/public/queue` | — | server-resolved public tenant, rate limited | businessId | Barber, Service, WaitlistEntry |
+| `api/public/waitlist/claim` | — | rate limited, retired route returns Gone | businessId | Appointment, RetentionSettings, WaitlistEntry |
+| `api/services` | — | server-resolved public tenant, rate limited | businessId | Service |
+| `api/test/e2e-booking` | getServerSession | — | businessId | Appointment, Barber, Business, Customer, Service |
+| `api/webhooks/stripe` ⚠️ | webhook signature verification | — | — | Payment |
+| `api/webhooks/twilio` | webhook signature verification | — | businessId | Business, Customer, SmsConsentLog |
 
 ## Public by design
 
@@ -325,49 +335,36 @@ Reachable without signing in, which is correct for booking and registration. Eac
 tenant from verified data (`resolveBusinessId`) and/or limits abuse. These are listed so a
 reviewer can confirm the tenant resolution is genuine rather than trusting the label.
 
+- `api/appointments` — retired route returns Gone; touches no tenant model.
+- `api/appointments/[id]` — retired route returns Gone; touches no tenant model.
 - `api/appointments/lookup` — rate limited; touches Appointment.
+- `api/auth/[...nextauth]` — public authentication protocol endpoint; touches no tenant model.
 - `api/auth/2fa/required` — rate limited; touches User.
 - `api/auth/forgot-password` — rate limited; touches AuditLog, User.
 - `api/auth/register` — rate limited; touches User.
 - `api/auth/reset-password` — rate limited; touches AuditLog, User.
 - `api/availability` — resolveBusinessId, rate limited; touches Barber.
-- `api/availability/check` — resolveBusinessId, rate limited; touches Appointment, Barber, BlockedTime, Service.
-- `api/availability/earliest` — resolveBusinessId, rate limited; touches no tenant model.
-- `api/barbers` — rate limited; touches Barber.
+- `api/availability/check` — resolveBusinessId, rate limited; touches Appointment, Barber, BlockedTime, Business, Schedule, Service.
+- `api/availability/earliest` — resolveBusinessId, rate limited; touches Business.
+- `api/barbers` — server-resolved public tenant, rate limited; touches Barber.
 - `api/contact` — rate limited; touches no tenant model.
+- `api/ecommerce/checkout` — public tenant selected by server-verified shop slug; touches Business.
+- `api/ecommerce/order-status` — public tenant selected by server-verified shop slug; touches Business, ShopOrder.
+- `api/ecommerce/products` — public tenant selected by server-verified shop slug; touches Business.
+- `api/gift-cards/purchase` — server-resolved public tenant; touches no tenant model.
+- `api/gift-cards/status` — server-resolved public tenant; touches no tenant model.
+- `api/health` — health/readiness response only; touches Business.
+- `api/health/ready` — health/readiness response only; touches no tenant model.
 - `api/public/appointments/[token]` — rate limited; touches Appointment.
 - `api/public/appointments/[token]/calendar` — rate limited; touches Appointment.
-- `api/public/appointments/[token]/cancel` — rate limited; touches Appointment.
-- `api/public/appointments/[token]/reschedule` — rate limited; touches Appointment.
-- `api/public/portal/delete-account` — rate limited; touches Appointment, Customer, PortalSession.
-- `api/public/portal/lookup` — rate limited; touches Appointment, BusinessRewardProgram, Customer, PortalSession, RetentionSettings.
-- `api/public/portal/preferences` — rate limited; touches Customer, PortalSession.
-- `api/public/portal/request` — rate limited; touches Customer, PortalVerificationChallenge.
-- `api/public/portal/verify` — rate limited; touches Customer, PortalSession, PortalVerificationChallenge.
-- `api/public/queue` — rate limited; touches Barber, Service, WaitlistEntry.
-- `api/public/waitlist/claim` — rate limited; touches Appointment, RetentionSettings, WaitlistEntry.
-- `api/services` — rate limited; touches Service.
-
-## No guard and no public-handling evidence
-
-Nothing in the file shows how access is decided. Read each one.
-
-- `api/appointments` — touches no tenant model.
-- `api/appointments/[id]` — touches no tenant model.
-- `api/auth/[...nextauth]` — touches no tenant model.
-- `api/ecommerce/checkout` — touches no tenant model.
-- `api/ecommerce/order-status` — touches ShopOrder.
-- `api/ecommerce/products` — touches no tenant model.
-- `api/gift-cards/purchase` — touches no tenant model.
-- `api/gift-cards/status` — touches no tenant model.
-- `api/health` — touches no tenant model.
-- `api/health/ready` — touches no tenant model.
-- `api/public/booking-questions` — touches BookingQuestion.
-- `api/public/policies` — touches no tenant model.
-- `api/public/portal/data-export` — touches Appointment, Customer, PortalSession.
-- `api/public/portal/logout` — touches PortalSession.
-- `api/webhooks/stripe` — touches Payment.
-- `api/webhooks/twilio` — touches Customer, SmsConsentLog.
+- `api/public/appointments/[token]/cancel` — rate limited; touches Appointment, Business.
+- `api/public/appointments/[token]/reschedule` — rate limited; touches Appointment, RescheduleHistory.
+- `api/public/booking-questions` — server-resolved public tenant; touches BookingQuestion.
+- `api/public/policies` — server-resolved public tenant; touches no tenant model.
+- `api/public/portal/request` — server-resolved public tenant, rate limited; touches Customer, PortalVerificationChallenge.
+- `api/public/queue` — server-resolved public tenant, rate limited; touches Barber, Service, WaitlistEntry.
+- `api/public/waitlist/claim` — rate limited, retired route returns Gone; touches Appointment, RetentionSettings, WaitlistEntry.
+- `api/services` — server-resolved public tenant, rate limited; touches Service.
 
 ## Guarded routes with no visible tenant filter
 
@@ -375,44 +372,45 @@ These may be legitimate: an organization-wide aggregate, a platform-owner screen
 that scopes through a helper. Each one needs a reader to confirm which.
 
 - `api/cron/maintenance-report` — guards: CRON_SECRET bearer; touches MaintenanceAction.
-- `api/dashboard/appointments` — guards: requireStaff; touches Appointment, Barber, Customer.
 - `api/dashboard/appointments/[id]` — guards: requireStaff; touches Appointment.
 - `api/dashboard/audit-logs` — guards: requireBusinessAdmin; touches AuditLog.
 - `api/dashboard/availability-overrides` — guards: getServerSession; touches AvailabilityOverride, Barber.
-- `api/dashboard/barber-mode/history` — guards: getServerSession; touches Appointment, Customer, RetentionSettings.
+- `api/dashboard/barber-mode/history` — guards: getServerSession; touches Appointment, Business, Customer, RetentionSettings.
 - `api/dashboard/barber-services` — guards: getServerSession; touches Barber, BarberService, Service.
 - `api/dashboard/barbers` — guards: getServerSession; touches Barber, Service, User.
 - `api/dashboard/barbers/[id]` — guards: getServerSession; touches Appointment, AuditLog, Barber, BarberService, MediaAsset, Service, User.
 - `api/dashboard/blocked-times` — guards: getServerSession; touches BlockedTime.
 - `api/dashboard/blocked-times/[id]` — guards: getServerSession; touches BlockedTime.
 - `api/dashboard/booking-questions` — guards: requireBusinessAdmin; touches BookingQuestion.
-- `api/dashboard/business/export` — guards: getServerSession; touches Appointment, Barber, BlockedTime, BusinessClosure, Customer, MediaAsset, Service, WebsiteContent.
-- `api/dashboard/calendar-feed` — guards: getServerSession; touches Appointment.
+- `api/dashboard/business/deactivate` — guards: getServerSession; touches Business.
+- `api/dashboard/business/export` — guards: getServerSession; touches Appointment, Barber, BlockedTime, Business, BusinessClosure, Customer, MediaAsset, Service, WebsiteContent.
+- `api/dashboard/business/reactivate` — guards: getServerSession; touches Business.
+- `api/dashboard/calendar-feed` — guards: getServerSession; touches Appointment, Business.
 - `api/dashboard/closures` — guards: getServerSession; touches AuditLog, BusinessClosure.
 - `api/dashboard/closures/[id]` — guards: getServerSession; touches AuditLog, BusinessClosure.
 - `api/dashboard/commissions/entries` — guards: requireOwner; touches CommissionEntry.
 - `api/dashboard/commissions/entries/[id]` — guards: requireOwner; touches CommissionEntry.
 - `api/dashboard/commissions/report` — guards: requireOwner; touches Barber.
 - `api/dashboard/commissions/rules/[id]` — guards: requireOwner; touches CommissionRule.
-- `api/dashboard/customers` — guards: getServerSession; touches Customer.
-- `api/dashboard/customers/[id]` — guards: getServerSession; touches Appointment, Customer, PortalSession, User.
+- `api/dashboard/customers/[id]` — guards: getServerSession, customer portal session token; touches Appointment, Customer, PortalSession, User.
 - `api/dashboard/customers/[id]/intelligence` — guards: getServerSession; touches Customer.
 - `api/dashboard/customers/[id]/rebook` — guards: getServerSession; touches AuditLog, Barber, Customer, Service.
 - `api/dashboard/customers/export` — guards: getServerSession; touches Customer.
 - `api/dashboard/faqs` — guards: requireBusinessAdmin; touches Faq.
 - `api/dashboard/faqs/[id]` — guards: requireBusinessAdmin; touches Faq.
-- `api/dashboard/features` — guards: requireOwner; touches AuditLog.
-- `api/dashboard/growth/analytics` — guards: requireAuth; touches Appointment, Barber, CommissionEntry, CommissionSettings, Payment, ReferralAttribution.
+- `api/dashboard/features` — guards: requireOwner; touches AuditLog, Business.
 - `api/dashboard/loyalty/customer` — guards: getServerSession; touches BusinessRewardProgram, Customer.
 - `api/dashboard/loyalty/program` — guards: getServerSession; touches AuditLog, BusinessRewardProgram.
 - `api/dashboard/marketing/campaigns` — guards: getServerSession; touches MarketingCampaign.
 - `api/dashboard/marketing/campaigns/[id]` — guards: getServerSession; touches MarketingCampaign.
-- `api/dashboard/memberships` — guards: getServerSession; touches Customer, Membership, MembershipPlan, Payment.
+- `api/dashboard/memberships` — guards: requireStaff; touches Customer, Membership, MembershipPlan, Payment.
+- `api/dashboard/memberships/plans` — guards: requireStaff; touches MembershipPlan.
+- `api/dashboard/memberships/settings` — guards: requireBusinessAdmin; touches MembershipSettings.
 - `api/dashboard/notifications` — guards: requireStaff; touches NotificationLog.
 - `api/dashboard/onboarding/services` — guards: requireOwner; touches Service.
 - `api/dashboard/onboarding/services/[id]` — guards: requireOwner; touches Service.
 - `api/dashboard/onboarding/team` — guards: requireOwner; touches Barber.
-- `api/dashboard/onboarding/team/[id]` — guards: requireOwner; touches Barber.
+- `api/dashboard/onboarding/team/[id]` — guards: requireOwner; touches Barber, Schedule.
 - `api/dashboard/openings/candidates` — guards: getServerSession; touches Customer.
 - `api/dashboard/openings/offer` — guards: getServerSession; touches Appointment, Barber, Customer, Service, WaitlistEntry.
 - `api/dashboard/payments` — guards: getServerSession; touches Payment.
@@ -422,38 +420,42 @@ that scopes through a helper. Each one needs a reader to confirm which.
 - `api/dashboard/payments/summary` — guards: getServerSession; touches Appointment, Payment.
 - `api/dashboard/payroll/settings` — guards: requireOwner; touches PayrollSettings.
 - `api/dashboard/rebooking/send` — guards: getServerSession; touches AuditLog.
-- `api/dashboard/referrals` — guards: requireOwner, requireAuth; touches Appointment, Customer, Payment, ReferralAttribution, ReferralCode, ReferralProgram.
 - `api/dashboard/referrals/customers` — guards: requireOwner; touches Customer.
 - `api/dashboard/review-requests/report` — guards: requireBusinessAdmin; touches Appointment, ReviewRequest.
-- `api/dashboard/schedule` — guards: getServerSession; touches Barber.
+- `api/dashboard/schedule` — guards: getServerSession; touches Barber, Schedule.
 - `api/dashboard/security/2fa` — guards: requireBusinessAdmin; touches User.
 - `api/dashboard/security/2fa/start` — guards: requireBusinessAdmin; touches User.
 - `api/dashboard/seo` — guards: requireBusinessAdmin; touches BusinessSEO.
 - `api/dashboard/services` — guards: getServerSession; touches Barber, Service.
 - `api/dashboard/services/[id]` — guards: getServerSession; touches Appointment, BarberService, Service.
-- `api/dashboard/settings` — guards: requireBusinessAdmin; touches BookingQuestion, BusinessSEO, WebsiteContent.
+- `api/dashboard/settings` — guards: requireBusinessAdmin; touches BookingQuestion, Business, BusinessSEO, WebsiteContent.
 - `api/dashboard/settings/reset-shop` — guards: getServerSession; touches AuditLog, Barber, Faq, MediaAsset, Review, Service.
 - `api/dashboard/staff` — guards: getServerSession; touches AuditLog, Barber, StaffInvitation, User.
 - `api/dashboard/staff/invitations/[id]` — guards: getServerSession; touches AuditLog, StaffInvitation.
+- `api/dashboard/theme` — guards: getServerSession; touches Business.
 - `api/dashboard/time-clock/access` — guards: requireOwner; touches Barber, BarberTimeClockAccess.
-- `api/dashboard/time-clock/export` — guards: requireAuth; touches TimeClockEntry.
-- `api/dashboard/waitlist` — guards: getServerSession; touches WaitlistEntry.
-- `api/dashboard/website-content/publish` — guards: getServerSession; touches WebsiteContent.
+- `api/dashboard/time-clock/export` — guards: requireAuth; touches Business, TimeClockEntry.
+- `api/dashboard/time-clock/status` — guards: requireAuth; touches Business.
+- `api/dashboard/waitlist` — guards: getServerSession; touches Business, WaitlistEntry.
+- `api/dashboard/website-content/publish` — guards: getServerSession; touches WebsiteContent, WebsiteContentVersion.
+- `api/dashboard/website-content/versions` — guards: getServerSession; touches WebsiteContentVersion.
+- `api/dashboard/website-content/versions/[id]/restore` — guards: getServerSession; touches WebsiteContent, WebsiteContentVersion.
+- `api/public/portal/logout` — guards: customer portal session token; touches PortalSession.
+- `api/webhooks/stripe` — guards: webhook signature verification; touches Payment.
 
 ## Row-Level Security
 
-RLS is staged, not active. `prisma/rls/production-rls.sql` and the staging plan describe it;
-nothing in this repository enables it in production, and this phase does not change that.
-See `docs/RLS-STAGING-PLAN.md` for the prerequisites that must be proven first, including the
-staging proof already executed on 2026-11-17 and the two defects it found.
+RLS is staged, not production-enforced. The policy template and static coverage checks do not prove
+the current SQL on PostgreSQL, a non-owner runtime, or a staging deployment. See the rollout gates in
+`docs/RLS-STAGING-PLAN.md`; organization transaction context and full application adoption remain open.
 
 ## Phase 5 status, measured
 
 | Item | State |
 | --- | --- |
-| Application-level tenant checks | In place and unchanged by this phase. Every route above that touches a tenant model either guards and filters, or is public by design with verified tenant resolution. |
-| `withTenant()` in application code | **Not used anywhere in `src/`** (0 call sites). `src/lib/tenant-context.ts` exists and is tested on its own, but routing ordinary queries through it is a change this phase did not make: it needs each query classified as tenant-specific or organization-wide first, and doing it blind is how a franchise report stops working. |
-| Organization-wide aggregates | Authorised separately by the `reporting.aggregate.read` capability, which the role matrix grants only to organization-level roles. Corporate users do not gain individual customer records through it. |
-| Row-Level Security | Still disabled in production. `prisma/rls/production-rls.sql` is staged; nothing here enables it. |
+| Application-level tenant checks | This inventory is a review queue, not proof. For each high-risk route, confirm identity source, resolved tenant, query predicates, resource ownership, capability check, and safe denial behavior. |
+| `withTenant()` application call sites | 10 source files: `src/app/(dashboard)/dashboard/appointments/page.tsx`, `src/app/(dashboard)/dashboard/page.tsx`, `src/app/api/dashboard/appointments/route.ts`, `src/app/api/dashboard/customers/route.ts`, `src/app/api/dashboard/growth/analytics/route.ts`, `src/app/api/dashboard/marketing/performance/route.ts`, `src/app/api/dashboard/referrals/route.ts`, `src/lib/gift-cards.ts`, `src/lib/growth/referral-ledger.ts`, `src/lib/payments/pos.ts`. This is selective coverage, not completion of the tenant-query audit. |
+| Organization-wide aggregates | Organization capabilities and location membership are separate checks. Each report/query still requires review for record-level scoping and customer-data exclusion. |
+| Row-Level Security | Not production-enforced. The policy template and static model mapping are not evidence of a live role split or staging enforcement. |
 | Cross-tenant behavioural tests | `tests/tenant-isolation.test.ts` and `tests/organization-isolation.test.ts`, plus the per-route suites. This inventory is the review list, not the proof. |
 

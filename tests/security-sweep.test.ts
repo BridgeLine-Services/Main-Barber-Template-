@@ -128,6 +128,17 @@ ok('every membership-plan handler requires staff auth', (membershipPlansRoute.ma
 ok('membership settings require owner/admin auth', (membershipSettingsRoute.match(/await requireBusinessAdmin\(\)/g) ?? []).length === 2)
 ok('membership cancellation requires staff auth', /await requireStaff\(\)/.test(membershipCancelRoute))
 
+const giftCardListRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/gift-cards/route.ts'), 'utf8')
+const giftCardDetailRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/gift-cards/[id]/route.ts'), 'utf8')
+const giftCardAdjustRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/gift-cards/[id]/adjust/route.ts'), 'utf8')
+const giftCardSettingsRoute = readFileSync(join(ROOT, 'src/app/api/dashboard/gift-cards/settings/route.ts'), 'utf8')
+ok('gift card list and POS sale use database-fresh staff auth', (giftCardListRoute.match(/await requireStaff\(\)/g) ?? []).length === 2)
+ok('gift card detail uses database-fresh staff auth before tenant access', /await requireStaff\(\)[\s\S]*?user\.businessId/.test(giftCardDetailRoute))
+ok('gift card adjustments use database-fresh staff auth before mutation', /await requireStaff\(\)[\s\S]*?user\.businessId/.test(giftCardAdjustRoute))
+ok('both gift card settings handlers use database-fresh staff auth', (giftCardSettingsRoute.match(/await requireStaff\(\)/g) ?? []).length === 2)
+ok('gift card dashboard routes do not trust the JWT role/business claims directly',
+  ![giftCardListRoute, giftCardDetailRoute, giftCardAdjustRoute, giftCardSettingsRoute].some((source) => /getServerSession|authOptions/.test(source)))
+
 // ─── RLS stays staged ──────────────────────────────────────────────────────
 
 const migrationsDir = join(ROOT, 'prisma', 'migrations')

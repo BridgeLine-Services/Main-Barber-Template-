@@ -314,12 +314,12 @@ paying client.
 
 ## Database-level RLS: off by design, not by mistake
 
-`npm run db:rls-status` reports 0/51 tables protected. That is the documented
-state, not a regression: RLS requires a dedicated runtime role and a
-per-transaction `app.business_id` setting. Enabling it while the app connects as
-the table owner would either be silently bypassed or break every query. The
-enforced isolation boundary is the application layer, covered by the cross-tenant
-IDOR matrix and the role matrix.
+Production RLS is not enabled. The schema planner currently classifies 85 of 89
+models as tenant-, organization-, or parent-scoped. RLS requires a dedicated
+non-owner runtime role and transaction-local `app.current_business_id` / organization
+context; several application paths still lack that wiring. The catalog status command
+requires an explicitly identified staging database and has not been run here. Do not
+treat the staged SQL or its test harness as evidence of production enforcement.
 
 
 ---

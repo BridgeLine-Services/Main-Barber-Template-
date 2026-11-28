@@ -528,8 +528,23 @@ async function main() {
     assert(mine.every((c) => c.id !== undefined) && theirs.length === 0, 'other shop sees none of our cards')
     const myCodes = new Set(mine.map((c) => c.code))
     assert(theirs.every((c) => !myCodes.has(c.code)), 'listings are disjoint')
-    assert((await getGiftCardDetail(business.id, mine[0].id)) !== null, 'own shop reads its card detail')
-    assert((await getGiftCardDetail(otherBiz.id, mine[0].id)) === null, "other shop cannot read our card's detail")
+  assert((await getGiftCardDetail(business.id, mine[0].id)) !== null, 'own shop reads its card detail')
+  assert((await getGiftCardDetail(otherBiz.id, mine[0].id)) === null, "other shop cannot read our card's detail")
+  await prisma.giftCardTransaction.create({
+    data: {
+      businessId: otherBiz.id,
+      giftCardId: mine[0].id,
+      type: 'ADJUSTMENT',
+      amount: 1,
+      balanceAfter: 1,
+      note: 'foreign-tenant-ledger-row',
+    },
+  })
+  const scopedDetail = await getGiftCardDetail(business.id, mine[0].id)
+  assert(
+    scopedDetail?.transactions.every((transaction) => transaction.businessId === business.id),
+    'card detail never includes a ledger row scoped to another shop',
+  )
     // Redeeming our code at the other shop fails — codes are tenant-scoped.
     await prisma.$transaction(async (tx) => {
       await expectCode(

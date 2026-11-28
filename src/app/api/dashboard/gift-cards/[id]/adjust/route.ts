@@ -1,18 +1,16 @@
 /** Owner manual balance adjustment (physical-card corrections). The
  * balance change is append-only audited via a GiftCardTransaction row. */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireStaff } from '@/lib/auth-helpers'
 import { handleApiError } from '@/lib/api-errors'
 import { GiftCardError, adjustGiftCardBalance, canManageGiftCards } from '@/lib/gift-cards'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = (await getServerSession(authOptions)) as {
-      user?: { id: string; role: string; businessId?: string | null }
-    } | null
-    const user = session?.user
-    if (!user?.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireStaff()
+    if (!auth.success) return auth.response
+    const user = auth.user
+    if (!user.businessId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (!canManageGiftCards(user.role)) {
       return NextResponse.json({ error: 'Forbidden — owner access required' }, { status: 403 })
     }

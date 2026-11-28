@@ -18,13 +18,13 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
-interface ModelInfo {
+export interface ModelInfo {
   name: string
   body: string
   fields: Array<{ name: string; type: string; isRelation: boolean }>
 }
 
-function parseModels(schema: string): ModelInfo[] {
+export function parseModels(schema: string): ModelInfo[] {
   const models: ModelInfo[] = []
   const re = /^model\s+(\w+)\s*\{/gm
   let match: RegExpExecArray | null
@@ -47,9 +47,9 @@ function parseModels(schema: string): ModelInfo[] {
   return models
 }
 
-/** Global tables: identity, platform operations, sessions, jobs, audit of the platform itself. */
+/** Tables intentionally outside tenant RLS: platform operations, sessions, jobs, and platform audit evidence. User remains tenant-scoped because it carries businessId. */
 const GLOBAL = new Set([
-  'User', 'BackupRun', 'PlatformSetting', 'UserSession', 'VerificationToken',
+  'BackupRun', 'PlatformSetting', 'UserSession', 'VerificationToken',
   'PasswordResetToken', 'SystemJob', 'JobLock', 'CronRun', 'RateLimitCounter',
   'StripeEvent', 'WebhookEvent', 'JobExecution', 'NotificationDispatch',
   // Platform recovery evidence: belongs to no shop and to no organization.

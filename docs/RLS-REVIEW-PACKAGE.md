@@ -1,54 +1,41 @@
 # RLS review package
 
-For the owner's review before production RLS is considered. Nothing here enables
-anything. Production RLS is **off**, and stays off until this review and the staging
-gates are both signed off.
+Production RLS remains **off**. This review does not enable it, alter database roles,
+or connect to any database. The revised policy template and harness have not yet been
+executed in PostgreSQL after the changes below.
 
-## What changed in this round
+## Current code changes
 
-`production-rls.sql` read `app.business_id` in all seven policies while
-`src/lib/tenant-context.ts` writes `app.current_business_id`. The enforcement suite
-passed because it set the old name itself, so it proved the policies work when handed a
-name the application never writes. Enabling RLS as it stood would have denied every
-tenant query in production while every test stayed green.
+- The planner now treats `User` as shop-scoped because the model has `businessId`, and
+  statically checks every classified model against its policy class.
+- The staged policy now includes indirect scopes for `Schedule`, `OrderItem`, and
+  `TwoFactorRecoveryCode`; organization invitations; and both scopes for models carrying
+  shop and organization keys.
+- Platform RLS access is role-based (`barber_platform` membership), not a custom session
+  variable. Stage 1 no longer grants that group to `barber_app`.
+- The status and reconciliation tools require explicit database URLs and do not fall back
+  to `DATABASE_URL`. The status report checks `FORCE ROW LEVEL SECURITY` as well as policy
+  presence.
+- Gift-card detail reads now use `withTenant()` and filter ledger rows by both the card
+  and business identifiers, with an adversarial regression fixture.
 
-Policies and the suite now use one name. CI proves 42 checks against a real PostgreSQL
-service with `RLS_TEST_REQUIRED=true`, so a skipped run is a failure, not a pass.
+## Evidence available
 
-`tests/rls-context-name.test.ts` (13 assertions) pins the agreement: one tenant setting,
-written by the helper and read by the policies; `app.platform_staff` as the only other
-setting policies may read; the helper never granting itself platform access; fail-closed
-when unset; no persistent `SET`.
-
-## What is proven, and where
-
-| Claim | Evidence |
+| Claim | Evidence / state |
 |---|---|
-| Per-tenant isolation | 42 checks in CI, `tests/rls-enforcement.test.ts` |
-| Fail-closed with no tenant | Same suite |
-| Cross-tenant INSERT refused | Same suite |
-| UPDATE/DELETE affect 0 rows | Same suite |
-| Setting cleared at COMMIT and ROLLBACK | Same suite |
-| Policies read the setting the app writes | `tests/rls-context-name.test.ts` |
-| Role names consistent | `stage-1-roles.sql` and `production-rls.sql` both use `barber_*` |
+| Model classification | `scripts/rls-plan.ts --check`; static comparison in `tests/rls-reconciliation.test.ts` |
+| Gift-card scoped history query | `tests/gift-cards.test.ts` (database-backed; not run in this environment) |
+| RLS policy execution | Not run after this update; requires isolated PostgreSQL test setup |
+| Application runtime with RLS enabled | Not proven; no staging run as `barber_app` |
+| Organization context | Not wired; no application helper currently sets `app.current_organization_id` |
+| Support authorization and audit from app route | Not proven by the RLS harness; existing platform API gates/audit still need route-level review |
+| Production RLS / production role configuration | Not inspected or changed |
 
-## What is not proven
+## Remaining rollout gates
 
-- No staging database has run the application as `barber_app` with RLS on.
-- Role attributes have not been read back from a live server (`rolsuper`, `rolbypassrls`,
-  table ownership).
-- Concurrent pooled transactions have not been exercised with the application, only with
-  the test harness.
-- Platform support access has not been exercised from an application route.
-- Rollback has not been rehearsed against a copy of production data.
-
-These are the gates in `docs/RLS-STAGING-PLAN.md`. They need a staging database, which is
-an owner action, not a code change.
-
-## The risk to weigh
-
-RLS is a second line of defence behind the application's own tenant scoping, which is
-already enforced and tested. Turning it on before the staging gates pass converts an
-untested configuration into a production outage: every query without transaction-local
-context fails closed. The safer sequence is staging first, then production with a
-documented rollback, which is why this remains blocked rather than done.
+Before any staging or production enforcement, prove the role attributes and table ownership,
+complete business and organization transaction-context adoption, run the full suite as the
+non-owner runtime role, test concurrent pooled requests, verify support operations are
+explicitly authorized and audited, and rehearse rollback on an isolated staging database.
+See `docs/RLS-STAGING-PLAN.md`. Never claim production enforcement from a static policy file
+or a disposable harness run.
