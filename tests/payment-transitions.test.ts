@@ -79,7 +79,26 @@ async function main() {
     assert(refundRow.kind === 'REFUND' && refundRow.amount === -25 && refundRow.status === 'SUCCEEDED',
       'refund ledger row created (negative amount, SUCCEEDED)')
 
-    console.log('\n── 3. Illegal operations refused ──')
+    console.log('\n── 3. Refund retry and remaining-balance safety ──')
+    const partialCharge = await prisma.$transaction(async (tx) =>
+      inPersonProvider.createCharge({ ...ctxA, tx }, { amount: 40, kind: 'CHARGE' }))
+    const partialSettled = await prisma.$transaction(async (tx) =>
+      inPersonProvider.confirm({ ...ctxA, tx }, partialCharge.payment.id))
+    assert(partialSettled.ok, 'partial-refund test charge is settled')
+    const refundKey = `refund-retry-${stamp}`
+    const partialFirst = await prisma.$transaction(async (tx) =>
+      inPersonProvider.refund({ ...ctxA, tx }, { paymentId: partialCharge.payment.id, amount: 10, idempotencyKey: refundKey }))
+    const partialReplay = await prisma.$transaction(async (tx) =>
+      inPersonProvider.refund({ ...ctxA, tx }, { paymentId: partialCharge.payment.id, amount: 10, idempotencyKey: refundKey }))
+    assert(partialFirst.ok && partialReplay.ok, 'a retry of the same partial refund succeeds')
+    assert(partialFirst.payment.id === partialReplay.payment.id, 'a refund retry returns the original ledger row')
+    const partialState = await prisma.payment.findUniqueOrThrow({ where: { id: partialCharge.payment.id } })
+    assert(partialState.refundedAmount === 10, 'a retry does not double the refunded balance')
+    const mismatchedReplay = await prisma.$transaction(async (tx) =>
+      inPersonProvider.refund({ ...ctxA, tx }, { paymentId: partialCharge.payment.id, amount: 15, idempotencyKey: refundKey }))
+    assert(!mismatchedReplay.ok, 'reusing the key for a different amount is rejected')
+
+    console.log('\n── 4. Illegal operations refused ──')
     const canceled = await prisma.$transaction(async (tx) => {
       const r = await inPersonProvider.createCharge({ ...ctxA, tx }, { amount: 10, kind: 'TIP' })
       await tx.payment.update({ where: { id: r.payment.id }, data: { status: 'CANCELED' } })
@@ -98,7 +117,7 @@ async function main() {
       inPersonProvider.createCharge({ ...ctxA, tx }, { amount: -5, kind: 'CHARGE' }))
     assert(!badAmount.ok, 'negative amount refused')
 
-    console.log('\n── 4. Idempotency ──')
+    console.log('\n── 5. Charge idempotency ──')
     let dupRejected = false
     try {
       await prisma.payment.create({ data: {
@@ -107,7 +126,7 @@ async function main() {
     } catch { dupRejected = true }
     assert(dupRejected, 'duplicate idempotencyKey rejected by unique constraint')
 
-    console.log('\n── 5. Tenant isolation ──')
+    console.log('\n── 6. Tenant isolation ──')
     const bCharge = await prisma.$transaction(async (tx) => {
       const r = await inPersonProvider.createCharge({ ...ctxA, tx }, { amount: 30, kind: 'CHARGE' })
       return r.payment
@@ -121,7 +140,7 @@ async function main() {
     const scopedCount = await prisma.payment.count({ where: { businessId: businessB.id } })
     assert(scopedCount === 0, 'business B ledger sees zero of business A payments')
 
-    console.log('\n── 6. Provider resolution fails closed ──')
+    console.log('\n── 7. Provider resolution fails closed ──')
     let threw = false
     try { resolvePaymentProvider({ paymentInPerson: false }) } catch { threw = true }
     assert(threw, 'online payments without a registered provider throws (fail closed)')

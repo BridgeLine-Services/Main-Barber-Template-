@@ -53,9 +53,33 @@ export const inPersonProvider: PaymentProvider = {
   },
 
   async refund(ctx, input: RefundInput): Promise<ProviderResult> {
+    // Serialize all refunds for this payment so concurrent distinct requests
+    // cannot both calculate against the same remaining balance.
+    await ctx.tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Payment"
+      WHERE "id" = ${input.paymentId} AND "businessId" = ${ctx.businessId}
+      FOR UPDATE
+    `
+
     const payment = await getPayment(ctx, input.paymentId)
     if (!payment) return { ok: false, payment: null as never, error: 'Payment not found' }
     if (payment.kind === 'REFUND') return { ok: false, payment, error: 'Cannot refund a refund' }
+
+    if (input.idempotencyKey) {
+      const existingRefund = await ctx.tx.payment.findFirst({
+        where: {
+          businessId: ctx.businessId,
+          originalPaymentId: payment.id,
+          idempotencyKey: input.idempotencyKey,
+        },
+      })
+      if (existingRefund) {
+        if (input.amount !== undefined && Math.abs(Math.abs(existingRefund.amount) - input.amount) > 0.005) {
+          return { ok: false, payment, error: 'Idempotency key was already used for a different refund amount' }
+        }
+        return { ok: true, payment: existingRefund }
+      }
+    }
     if (payment.status !== 'SUCCEEDED' && payment.status !== 'PARTIALLY_REFUNDED') {
       return { ok: false, payment, error: transitionError(payment.status, 'REFUNDED') }
     }
@@ -63,9 +87,9 @@ export const inPersonProvider: PaymentProvider = {
     // Partial refunds: `amount` on the input reverses only that much;
     // omitting it refunds the full remaining balance.
     const refundAmount =
-      Math.round((((input as RefundInput & { amount?: number }).amount ?? payment.amount - payment.refundedAmount) as number) * 100) / 100
+      Math.round((input.amount ?? payment.amount - payment.refundedAmount) * 100) / 100
     const remaining = Math.round((payment.amount - payment.refundedAmount) * 100) / 100
-    if (refundAmount <= 0 || refundAmount > remaining) {
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0 || refundAmount > remaining) {
       return { ok: false, payment, error: `Refund amount must be between 0 and ${remaining.toFixed(2)}` }
     }
 
