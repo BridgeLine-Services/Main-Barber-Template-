@@ -98,6 +98,28 @@ async function main() {
       inPersonProvider.refund({ ...ctxA, tx }, { paymentId: partialCharge.payment.id, amount: 15, idempotencyKey: refundKey }))
     assert(!mismatchedReplay.ok, 'reusing the key for a different amount is rejected')
 
+    const concurrentCharge = await prisma.$transaction(async (tx) =>
+      inPersonProvider.createCharge({ ...ctxA, tx }, { amount: 40, kind: 'CHARGE' }))
+    const concurrentSettled = await prisma.$transaction(async (tx) =>
+      inPersonProvider.confirm({ ...ctxA, tx }, concurrentCharge.payment.id))
+    assert(concurrentSettled.ok, 'concurrency test charge is settled')
+    const concurrentRefunds = await Promise.all([
+      prisma.$transaction(async (tx) => inPersonProvider.refund(
+        { ...ctxA, tx }, { paymentId: concurrentCharge.payment.id, amount: 30, idempotencyKey: `concurrent-a-${stamp}` },
+      )),
+      prisma.$transaction(async (tx) => inPersonProvider.refund(
+        { ...ctxA, tx }, { paymentId: concurrentCharge.payment.id, amount: 30, idempotencyKey: `concurrent-b-${stamp}` },
+      )),
+    ])
+    assert(concurrentRefunds.filter((refund) => refund.ok).length === 1,
+      'concurrent distinct refunds cannot overrun the remaining balance')
+    const concurrentState = await prisma.payment.findUniqueOrThrow({ where: { id: concurrentCharge.payment.id } })
+    const concurrentLedgerCount = await prisma.payment.count({
+      where: { originalPaymentId: concurrentCharge.payment.id, kind: 'REFUND' },
+    })
+    assert(concurrentState.refundedAmount === 30 && concurrentLedgerCount === 1,
+      'concurrent refund attempts leave one correctly balanced ledger entry')
+
     console.log('\n── 4. Illegal operations refused ──')
     const canceled = await prisma.$transaction(async (tx) => {
       const r = await inPersonProvider.createCharge({ ...ctxA, tx }, { amount: 10, kind: 'TIP' })
