@@ -57,7 +57,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import type { LucideIcon } from 'lucide-react'
-import { roleLabel } from '@/lib/role-labels'
+import { dashboardRoleLabel } from '@/lib/role-labels'
 
 interface UnreadAnnouncementResponse {
   unread: number | null
@@ -475,9 +475,7 @@ export function Sidebar({
     .map((section) => ({ ...section, items: section.items?.filter((item) => !existingHrefs.has(item.href)) }))
     .filter((section) => (section.items?.length ?? 0) > 0)
   const sections = [...scopedBaseSections, ...additionalOrganizationSections]
-  const displayedRole = organizationRole && organizationRole !== 'BARBER' && organizationRole !== 'CUSTOMER'
-    ? organizationRole
-    : userRole
+  const displayedRole = dashboardRoleLabel(userRole, organizationRole)
 
   // Nav destinations that are a URL-prefix of ANOTHER nav destination
   // (e.g. /dashboard/ecommerce → /dashboard/ecommerce/orders) must match
@@ -579,7 +577,7 @@ export function Sidebar({
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground leading-tight">{businessName}</h2>
-            <p className="text-[10px] text-muted-foreground">                {roleLabel(displayedRole)} portal
+            <p className="text-[10px] text-muted-foreground">                {displayedRole} portal
 </p>
           </div>
         </div>
@@ -621,7 +619,7 @@ export function Sidebar({
             <div className="overflow-hidden">
               <h1 className="text-sm font-semibold tracking-tight text-foreground truncate [font-family:var(--dash-display-font)]">{businessName}</h1>
               <p className="text-xs text-[var(--dash-brand)] font-medium">
-                {roleLabel(displayedRole)} Dashboard
+                {displayedRole} Dashboard
               </p>
               {organizationRole && (
                 <p className="text-[10px] text-muted-foreground">
@@ -694,11 +692,11 @@ export function Sidebar({
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 {isOwner ? (
                   <span className="inline-flex items-center gap-1 text-[var(--dash-brand)] font-medium">
-                    <Shield className="w-3 h-3" /> {roleLabel(userRole)}
+                    <Shield className="w-3 h-3" /> {displayedRole}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <User className="w-3 h-3" /> {roleLabel(userRole)}
+                    <User className="w-3 h-3" /> {displayedRole}
                   </span>
                 )}
               </div>

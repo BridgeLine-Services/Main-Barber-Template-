@@ -25,8 +25,19 @@ export const ROLE_LABEL: Record<string, string> = {
   LOCATION_MANAGER: 'Location manager',
 }
 
-/** Friendly label for a role identifier, falling back to the raw value. */
+/** Friendly label for a role identifier without exposing unknown internal values. */
 export function roleLabel(role: string | null | undefined): string {
   if (!role) return 'Customer'
-  return ROLE_LABEL[role] ?? role
+  return ROLE_LABEL[role] ?? 'User'
+}
+
+/** Uses an applicable organization role consistently across dashboard surfaces. */
+export function dashboardRoleLabel(
+  userRole: string | null | undefined,
+  organizationRole: string | null | undefined,
+): string {
+  const displayRole = organizationRole && organizationRole !== 'BARBER' && organizationRole !== 'CUSTOMER'
+    ? organizationRole
+    : userRole
+  return roleLabel(displayRole)
 }
