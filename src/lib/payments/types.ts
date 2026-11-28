@@ -37,7 +37,9 @@ export interface CreateChargeInput {
 
 export interface RefundInput {
   paymentId: string
+  amount?: number
   reason?: string
+  /** Stable across retries of the same refund request. */
   idempotencyKey?: string
 }
 

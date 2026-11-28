@@ -34,15 +34,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const amount = body.amount != null ? Math.round(body.amount * 100) / 100 : undefined
+    const suppliedIdempotencyKey = request.headers.get('idempotency-key')?.trim()
+    if (suppliedIdempotencyKey && (suppliedIdempotencyKey.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(suppliedIdempotencyKey))) {
+      return NextResponse.json({ error: 'Invalid idempotency key' }, { status: 400 })
+    }
+    // Stable fallback preserves safe retries for existing clients. Callers
+    // making multiple intentional partial refunds should send a unique key.
+    const idempotencyKey = suppliedIdempotencyKey ?? `refund:${payment.id}:${amount ?? 'full'}`
     const result = await prisma.$transaction(async (tx) => {
       const res = await provider.refund(
         { businessId, tx },
         {
           paymentId: payment.id,
           reason: body.reason,
-          idempotencyKey: `refund:${payment.id}:${amount ?? 'full'}:${Date.now()}`,
+          idempotencyKey,
           ...(amount !== undefined ? { amount } : {}),
-        } as never,
+        },
       )
       // Refunds reduce the commissioned barber's payout in the same
       // transaction (idempotent — recomputed from refundedAmount).

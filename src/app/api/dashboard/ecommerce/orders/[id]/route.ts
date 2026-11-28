@@ -66,13 +66,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const { adjustGiftCardForRefund } = await import('@/lib/gift-cards')
         const provider = getPaymentProvider(payment.provider)
         if (!provider) return NextResponse.json({ error: `Unknown provider ${payment.provider}` }, { status: 400 })
+        const suppliedIdempotencyKey = request.headers.get('idempotency-key')?.trim()
+        if (suppliedIdempotencyKey && (suppliedIdempotencyKey.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(suppliedIdempotencyKey))) {
+          return NextResponse.json({ error: 'Invalid idempotency key' }, { status: 400 })
+        }
+        const idempotencyKey = suppliedIdempotencyKey ?? `order-refund:${order.id}`
         const result = await prisma.$transaction(async (tx) => {
           const res = await provider.refund(
             { businessId: user.businessId!, tx },
-            {
-              paymentId: payment.id,
-              idempotencyKey: `order-refund:${order.id}:${Date.now()}`,
-            } as never,
+            { paymentId: payment.id, idempotencyKey },
           )
           if (res.ok) {
             await adjustCommissionsForRefund(tx, user.businessId!, payment.id)

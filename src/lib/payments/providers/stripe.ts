@@ -115,17 +115,39 @@ export const stripeProvider: PaymentProvider = {
   },
 
   async refund(ctx, input: RefundInput): Promise<ProviderResult> {
+    // Keep the provider side effect and ledger update serialized per payment.
+    await ctx.tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Payment"
+      WHERE "id" = ${input.paymentId} AND "businessId" = ${ctx.businessId}
+      FOR UPDATE
+    `
+
     const payment = await getPayment(ctx, input.paymentId)
     if (!payment) return { ok: false, payment: null as never, error: 'Payment not found' }
     if (payment.kind === 'REFUND') return { ok: false, payment, error: 'Cannot refund a refund' }
+
+    if (input.idempotencyKey) {
+      const existingRefund = await ctx.tx.payment.findFirst({
+        where: {
+          businessId: ctx.businessId,
+          originalPaymentId: payment.id,
+          idempotencyKey: input.idempotencyKey,
+        },
+      })
+      if (existingRefund) {
+        if (input.amount !== undefined && Math.abs(Math.abs(existingRefund.amount) - input.amount) > 0.005) {
+          return { ok: false, payment, error: 'Idempotency key was already used for a different refund amount' }
+        }
+        return { ok: true, payment: existingRefund }
+      }
+    }
     if (payment.status !== 'SUCCEEDED' && payment.status !== 'PARTIALLY_REFUNDED') {
       return { ok: false, payment, error: transitionError(payment.status, 'REFUNDED') }
     }
-    // amount is the amount to reverse NOW (<= remaining); input.amount of
-    // RefundInput is unused because the checkout layer computes it.
-    const refundAmount = (input as RefundInput & { amount?: number }).amount ?? payment.amount - payment.refundedAmount
+
+    const refundAmount = input.amount ?? payment.amount - payment.refundedAmount
     const remaining = Math.round((payment.amount - payment.refundedAmount) * AMOUNT_SCALE) / AMOUNT_SCALE
-    if (refundAmount <= 0 || refundAmount > remaining) {
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0 || refundAmount > remaining) {
       return { ok: false, payment, error: `Refund amount must be between 0 and ${remaining.toFixed(2)}` }
     }
 
