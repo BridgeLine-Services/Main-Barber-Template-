@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { fetchDashboardJson } from '@/lib/time-clock-dashboard-data'
 import { Loader2, Download, Pencil } from 'lucide-react'
 
 interface BoardRow {
@@ -78,10 +79,13 @@ interface EditState {
 const fmtTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'
 const fmtHours = (n: number) => n.toFixed(2)
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export function TimeClockClient({ enabled }: { enabled: boolean }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
+  const [loadFailures, setLoadFailures] = useState<string[]>([])
   const [board, setBoard] = useState<BoardRow[]>([])
   const [report, setReport] = useState<ReportBarber[]>([])
   const [totals, setTotals] = useState<Record<string, number>>({})
@@ -94,31 +98,52 @@ export function TimeClockClient({ enabled }: { enabled: boolean }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const q = new URLSearchParams({ preset, ...(barberFilter !== 'all' && { barberId: barberFilter }) })
-      const [boardRes, reportRes, entriesRes, barbersRes] = await Promise.all([
-        enabled ? fetch(`/api/dashboard/time-clock/status`) : Promise.resolve(null),
-        fetch(`/api/dashboard/time-clock/report?${q}`),
-        fetch(`/api/dashboard/time-clock/entries?${q}`),
-        fetch('/api/dashboard/barbers'),
-      ])
-      if (boardRes?.ok) setBoard((await boardRes.json()).board)
-      if (reportRes.ok) {
-        const data = await reportRes.json()
-        setReport(data.barbers)
-        setTotals(data.totals)
+    const q = new URLSearchParams({ preset, ...(barberFilter !== 'all' && { barberId: barberFilter }) })
+    const [boardResult, reportResult, entriesResult, barbersResult] = await Promise.all([
+      enabled ? fetchDashboardJson<{ board: BoardRow[] }>('/api/dashboard/time-clock/status') : Promise.resolve(null),
+      fetchDashboardJson<{ barbers: ReportBarber[]; totals: Record<string, number> }>(`/api/dashboard/time-clock/report?${q}`),
+      fetchDashboardJson<{ entries: EntryRow[] }>(`/api/dashboard/time-clock/entries?${q}`),
+      fetchDashboardJson<{ id: string; name: string }[] | { barbers: { id: string; name: string }[] }>('/api/dashboard/barbers'),
+    ])
+
+    const failures: string[] = []
+    if (enabled) {
+      if (boardResult?.success && isRecord(boardResult.data) && Array.isArray(boardResult.data.board)) {
+        setBoard(boardResult.data.board as BoardRow[])
+      } else {
+        setBoard([])
+        failures.push('Live board')
       }
-      if (entriesRes.ok) setEntries((await entriesRes.json()).entries)
-      if (barbersRes.ok) {
-        const data = await barbersRes.json()
-        setBarbers(Array.isArray(data) ? data.map((b: any) => ({ id: b.id, name: b.name })) : data.barbers ?? [])
-      }
-    } catch {
-      toast({ title: 'Could not load time clock data', variant: 'destructive' })
-    } finally {
-      setLoading(false)
     }
-  }, [enabled, preset, barberFilter, toast])
+    if (reportResult.success && isRecord(reportResult.data) && Array.isArray(reportResult.data.barbers) && isRecord(reportResult.data.totals)) {
+      setReport(reportResult.data.barbers as ReportBarber[])
+      setTotals(reportResult.data.totals as Record<string, number>)
+    } else {
+      setReport([])
+      setTotals({})
+      failures.push('Hours and overtime')
+    }
+    if (entriesResult.success && isRecord(entriesResult.data) && Array.isArray(entriesResult.data.entries)) {
+      setEntries(entriesResult.data.entries as EntryRow[])
+    } else {
+      setEntries([])
+      failures.push('Time entries')
+    }
+    if (barbersResult.success) {
+      const data = barbersResult.data
+      const options = Array.isArray(data) ? data : isRecord(data) && Array.isArray(data.barbers) ? data.barbers : null
+      if (options) setBarbers(options as { id: string; name: string }[])
+      else {
+        setBarbers([])
+        failures.push('Barber filters')
+      }
+    } else {
+      setBarbers([])
+      failures.push('Barber filters')
+    }
+    setLoadFailures(failures)
+    setLoading(false)
+  }, [enabled, preset, barberFilter])
 
   useEffect(() => {
     void load()
@@ -208,6 +233,18 @@ export function TimeClockClient({ enabled }: { enabled: boolean }) {
         </div>
       </div>
 
+      {loadFailures.length > 0 && (
+        <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-card p-4">
+          <div>
+            <p className="font-medium">Some time clock data could not be loaded.</p>
+            <p className="text-sm text-muted-foreground">Unavailable sections: {loadFailures.join(', ')}. Other sections remain available; retry to refresh the missing data.</p>
+          </div>
+          <Button variant="outline" onClick={() => void load()} disabled={loading}>
+            {loading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Try again
+          </Button>
+        </section>
+      )}
+
       {/* Filters */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
@@ -248,7 +285,11 @@ export function TimeClockClient({ enabled }: { enabled: boolean }) {
             <CardDescription>Who is clocked in, on break, or out — with today&apos;s hours.</CardDescription>
           </CardHeader>
           <CardContent>
-            {board.length === 0 ? (
+            {loading ? (
+              <p role="status" className="text-sm text-muted-foreground">Loading live board…</p>
+            ) : loadFailures.includes('Live board') ? (
+              <p className="text-sm text-muted-foreground">The live board is unavailable right now.</p>
+            ) : board.length === 0 ? (
               <p className="text-sm text-muted-foreground">No barbers yet.</p>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -276,7 +317,11 @@ export function TimeClockClient({ enabled }: { enabled: boolean }) {
           <CardDescription>Daily and weekly overtime use the shop&apos;s configured thresholds.</CardDescription>
         </CardHeader>
         <CardContent>
-          {report.length === 0 ? (
+          {loading ? (
+            <p role="status" className="text-sm text-muted-foreground">Loading hours report…</p>
+          ) : loadFailures.includes('Hours and overtime') ? (
+            <p className="text-sm text-muted-foreground">The hours report is unavailable right now.</p>
+          ) : report.length === 0 ? (
             <p className="text-sm text-muted-foreground">No time entries in this period.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -334,7 +379,11 @@ export function TimeClockClient({ enabled }: { enabled: boolean }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {entries.length === 0 ? (
+          {loading ? (
+            <p role="status" className="text-sm text-muted-foreground">Loading time entries…</p>
+          ) : loadFailures.includes('Time entries') ? (
+            <p className="text-sm text-muted-foreground">Time entries are unavailable right now.</p>
+          ) : entries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No time entries in this period.</p>
           ) : (
             <div className="overflow-x-auto">
